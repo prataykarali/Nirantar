@@ -1,5 +1,7 @@
-# Module 4 — Kavach (Detect)
+# 🛡️ KAVACH Adaptive Security & Privacy Architecture
 
-Legitimate vs suspicious vs malicious. Adaptive trust. Does not auto-block ordinary citizens.
-
-This directory **is** the `security` package (`gateway.py`, `detection/`, `controls/`, `audit/`, `privacy/`).
+- **`privacy/masking.py`**: Masking logic for phone numbers, card numbers, Aadhaar, and recursive JSON payload sanitizer.
+- **`controls/rate_limiter.py`**: Sliding-window session rate limiter enforcing adaptive RPS thresholds.
+- **`detection/profiler.py`**: Behavioral session profiler tracking navigation progression and retry bursts.
+- **`detection/classifier.py`**: Trust classifier computing multi-dimensional threat scores.
+- **`gateway.py`**: High-performance entry gateway evaluating all citizen transactions.
