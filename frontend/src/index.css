@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  background-color: #030712;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(0, 255, 157, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(168, 85, 247, 0.06) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Outfit', sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Cyber Glow Utilities */
+.neon-border-green {
+  box-shadow: 0 0 15px -3px rgba(0, 255, 157, 0.3), inset 0 0 15px -3px rgba(0, 255, 157, 0.1);
+}
+
+.neon-border-cyan {
+  box-shadow: 0 0 15px -3px rgba(0, 240, 255, 0.3), inset 0 0 15px -3px rgba(0, 240, 255, 0.1);
+}
+
+.neon-border-purple {
+  box-shadow: 0 0 15px -3px rgba(168, 85, 247, 0.3), inset 0 0 15px -3px rgba(168, 85, 247, 0.1);
+}
+
+.glass-card {
+  background: rgba(10, 16, 30, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 255, 157, 0.4);
+  box-shadow: 0 12px 30px -10px rgba(0, 255, 157, 0.15);
+}
