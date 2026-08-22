@@ -19,6 +19,58 @@ class SyntheticTelemetryDatasetGenerator:
         self.rng = np.random.default_rng(seed)
         self.feature_engine = TelemetryFeatureEngine()
 
+    def _sample_scenario_values(self, scenario: str, index: int, n_samples: int) -> Tuple[int, float, float, float, float, float, float, int, float]:
+        if scenario == "NORMAL":
+            users = int(self.rng.normal(3500, 400))
+            rps = float(self.rng.normal(450, 50))
+            cpu = float(np.clip(self.rng.normal(35.0, 5.0), 10.0, 60.0))
+            ram = float(np.clip(self.rng.normal(42.0, 3.0), 20.0, 60.0))
+            p50 = float(np.clip(self.rng.normal(45.0, 5.0), 20.0, 80.0))
+            p99 = float(np.clip(self.rng.normal(85.0, 10.0), 40.0, 150.0))
+            error = float(np.clip(self.rng.exponential(0.001), 0.0, 0.01))
+            queue = int(max(0, self.rng.normal(5, 2)))
+            throughput = float(rps * 0.99)
+            return users, rps, cpu, ram, p50, p99, error, queue, throughput
+
+        if scenario == "TATKAL_SURGE":
+            progress = min(1.0, index / max(1, n_samples * 0.6))
+            users = int(self.rng.normal(8000 + 40000 * progress, 2000))
+            rps = float(self.rng.normal(1200 + 8000 * progress, 500))
+            cpu = float(np.clip(60.0 + 38.0 * progress + self.rng.normal(0, 2), 40.0, 99.5))
+            ram = float(np.clip(55.0 + 35.0 * progress + self.rng.normal(0, 2), 40.0, 95.0))
+            p50 = float(np.clip(120.0 + 600.0 * progress, 50.0, 1200.0))
+            p99 = float(np.clip(300.0 + 1800.0 * progress, 150.0, 3500.0))
+            error = float(np.clip(0.005 + 0.12 * progress, 0.0, 0.25))
+            queue = int(max(0, 50 + 1500 * progress + self.rng.normal(0, 100)))
+            throughput = float(min(rps, 2500.0))
+            return users, rps, cpu, ram, p50, p99, error, queue, throughput
+
+        if scenario == "BOT_ATTACK":
+            users = int(self.rng.normal(2000, 300))
+            rps = float(self.rng.normal(14000, 1000))
+            cpu = float(np.clip(self.rng.normal(88.0, 4.0), 60.0, 98.0))
+            ram = float(np.clip(self.rng.normal(65.0, 4.0), 40.0, 85.0))
+            p50 = float(np.clip(self.rng.normal(350.0, 30.0), 100.0, 800.0))
+            p99 = float(np.clip(self.rng.normal(1100.0, 150.0), 400.0, 2500.0))
+            error = float(np.clip(self.rng.normal(0.08, 0.02), 0.01, 0.20))
+            queue = int(max(0, self.rng.normal(450, 50)))
+            throughput = float(self.rng.normal(2200, 200))
+            return users, rps, cpu, ram, p50, p99, error, queue, throughput
+
+        if scenario == "DATABASE_LOCK":
+            users = int(self.rng.normal(4000, 500))
+            rps = float(self.rng.normal(600, 80))
+            cpu = float(np.clip(self.rng.normal(78.0, 6.0), 50.0, 95.0))
+            ram = float(np.clip(self.rng.normal(92.0, 3.0), 80.0, 99.0))
+            p50 = float(np.clip(self.rng.normal(850.0, 100.0), 400.0, 2000.0))
+            p99 = float(np.clip(self.rng.normal(3200.0, 300.0), 1800.0, 5000.0))
+            error = float(np.clip(self.rng.normal(0.22, 0.05), 0.05, 0.50))
+            queue = int(max(0, self.rng.normal(2200, 200)))
+            throughput = float(self.rng.normal(180, 40))
+            return users, rps, cpu, ram, p50, p99, error, queue, throughput
+
+        return 3000, 300.0, 30.0, 40.0, 40.0, 80.0, 0.001, 0, 300.0
+
     def generate_scenario_events(
         self,
         scenario: str,
@@ -31,57 +83,7 @@ class SyntheticTelemetryDatasetGenerator:
 
         for i in range(n_samples):
             timestamp = (base_time + timedelta(minutes=i)).isoformat()
-
-            if scenario == "NORMAL":
-                users = int(self.rng.normal(3500, 400))
-                rps = float(self.rng.normal(450, 50))
-                cpu = float(np.clip(self.rng.normal(35.0, 5.0), 10.0, 60.0))
-                ram = float(np.clip(self.rng.normal(42.0, 3.0), 20.0, 60.0))
-                p50 = float(np.clip(self.rng.normal(45.0, 5.0), 20.0, 80.0))
-                p99 = float(np.clip(self.rng.normal(85.0, 10.0), 40.0, 150.0))
-                error = float(np.clip(self.rng.exponential(0.001), 0.0, 0.01))
-                queue = int(max(0, self.rng.normal(5, 2)))
-                throughput = float(rps * 0.99)
-
-            elif scenario == "TATKAL_SURGE":
-                # Ramp up exponential surge
-                progress = min(1.0, i / max(1, n_samples * 0.6))
-                users = int(self.rng.normal(8000 + 40000 * progress, 2000))
-                rps = float(self.rng.normal(1200 + 8000 * progress, 500))
-                cpu = float(np.clip(60.0 + 38.0 * progress + self.rng.normal(0, 2), 40.0, 99.5))
-                ram = float(np.clip(55.0 + 35.0 * progress + self.rng.normal(0, 2), 40.0, 95.0))
-                p50 = float(np.clip(120.0 + 600.0 * progress, 50.0, 1200.0))
-                p99 = float(np.clip(300.0 + 1800.0 * progress, 150.0, 3500.0))
-                error = float(np.clip(0.005 + 0.12 * progress, 0.0, 0.25))
-                queue = int(max(0, 50 + 1500 * progress + self.rng.normal(0, 100)))
-                throughput = float(min(rps, 2500.0))
-
-            elif scenario == "BOT_ATTACK":
-                users = int(self.rng.normal(2000, 300))  # Few masked users
-                rps = float(self.rng.normal(14000, 1000))  # Massive request frequency (anomalous rps/user)
-                cpu = float(np.clip(self.rng.normal(88.0, 4.0), 60.0, 98.0))
-                ram = float(np.clip(self.rng.normal(65.0, 4.0), 40.0, 85.0))
-                p50 = float(np.clip(self.rng.normal(350.0, 30.0), 100.0, 800.0))
-                p99 = float(np.clip(self.rng.normal(1100.0, 150.0), 400.0, 2500.0))
-                error = float(np.clip(self.rng.normal(0.08, 0.02), 0.01, 0.20))
-                queue = int(max(0, self.rng.normal(450, 50)))
-                throughput = float(self.rng.normal(2200, 200))
-
-            elif scenario == "DATABASE_LOCK":
-                users = int(self.rng.normal(4000, 500))
-                rps = float(self.rng.normal(600, 80))
-                cpu = float(np.clip(self.rng.normal(78.0, 6.0), 50.0, 95.0))
-                ram = float(np.clip(self.rng.normal(92.0, 3.0), 80.0, 99.0))  # RAM explosion
-                p50 = float(np.clip(self.rng.normal(850.0, 100.0), 400.0, 2000.0))
-                p99 = float(np.clip(self.rng.normal(3200.0, 300.0), 1800.0, 5000.0))  # Latency explosion
-                error = float(np.clip(self.rng.normal(0.22, 0.05), 0.05, 0.50))
-                queue = int(max(0, self.rng.normal(2200, 200)))
-                throughput = float(self.rng.normal(180, 40))  # Stalled throughput
-
-            else:
-                users, rps, cpu, ram, p50, p99, error, queue, throughput = (
-                    3000, 300.0, 30.0, 40.0, 40.0, 80.0, 0.001, 0, 300.0
-                )
+            users, rps, cpu, ram, p50, p99, error, queue, throughput = self._sample_scenario_values(scenario, i, n_samples)
 
             events.append(TelemetryEvent(
                 service_name=service_name,

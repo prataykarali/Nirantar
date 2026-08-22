@@ -10,10 +10,10 @@ from m0_digital_twin.database import get_db
 from m0_digital_twin.mock_services import SearchService, AvailabilityService
 
 
-def _apify_search(query: str, max_results: int = 3) -> Dict[str, Any]:
-    from backend.app.adapters.search.apify_adapter import ApifySearchEngine
+def _scrapling_search(query: str, max_results: int = 3) -> Dict[str, Any]:
+    from backend.app.adapters.search.scrapling_adapter import search_web_scrapling
 
-    return ApifySearchEngine().search_web(query, max_results=max_results)
+    return search_web_scrapling(query, max_results=max_results)
 
 
 TOOL_JSON_SCHEMAS: List[Dict[str, Any]] = [
@@ -42,8 +42,20 @@ TOOL_JSON_SCHEMAS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "search_scrapling",
+        "description": "Retrieve open-web facts via Scrapling web scraper when local DB has no complete answer. Never use this to invent fares or seat counts.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Natural-language search query"},
+                "max_results": {"type": "integer", "default": 3},
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "search_apify",
-        "description": "Retrieve open-web facts via Apify when the local DB has no complete answer. Never use this to invent fares or seat counts.",
+        "description": "Alias for open-web scraper. Retrieve facts via Scrapling web scraper.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -99,7 +111,8 @@ class ToolRegistry:
             "check_inventory",
             lambda train, date, cls="3A", quota="GN": avail.check_availability(train, date, cls, quota),
         )
-        self.register("search_apify", lambda query, max_results=3: _apify_search(query, max_results))
+        self.register("search_scrapling", lambda query, max_results=3: _scrapling_search(query, max_results))
+        self.register("search_apify", lambda query, max_results=3: _scrapling_search(query, max_results))
         self.register("get_queue_status", lambda queue="booking": {"queue_depth": 0, "status": "DRAINED"})
 
     def register(self, name: str, func: Callable[..., Any]) -> None:

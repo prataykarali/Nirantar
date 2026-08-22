@@ -45,6 +45,11 @@ class PersonaKind(str, Enum):
     RETRY_HEAVY = "RETRY_HEAVY"
     SUSPICIOUS = "SUSPICIOUS"
     ABANDONED = "ABANDONED"
+    RURAL = "RURAL"
+    TATKAL_RUSH = "TATKAL_RUSH"
+    COMMUTER = "COMMUTER"
+    BOT_SCALPER = "BOT_SCALPER"
+
 
 
 class JourneyStep(str, Enum):

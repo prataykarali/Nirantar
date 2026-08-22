@@ -18,6 +18,9 @@ class IntentType(str, Enum):
     GET_QUEUE_STATUS = "GET_QUEUE_STATUS"
     CIVIC_APPLICATION = "CIVIC_APPLICATION"
     TRACK_STATUS = "TRACK_STATUS"
+    EXPLAIN_FIELD = "EXPLAIN_FIELD"
+    AUTOFILL_SAFE_DATA = "AUTOFILL_SAFE_DATA"
+    RECOVER_PAYMENT = "RECOVER_PAYMENT"
     UNKNOWN = "UNKNOWN"
 
 
@@ -26,6 +29,28 @@ class ChannelType(str, Enum):
     MOBILE_APP = "MOBILE_APP"
     VOICE_AGENT = "VOICE_AGENT"
     CHAT_BOT = "CHAT_BOT"
+
+
+class SafeAutofillPayload(BaseModel):
+    """Schema defining allowed non-sensitive autofill fields and forbidden sensitive fields."""
+    allowed_fields: List[str] = Field(
+        default_factory=lambda: ["Name", "Age", "Gender", "Berths", "Quota", "Origin", "Destination"]
+    )
+    forbidden_fields: List[str] = Field(
+        default_factory=lambda: ["Passwords", "OTPs", "CVVs", "PINs"]
+    )
+    safe_data: Dict[str, Any] = Field(default_factory=dict)
+    filtered_out_fields: List[str] = Field(default_factory=list)
+
+
+class VoiceTranscriptionResult(BaseModel):
+    """Structured result schema from voice audio transcription."""
+    transcript: str = ""
+    language: str = "en"
+    byte_length: Optional[int] = None
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    is_fallback: bool = False
+    error: Optional[str] = None
 
 
 class CitizenIntent(BaseModel):

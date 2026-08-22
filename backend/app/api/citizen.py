@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body
 from pydantic import BaseModel, Field
 
-from contracts.citizen import CitizenIntent, CitizenJourneyResponse, CitizenSession
+from contracts.citizen import CitizenIntent, CitizenJourneyResponse, CitizenSession, SafeAutofillPayload
 from backend.app.services.citizen.intent_extractor import MultilingualIntentExtractor
 from backend.app.services.citizen.voice_interface import VoiceInterfaceAdapter
 from backend.app.services.citizen.journey_engine import ProgressiveJourneyEngine, JourneyStage
@@ -35,6 +35,50 @@ class StepAdvanceRequest(BaseModel):
     stage: Optional[str] = None
     current_stage: Optional[str] = None
     selection: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AutofillRequest(BaseModel):
+    user_data: Optional[Dict[str, Any]] = None
+
+
+class ExplainRequest(BaseModel):
+    term_or_field: str = Field(..., description="Civic term, error code, or field name to explain")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    language: str = "en"
+
+
+EXPLANATIONS_KNOWLEDGE_BASE = {
+    "quota": {
+        "en": "Quota specifies ticket allocation pools such as General (GN), Tatkal (TQ), Ladies (LD), or Senior Citizen (SS).",
+        "hi": "कोटा सामान्य (GN), तत्काल (TQ), महिला (LD), या वरिष्ठ नागरिक (SS) जैसी श्रेणी निर्दिष्ट करता है।",
+        "bn": "কোটা সাধারণ (GN), তৎকাল (TQ), মহিলা (LD), বা প্রবীণ নাগরিক (SS) ইত্যাদির মতো আসন বরাদ্দপুল চিহ্নিত করে।",
+        "ta": "கோட்டா என்பது பொது (GN), தட்கல் (TQ), மகளிர் (LD) போன்ற இட ஒதுக்கீடு பிரிவுகளைக் குறிக்கிறது.",
+    },
+    "3a": {
+        "en": "3A stands for AC 3-Tier, providing air-conditioned berths with blankets and bedsheets.",
+        "hi": "3A का अर्थ है एसी 3-टियर, जिसमें वातानुकूलित बर्थ और बिस्तर मिलते हैं।",
+        "bn": "3A মানে এসি ৩-টায়ার, যা শীতাতপ নিয়ন্ত্রিত আসন এবং বিছানা সরবরাহ করে।",
+        "ta": "3A என்பது ஏசி 3-டயர் இருக்கைப் பிரிவைக் குறிக்கிறது.",
+    },
+    "gn": {
+        "en": "General Quota (GN) is open for booking to all citizens without special conditions.",
+        "hi": "सामान्य कोटा (GN) बिना किसी विशेष शर्त के सभी नागरिकों के लिए खुला है।",
+        "bn": "সাধারণ কোটা (GN) বিশেষ কোনো শর্ত ছাড়াই সমস্ত নাগরিকের জন্য উন্মুক্ত।",
+        "ta": "பொது கோட்டா (GN) எந்த சிறப்பு நிபந்தனையும் இன்றி அனைத்து குடிமக்களுக்கும் திறந்தது.",
+    },
+    "tq": {
+        "en": "Tatkal Quota (TQ) allows emergency last-minute bookings usually starting 1 day prior to journey.",
+        "hi": "तत्काल कोटा (TQ) यात्रा से 1 दिन पहले आपातकालीन बुकिंग की अनुमति देता है।",
+        "bn": "তৎকাল কোটা (TQ) যাত্রার ১ দিন আগে জরুরি ভিত্তিতে টিকিট কাটার সুযোগ দেয়।",
+        "ta": "தட்கல் கோட்டா (TQ) பயணத்திற்கு 1 நாள் முன்பு அவசர முன்பதிவை அனுமதிக்கிறது.",
+    },
+    "pnr": {
+        "en": "Passenger Name Record (PNR) is a unique 10-digit code assigned to your railway reservation.",
+        "hi": "पीएनआर (PNR) आपकी रेलवे बुकिंग के लिए 10 अंकों का विशिष्ट कोड है।",
+        "bn": "পিএনআর (PNR) হলো আপনার রেল বুকিংয়ের জন্য বরাদ্দকৃত ১০ সংখ্যার একটি অনন্য কোড।",
+        "ta": "பிஎன்ஆர் (PNR) என்பது உங்கள் ரயில் முன்பதிவுக்கான 10 இலக்க தனித்துவமான குறியீடாகும்.",
+    },
+}
 
 
 def _stage_from(payload: StepAdvanceRequest) -> JourneyStage:
@@ -139,3 +183,54 @@ def get_failure_recovery(
 ) -> Dict[str, Any]:
     """Retrieve human-friendly failure recovery instructions and inventory lock status."""
     return recovery_engine.evaluate_failure(error_code, context, language)
+
+
+@router.get("/autofill/safe-fields")
+@router.post("/autofill/safe-fields")
+def get_safe_autofill_fields(payload: Optional[AutofillRequest] = None) -> Dict[str, Any]:
+    """Retrieve non-sensitive safe field allowlist and filter provided user profile data."""
+    raw_data = payload.user_data if payload else None
+    result = journey_engine.get_safe_autofill_data(raw_data)
+    dumped = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+    return {
+        "status": 200,
+        **dumped,
+    }
+
+
+@router.post("/explain")
+def explain_citizen_field_or_term(payload: ExplainRequest = Body(...)) -> Dict[str, Any]:
+    """Provide human-friendly explanations for civic terms, form fields, or error codes."""
+    term = payload.term_or_field.strip().lower()
+    lang = payload.language if payload.language in ["hi", "bn", "ta", "en"] else "en"
+
+    # Check if term is an error code
+    if any(err_kw in term for err_kw in ["timeout", "throttled", "expired", "failed", "queue", "saturated", "502", "504", "429", "unknown"]):
+        eval_result = recovery_engine.evaluate_failure(payload.term_or_field, payload.context, payload.language)
+        return {
+            "status": 200,
+            "term": payload.term_or_field,
+            "category": "ERROR_EXPLANATION",
+            "title": eval_result["title"],
+            "explanation": eval_result["human_explanation"],
+            "recommended_action": eval_result["recommended_action"],
+            "language": lang,
+        }
+
+    # Check predefined terms
+    matching_key = next((k for k in EXPLANATIONS_KNOWLEDGE_BASE if k in term), None)
+    if matching_key:
+        explanation = EXPLANATIONS_KNOWLEDGE_BASE[matching_key].get(lang, EXPLANATIONS_KNOWLEDGE_BASE[matching_key]["en"])
+        title = f"Understanding '{payload.term_or_field.upper()}'"
+    else:
+        title = f"Form Field: {payload.term_or_field}"
+        explanation = f"In NIRANTAR public service forms, '{payload.term_or_field}' is a standard field used to process civic intent."
+
+    return {
+        "status": 200,
+        "term": payload.term_or_field,
+        "category": "FIELD_EXPLANATION",
+        "title": title,
+        "explanation": explanation,
+        "language": lang,
+    }

@@ -215,7 +215,7 @@ class ApifySearchEngine:
                 "query": query,
                 "maxResults": max_results,
             }
-            resp = requests.post(apify_url, json=payload, timeout=4.0)
+            resp = requests.post(apify_url, json=payload, timeout=25.0)
 
             if resp.status_code not in [200, 201]:
                 return {

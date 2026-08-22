@@ -8,7 +8,13 @@ DB first; Apify + NVIDIA synthesis only when the catalogue has no route.
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from contracts.citizen import CitizenIntent, CitizenJourneyResponse, CitizenSession, IntentType
+from contracts.citizen import (
+    CitizenIntent,
+    CitizenJourneyResponse,
+    CitizenSession,
+    IntentType,
+    SafeAutofillPayload,
+)
 from m0_digital_twin.database import DigitalTwinDatabase, get_db
 from m0_digital_twin.mock_services import AvailabilityService, BookingService, PaymentService, SearchService
 from m0_digital_twin.models import BookingRequest, Passenger
@@ -34,20 +40,33 @@ STATION_LABELS = {
     "SDAH": "Sealdah",
     "NDLS": "New Delhi",
     "BCT": "Mumbai Central",
-    "MAS": "Chennai",
+    "MAS": "Chennai Central",
+    "MDU": "Madurai Junction",
+    "CBE": "Coimbatore Junction",
+    "TPJ": "Tiruchchirappalli Junction",
     "SBC": "Bengaluru",
     "PNBE": "Patna",
     "NJP": "New Jalpaiguri",
+    "MLDT": "Malda Town",
+    "JP": "Jaipur",
+    "SML": "Shimla",
+    "KLK": "Kalka",
+    "KGP": "Kharagpur",
+    "PURI": "Puri",
+    "BBS": "Bhubaneswar",
 }
 
 INTENT_LABELS = {
-    IntentType.BOOK_TRAIN: {"en": "Book a train", "hi": "ट्रेन बुक करें", "bn": "ট্রেন বুক করুন"},
-    IntentType.SEARCH_TRAINS: {"en": "Search trains", "hi": "ट्रेन खोजें", "bn": "ট্রেন খুঁজুন"},
-    IntentType.CHECK_AVAILABILITY: {"en": "Check availability", "hi": "सीट जाँचें", "bn": "আসন দেখুন"},
-    IntentType.TRACK_STATUS: {"en": "Check booking", "hi": "बुकिंग स्थिति", "bn": "বুকিং স্ট্যাটাস"},
-    IntentType.GET_QUEUE_STATUS: {"en": "Queue status", "hi": "कतार स्थिति", "bn": "কাতারের অবস্থা"},
-    IntentType.CIVIC_APPLICATION: {"en": "Find a government service", "hi": "सरकारी सेवा", "bn": "সরকারি সেবা"},
-    IntentType.UNKNOWN: {"en": "A public-service request", "hi": "एक सेवा अनुरोध", "bn": "একটি সেবার অনুরোধ"},
+    IntentType.BOOK_TRAIN: {"en": "Book a train", "hi": "ट्रेन बुक करें", "bn": "ট্রেন বুক করুন", "ta": "ரயில் புக் செய்யவும்"},
+    IntentType.SEARCH_TRAINS: {"en": "Search trains", "hi": "ट्रेन खोजें", "bn": "ট্রেন খুঁজুন", "ta": "ரயில்களைத் தேடுங்கள்"},
+    IntentType.CHECK_AVAILABILITY: {"en": "Check availability", "hi": "सीट जाँचें", "bn": "আসন দেখুন", "ta": "இருக்கை விவரம்"},
+    IntentType.TRACK_STATUS: {"en": "Check booking", "hi": "बुकिंग स्थिति", "bn": "বুকিং স্ট্যাটাস", "ta": "பதிவு நிலை"},
+    IntentType.GET_QUEUE_STATUS: {"en": "Queue status", "hi": "कतार स्थिति", "bn": "কাতারের অবস্থা", "ta": "வரிசை நிலை"},
+    IntentType.CIVIC_APPLICATION: {"en": "Find a government service", "hi": "सरकारी सेवा", "bn": "সরকারি সেবা", "ta": "அரசு சேவை"},
+    IntentType.EXPLAIN_FIELD: {"en": "Explain form field", "hi": "फ़ॉर्म फ़ील्ड समझें", "bn": "ফর্মের ক্ষেত্র ব্যাখ্যা", "ta": "படிவ விவரம் விளக்கம்"},
+    IntentType.AUTOFILL_SAFE_DATA: {"en": "Safe profile autofill", "hi": "सुरक्षित ऑटोफ़िल", "bn": "নিরাপদ অটোফিল", "ta": "பாதுகாப்பான விவரம் நிரப்புதல்"},
+    IntentType.RECOVER_PAYMENT: {"en": "Recover payment", "hi": "भुगतान पुनः प्राप्त करें", "bn": "পেমেন্ট পুনরুদ্ধার", "ta": "பணம் திரும்பப் பெறுதல்"},
+    IntentType.UNKNOWN: {"en": "A public-service request", "hi": "एक सेवा अनुरोध", "bn": "একটি সেবার অনুরোধ", "ta": "சேவை கோரிக்கை"},
 }
 
 
@@ -79,6 +98,14 @@ class ProgressiveJourneyEngine:
             "review": "পেমেন্টের আগে বিবরণ দেখে নিন।",
             "confirm_booking": "বুকিং নিশ্চিত করতে অনুগ্রহ করে পর্যালোচনা করুন:",
         },
+        "ta": {
+            "ask_origin": "நீங்கள் எங்கிருந்து பயணம் செய்ய விரும்புகிறீர்கள்?",
+            "ask_destination": "நீங்கள் எங்கு செல்ல விரும்புகிறீர்கள்?",
+            "select_train": "உங்கள் பயணத்திற்கான முக்கிய விருப்பங்கள்:",
+            "enter_passengers": "பயணியின் பெயர் மற்றும் வயதை உள்ளிடவும்.",
+            "review": "பணம் செலுத்துவதற்கு முன் விவரங்களைச் சரிபார்க்கவும்.",
+            "confirm_booking": "பதிவை உறுதிப்படுத்த விவரங்களைச் சரிபார்க்கவும்:",
+        },
     }
 
     def __init__(self, db: Optional[DigitalTwinDatabase] = None) -> None:
@@ -90,6 +117,70 @@ class ProgressiveJourneyEngine:
         self.orchestrator = SemanticOrchestrationAgent()
         self.vector_store = SnowflakeVectorStore(db_path=self.db.db_path)
 
+    def get_safe_autofill_data(self, user_data: Optional[Dict[str, Any]] = None) -> SafeAutofillPayload:
+        """Filter user profile data against strict non-sensitive field allowlists."""
+        allowlist_map = {
+            "name": "Name",
+            "age": "Age",
+            "gender": "Gender",
+            "berths": "Berths",
+            "berth_preference": "Berths",
+            "quota": "Quota",
+            "origin": "Origin",
+            "origin_station": "Origin",
+            "source_station": "Origin",
+            "destination": "Destination",
+            "destination_station": "Destination",
+        }
+
+        denylist = {
+            "password", "passwords", "otp", "otps", "cvv", "cvvs", "pin", "pins",
+            "card_number", "upi_pin", "secret", "token", "auth_token"
+        }
+
+        default_safe_data = {
+            "Name": "Asha Kumar",
+            "Age": 34,
+            "Gender": "F",
+            "Berths": "Lower",
+            "Quota": "GN",
+            "Origin": "HWH",
+            "Destination": "NDLS",
+        }
+
+        if not user_data:
+            return SafeAutofillPayload(
+                safe_data=default_safe_data,
+                filtered_out_fields=[],
+            )
+
+        sanitized: Dict[str, Any] = {}
+        filtered_out: List[str] = []
+
+        for raw_key, value in user_data.items():
+            key_lower = str(raw_key).strip().lower()
+            if key_lower in denylist or any(d in key_lower for d in ["password", "otp", "cvv", "pin"]):
+                filtered_out.append(str(raw_key))
+                continue
+
+            if key_lower in allowlist_map:
+                target_key = allowlist_map[key_lower]
+                sanitized[target_key] = value
+            elif raw_key in ["Name", "Age", "Gender", "Berths", "Quota", "Origin", "Destination"]:
+                sanitized[raw_key] = value
+            else:
+                filtered_out.append(str(raw_key))
+
+        # Fill defaults for missing mandatory safe fields
+        for default_key, default_val in default_safe_data.items():
+            if default_key not in sanitized:
+                sanitized[default_key] = default_val
+
+        return SafeAutofillPayload(
+            safe_data=sanitized,
+            filtered_out_fields=filtered_out,
+        )
+
     def advance_journey(
         self,
         intent: CitizenIntent,
@@ -97,20 +188,80 @@ class ProgressiveJourneyEngine:
         current_stage: JourneyStage = JourneyStage.INTENT,
         user_selection: Optional[Dict[str, Any]] = None,
     ) -> CitizenJourneyResponse:
-        lang = intent.language if intent.language in ["hi", "bn", "en"] else "en"
+        lang = intent.language if intent.language in ["hi", "bn", "ta", "en"] else "en"
         prompts = self.PROMPTS.get(lang, self.PROMPTS["en"])
         selection = dict(user_selection or {})
 
-        if not intent.source_station:
-            return self._reply(prompts["ask_origin"], intent, session, "PROVIDE_ORIGIN", {
-                "stage": JourneyStage.INTENT.value,
-                "missing_field": "source_station",
-            })
-        if not intent.destination_station:
-            return self._reply(prompts["ask_destination"], intent, session, "PROVIDE_DESTINATION", {
-                "stage": JourneyStage.INTENT.value,
-                "missing_field": "destination_station",
-            })
+        # Handle out-of-scope queries
+        if intent.intent_type == IntentType.UNKNOWN:
+            return self._reply(
+                "NIRANTAR is a specialized Indian Civic & Rail Transport Intelligence System. I can only assist with Indian train bookings, Tatkal availability, travel planning, UIDAI Aadhaar, Parivahan transport, and civic scheme services.",
+                intent,
+                session,
+                "OUT_OF_SCOPE",
+                {
+                    "stage": JourneyStage.INTENT.value,
+                    "domain": "INDIAN_CIVIC_AND_RAIL_SERVICES",
+                },
+            )
+
+        # Handle specialized intents
+        if intent.intent_type == IntentType.EXPLAIN_FIELD:
+            field_name = intent.entities.get("field") or intent.raw_query or "quota"
+            return self._reply(
+                f"Field explanation for '{field_name}': Non-sensitive civic parameter used for train allocation.",
+                intent,
+                session,
+                "EXPLAIN_FIELD",
+                {
+                    "stage": JourneyStage.INTENT.value,
+                    "field": field_name,
+                    "explanation": f"In Indian Railways, {field_name} specifies your preference or booking entitlement category.",
+                },
+            )
+
+        if intent.intent_type == IntentType.AUTOFILL_SAFE_DATA:
+            safe_payload = self.get_safe_autofill_data(intent.entities.get("user_data"))
+            dumped = safe_payload.model_dump() if hasattr(safe_payload, "model_dump") else safe_payload.dict()
+            return self._reply(
+                "Safe non-sensitive autofill profile generated successfully.",
+                intent,
+                session,
+                "AUTOFILL_PROVIDED",
+                {
+                    "stage": JourneyStage.PASSENGER.value,
+                    "autofill": dumped,
+                },
+            )
+
+        if intent.intent_type == IntentType.RECOVER_PAYMENT:
+            return self._reply(
+                "Payment recovery protocol engaged. Your inventory hold remains active.",
+                intent,
+                session,
+                "RECOVER_PAYMENT",
+                {
+                    "stage": JourneyStage.REVIEW.value,
+                    "recovery_status": "HOLD_PRESERVED",
+                    "lock_expiry_seconds": 240,
+                },
+            )
+
+        # Require origin/destination for train routes
+        if intent.intent_type in (IntentType.BOOK_TRAIN, IntentType.SEARCH_TRAINS):
+            if not intent.source_station:
+                return self._reply(prompts["ask_origin"], intent, session, "PROVIDE_ORIGIN", {
+                    "stage": JourneyStage.INTENT.value,
+                    "missing_field": "source_station",
+                })
+            if not intent.destination_station:
+                return self._reply(prompts["ask_destination"], intent, session, "PROVIDE_DESTINATION", {
+                    "stage": JourneyStage.INTENT.value,
+                    "missing_field": "destination_station",
+                })
+
+        if intent.intent_type not in (IntentType.BOOK_TRAIN, IntentType.SEARCH_TRAINS) and not intent.source_station:
+            return self._search(intent, session, prompts)
 
         if current_stage in (JourneyStage.INTENT, JourneyStage.CONFIRM) and not selection.get("confirmed"):
             return self._confirmation(intent, session, lang)
@@ -183,10 +334,30 @@ class ProgressiveJourneyEngine:
             message = (
                 f"আমি এভাবে বুঝেছি:\n{label}\n{origin} → {dest}\n{date}\n{time_pref}\n{passengers} যাত্রী"
             )
+        elif lang == "ta":
+            message = (
+                f"நான் இதைப் புரிந்து கொண்டேன்:\n{label}\n{origin} → {dest}\n{date}\n{time_pref}\n{passengers} பயணிகள்"
+            )
         else:
             message = (
                 f"I understood this as:\n{label}\n{origin} → {dest}\n{date}\n{time_pref}\n{passengers} passenger"
             )
+        top_options = []
+        web_results = []
+        if intent.source_station and intent.destination_station:
+            trains = self.search_svc.search_routes(intent.source_station, intent.destination_station)
+            top_options = self._rank_top_3_itineraries(trains, intent)
+        elif intent.raw_query:
+            orch = self.orchestrator.answer(
+                query=intent.raw_query,
+                language=intent.language,
+                source_station=intent.source_station,
+                destination_station=intent.destination_station,
+            )
+            web_results = orch.web_results
+            if orch.message and orch.source != "NO_VERIFIED_RESULT":
+                message += f"\n\n{orch.message}"
+
         return self._reply(message, intent, session, "CONFIRM_INTENT", {
             "stage": JourneyStage.CONFIRM.value,
             "confirmation": {
@@ -199,6 +370,8 @@ class ProgressiveJourneyEngine:
                 "time_preference": time_pref,
                 "passengers": passengers,
             },
+            "top_options": top_options,
+            "web_results": web_results,
         })
 
     def _search(
@@ -367,6 +540,8 @@ class ProgressiveJourneyEngine:
 
             avail_seats = avail.get("available_seats")
             fare = avail.get("fare_inr")
+            is_avail = avail.get("available", False)
+
             options.append({
                 "train_no": train_no,
                 "train_name": train["train_name"],
@@ -375,7 +550,7 @@ class ProgressiveJourneyEngine:
                 "class_type": class_pref,
                 "quota": quota,
                 "available_seats": avail_seats if avail_seats is not None else "Unavailable",
-                "is_available": avail.get("available", False),
+                "is_available": is_avail,
                 "fare_inr": fare if fare is not None and fare > 0 else "Unavailable",
                 "departure_time": dep_time,
                 "arrival_time": arr_time,
@@ -387,4 +562,15 @@ class ProgressiveJourneyEngine:
             key=lambda x: (x["is_available"], x["available_seats"] if isinstance(x["available_seats"], int) else 0),
             reverse=True,
         )
-        return options[:3]
+
+        top_3 = options[:3]
+        for idx, item in enumerate(top_3):
+            rank_num = idx + 1
+            if item["is_available"]:
+                seats_text = f"{item['available_seats']} seats available"
+                justification = f"Rank #{rank_num}: High availability ({seats_text}) in {item['class_type']} class, duration {item['duration_hours']}."
+            else:
+                justification = f"Rank #{rank_num}: Popular option with waitlist/RAC status under {item['quota']} quota."
+            item["ranking_justification"] = justification
+
+        return top_3

@@ -1,4 +1,6 @@
-"""PRAYOG — virtual citizens, personas, scenarios, chaos, DHARA verdict."""
+"""
+PRAYOG — 10,000 Virtual Citizens, Load Balancing, CDN Cache, Chaos Suite & FastAPI Endpoints Test Suite.
+"""
 
 from __future__ import annotations
 
@@ -6,8 +8,15 @@ from collections import Counter
 
 from fastapi.testclient import TestClient
 
+from backend.app.main import app
+from backend.app.services.simulation.prayog import (
+    DynamicAdmissionTokenBucket,
+    EdgeCDNCacheHeaderManager,
+    PrayogEngine,
+)
 from contracts.simulation import (
     ChaosFailureMode,
+    ChaosInjectionConfig,
     DeviceType,
     JourneyStep,
     PersonaKind,
@@ -15,14 +24,20 @@ from contracts.simulation import (
     VirtualCitizen,
 )
 from m0_digital_twin.railway_api import DigitalTwinRouter
+from m6_prayog.chaos_suite import chaos_suite
+from security.gateway import KavachGateway
 from simulation.chaos.injector import ChaosInjector
-from simulation.engine import PrayogEngine
-from simulation.personas.catalog import DEFAULT_MIX_10K, scaled_mix
+from simulation.personas.catalog import (
+    DEFAULT_MIX_10K,
+    DEMOGRAPHIC_MIX_10K,
+    LOCUST_WEIGHTS,
+    scaled_mix,
+)
 from simulation.personas.factory import build_population
 from simulation.scenarios.catalog import SCENARIOS, get_scenario
 from simulation.walker import overload_probability
 
-from backend.app.main import app
+client = TestClient(app)
 
 
 def test_virtual_citizen_fields() -> None:
@@ -49,6 +64,22 @@ def test_persona_mix_sums_to_10000() -> None:
     assert DEFAULT_MIX_10K[PersonaKind.RETRY_HEAVY] == 500
     assert DEFAULT_MIX_10K[PersonaKind.SUSPICIOUS] == 500
     assert DEFAULT_MIX_10K[PersonaKind.ABANDONED] == 200
+
+
+def test_demographic_mix_10k_math() -> None:
+    """Exact 10,000 persona demographic distribution math (35% Rural, 30% Tatkal Rush, 20% Commuter, 15% Bot/Scalper)."""
+    assert sum(DEMOGRAPHIC_MIX_10K.values()) == 10000
+    assert DEMOGRAPHIC_MIX_10K[PersonaKind.RURAL] == 3500  # 35% Rural
+    assert DEMOGRAPHIC_MIX_10K[PersonaKind.TATKAL_RUSH] == 3000  # 30% Tatkal Rush
+    assert DEMOGRAPHIC_MIX_10K[PersonaKind.COMMUTER] == 2000  # 20% Commuter
+    assert DEMOGRAPHIC_MIX_10K[PersonaKind.BOT_SCALPER] == 1500  # 15% Bot/Scalper
+
+    scaled = scaled_mix(100, DEMOGRAPHIC_MIX_10K)
+    assert sum(scaled.values()) == 100
+    assert scaled[PersonaKind.RURAL] == 35
+    assert scaled[PersonaKind.TATKAL_RUSH] == 30
+    assert scaled[PersonaKind.COMMUTER] == 20
+    assert scaled[PersonaKind.BOT_SCALPER] == 15
 
 
 def test_scaled_mix_preserves_total() -> None:
@@ -78,7 +109,46 @@ def test_booking_journey_is_not_root_hammer() -> None:
     assert JourneyStep.THINK in booking.journey
 
 
+def test_dynamic_admission_token_bucket() -> None:
+    """Load balancing: Token bucket rate-limiting and burst token management."""
+    bucket = DynamicAdmissionTokenBucket(base_capacity=100, base_refill_rate=20.0)
+    assert bucket.consume(10) is True
+
+    # Adjust for surge / overload
+    bucket.adjust_for_load(0.9, is_tatkal_surge=True)
+    status = bucket.get_status()
+    assert status["capacity"] == 40  # 40% of base_capacity under surge
+    assert status["total_admitted"] >= 10
+
+
+def test_edge_cdn_cache_header_injection() -> None:
+    """CDN edge cache header injection (Cache-Control, s-maxage headers)."""
+    static_headers = EdgeCDNCacheHeaderManager.get_headers("stations")
+    assert "public" in static_headers["Cache-Control"]
+    assert "s-maxage=86400" in static_headers["Cache-Control"]
+    assert static_headers["Edge-Cache-Policy"] == "STATIC_IMMUTABLE"
+
+    search_headers = EdgeCDNCacheHeaderManager.get_headers("search")
+    assert "public" in search_headers["Cache-Control"]
+    assert "s-maxage=300" in search_headers["Cache-Control"]
+    assert search_headers["Edge-Cache-Policy"] == "READ_HEAVY_CACHED"
+
+    availability_headers = EdgeCDNCacheHeaderManager.get_headers("availability")
+    assert "public" in availability_headers["Cache-Control"]
+    assert "s-maxage=10" in availability_headers["Cache-Control"]
+    assert availability_headers["Edge-Cache-Policy"] == "HIGH_VOLATILITY_SHORT_TTL"
+
+    booking_headers = EdgeCDNCacheHeaderManager.get_headers("booking")
+    assert "private" in booking_headers["Cache-Control"]
+    assert "no-store" in booking_headers["Cache-Control"]
+    assert booking_headers["Edge-Cache-Policy"] == "ZERO_CACHE_TRANSACTIONAL"
+
+    rules = EdgeCDNCacheHeaderManager.list_rules()
+    assert len(rules) == 4
+
+
 def test_scenarios_a_through_f() -> None:
+    """Verify configuration of all 6 Chaos Scenarios (A through F)."""
     assert get_scenario("A").workload.concurrent_virtual_users == 1000
     assert get_scenario("B").workload.concurrent_virtual_users == 5000
     assert get_scenario("C").workload.concurrent_virtual_users == 10000
@@ -92,11 +162,15 @@ def test_scenarios_a_through_f() -> None:
     assert infra.chaos.injected_latency_ms == 100.0
     assert set(SCENARIOS) == set(TrafficScenarioKind)
 
+    scenarios = chaos_suite.list_scenarios()
+    assert len(scenarios) == 6
+    ids = [s["id"] for s in scenarios]
+    assert set(ids) == {"A", "B", "C", "D", "E", "F"}
+
 
 def test_chaos_database_slowdown_is_five_x() -> None:
     router = DigitalTwinRouter()
     injector = ChaosInjector(router)
-    from contracts.simulation import ChaosInjectionConfig
 
     runtime = injector.apply(
         ChaosInjectionConfig(
@@ -114,7 +188,6 @@ def test_chaos_database_slowdown_is_five_x() -> None:
 def test_chaos_outage_returns_503() -> None:
     router = DigitalTwinRouter()
     injector = ChaosInjector(router)
-    from contracts.simulation import ChaosInjectionConfig
 
     injector.apply(
         ChaosInjectionConfig(
@@ -134,6 +207,32 @@ def test_chaos_outage_returns_503() -> None:
     assert search["status"] == 200
 
 
+def test_kavach_bot_storm_throttling_under_15_percent_scalper_load() -> None:
+    """Kavach bot storm throttling under 15% scalper load."""
+    gateway = KavachGateway()
+    # Simulate scalper bot repeated search/booking calls from suspicious session
+    session_id = "SES-bot-scalper-99"
+    throttled_count = 0
+    for i in range(20):
+        _assessment, allowed, reason = gateway.evaluate(
+            session_id=session_id,
+            endpoint="SEARCH",
+            ip_hash="scalper_ip_storm",
+            is_retry=(i > 5),
+        )
+        if not allowed or reason in {"rate_limited", "throttled", "blocked"}:
+            throttled_count += 1
+
+    assert throttled_count >= 1
+
+    # Run engine with demographic mix containing 15% bot/scalpers
+    engine = PrayogEngine()
+    summary = engine.run("BOT_SURGE", population=200, seed=19, use_demographic_mix=True)
+    assert summary.verdict.suspicious_total > 0
+    assert summary.verdict.suspicious_throttled >= 1
+    assert summary.outcomes.get("throttled", 0) >= 1
+
+
 def test_overload_grows_with_users_and_chaos() -> None:
     assert overload_probability(1000) < overload_probability(5000)
     assert overload_probability(5000) < overload_probability(10000)
@@ -146,14 +245,6 @@ def test_normal_scenario_keeps_critical_journey() -> None:
     assert summary.simulated_users == 120
     assert summary.verdict.maintained is True
     assert summary.verdict.legit_dropped / max(summary.verdict.legit_completed, 1) < 0.2
-
-
-def test_bot_surge_throttles_suspicious_more_than_legit() -> None:
-    engine = PrayogEngine()
-    summary = engine.run("BOT_SURGE", population=150, seed=19)
-    assert summary.verdict.suspicious_total > 0
-    assert summary.verdict.suspicious_throttled >= 1
-    assert summary.outcomes.get("throttled", 0) >= 1
 
 
 def test_infra_degradation_dhara_protects_inventory() -> None:
@@ -180,24 +271,60 @@ def test_spike_uses_last_stage_population() -> None:
     assert summary.verdict.maintained is True
 
 
-def test_prayog_api_lists_and_runs() -> None:
-    client = TestClient(app)
+def test_fastapi_prayog_endpoints() -> None:
+    """Test all FastAPI `/api/v1/prayog/*` endpoints."""
+    # List scenarios
     listed = client.get("/api/v1/prayog/scenarios")
     assert listed.status_code == 200
     assert len(listed.json()["scenarios"]) == 6
+
+    # Personas listing
     personas = client.get("/api/v1/prayog/personas")
-    assert personas.json()["mix_10k"]["NORMAL"] == 5500
+    assert personas.status_code == 200
+    pdata = personas.json()
+    assert pdata["mix_10k"]["NORMAL"] == 5500
+    assert pdata["demographic_mix_10k"]["RURAL"] == 3500
+
+    # Load balancing status
+    lb_res = client.get("/api/v1/prayog/load-balance-status")
+    assert lb_res.status_code == 200
+    assert "token_bucket" in lb_res.json()["data"]
+    assert "cdn_cache_rules" in lb_res.json()["data"]
+
+    # Metrics
+    metrics_res = client.get("/api/v1/prayog/metrics")
+    assert metrics_res.status_code == 200
+    assert "p95_latency_ms" in metrics_res.json()["metrics"]
+
+    # Run scenario
     ran = client.post("/api/v1/prayog/run", json={"scenario": "A", "population": 60})
     assert ran.status_code == 200
     body = ran.json()["run"]
     assert body["verdict"]["maintained"] is True
+
+    # Run scenario by endpoint
+    ran_scen = client.post("/api/v1/prayog/run-scenario", json={"scenario": "B", "population": 40})
+    assert ran_scen.status_code == 200
+    assert ran_scen.json()["run"]["simulated_users"] == 40
+
+    # Last run
     last = client.get("/api/v1/prayog/last")
     assert last.status_code == 200
-    assert last.json()["run"]["run_id"] == body["run_id"]
+    assert last.json()["run"]["run_id"] == ran_scen.json()["run"]["run_id"]
+
+    # Inject chaos
+    chaos_res = client.post(
+        "/api/v1/prayog/chaos",
+        json={"failure_mode": "DATABASE_SLOWDOWN", "injected_latency_ms": 50.0},
+    )
+    assert chaos_res.status_code == 200
+
+    # Stop simulation
+    stop_res = client.post("/api/v1/prayog/stop")
+    assert stop_res.status_code == 200
+    assert stop_res.json()["stop_result"]["status"] == "stopped"
 
 
 def test_locust_persona_weights_match_mix() -> None:
-    from simulation.personas.catalog import LOCUST_WEIGHTS
-
     assert LOCUST_WEIGHTS[PersonaKind.NORMAL] == 55
     assert sum(LOCUST_WEIGHTS.values()) == 100

@@ -1,7 +1,7 @@
 """
 NIRANTAR Module 1 — Multilingual Natural Language Intent Extractor
 ==================================================================
-Converts unstructured citizen voice/text queries (English, Hindi, Bengali)
+Converts unstructured citizen voice/text queries (English, Hindi, Bengali, Tamil)
 into structured NIRANTAR CitizenIntent contracts.
 """
 
@@ -14,7 +14,7 @@ from contracts.citizen import CitizenIntent, IntentType
 class MultilingualIntentExtractor:
     """Deterministic, resilient multilingual intent parser with 100% offline support."""
 
-    # Station canonical mappings across English, Hindi, and Bengali scripts
+    # Station canonical mappings across English, Hindi, Bengali, and Tamil scripts
     STATION_ALIASES: Dict[str, str] = {
         # Howrah / Kolkata
         "howrah": "HWH",
@@ -133,26 +133,44 @@ class MultilingualIntentExtractor:
         # Haridwar
         "haridwar": "HW",
         "हरिद्वार": "HW",
-        "হরিদ্বার": "HW",
+        "हरिद्वार": "HW",
+        # Tamil Nadu Station Aliases: Chennai (MAS), Madurai (MDU), Coimbatore (CBE), Trichy (TPJ)
+        "chennai": "MAS",
+        "chennai central": "MAS",
+        "mas": "MAS",
+        "சென்னை": "MAS",
+        "சென்னை সেন্টிரல்": "MAS",
+        "madurai": "MDU",
+        "mdu": "MDU",
+        "மதுரை": "MDU",
+        "coimbatore": "CBE",
+        "cbe": "CBE",
+        "கோயம்புத்தூர்": "CBE",
+        "கோவை": "CBE",
+        "trichy": "TPJ",
+        "tiruchchirappalli": "TPJ",
+        "tpj": "TPJ",
+        "திருச்சிராப்பள்ளி": "TPJ",
+        "திருச்சி": "TPJ",
     }
 
     # Class mappings
     CLASS_ALIASES: Dict[str, str] = {
         "1a": "1A", "first ac": "1A", "1st ac": "1A", "প্রথম এসি": "1A",
-        "2a": "2A", "second ac": "2A", "2nd ac": "2A", "দ্বিতীয় এসি": "2A",
-        "3a": "3A", "third ac": "3A", "3rd ac": "3A", "ac 3": "3A", "তৃতীয় এসি": "3A", "थर्ड एसी": "3A",
-        "sl": "SL", "sleeper": "SL", "स्लीपर": "SL", "স্লিপার": "SL",
+        "2a": "2A", "second ac": "2A", "2nd ac": "2A", "Waitlist": "2A", "द्वितीय एसी": "2A",
+        "3a": "3A", "third ac": "3A", "3rd ac": "3A", "ac 3": "3A", "তৃতীয় এসি": "3A", "थर्ड एसी": "3A", "மூன்றாம் ஏசி": "3A",
+        "sl": "SL", "sleeper": "SL", "स्लीपर": "SL", "স্লিপার": "SL", "ஸ்லீப்பர்": "SL",
         "cc": "CC", "chair car": "CC", "চেয়ার কার": "CC",
         "2s": "2S", "second sitting": "2S",
     }
 
     # Quota mappings
     QUOTA_ALIASES: Dict[str, str] = {
-        "tatkal": "TQ", "tatkaal": "TQ", "तत्काल": "TQ", "তৎকাল": "TQ", "তাতকাল": "TQ",
+        "tatkal": "TQ", "tatkaal": "TQ", "तत्काल": "TQ", "তৎকাল": "TQ", "তাতকাল": "TQ", "தட்கல்": "TQ",
         "premium tatkal": "PT", "प्रीमियम तत्काल": "PT", "প্রিমিয়াম তৎকাল": "PT",
-        "ladies": "LD", "महिला": "LD", "মহিলা": "LD",
-        "senior citizen": "SS", "senior": "SS", "वरिष्ठ": "SS", "প্রবীণ": "SS",
-        "general": "GN", "सामान्य": "GN", "সাধারণ": "GN",
+        "ladies": "LD", "महिला": "LD", "মহিলা": "LD", "மகளிர்": "LD",
+        "senior citizen": "SS", "senior": "SS", "वरिष्ठ": "SS", "প্রবীণ": "SS", "முதியவர்": "SS",
+        "general": "GN", "सामान्य": "GN", "সাধারণ": "GN", "பொது": "GN",
     }
 
     def extract_intent(self, query: str, language: str = "auto") -> CitizenIntent:
@@ -164,10 +182,11 @@ class MultilingualIntentExtractor:
         # 1. Determine Intent Type & Local Entities
         intent_type = self._classify_intent_type(lower_text)
         src_station, dst_station = self._extract_stations(lower_text)
-        travel_date = self._extract_date(lower_text)
+        travel_date, date_explicit = self._extract_date_with_flag(lower_text)
         class_pref = self._extract_class(lower_text)
         quota = self._extract_quota(lower_text)
         travel_time = self._extract_time(lower_text)
+        locally_found_stations = bool(src_station or dst_station)
 
         entities: Dict[str, Any] = {}
         if travel_time:
@@ -191,7 +210,16 @@ class MultilingualIntentExtractor:
             except Exception:
                 pass
 
-        confidence = 0.95 if (src_station or dst_station) else 0.40
+        # 3. Calculate Confidence Score
+        confidence = self._calculate_confidence(
+            intent_type=intent_type,
+            src_station=src_station,
+            dst_station=dst_station,
+            locally_found_stations=locally_found_stations,
+            travel_date_explicit=date_explicit,
+            has_class_or_quota=bool(class_pref or quota),
+            has_time_pref=bool(travel_time),
+        )
 
         return CitizenIntent(
             intent_type=intent_type,
@@ -209,9 +237,11 @@ class MultilingualIntentExtractor:
         )
 
     def _detect_language(self, text: str, hint: str) -> str:
-        """Detect script-based language (Bengali, Devanagari Hindi, or Latin English)."""
+        """Detect script-based language (Tamil, Bengali, Devanagari Hindi, or Latin English)."""
         if hint != "auto" and hint in ["hi", "bn", "en", "ta"]:
             return hint
+        if re.search(r"[\u0B80-\u0BFF]", text):
+            return "ta"  # Tamil script
         if re.search(r"[\u0980-\u09FF]", text):
             return "bn"  # Bengali script
         if re.search(r"[\u0900-\u097F]", text):
@@ -220,7 +250,17 @@ class MultilingualIntentExtractor:
 
     def _classify_intent_type(self, text: str) -> IntentType:
         """Determine primary civic intent."""
-        if any(k in text for k in ["book", "booking", "बुक", "বুক", "কাটতে", "টিকিট কাটবো", "reserve"]):
+        if not text.strip():
+            return IntentType.UNKNOWN
+        if any(k in text for k in ["python", "program", "code", "poem", "joke", "quantum", "chess", "fifa", "homework", "algebra", "hack", "capital of"]):
+            return IntentType.UNKNOWN
+        if any(k in text for k in ["explain", "meaning", "what is", "व्याख्या", "समझाएं", "বুঝিয়ে"]):
+            return IntentType.EXPLAIN_FIELD
+        if any(k in text for k in ["autofill", "auto fill", "safe field", "profile data", "सुरक्षित डेटा"]):
+            return IntentType.AUTOFILL_SAFE_DATA
+        if any(k in text for k in ["recover payment", "retry payment", "payment failed", "refund", "भुगतान पुनः"]):
+            return IntentType.RECOVER_PAYMENT
+        if any(k in text for k in ["book", "booking", "बुक", "বুক", "কাটতে", "টিকিট কাটবো", "reserve", "புக்", "பதிவு"]):
             return IntentType.BOOK_TRAIN
         if any(k in text for k in ["status", "pnr", "track", "स्थिति", "ट्रैक", "খোঁজ", "অবস্থা"]):
             return IntentType.TRACK_STATUS
@@ -243,9 +283,19 @@ class MultilingualIntentExtractor:
         return text_chunk.strip().upper() if len(text_chunk.strip()) <= 5 else None
 
     def _extract_stations(self, text: str) -> Tuple[Optional[str], Optional[str]]:
-        """Extract origin and destination stations using relational heuristics."""
-        # Check recognised station aliases in written order
-        found = [(text.find(alias), code) for alias, code in self.STATION_ALIASES.items() if text.find(alias) != -1]
+        """Extract origin and destination stations using relational heuristics and word boundaries."""
+        sorted_aliases = sorted(self.STATION_ALIASES.keys(), key=lambda a: len(a), reverse=True)
+        found = []
+        for alias in sorted_aliases:
+            if any(ord(c) > 127 for c in alias):
+                pos = text.find(alias)
+                if pos != -1:
+                    found.append((pos, self.STATION_ALIASES[alias]))
+            else:
+                match = re.search(rf"\b{re.escape(alias)}\b", text, re.IGNORECASE)
+                if match:
+                    found.append((match.start(), self.STATION_ALIASES[alias]))
+
         found.sort(key=lambda x: x[0])
         recognised = []
         for _, code in found:
@@ -256,7 +306,7 @@ class MultilingualIntentExtractor:
             return recognised[0], recognised[1]
 
         # Dynamic entity extraction fallback for un-aliased station names
-        stopwords = {"train", "trains", "from", "to", "for", "in", "the", "need", "go", "i", "want", "please", "me", "se", "tak", "theke", "jete", "jana", "sealdah", "howrah", "puri", "delhi"}
+        stopwords = {"train", "trains", "ticket", "tickets", "booking", "bookings", "book", "seat", "seats", "avail", "availability", "from", "to", "for", "in", "the", "need", "go", "i", "want", "please", "me", "se", "tak", "theke", "jete", "jana", "sealdah", "howrah", "puri", "delhi", "amar", "আমার", "আমাকে", "থেকে", "হবে", "যেতে", "কাল", "সন্ধ্যায়", "मुझे", "कल", "शाम"}
         words = [w.strip(",.!?\"'") for w in text.split()]
         filtered = [w for w in words if w.lower() not in stopwords and len(w) > 1]
 
@@ -278,23 +328,56 @@ class MultilingualIntentExtractor:
 
         return None, None
 
-    def _extract_date(self, text: str) -> str:
-        """Extract travel date (today, tomorrow, or specific date)."""
+    def _extract_date_with_flag(self, text: str) -> Tuple[str, bool]:
+        """Extract travel date with relative date parsing (parso, next Friday, agla somvar, this weekend). Returns (date_str, explicit_flag)."""
         today = datetime.now(timezone.utc).date()
-        if any(k in text for k in ["tomorrow", "kal", "parso", "কাল", "পরশু", "कल", "अगले दिन"]):
-            if any(k in text for k in ["parso", "পরশু", "परसों"]):
-                return (today + timedelta(days=2)).isoformat()
-            return (today + timedelta(days=1)).isoformat()
-        if any(k in text for k in ["today", "aaj", "আজ", "আজকে", "आज"]):
-            return today.isoformat()
+        lower = text.lower()
 
-        # Check for explicit YYYY-MM-DD or DD-MM-YYYY
+        # Parso / Day after tomorrow
+        if any(k in lower for k in ["parso", "perso", "পরশু", "परसों", "day after tomorrow"]):
+            return (today + timedelta(days=2)).isoformat(), True
+
+        # Tomorrow / Kal
+        if any(k in lower for k in ["tomorrow", "kal", "কাল", "कल", "अगले दिन", "நாளை"]):
+            return (today + timedelta(days=1)).isoformat(), True
+
+        # Today / Aaj
+        if any(k in lower for k in ["today", "aaj", "আজ", "আজকে", "आज", "இன்று"]):
+            return today.isoformat(), True
+
+        # Next Friday / Agla shukravar
+        if any(k in lower for k in ["next friday", "agla shukravar", "agla shukrawar", "अगला शुक्रवार", "अगले शुक्रवार", "আগামীশুক্রবার", "அடுத்த வெள்ளி"]):
+            days_ahead = (4 - today.weekday()) % 7
+            if days_ahead <= 0:
+                days_ahead += 7
+            return (today + timedelta(days=days_ahead)).isoformat(), True
+
+        # Agla Somvar / Next Monday
+        if any(k in lower for k in ["next monday", "agla somvar", "agla somwar", "अगला सोमवार", "अगले सोमवार", "আগামী सोमवार", "அடுத்த திங்கள்"]):
+            days_ahead = (0 - today.weekday()) % 7
+            if days_ahead <= 0:
+                days_ahead += 7
+            return (today + timedelta(days=days_ahead)).isoformat(), True
+
+        # This weekend
+        if any(k in lower for k in ["this weekend", "is weekend", "इस वीकेंड", "এই সপ্তাহান্তে", "வார இறுதி"]):
+            days_ahead = (5 - today.weekday()) % 7
+            if days_ahead == 0 and datetime.now(timezone.utc).hour >= 18:
+                days_ahead = 7
+            return (today + timedelta(days=days_ahead)).isoformat(), True
+
+        # ISO format YYYY-MM-DD
         iso_match = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", text)
         if iso_match:
-            return iso_match.group(0)
+            return iso_match.group(0), True
 
         # Default to tomorrow for booking convenience
-        return (today + timedelta(days=1)).isoformat()
+        return (today + timedelta(days=1)).isoformat(), False
+
+    def _extract_date(self, text: str) -> str:
+        """Extract travel date (backward compatible helper)."""
+        date_str, _ = self._extract_date_with_flag(text)
+        return date_str
 
     def _extract_class(self, text: str) -> Optional[str]:
         for alias, code in self.CLASS_ALIASES.items():
@@ -315,9 +398,9 @@ class MultilingualIntentExtractor:
             return "MORNING"
         if any(k in text for k in ["afternoon", "dopahar", "dupur", "দুপুর", "दोपहर"]):
             return "AFTERNOON"
-        if any(k in text for k in ["evening", "shaam", "sandhya", "সন্ধ্যা", "বিকেল", "शाम"]):
+        if any(k in text for k in ["evening", "shaam", "sandhya", "সন্ধ্যা", "সন্ধ্যায়", "বিকেল", "शाम"]):
             return "EVENING"
-        if any(k in text for k in ["night", "raat", "রাত", "রাত্রি", "रात"]):
+        if any(k in text for k in ["night", "raat", "रात", "রাত্রি", "रात"]):
             return "NIGHT"
         return None
 
@@ -325,6 +408,37 @@ class MultilingualIntentExtractor:
         match = re.search(r"\b(\d+)\s*(passenger|passengers|यात्री|যাত্রী)\b", text)
         if match:
             return max(1, int(match.group(1)))
-        if any(k in text for k in ["two passenger", "2 passenger", "दो यात्री", "দুই যাত্রী"]):
+        if any(k in text for k in ["two passenger", "2 passenger", "दो यात्री", "দুই यात्री"]):
             return 2
         return 1
+
+    def _calculate_confidence(
+        self,
+        intent_type: IntentType,
+        src_station: Optional[str],
+        dst_station: Optional[str],
+        locally_found_stations: bool,
+        travel_date_explicit: bool,
+        has_class_or_quota: bool,
+        has_time_pref: bool,
+    ) -> float:
+        """Nuanced confidence calculation based on recognized entity strength."""
+        confidence = 0.30
+        if intent_type != IntentType.UNKNOWN:
+            confidence += 0.15
+        if locally_found_stations:
+            if src_station:
+                confidence += 0.20
+            if dst_station:
+                confidence += 0.20
+        else:
+            if src_station or dst_station:
+                confidence += 0.05
+        if travel_date_explicit:
+            confidence += 0.05
+        if has_class_or_quota:
+            confidence += 0.05
+        if has_time_pref:
+            confidence += 0.05
+
+        return min(1.0, max(0.1, round(confidence, 2)))

@@ -28,9 +28,9 @@ class OrchestrationResult:
 
 
 class SemanticOrchestrationAgent:
-    """DB → Apify → NVIDIA synthesis. Invisible handoffs. No hallucination."""
+    """DB → Scrapling Web Scraper → NVIDIA synthesis. Invisible handoffs. No hallucination."""
 
-    APIFY_UNAVAILABLE_STATUSES = {429, 500, 503}
+    SCRAPER_UNAVAILABLE_STATUSES = {429, 500, 503}
 
     def __init__(self) -> None:
         from backend.app.adapters.llm.cloud_adapters import NvidiaNIMProvider
@@ -50,8 +50,8 @@ class SemanticOrchestrationAgent:
             return []
         return list(result or [])
 
-    def search_apify(self, query: str, max_results: int = 3) -> Dict[str, Any]:
-        return self.registry.call_tool("search_apify", query=query, max_results=max_results)
+    def search_web_scraper(self, query: str, max_results: int = 3) -> Dict[str, Any]:
+        return self.registry.call_tool("search_scrapling", query=query, max_results=max_results)
 
     def answer(
         self,
@@ -60,7 +60,7 @@ class SemanticOrchestrationAgent:
         source_station: Optional[str] = None,
         destination_station: Optional[str] = None,
     ) -> OrchestrationResult:
-        """Run the frozen workflow: DB first, Apify if incomplete, then grounded synthesis."""
+        """Run the frozen workflow: DB first, Scrapling web scraper if incomplete, then synthesis."""
         db_hits: List[Dict[str, Any]] = []
         if source_station and destination_station:
             db_hits = self.query_local_db(source_station, destination_station)
@@ -80,24 +80,24 @@ class SemanticOrchestrationAgent:
                 f"how to travel by train from {source_station} to {destination_station} "
                 "route schedule connection"
             )
-        web = self.search_apify(web_query, max_results=3)
+        web = self.search_web_scraper(web_query, max_results=3)
         status = int(web.get("status") or 0)
         web_results = list(web.get("results") or [])
         web_error = web.get("error")
 
-        if status in self.APIFY_UNAVAILABLE_STATUSES or not web_results:
+        if status in self.SCRAPER_UNAVAILABLE_STATUSES or not web_results:
             fallback = self._unavailable_message(language, web_error)
             return OrchestrationResult(
                 message=fallback,
                 source="NO_VERIFIED_RESULT",
-                error=str(web_error or f"Apify status {status}"),
+                error=str(web_error or f"Scraper status {status}"),
                 web_results=web_results,
             )
 
         message = self._synthesize(query, language, [], web_results, web_error)
         return OrchestrationResult(
             message=message,
-            source=str(web.get("source") or "APIFY_LIVE_WEB_SEARCH"),
+            source=str(web.get("source") or "SCRAPLING_LIVE_WEB_SCRAPER"),
             web_results=web_results,
             used_llm=self._llm_available(),
         )
@@ -175,10 +175,7 @@ class SemanticOrchestrationAgent:
 
     def _unavailable_message(self, language: str, error: Optional[str]) -> str:
         if language == "hi":
-            return "अभी सत्यापित यात्रा जानकारी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।"
+            return "नवीनतम डेटा के आधार पर मेरे पास इस प्रश्न का उत्तर देने के लिए वर्तमान में पर्याप्त जानकारी नहीं है।"
         if language == "bn":
-            return "এই মুহূর্তে যাচাইকৃত ভ্রমণ তথ্য পাওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।"
-        return (
-            "Verified travel data is unavailable right now. "
-            "Please try again shortly; no route or fare has been invented."
-        )
+            return "আমাদের সাম্প্রতিক তথ্যের ভিত্তিতে এই প্রশ্নের উত্তর দেওয়ার মতো তথ্য বর্তমানে উপলব্ধ নেই।"
+        return "I currently do not have the information to answer this based on our latest data."

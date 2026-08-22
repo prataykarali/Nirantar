@@ -72,3 +72,11 @@ code, pre, .font-mono {
   border-color: rgba(0, 255, 157, 0.4);
   box-shadow: 0 12px 30px -10px rgba(0, 255, 157, 0.15);
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

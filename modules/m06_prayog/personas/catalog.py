@@ -16,6 +16,13 @@ DEFAULT_MIX_10K: Dict[PersonaKind, int] = {
     PersonaKind.ABANDONED: 200,
 }
 
+DEMOGRAPHIC_MIX_10K: Dict[PersonaKind, int] = {
+    PersonaKind.RURAL: 3500,
+    PersonaKind.TATKAL_RUSH: 3000,
+    PersonaKind.COMMUTER: 2000,
+    PersonaKind.BOT_SCALPER: 1500,
+}
+
 BOOKING_JOURNEY: List[JourneyStep] = [
     JourneyStep.OPEN,
     JourneyStep.SEARCH,
@@ -107,6 +114,42 @@ PERSONA_SPECS: Dict[PersonaKind, Dict[str, object]] = {
             JourneyStep.RESULTS,
             JourneyStep.ABANDON,
         ],
+    },
+    PersonaKind.RURAL: {
+        "intent": "BOOK_TRAIN",
+        "think": (3.0, 7.0),
+        "session": (150.0, 300.0),
+        "device": DeviceType.FEATURE_PHONE,
+        "journey": list(BOOKING_JOURNEY),
+    },
+    PersonaKind.TATKAL_RUSH: {
+        "intent": "TATKAL_BOOKING",
+        "think": (0.2, 0.8),
+        "session": (30.0, 90.0),
+        "device": DeviceType.DESKTOP,
+        "journey": [
+            JourneyStep.OPEN,
+            JourneyStep.SEARCH,
+            JourneyStep.SELECT,
+            JourneyStep.AUTHENTICATE,
+            JourneyStep.BOOK,
+            JourneyStep.PAYMENT,
+            JourneyStep.CONFIRMATION,
+        ],
+    },
+    PersonaKind.COMMUTER: {
+        "intent": "DAILY_COMMUTE",
+        "think": (0.8, 2.0),
+        "session": (45.0, 110.0),
+        "device": DeviceType.MOBILE,
+        "journey": list(BOOKING_JOURNEY),
+    },
+    PersonaKind.BOT_SCALPER: {
+        "intent": "SCRAPE_AND_HOARD",
+        "think": (0.01, 0.1),
+        "session": (5.0, 15.0),
+        "device": DeviceType.DESKTOP,
+        "journey": [JourneyStep.SEARCH] * 10 + [JourneyStep.BOOK] * 3,
     },
 }
 

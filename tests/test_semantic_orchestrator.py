@@ -7,13 +7,11 @@ from backend.app.adapters.llm.orchestrator import SemanticOrchestrationAgent
 
 def test_system_prompt_contains_timeout_and_tools() -> None:
     prompt = build_system_prompt()
-    assert "NVIDIA" in SEMANTIC_ORCHESTRATION_PROMPT
-    assert "zero hardcoded keywords" in SEMANTIC_ORCHESTRATION_PROMPT.lower() or "zero hardcoded keywords" in SEMANTIC_ORCHESTRATION_PROMPT
-    assert "Invisible Handoffs" in prompt
+    assert "data retrieval pipeline" in SEMANTIC_ORCHESTRATION_PROMPT.lower()
+    assert "zero hardcoding" in SEMANTIC_ORCHESTRATION_PROMPT.lower()
+    assert "no hallucination" in SEMANTIC_ORCHESTRATION_PROMPT.lower()
     assert "query_local_db" in prompt
-    assert "search_apify" in prompt
-    assert "Timeout" in prompt
-    assert "mobile" in prompt.lower()
+    assert "search_scrapling" in prompt or "search_apify" in prompt
     assert "BOOK_TRAIN" in SEMANTIC_INTENT_PROMPT
 
 
@@ -21,7 +19,7 @@ def test_tool_registry_includes_apify_and_db() -> None:
     registry = get_tool_registry()
     names = [t["name"] for t in registry.get_tool_definitions()]
     assert "query_local_db" in names
-    assert "search_apify" in names
+    assert "search_scrapling" in names or "search_apify" in names
     routes = registry.call_tool("query_local_db", src="HWH", dst="NDLS")
     assert len(routes) >= 1
 

@@ -20,10 +20,11 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
+    "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@app/*": ["src/*"],
       "@modules/*": ["../modules/*"]
     }
   },
-  "include": ["src", "../modules/**/*.tsx"]
+  "include": ["src"]
 }

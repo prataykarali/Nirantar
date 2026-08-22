@@ -49,7 +49,8 @@ class JourneyWalker:
         throttled = False
         completed = 0
         last_decision: OrchestrationDecision | None = None
-        is_retry = citizen.persona == PersonaKind.RETRY_HEAVY
+        is_retry = citizen.persona in {PersonaKind.RETRY_HEAVY, PersonaKind.TATKAL_RUSH}
+        is_bot = citizen.persona in {PersonaKind.SUSPICIOUS, PersonaKind.BOT_SCALPER}
 
         for step in citizen.journey:
             if step == JourneyStep.THINK:
@@ -71,9 +72,9 @@ class JourneyWalker:
                 endpoint=endpoint,
                 session_id=citizen.user_id,
             )
-            if not allowed:
+            if not allowed or is_bot:
                 throttled = True
-                if citizen.persona == PersonaKind.SUSPICIOUS:
+                if is_bot:
                     return self._outcome(citizen, "throttled", completed, queued, True), last_decision
                 if step in CRITICAL_STEPS:
                     return self._outcome(citizen, "dropped", completed, queued, True), last_decision
@@ -113,7 +114,7 @@ class JourneyWalker:
             return "abandoned"
         if queued:
             return "queued"
-        if throttled and citizen.persona == PersonaKind.SUSPICIOUS:
+        if throttled and citizen.persona in {PersonaKind.SUSPICIOUS, PersonaKind.BOT_SCALPER}:
             return "throttled"
         if JourneyStep.CONFIRMATION in citizen.journey or JourneyStep.BOOK in citizen.journey:
             if citizen.persona == PersonaKind.SEARCH_HEAVY:

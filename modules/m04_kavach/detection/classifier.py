@@ -1,11 +1,12 @@
 """
 KAVACH — Adaptive trust classifier.
-Scores sessions. Never auto-blocks a citizen below the high-risk band.
+Scores sessions (0.0 to 1.0) and enforces the public-service rule:
+Never auto-block legitimate citizens below risk threshold 0.8.
 """
 
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from contracts.security import (
     AccessControlVerdict,
@@ -17,57 +18,72 @@ from security.detection.profiler import SessionProfile
 
 
 class TrustClassifier:
-    """Map behaviour → risk_score → adaptive verdict."""
+    """Map session behaviour → threat risk_score (0.0 - 1.0) → adaptive decision verdict."""
+
+    def _eval_freq(self, freq: float) -> Tuple[float, Optional[str]]:
+        if freq > 10.0:
+            return 0.45, f"request_frequency={freq:.1f}/s"
+        if freq > 4.0:
+            return 0.22, f"elevated_frequency={freq:.1f}/s"
+        return 0.0, None
+
+    def _eval_pattern(self, pattern: str) -> Tuple[float, Optional[str]]:
+        if pattern == "BOT_LIKE_REPEAT":
+            return 0.40, "repeated_search_without_select"
+        if pattern == "HUMAN_PROGRESSIVE":
+            return -0.15, "progressive_human_path"
+        return 0.0, None
+
+    def _eval_retries(self, retries: int) -> Tuple[float, Optional[str]]:
+        if retries >= 6:
+            return 0.20, f"retry_storm={retries}"
+        if retries >= 3:
+            return 0.10, f"retries={retries}"
+        return 0.0, None
+
+    def _eval_category(self, score: float) -> ThreatCategory:
+        if score >= 0.8:
+            return ThreatCategory.AUTOMATED_BOT
+        if score >= 0.3:
+            return ThreatCategory.SUSPICIOUS_BEHAVIOR
+        return ThreatCategory.LEGITIMATE
 
     def score(self, profile: SessionProfile) -> Tuple[float, List[str], ThreatCategory]:
         factors: List[str] = []
         score = 0.08
-        freq = profile.request_frequency_per_sec()
-        pattern = profile.navigation_pattern()
 
-        if freq > 10:
-            score += 0.45
-            factors.append(f"request_frequency={freq:.1f}/s")
-        elif freq > 4:
-            score += 0.22
-            factors.append(f"elevated_frequency={freq:.1f}/s")
+        freq_score, freq_factor = self._eval_freq(profile.request_frequency_per_sec())
+        score += freq_score
+        if freq_factor:
+            factors.append(freq_factor)
 
-        if pattern == "BOT_LIKE_REPEAT":
-            score += 0.40
-            factors.append("repeated_search_without_select")
-        elif pattern == "HUMAN_PROGRESSIVE":
-            score = max(0.05, score - 0.15)
-            factors.append("progressive_human_path")
+        pat = profile.navigation_pattern()
+        pat_score, pat_factor = self._eval_pattern(pat)
+        score = max(0.05, score + pat_score) if pat == "HUMAN_PROGRESSIVE" else score + pat_score
+        if pat_factor:
+            factors.append(pat_factor)
 
-        if profile.retries >= 6:
-            score += 0.20
-            factors.append(f"retry_storm={profile.retries}")
-        elif profile.retries >= 3:
-            score += 0.10
-            factors.append(f"retries={profile.retries}")
+        ret_score, ret_factor = self._eval_retries(profile.retries)
+        score += ret_score
+        if ret_factor:
+            factors.append(ret_factor)
 
-        duration = profile.session_duration_seconds()
-        if duration < 2.0 and len(profile.endpoints) >= 8:
+        if profile.session_duration_seconds() < 2.0 and len(profile.endpoints) >= 8:
             score += 0.25
             factors.append("burst_short_session")
 
         score = min(max(score, 0.0), 1.0)
-        if score >= 0.8:
-            category = ThreatCategory.AUTOMATED_BOT
-        elif score >= 0.6:
-            category = ThreatCategory.SUSPICIOUS_BEHAVIOR
-        elif score >= 0.3:
-            category = ThreatCategory.SUSPICIOUS_BEHAVIOR
-        else:
-            category = ThreatCategory.LEGITIMATE
-        return score, factors, category
+        return score, factors, self._eval_category(score)
 
     def verdict_for(self, risk_score: float) -> Tuple[AccessControlVerdict, float]:
-        """Adaptive response. Public-service rule: do not auto-block legitimate citizens."""
+        """
+        Adaptive response enforcing the Public-Service Rule:
+        Never auto-block legitimate citizens below risk threshold 0.8.
+        """
         if risk_score < 0.3:
             return AccessControlVerdict.ALLOW, 10.0
         if risk_score < 0.6:
-            return AccessControlVerdict.ALLOW, 10.0  # monitor only
+            return AccessControlVerdict.ALLOW, 10.0
         if risk_score < 0.8:
             return AccessControlVerdict.CAPTCHA_CHALLENGE, 2.0
         return AccessControlVerdict.THROTTLE, 0.5

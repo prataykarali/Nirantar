@@ -43,3 +43,4 @@ Thumbs.db
 # Local agent scratch (empty tool dirs)
 .agents/
 .codex/
+.github/

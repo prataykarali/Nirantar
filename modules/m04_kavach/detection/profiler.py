@@ -34,13 +34,22 @@ class SessionProfile:
         return max(time.time() - self.started_at, 0.01)
 
     def navigation_pattern(self) -> str:
+        """
+        Classify session navigation sequence into HUMAN_PROGRESSIVE, BOT_LIKE_REPEAT, or UNKNOWN.
+        """
         if len(self.endpoints) >= 4 and len(set(self.endpoints[-6:])) == 1:
             return "BOT_LIKE_REPEAT"
+
+        if len(self.endpoints) >= 5:
+            if self.endpoints.count("SEARCH") >= 5 and "SELECT" not in self.endpoints and "BOOK" not in self.endpoints:
+                return "BOT_LIKE_REPEAT"
+            if len(set(self.endpoints)) == 1:
+                return "BOT_LIKE_REPEAT"
+
         joined = ">".join(self.endpoints[-5:])
-        if "SEARCH>SELECT" in joined or "SELECT>BOOK" in joined:
+        if any(seq in joined for seq in ("HOME>SEARCH", "SEARCH>SELECT", "SELECT>BOOK", "SEARCH>RESULTS", "RESULTS>SELECT")):
             return "HUMAN_PROGRESSIVE"
-        if self.endpoints.count("SEARCH") >= 5 and "SELECT" not in self.endpoints:
-            return "BOT_LIKE_REPEAT"
+
         return "UNKNOWN"
 
 
@@ -54,7 +63,7 @@ class SessionProfiler:
 
     def record(self, session_id: str, endpoint: str, is_retry: bool = False) -> SessionProfile:
         profile = self._sessions.get(session_id)
-        if profile is None:
+        if profile is None or profile.session_id == "unknown":
             profile = SessionProfile(session_id=session_id)
             self._sessions[session_id] = profile
         profile.events.append(time.time())
@@ -64,3 +73,9 @@ class SessionProfiler:
         if is_retry:
             profile.retries += 1
         return profile
+
+    def get_profile(self, session_id: str) -> SessionProfile:
+        return self._sessions[session_id]
+
+    def clear(self) -> None:
+        self._sessions.clear()

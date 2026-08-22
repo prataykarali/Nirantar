@@ -40,10 +40,29 @@ class TelemetryAnomalyDetector:
         self.is_trained = True
         return {"samples": float(len(X)), "status": "fallback"}
 
+    def _check_heuristics(
+        self, req_per_user: float, rps: float, users: float, p99: float, ram: float, error: float, cpu: float
+    ) -> Optional[Tuple[bool, float, AnomalyType, List[str]]]:
+        if req_per_user > 4.0 and rps > 5000:
+            return True, 0.92, AnomalyType.BOT_COORDINATION, [
+                f"Abnormal requests/user ratio ({req_per_user:.2f})",
+                f"Excessive RPS ({rps:.0f}) with low unique user count ({users:.0f})",
+            ]
+        if p99 > 2500.0 or (ram > 90.0 and error > 0.10):
+            return True, 0.88, AnomalyType.DATABASE_LOCK, [
+                f"p99 latency explosion ({p99:.1f}ms)",
+                f"High RAM usage ({ram:.1f}%) with elevated error rate ({error:.2%})",
+            ]
+        if users > 30000 or cpu > 90.0:
+            return True, 0.82, AnomalyType.TRAFFIC_SURGE, [
+                f"Extreme concurrent user volume ({users:.0f})",
+                f"CPU saturation ({cpu:.1f}%)",
+            ]
+        return None
+
     def evaluate_anomaly(self, feature_vector: np.ndarray) -> AnomalyDetectionResult:
         """Evaluate whether a telemetry feature vector represents an anomaly."""
         vec = feature_vector.reshape(1, -1)
-        suspects: List[str] = []
 
         rps = float(vec[0, 0])
         users = float(vec[0, 1])
@@ -53,36 +72,24 @@ class TelemetryAnomalyDetector:
         error = float(vec[0, 7])
         req_per_user = float(vec[0, 11])
 
-        # Anomaly categorization heuristics
+        heuristic_match = self._check_heuristics(req_per_user, rps, users, p99, ram, error, cpu)
+        if heuristic_match is not None:
+            is_anomaly, anomaly_score, anomaly_type, suspects = heuristic_match
+            return AnomalyDetectionResult(
+                is_anomaly=is_anomaly,
+                anomaly_score=round(anomaly_score, 3),
+                anomaly_type=anomaly_type,
+                suspect_features=suspects,
+                confidence=0.94 if is_anomaly else 0.98,
+            )
+
+        suspects: List[str] = []
         anomaly_type = AnomalyType.NONE
         is_anomaly = False
         anomaly_score = 0.05
 
-        if req_per_user > 4.0 and rps > 5000:
-            anomaly_type = AnomalyType.BOT_COORDINATION
-            is_anomaly = True
-            anomaly_score = 0.92
-            suspects.append(f"Abnormal requests/user ratio ({req_per_user:.2f})")
-            suspects.append(f"Excessive RPS ({rps:.0f}) with low unique user count ({users:.0f})")
-
-        elif p99 > 2500.0 or (ram > 90.0 and error > 0.10):
-            anomaly_type = AnomalyType.DATABASE_LOCK
-            is_anomaly = True
-            anomaly_score = 0.88
-            suspects.append(f"p99 latency explosion ({p99:.1f}ms)")
-            suspects.append(f"High RAM usage ({ram:.1f}%) with elevated error rate ({error:.2%})")
-
-        elif users > 30000 or cpu > 90.0:
-            anomaly_type = AnomalyType.TRAFFIC_SURGE
-            is_anomaly = True
-            anomaly_score = 0.82
-            suspects.append(f"Extreme concurrent user volume ({users:.0f})")
-            suspects.append(f"CPU saturation ({cpu:.1f}%)")
-
-        elif HAS_SKLEARN and self.model is not None and self.is_trained:
-            # Model score: lower means more anomalous
+        if HAS_SKLEARN and self.model is not None and self.is_trained:
             raw_score = float(self.model.decision_function(vec)[0])
-            # Transform to [0, 1] anomaly score
             anomaly_score = float(np.clip(0.5 - raw_score, 0.0, 1.0))
             if anomaly_score > 0.60:
                 is_anomaly = True

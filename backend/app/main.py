@@ -20,6 +20,9 @@ from backend.app.api.predictions import router as predictions_router
 from backend.app.api.search import router as search_router
 from backend.app.api.prayog import router as prayog_router
 from backend.app.api.command_center import router as command_center_router
+from backend.app.api.security import router as security_router
+from backend.app.api.executor import router as executor_router
+from backend.app.api.system import router as system_router, get_system_version, get_system_audit_summary
 
 app = FastAPI(
     title="NIRANTAR Platform API",
@@ -44,6 +47,19 @@ app.include_router(predictions_router)
 app.include_router(search_router)
 app.include_router(prayog_router)
 app.include_router(command_center_router)
+app.include_router(security_router)
+app.include_router(executor_router)
+app.include_router(system_router)
+
+
+@app.get("/version")
+def version_alias() -> Dict[str, Any]:
+    return get_system_version()
+
+
+@app.get("/audit-summary")
+def audit_summary_alias() -> Dict[str, Any]:
+    return get_system_audit_summary()
 
 
 @app.get("/health")

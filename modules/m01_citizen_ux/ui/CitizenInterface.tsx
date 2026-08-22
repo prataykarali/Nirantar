@@ -75,15 +75,15 @@ export const CitizenInterface: React.FC = () => {
         sources: (res.payload?.web_results || []).map((source: any) => ({ title: source.title, url: source.url })),
       },
     ]);
+    if (res.payload?.top_options?.length) {
+      setTopOptions(res.payload.top_options);
+    }
     if (res.action_required === 'CONFIRM_INTENT') {
       setConfirmation(res.payload?.confirmation);
       setPhase('confirm');
       return;
     }
     setPhase('journey');
-    if (res.payload?.top_options?.length) {
-      setTopOptions(res.payload.top_options);
-    }
     if (res.action_required === 'BOOKING_CONFIRMED' || res.action_required === 'RETRY_PAYMENT') {
       setBooking(res.payload);
     }

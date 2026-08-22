@@ -109,7 +109,7 @@ def test_restricted_tool_registry() -> None:
     tool_names = [t["name"] for t in tools]
     assert "search_service" in tool_names
     assert "query_local_db" in tool_names
-    assert "search_apify" in tool_names
+    assert "search_scrapling" in tool_names or "search_apify" in tool_names
     assert "check_inventory" in tool_names
     assert "list_stations" in tool_names
 

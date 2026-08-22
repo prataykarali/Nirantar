@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "home": "Home",
+    "discover": "Discover Services",
+    "guide": "Service Guide",
+    "workspace": "Application Workspace",
+    "payment": "Payment Bridge",
+    "tracking": "Journey Tracker",
+    "result": "Completion Result",
+    "command": "Command Center",
+    "benchmarks": "Model Benchmarks",
+    "selectLanguage": "Select Language"
+  },
+  "stepper": {
+    "title": "Civic Journey Progress",
+    "intent": "Intent Parsing",
+    "confirm": "Confirm Intent",
+    "search": "Train Search",
+    "select": "Select Train",
+    "passenger": "Passenger Details",
+    "review": "Review Order",
+    "pay": "Secure Payment"
+  },
+  "voice": {
+    "title": "Voice Assistant (Saathi)",
+    "ariaLabel": "Voice input interface",
+    "startRecording": "Click to speak query",
+    "stopRecording": "Stop recording",
+    "recordingState": "Listening to your voice...",
+    "processingState": "Encoding base64 audio and extracting intent...",
+    "errorState": "Microphone error or permission denied",
+    "micPermission": "Allow microphone access to state your journey intent in natural language.",
+    "speakPrompt": "e.g., 'Book a Tatkal ticket from NDLS to HWH tomorrow in 3A'",
+    "submitVoice": "Process Voice Query"
+  },
+  "autofill": {
+    "title": "Safe Non-Sensitive Autofill Profile",
+    "subtitle": "Kavach Zero-PII Masked Data Loader",
+    "ariaLabel": "Safe autofill profile container",
+    "loadButton": "Autofill Safe Profile",
+    "loading": "Fetching safe profile allowlist...",
+    "name": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "berth": "Berth Preference",
+    "meal": "Meal Preference",
+    "stationPref": "Preferred Station",
+    "zeroPiiGuarantee": "Verified Zero PII Exposure: Sensitive credentials (Aadhaar, Phone, Payment details) are never stored or transmitted in plain text."
+  },
+  "stations": {
+    "MAS": "Chennai Central (MAS)",
+    "MDU": "Madurai Junction (MDU)",
+    "CBE": "Coimbatore Junction (CBE)",
+    "HWH": "Howrah Junction (HWH)",
+    "NDLS": "New Delhi (NDLS)"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error occurred"
+  }
+}

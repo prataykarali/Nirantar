@@ -5,7 +5,7 @@ Forecasts incoming citizen & bot traffic volume across future time horizons:
 +5 min, +10 min, +15 min, and +30 min, allowing proactive orchestration before overload.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
@@ -14,6 +14,30 @@ class FutureDemandForecaster:
 
     def __init__(self) -> None:
         pass
+
+    def _calculate_forecast_horizons(self, base_u: int, user_growth_rate: float, is_tatkal_window: bool) -> Tuple[int, int, int, int]:
+        if is_tatkal_window or user_growth_rate > 0.15:
+            return int(base_u * 1.56), int(base_u * 1.88), int(base_u * 2.24), int(base_u * 2.80)
+        if user_growth_rate < -0.05:
+            return int(base_u * 0.92), int(base_u * 0.85), int(base_u * 0.80), int(base_u * 0.75)
+        growth = max(0.01, user_growth_rate)
+        return (
+            int(base_u * (1.0 + growth * 1.5)),
+            int(base_u * (1.0 + growth * 2.8)),
+            int(base_u * (1.0 + growth * 4.0)),
+            int(base_u * (1.0 + growth * 6.5)),
+        )
+
+    def _estimate_time_to_overload(self, f5: int, f10: int, f15: int, f30: int) -> Optional[int]:
+        if f5 >= 10000:
+            return 5
+        if f10 >= 10000:
+            return 10
+        if f15 >= 10000:
+            return 15
+        if f30 >= 10000:
+            return 30
+        return None
 
     def forecast_demand(
         self,
@@ -27,28 +51,7 @@ class FutureDemandForecaster:
         Example: Current = 5,000 -> +5m = 7,800 -> +10m = 9,400 -> +30m = 14,000
         """
         base_u = max(100, current_users)
-
-        # Growth momentum factor
-        # If user growth rate is high or Tatkal window is active, simulate exponential arrival
-        if is_tatkal_window or user_growth_rate > 0.15:
-            # Tatkal rush surge trajectory
-            f5 = int(base_u * 1.56)   # e.g. 5,000 -> 7,800
-            f10 = int(base_u * 1.88)  # e.g. 5,000 -> 9,400
-            f15 = int(base_u * 2.24)  # e.g. 5,000 -> 11,200
-            f30 = int(base_u * 2.80)  # e.g. 5,000 -> 14,000
-        elif user_growth_rate < -0.05:
-            # Cooling trajectory
-            f5 = int(base_u * 0.92)
-            f10 = int(base_u * 0.85)
-            f15 = int(base_u * 0.80)
-            f30 = int(base_u * 0.75)
-        else:
-            # Steady organic trajectory
-            growth = max(0.01, user_growth_rate)
-            f5 = int(base_u * (1.0 + growth * 1.5))
-            f10 = int(base_u * (1.0 + growth * 2.8))
-            f15 = int(base_u * (1.0 + growth * 4.0))
-            f30 = int(base_u * (1.0 + growth * 6.5))
+        f5, f10, f15, f30 = self._calculate_forecast_horizons(base_u, user_growth_rate, is_tatkal_window)
 
         # Expected future RPS
         rps_per_user = max(0.05, current_rps / base_u)
@@ -56,17 +59,8 @@ class FutureDemandForecaster:
         rps_10 = round(f10 * rps_per_user, 1)
         rps_30 = round(f30 * rps_per_user, 1)
 
-        # Determine if future demand will exceed capacity threshold (e.g. 10,000 users)
         will_overload_in_30m = f30 >= 10000
-        time_to_overload = None
-        if f5 >= 10000:
-            time_to_overload = 5
-        elif f10 >= 10000:
-            time_to_overload = 10
-        elif f15 >= 10000:
-            time_to_overload = 15
-        elif f30 >= 10000:
-            time_to_overload = 30
+        time_to_overload = self._estimate_time_to_overload(f5, f10, f15, f30)
 
         return {
             "current_users": base_u,
