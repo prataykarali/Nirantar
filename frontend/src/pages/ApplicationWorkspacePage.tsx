@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, ArrowRight, Upload, HelpCircle, Shield, FileText, User } from 'lucide-react';
-import { CitizenInterface } from '@modules/m01_citizen_ux/ui/CitizenInterface';
+import { CitizenInterface } from '../components/CitizenInterface';
 import { JourneyStepper, JourneyStepStage } from '../components/JourneyStepper';
 import { VoiceWidget } from '../components/VoiceWidget';
 import { SafeAutofillProfile, SafeProfileData } from '../components/SafeAutofillProfile';
