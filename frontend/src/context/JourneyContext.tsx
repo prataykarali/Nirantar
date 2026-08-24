@@ -104,6 +104,7 @@ export interface JourneyContextType {
   
   // Auth Actions
   authState: AuthState;
+  setAuthState: React.Dispatch<React.SetStateAction<AuthState>>;
   performMockAuth: (username: string, password?: string) => Promise<boolean>;
   verifyMockOtp: (otp: string) => Promise<boolean>;
 
@@ -226,14 +227,30 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [journeyState, setJourneyState] = useState<JourneyState>(createInitialJourneyState());
   const [error, setError] = useState<JourneyError | null>(null);
 
-  // Authentication State
-  const [authState, setAuthState] = useState<AuthState>({
-    status: 'READY',
-    userId: 'usr-ananya-84920',
-    displayName: 'Ananya Sharma',
-    isAuthenticated: true,
-    failureReason: null,
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_auth_user');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return {
+      status: 'READY',
+      userId: 'usr-pratay-84920',
+      displayName: 'Pratay Karali',
+      email: 'pratay.karali2005@gmail.com',
+      phone: '8420773730',
+      avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=pratay',
+      isAuthenticated: true,
+      failureReason: null,
+    };
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_auth_user', JSON.stringify(authState));
+    } catch {}
+  }, [authState]);
 
   // Payment & Ticket Records
   const [paymentAttempt, setPaymentAttempt] = useState<PaymentAttempt | null>(null);
@@ -906,6 +923,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         selectTrain,
         savePassengerDetails,
         authState,
+        setAuthState,
         performMockAuth,
         verifyMockOtp,
         paymentState,

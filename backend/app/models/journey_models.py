@@ -1,13 +1,9 @@
 """
-NIRANTAR — Journey Domain Models
-==================================
-SQLAlchemy models for the complete citizen journey.
-Covers: stations, trains, journeys, passengers, bookings, payments, tickets, users, AI audit.
-
-Architecture Reference:
-  - Development Doc §5 Core Domain Model
-  - Architecture Doc §7 Data & Storage
-  - Architecture Doc §11 Payment State Machine
+NIRANTAR — Journey Domain Models & Database Persistence
+========================================================
+SQLAlchemy models for multi-customer real database isolation.
+Covers: users, OAuth accounts, saved passengers, tickets, wallet transactions,
+journeys, stations, trains, bookings, payments, and AI audit events.
 """
 
 import uuid
@@ -106,49 +102,39 @@ class TrainModel(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     train_number = Column(String(10), unique=True, nullable=False, index=True)
     train_name = Column(String(100), nullable=False)
-    train_type = Column(String(20), nullable=False)
-    from_station_code = Column(String(10), ForeignKey("stations.code"), nullable=False)
-    from_station_name = Column(String(100), nullable=False)
-    from_city = Column(String(50), nullable=False)
-    to_station_code = Column(String(10), ForeignKey("stations.code"), nullable=False)
-    to_station_name = Column(String(100), nullable=False)
-    to_city = Column(String(50), nullable=False)
+    train_type = Column(String(30), default="SUPERFAST")
+    from_station_code = Column(String(10), nullable=False)
+    to_station_code = Column(String(10), nullable=False)
     departure_time = Column(String(10), nullable=False)
     arrival_time = Column(String(10), nullable=False)
-    duration_hours = Column(String(20), nullable=False)
-    distance_km = Column(Integer, nullable=False)
-    running_days = Column(JSON, default=list)  # ['Mon', 'Tue', ...]
-    rating = Column(Float, default=4.5)
-    punctuality_score = Column(Integer, default=90)
-    pantry_available = Column(Boolean, default=False)
-    cleanliness_score = Column(Integer, default=90)
-    is_fastest = Column(Boolean, default=False)
-    is_best_value = Column(Boolean, default=False)
-    ai_recommendation_reason = Column(Text, nullable=True)
+    duration_minutes = Column(Integer, nullable=False)
+    running_days = Column(JSON, default=list)  # ["MON", "TUE", ...]
+    total_distance_km = Column(Integer, default=0)
 
     # Relationships
     availabilities = relationship("TrainAvailabilityModel", back_populates="train", cascade="all, delete-orphan")
 
 
 class TrainAvailabilityModel(Base):
-    __tablename__ = "train_availability"
+    __tablename__ = "train_availabilities"
 
     id = Column(String, primary_key=True, default=generate_uuid)
     train_id = Column(String, ForeignKey("trains.id"), nullable=False)
-    class_code = Column(String(5), nullable=False)  # '1A', '2A', '3A', 'SL', 'CC', 'EC'
-    class_name = Column(String(50), nullable=False)
+    travel_date = Column(String(15), nullable=False)  # YYYY-MM-DD
+    class_code = Column(String(5), nullable=False)    # 1A, 2A, 3A, SL, CC, EC
+    quota = Column(String(30), default="General (GN)")
     fare = Column(Integer, nullable=False)
-    status = Column(String(20), default="AVAILABLE")  # AVAILABLE, RAC, WL
     available_seats = Column(Integer, default=0)
-    confirmation_probability = Column(Integer, nullable=True)
-    catering_included = Column(Boolean, default=False)
+    status = Column(String(20), default="AVAILABLE")  # AVAILABLE, RAC, WL, REGRET
+    rac_seats = Column(Integer, default=0)
+    wl_number = Column(Integer, default=0)
 
     # Relationships
     train = relationship("TrainModel", back_populates="availabilities")
 
 
 # ═══════════════════════════════════════════════════════════════
-# USER MODEL
+# REAL MULTI-CUSTOMER USER & OAUTH MODEL
 # ═══════════════════════════════════════════════════════════════
 
 class UserModel(Base):
@@ -156,14 +142,80 @@ class UserModel(Base):
 
     id = Column(String, primary_key=True, default=generate_uuid)
     display_name = Column(String(100), nullable=False)
-    username = Column(String(50), unique=True, nullable=False)
-    # Password hash — NEVER sent to AI context
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(150), unique=True, nullable=True, index=True)
+    phone = Column(String(20), nullable=True)
     password_hash = Column(String(255), nullable=False)
+    oauth_provider = Column(String(30), default="LOCAL")  # LOCAL, GOOGLE, DIGILOCKER
+    oauth_id = Column(String(100), nullable=True)
+    avatar_url = Column(String(255), nullable=True)
+    wallet_balance = Column(Float, default=10000.00)
     preferences = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
-    journeys = relationship("JourneyModel", back_populates="user")
+    # Isolated Customer Data Relationships
+    journeys = relationship("JourneyModel", back_populates="user", cascade="all, delete-orphan")
+    saved_passengers = relationship("UserSavedPassengerModel", back_populates="user", cascade="all, delete-orphan")
+    tickets = relationship("UserTicketRecordModel", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("UserWalletTransactionModel", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSavedPassengerModel(Base):
+    __tablename__ = "user_saved_passengers"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    age = Column(Integer, nullable=False)
+    gender = Column(String(1), nullable=False)  # M, F, O
+    berth_preference = Column(String(20), default="NO_PREFERENCE")
+    senior_citizen_concession = Column(Boolean, default=False)
+    id_proof_type = Column(String(30), default="Aadhaar Card")
+    nationality = Column(String(30), default="Indian")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("UserModel", back_populates="saved_passengers")
+
+
+class UserTicketRecordModel(Base):
+    __tablename__ = "user_tickets"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    pnr_number = Column(String(20), unique=True, nullable=False, index=True)
+    train_number = Column(String(10), nullable=False)
+    train_name = Column(String(100), nullable=False)
+    from_station_code = Column(String(10), nullable=False)
+    from_station_name = Column(String(100), nullable=False)
+    to_station_code = Column(String(10), nullable=False)
+    to_station_name = Column(String(100), nullable=False)
+    departure_time = Column(String(10), default="16:55")
+    arrival_time = Column(String(10), default="08:35")
+    travel_date = Column(String(20), nullable=False)
+    class_code = Column(String(10), nullable=False)
+    coach = Column(String(10), default="S5")
+    seat_number = Column(Integer, default=36)
+    fare = Column(Integer, nullable=False)
+    status = Column(String(20), default="CONFIRMED")
+    passengers = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("UserModel", back_populates="tickets")
+
+
+class UserWalletTransactionModel(Base):
+    __tablename__ = "user_transactions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    amount = Column(Float, nullable=False)
+    type = Column(String(20), nullable=False)  # CREDIT, DEBIT
+    description = Column(String(255), nullable=False)
+    reference_id = Column(String(50), nullable=False)
+    balance_after = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("UserModel", back_populates="transactions")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -241,7 +293,7 @@ class BookingModel(Base):
 
 
 # ═══════════════════════════════════════════════════════════════
-# PAYMENT ATTEMPT MODEL — Architecture Doc §11
+# PAYMENT ATTEMPT MODEL
 # ═══════════════════════════════════════════════════════════════
 
 class PaymentAttemptModel(Base):
@@ -266,8 +318,7 @@ class PaymentAttemptModel(Base):
 
 
 # ═══════════════════════════════════════════════════════════════
-# NIRA AI EVENT LOG — Architecture Doc §15
-# NEVER stores passwords, OTPs, PINs, CVVs, or tokens.
+# NIRA AI EVENT LOG
 # ═══════════════════════════════════════════════════════════════
 
 class NiraEventModel(Base):
@@ -277,6 +328,6 @@ class NiraEventModel(Base):
     journey_id = Column(String, nullable=True)
     intent = Column(String(50), nullable=True)
     action = Column(String(50), nullable=True)
-    entities = Column(JSON, nullable=True)  # Safe structured data only
-    validation_result = Column(String(20), nullable=True)  # ALLOWED, REJECTED
+    entities = Column(JSON, nullable=True)
+    validation_result = Column(String(20), nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)

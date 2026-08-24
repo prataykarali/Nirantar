@@ -90,6 +90,9 @@ export interface AuthState {
   status: AuthStatus;
   userId: string | null;
   displayName: string | null;
+  email?: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
   isAuthenticated: boolean;
   failureReason: string | null;
 }

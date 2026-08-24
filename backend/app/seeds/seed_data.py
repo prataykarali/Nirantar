@@ -178,13 +178,18 @@ def seed_all():
 
         print(f"🚆 Seeded {len(TRAINS)} trains with availability")
 
-        # 3. Seed Users
+        # 3. Seed Users with isolated wallet balance
         for u in USERS:
-            db.add(UserModel(
+            user_model = UserModel(
                 display_name=u["display_name"],
                 username=u["username"],
+                email=f"{u['username']}@nirantar.gov.in",
+                phone="9876543210",
                 password_hash=hash_password(u["password"]),
-            ))
+                wallet_balance=10000.00,
+                avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={u['username']}",
+            )
+            db.add(user_model)
         print(f"👤 Seeded {len(USERS)} synthetic users")
 
     print("✅ Database seeding complete!")

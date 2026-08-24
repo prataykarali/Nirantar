@@ -28,7 +28,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   notificationCount = 0,
   className = '',
 }) => {
-  const { activePage, navigateTo, issuedTicket } = useJourney();
+  const { activePage, navigateTo, issuedTicket, authState } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -222,10 +222,10 @@ export const TopBar: React.FC<TopBarProps> = ({
             className="flex items-center gap-1.5 p-0.5 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all hover:scale-105 group cursor-pointer"
             aria-expanded={showDropdown}
           >
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-purple-200 shrink-0 bg-amber-50">
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-purple-200 shrink-0 bg-purple-50">
               <img
-                src="/assets/images/user_avatar.png"
-                alt="Rahul Sharma"
+                src={authState.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=pratay'}
+                alt={authState.displayName || 'Citizen'}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -243,19 +243,19 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="absolute right-0 top-12 w-64 bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
             {/* Header User Card */}
             <div className="p-2.5 rounded-2xl bg-purple-50/50 border border-purple-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-purple-200 shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-purple-200 shrink-0 bg-purple-100">
                 <img
-                  src="/assets/images/user_avatar.png"
-                  alt="Rahul Sharma"
+                  src={authState.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=pratay'}
+                  alt={authState.displayName || 'Citizen'}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="space-y-0.5 min-w-0">
-                <h4 className="text-xs font-black text-slate-900 truncate">Rahul Sharma</h4>
-                <p className="text-[10px] text-slate-500 truncate">rahul.sharma@email.com</p>
+                <h4 className="text-xs font-black text-slate-900 truncate">{authState.displayName || 'Citizen User'}</h4>
+                <p className="text-[10px] text-slate-500 truncate">{authState.email || 'pratay.karali2005@gmail.com'}</p>
                 <span className="inline-flex items-center gap-1 bg-[#7C3AED] text-white text-[9px] font-black px-2 py-0.2 rounded-full">
                   <CheckCircle2 className="w-2.5 h-2.5" />
-                  <span>Verified</span>
+                  <span>DigiLocker Verified</span>
                 </span>
               </div>
             </div>
