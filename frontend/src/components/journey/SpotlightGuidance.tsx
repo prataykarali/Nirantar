@@ -31,10 +31,31 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none animate-in fade-in duration-300">
-      {/* 1. Backdrop overlay with spotlight darkening */}
-      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-auto transition-opacity duration-300" onClick={stopGuidanceTour} />
+      {/* 1. Lighter backdrop overlay so underlying page is clearly visible */}
+      <div
+        className="absolute inset-0 bg-slate-950/20 pointer-events-auto transition-opacity duration-300 cursor-pointer"
+        onClick={stopGuidanceTour}
+        title="Click outside to exit guided tour"
+      />
 
-      {/* 2. Floating Smart Guidance Overlay Card */}
+      {/* 2. Floating Animated Arrow pointing directly at exact target on page */}
+      {currentStepData.arrowPlacement && (
+        <div
+          className="absolute z-50 pointer-events-none flex items-center gap-2.5 animate-bounce transition-all duration-300"
+          style={currentStepData.arrowPlacement}
+        >
+          <div className="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-[0_0_30px_rgba(16,185,129,0.9)] ring-4 ring-emerald-300/80 animate-pulse">
+            ➔
+          </div>
+          {currentStepData.arrowLabel && (
+            <span className="px-3 py-1.5 rounded-full bg-slate-900/95 text-emerald-300 border border-emerald-400/50 text-xs font-black shadow-xl backdrop-blur-md">
+              {currentStepData.arrowLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* 3. Floating Smart Guidance Overlay Card */}
       <div className="pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 sm:left-auto sm:right-10 sm:translate-x-0 w-[92vw] sm:w-[420px] bg-white/98 backdrop-blur-xl rounded-[28px] p-4.5 sm:p-5 shadow-[0_20px_60px_rgba(88,28,135,0.25)] border-2 border-purple-300 ring-4 ring-purple-100/80 space-y-3.5 animate-in slide-in-from-bottom-5 duration-300">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
