@@ -826,15 +826,15 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }));
 
       if (params.startWithGuidance) {
-        setActivePage('trains');
+        navigateTo('trains');
         startGuidanceTour(0);
       } else {
         // Direct transition into booking workspace
-        setActivePage('workspace');
+        navigateTo('workspace');
       }
       return true;
     } else {
-      setActivePage('trains');
+      navigateTo('trains');
       return false;
     }
   };
@@ -842,7 +842,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const handleQuickTrack = (query: string) => {
     if (!query || query.trim() === '') return;
     setTrackQuery(query.trim());
-    setActivePage('track');
+    navigateTo('track');
   };
 
   const navigateTo = (page: string) => {

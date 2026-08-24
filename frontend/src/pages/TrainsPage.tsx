@@ -297,17 +297,10 @@ export const TrainsPage: React.FC = () => {
                 id={`train_${train.trainNumber}`}
                 className={`bg-white rounded-2xl p-3.5 transition-all duration-200 space-y-2.5 relative ${
                   isCardHighlighted
-                    ? 'ring-3 ring-emerald-500 shadow-lg border-2 border-emerald-400 bg-emerald-50/20'
+                    ? 'ring-2 ring-emerald-500 shadow-md border-emerald-400 bg-emerald-50/10'
                     : 'shadow-[0_2px_10px_rgba(88,28,135,0.03)] border border-purple-50 hover:shadow-md'
                 }`}
               >
-                {/* ─── GREEN ARROW GUIDANCE INDICATOR (STATE-AWARE ACTION ENGINE) ─── */}
-                {isCardHighlighted && (
-                  <div className="absolute -left-3 top-1/2 -translate-y-1/2 -translate-x-full hidden md:flex items-center gap-1.5 bg-emerald-600 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow-lg animate-bounce">
-                    <span>🟢 Recommended Option</span>
-                    <ArrowRight className="w-4 h-4 text-white" />
-                  </div>
-                )}
                 {/* TOP ROW: ICON, NAME, RECOMMENDED TAG, FAVORITE */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -319,7 +312,12 @@ export const TrainsPage: React.FC = () => {
                     {/* Name and Number */}
                     <div>
                       <div className="flex items-center gap-2">
-                        {isRecommended && (
+                        {isCardHighlighted && (
+                          <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                            <span>🟢 Recommended Option</span>
+                          </span>
+                        )}
+                        {isRecommended && !isCardHighlighted && (
                           <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-1.5 py-0.2 rounded">
                             Recommended
                           </span>

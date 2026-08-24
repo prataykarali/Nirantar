@@ -335,18 +335,55 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   useEffect(() => {
     const unsub = UiEventBus.subscribe('PAGE_CHANGED', (event) => {
       if (!isOpen) return;
+      const targetPage = event.payload?.to || event.sourcePage;
       const ctx = getSanitizedContext();
-      const contextMsg = NiraPlanner.generateStateAwareGreeting(ctx);
+
+      let msgText = '';
+      let actionCard: ChatMessage['actionCard'] | undefined = undefined;
+
+      if (targetPage === 'workspace' || targetPage === 'booking') {
+        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Vande Bharat Express';
+        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '20642';
+        const fare = ctx.journey.fare || selectedTrain?.classes[0]?.fare || 450;
+        msgText = `You are now on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
+
+Tell me the passenger details (Name, Age, Gender, Berth) to fill this form, or speak naturally. You can also tap **"⚡ Autofill Form"** below to fill directly!`;
+        actionCard = {
+          title: 'Passenger Details Stage',
+          subtitle: `Selected Train: #${trainNo} • Fare: ₹${fare}`,
+          buttonLabel: '⚡ Autofill Form with Passenger Details ➔',
+          route: 'autofill_passenger',
+        };
+      } else if (targetPage === 'payment') {
+        const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 450;
+        msgText = `You are now at the **Secure Payment Bridge**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.
+
+For your security, banking credentials must be entered directly by you. You can use your **Nirantar Citizen Virtual Wallet (₹${ctx.payment.walletBalance.toLocaleString('en-IN')} balance)** for instant 1-click booking, or choose UPI / NetBanking below.`;
+        actionCard = {
+          title: 'Payment Authorization Ready',
+          subtitle: `Citizen Wallet Available: ₹${ctx.payment.walletBalance.toLocaleString('en-IN')}`,
+          buttonLabel: `Pay ₹${fare.toLocaleString('en-IN')} with Wallet ➔`,
+          route: 'payment',
+        };
+      } else {
+        const contextMsg = NiraPlanner.generateStateAwareGreeting(ctx);
+        msgText = contextMsg.message;
+      }
+
       const pageMsg: ChatMessage = {
         id: `nira-page-${Date.now()}`,
         sender: 'nira',
-        text: contextMsg.message,
+        text: msgText,
+        actionCard,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, pageMsg]);
+      if (autoVoice && msgText) {
+        speakNiraResponse(msgText);
+      }
     });
     return unsub;
-  }, [isOpen]);
+  }, [isOpen, autoVoice, selectedTrain]);
 
   /**
    * Comprehensive Local Natural Language Extractor for Train/Route/Auto-Book/Track/Tatkal intents
@@ -616,6 +653,59 @@ Please review the details above on the Passenger Workspace. Ready to proceed to 
           speakNiraResponse(`I have filled the passenger details for ${passengerNames} on the page. Please review them above.`);
         }
       }, 400);
+      return;
+    }
+
+    // ─── 1A.2: Explicit Autofill / Fill Form Fast-Path ───
+    const lowerQuery = query.toLowerCase();
+    if (
+      lowerQuery.includes('autofill') ||
+      lowerQuery.includes('fill this') ||
+      lowerQuery.includes('fill form') ||
+      lowerQuery.includes('fill passenger') ||
+      lowerQuery.includes('prepare details') ||
+      lowerQuery.includes('use saved')
+    ) {
+      const pName = routeCtx.passengerName || 'Ananya Sharma';
+      const singleFare = selectedTrain?.classes[0]?.fare || 450;
+      setPassengers([
+        {
+          id: `p_${Date.now()}`,
+          name: pName,
+          age: 24,
+          gender: 'F',
+          berthPreference: 'LOWER',
+        },
+      ]);
+      emitUiEvent('PASSENGERS_UPDATED', { count: 1 });
+
+      const botResponseText = `I have filled the form on your screen with **${pName}** (24, Female, Lower Berth)!
+
+Please review the details on the Passenger Workspace. Ready to proceed to payment?`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                  actionCard: {
+                    title: 'Passenger Details Prepared Live',
+                    subtitle: `Autofilled ${pName} • Total Fare: ₹${singleFare}`,
+                    buttonLabel: `Proceed to Payment (₹${singleFare}) ➔`,
+                    route: 'payment',
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`I have filled the form with ${pName}. Ready to proceed to payment.`);
+        }
+      }, 350);
       return;
     }
 
@@ -1363,6 +1453,38 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                       <button
                         type="button"
                         onClick={() => {
+                          if (m.actionCard?.route === 'autofill_passenger') {
+                            const pName = routeCtx.passengerName || 'Ananya Sharma';
+                            const singleFare = selectedTrain?.classes[0]?.fare || 450;
+                            setPassengers([
+                              {
+                                id: `p_${Date.now()}`,
+                                name: pName,
+                                age: 24,
+                                gender: 'F',
+                                berthPreference: 'LOWER',
+                              },
+                            ]);
+                            emitUiEvent('PASSENGERS_UPDATED', { count: 1 });
+                            const filledMsg: ChatMessage = {
+                              id: `nira-filled-${Date.now()}`,
+                              sender: 'nira',
+                              text: `I have filled the passenger details on your screen for **${pName}**! Everything looks good. Ready to proceed to payment?`,
+                              actionCard: {
+                                title: 'Passenger Details Prepared Live',
+                                subtitle: `Autofilled ${pName} • Total Fare: ₹${singleFare}`,
+                                buttonLabel: `Proceed to Payment (₹${singleFare}) ➔`,
+                                route: 'payment',
+                              },
+                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            };
+                            setMessages((prev) => [...prev, filledMsg]);
+                            if (autoVoice) {
+                              speakNiraResponse(`I have filled the passenger details for ${pName}. Ready to proceed to payment.`);
+                            }
+                            return;
+                          }
+
                           if (m.actionCard?.route === 'trains') {
                             if (m.actionCard.fromStation && m.actionCard.toStation) {
                               const tomorrowIso = new Date(Date.now() + 86400000).toISOString().split('T')[0];
