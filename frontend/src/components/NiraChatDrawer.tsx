@@ -345,16 +345,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       if (targetPage === 'workspace' || targetPage === 'booking') {
         const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Vande Bharat Express';
         const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '20642';
-        const fare = ctx.journey.fare || selectedTrain?.classes[0]?.fare || 450;
         msgText = `You are on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
 
-Please enter your passenger details: **Name, Age, Gender, and Berth Preference** (e.g. 'Rahul Sharma, 28, Male, Lower Berth') to fill this form. You can speak or type naturally.`;
-        actionCard = {
-          title: 'Passenger Details Stage',
-          subtitle: `Selected Train: #${trainNo} • Fare: ₹${fare}`,
-          buttonLabel: '⚡ Autofill with Saved Profile (Ananya Sharma) ➔',
-          route: 'autofill_passenger',
-        };
+Please enter your passenger details: **Name, Age, Gender, Berth Preference, Mobile, and Email** (e.g. *Pratay Karali, 20, Male, 8420773730, pratay@gmail.com*). You can speak or type naturally to fill the form.`;
+        actionCard = undefined;
       } else if (targetPage === 'payment') {
         const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 450;
         msgText = `You are now at the **Payment Step**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.
@@ -538,27 +532,48 @@ Enter your authorization credentials on the payment bridge below (Banking creden
 
   /**
    * Conversational Live Passenger Extractor
-   * Extracts name, age, gender, and berth preferences from voice/text and populates forms on screen!
+   * Accurately extracts name, age, gender, berth, phone, and email without splitting on single commas!
    */
-  const parsePassengerDetailsFromText = (text: string): PassengerProfile[] | null => {
+  const parsePassengerDetailsFromText = (text: string): {
+    passengers: PassengerProfile[];
+    contact?: { phone?: string; email?: string };
+  } | null => {
     const lower = text.toLowerCase();
     const hasGender = /\b(?:male|female|m|f|boy|girl|man|woman|gent|lady)\b/i.test(lower);
     const hasAge = /\b(?:age\s*\d{1,2}|\d{1,2}\s*(?:years?|yrs?|yr|yo|pax|passenger)|age\b|\b\d{2}\b)/i.test(lower);
     const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat)\b/i.test(lower);
-    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|rohan|ananya|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram)\b/i.test(lower);
+    const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(text);
+    const hasPhone = /\b[6-9]\d{9}\b/.test(text);
+    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram)\b/i.test(lower);
 
-    if (!((hasGender && (hasAge || hasBerth)) || (hasPassengerKeywords && (hasAge || hasGender || hasBerth)))) {
+    if (!((hasGender && (hasAge || hasBerth || hasPhone || hasEmail)) || (hasPassengerKeywords && (hasAge || hasGender || hasBerth)) || (hasEmail && hasPhone))) {
       return null;
     }
 
-    const segments = text.split(/\s*(?:and|&|\band also\b|,|\n|;)\s*/i).map((s) => s.trim()).filter((s) => s.length > 2);
+    // Extract contact phone and email
+    const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+    const emailMatch = text.match(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/);
+    const contact = {
+      phone: phoneMatch ? phoneMatch[1] : undefined,
+      email: emailMatch ? emailMatch[1] : undefined,
+    };
+
+    // Split ONLY on multi-passenger delimiters (NOT single commas!)
+    const multiPaxRegex = /\s*(?:\band\b|&|\band also\b|\bsecond passenger\b|\bpassenger 2\b|\bpassenger 3\b|\bpassenger 4\b|\n|;)\s*/i;
+    const rawSegments = text.split(multiPaxRegex).map((s) => s.trim()).filter((s) => s.length > 2);
+
     const parsed: PassengerProfile[] = [];
 
-    for (let i = 0; i < segments.length; i++) {
-      const seg = segments[i];
+    for (let i = 0; i < rawSegments.length; i++) {
+      const seg = rawSegments[i];
       const sLower = seg.toLowerCase();
 
-      const ageMatch = seg.match(/\b(?:age\s*)?(\d{1,2})\b/i);
+      // Strip email and 10-digit phone from segment for safe age and name parsing
+      const cleanSegNoContact = seg
+        .replace(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, ' ')
+        .replace(/\b[6-9]\d{9}\b/g, ' ');
+
+      const ageMatch = cleanSegNoContact.match(/\b(?:age\s*)?(\b\d{1,2}\b)/i);
       let age = ageMatch ? parseInt(ageMatch[1], 10) : 25;
       if (age > 100 || age < 1) age = 25;
 
@@ -571,23 +586,23 @@ Enter your authorization credentials on the payment bridge below (Banking creden
         gender = 'O';
       }
 
-      let berthPreference: PassengerProfile['berthPreference'] = 'LOWER';
-      if (sLower.includes('side lower') || sLower.includes('sl') || sLower.includes('window')) berthPreference = 'SIDE_LOWER';
+      let berthPreference: PassengerProfile['berthPreference'] = 'NO_PREFERENCE';
+      if (sLower.includes('side lower') || sLower.includes('sl')) berthPreference = 'SIDE_LOWER';
       else if (sLower.includes('side upper') || sLower.includes('su')) berthPreference = 'SIDE_UPPER';
       else if (sLower.includes('upper') || sLower.includes('ub')) berthPreference = 'UPPER';
       else if (sLower.includes('middle') || sLower.includes('mb')) berthPreference = 'MIDDLE';
       else if (sLower.includes('lower') || sLower.includes('lb')) berthPreference = 'LOWER';
-      else berthPreference = 'NO_PREFERENCE';
 
-      let cleanName = seg
-        .replace(/\b(?:passenger\s*\d*|details|my|name|is|age|years|old|male|female|m|f|boy|girl|man|woman|berth|lower|upper|middle|side|window|senior|citizen|fill|book|for|seat|seats|ticket|tickets|with|me|and|also)\b/gi, '')
+      // Clean name
+      let cleanName = cleanSegNoContact
+        .replace(/\b(?:passenger\s*\d*|details|my|name|is|age|years?|old|male|female|m|f|boy|girl|man|woman|berth|lower|upper|middle|side|window|senior|citizen|fill|book|for|seat|seats|ticket|tickets|with|me|and|also|mobile|phone|email|gmail|com)\b/gi, '')
         .replace(/\d+/g, '')
         .replace(/[^a-zA-Z\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
       if (!cleanName || cleanName.length < 2) {
-        cleanName = i === 0 ? 'Ananya Sharma' : `Passenger ${i + 1}`;
+        cleanName = `Passenger ${i + 1}`;
       }
 
       const formattedName = cleanName
@@ -606,7 +621,7 @@ Enter your authorization credentials on the payment bridge below (Banking creden
       });
     }
 
-    return parsed.length > 0 ? parsed : null;
+    return parsed.length > 0 ? { passengers: parsed, contact } : null;
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -641,17 +656,22 @@ Enter your authorization credentials on the payment bridge below (Banking creden
     // ═══════════════════════════════════════════════════════════
 
     // ─── 1A: Conversational Passenger Autofill ───
-    const extractedPassengers = parsePassengerDetailsFromText(query);
-    if (extractedPassengers && extractedPassengers.length > 0) {
+    const parsedPaxResult = parsePassengerDetailsFromText(query);
+    if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
+      const extractedPassengers = parsedPaxResult.passengers;
       setPassengers(extractedPassengers);
       emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
       const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
-      const singleFare = selectedTrain?.classes[0]?.fare || 2120;
+      const singleFare = selectedTrain?.classes[0]?.fare || 645;
       const totalAmount = singleFare * extractedPassengers.length;
 
-      const botResponseText = `I have filled the passenger details on the page for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''})!
+      const contactSnippet = parsedPaxResult.contact?.phone
+        ? ` • Mobile: ${parsedPaxResult.contact.phone}`
+        : '';
 
-Please review the details above on the Passenger Workspace. Ready to proceed to payment?`;
+      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!
+
+Please review the details above on the screen. Ready to proceed to payment?`;
 
       setTimeout(() => {
         setIsLoading(false);
@@ -664,7 +684,7 @@ Please review the details above on the Passenger Workspace. Ready to proceed to 
                   isStreaming: false,
                   actionCard: {
                     title: 'Passenger Details Prepared Live',
-                    subtitle: `Autofilled ${passengerNames} • Total Fare: ₹${totalAmount}`,
+                    subtitle: `Filled ${passengerNames} • Total Fare: ₹${totalAmount}`,
                     buttonLabel: `Proceed to Payment (₹${totalAmount}) ➔`,
                     route: 'payment',
                   },
@@ -673,39 +693,21 @@ Please review the details above on the Passenger Workspace. Ready to proceed to 
           )
         );
         if (autoVoice) {
-          speakNiraResponse(`I have filled the passenger details for ${passengerNames} on the page. Please review them above.`);
+          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Ready to proceed to payment.`);
         }
-      }, 400);
+      }, 350);
       return;
     }
 
-    // ─── 1A.2: Explicit Autofill / Fill Form Fast-Path ───
+    // ─── 1A.2: Generic Fill Form Request without details ───
     const lowerQuery = query.toLowerCase();
     if (
-      lowerQuery.includes('autofill') ||
-      lowerQuery.includes('fill this') ||
-      lowerQuery.includes('fill form') ||
-      lowerQuery.includes('fill passenger') ||
-      lowerQuery.includes('prepare details') ||
-      lowerQuery.includes('use saved')
+      lowerQuery === 'fill form' ||
+      lowerQuery === 'fill details' ||
+      lowerQuery === 'autofill' ||
+      lowerQuery === 'enter passenger'
     ) {
-      const pName = routeCtx.passengerName || 'Ananya Sharma';
-      const singleFare = selectedTrain?.classes[0]?.fare || 450;
-      setPassengers([
-        {
-          id: `p_${Date.now()}`,
-          name: pName,
-          age: 24,
-          gender: 'F',
-          berthPreference: 'LOWER',
-        },
-      ]);
-      emitUiEvent('PASSENGERS_UPDATED', { count: 1 });
-
-      const botResponseText = `I have filled the form on your screen with **${pName}** (24, Female, Lower Berth)!
-
-Please review the details on the Passenger Workspace. Ready to proceed to payment?`;
-
+      const promptText = 'Please provide your passenger details: **Name, Age, Gender, Berth preference, Mobile number, and Email** (e.g. *Pratay Karali, 20, Male, 8420773730, pratay@gmail.com*) to fill the form.';
       setTimeout(() => {
         setIsLoading(false);
         setMessages((prev) =>
@@ -713,22 +715,16 @@ Please review the details on the Passenger Workspace. Ready to proceed to paymen
             m.id === botMsgId
               ? {
                   ...m,
-                  text: botResponseText,
+                  text: promptText,
                   isStreaming: false,
-                  actionCard: {
-                    title: 'Passenger Details Prepared Live',
-                    subtitle: `Autofilled ${pName} • Total Fare: ₹${singleFare}`,
-                    buttonLabel: `Proceed to Payment (₹${singleFare}) ➔`,
-                    route: 'payment',
-                  },
                 }
               : m
           )
         );
         if (autoVoice) {
-          speakNiraResponse(`I have filled the form with ${pName}. Ready to proceed to payment.`);
+          speakNiraResponse('Please provide your name, age, gender, and contact details to fill the form.');
         }
-      }, 350);
+      }, 300);
       return;
     }
 

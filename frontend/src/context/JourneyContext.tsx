@@ -191,10 +191,7 @@ tomorrow.setDate(tomorrow.getDate() + 1);
 const defaultDate = tomorrow.toISOString().split('T')[0];
 
 const defaultSavedPassengers: PassengerProfile[] = [
-  { id: '1', name: 'Ananya Sharma', age: 19, gender: 'F', berthPreference: 'LOWER' },
-  { id: '2', name: 'Rahul Sharma', age: 22, gender: 'M', berthPreference: 'SIDE_LOWER' },
-  { id: '3', name: 'Sunita Sharma', age: 58, gender: 'F', berthPreference: 'LOWER' },
-  { id: '4', name: 'Rajesh Sharma', age: 62, gender: 'M', berthPreference: 'LOWER', seniorCitizenConcession: true },
+  { id: '1', name: '', age: 25, gender: 'M', berthPreference: 'NO_PREFERENCE' },
 ];
 
 const defaultRecentJourneys: RecentJourney[] = [
@@ -798,15 +795,25 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       targetTrain = matchedTrains[0];
     }
 
-    // Set passenger name if provided
-    if (params.passengerName) {
+    // Set passenger name if explicitly provided
+    if (params.passengerName && params.passengerName !== 'Ananya Sharma') {
       setPassengers([
         {
           id: `p_${Date.now()}`,
           name: params.passengerName,
-          age: 24,
-          gender: 'F',
-          berthPreference: 'LOWER',
+          age: 25,
+          gender: 'M',
+          berthPreference: 'NO_PREFERENCE',
+        },
+      ]);
+    } else {
+      setPassengers([
+        {
+          id: `p_${Date.now()}`,
+          name: '',
+          age: 25,
+          gender: 'M',
+          berthPreference: 'NO_PREFERENCE',
         },
       ]);
     }
