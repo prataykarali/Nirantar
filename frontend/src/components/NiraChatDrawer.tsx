@@ -700,42 +700,109 @@ Enter your authorization credentials on the payment bridge below (Banking creden
     setIsLoading(true);
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER 1: STATE-AWARE NIRA PLANNER (EXACT INTENT DISPATCH)
+    // LAYER 0: INLINE ASSISTANCE DISPATCH (SYNCHRONOUS, ZERO DEPS)
+    // Handles all "I'm Stuck" modal queries and general help queries
+    // BEFORE any route parsing, station extraction, or LLM calls.
     // ═══════════════════════════════════════════════════════════
-    const ctx = getSanitizedContext();
-    const plannerResponse = await NiraPlanner.planResponse(safeQuery, ctx);
+    const lowerSafe = safeQuery.toLowerCase();
 
-    if (
-      plannerResponse.source === 'SAFE_ASSIST_DETERMINISTIC' &&
-      plannerResponse.intent !== 'FALLBACK' &&
-      plannerResponse.intent !== 'AUTO_BOOK_CONFIRMATION' &&
-      plannerResponse.intent !== 'SEARCH_TRAINS'
-    ) {
-      if (plannerResponse.actionCue?.type === 'NAVIGATE' && plannerResponse.actionCue.target) {
-        navigateTo(plannerResponse.actionCue.target);
-      }
-      if (plannerResponse.suggestedBookingState) {
-        // Only valid transitions
-      }
+    // Map of keyword patterns → direct response text
+    const assistanceResponses: { patterns: string[]; response: string }[] = [
+      {
+        patterns: ['what am i doing here', 'explain this screen', 'what is this page', 'where am i', 'what to do here', 'what does this page mean', 'what action i should take'],
+        response: (() => {
+          const pageDescs: Record<string, string> = {
+            home: "🏠 **Home Search Screen**: You're at the starting point. Enter your departure and arrival stations, travel date, and passenger count to search real-time trains. Tap '🔍 Search Trains' to begin your journey.",
+            discover: "🧭 **Discover Screen**: Explore curated tourist destinations, hill stations, and popular railway routes across India.",
+            trains: `🚆 **Train Selection Screen**: You're comparing available trains. Look at Speed, Price, and Class columns. Tap any train card to select it, then tap 'Book This Train ➔' to proceed to passenger details.`,
+            workspace: "📝 **Passenger Workspace**: Fill in passenger names, ages, gender, and berth preferences. You can type details or say them to Nira for zero-PII autofill. Once done, tap 'Proceed to Payment ➔'.",
+            booking: "📝 **Booking Review**: Double-check your travel date, selected train, class, and passenger details before making payment.",
+            payment: "💳 **Payment Bridge**: Choose UPI, Card, Net Banking, or your pre-loaded **₹10,000 Citizen Travel Wallet** for instant 0-PIN checkout. Nothing is charged until you confirm.",
+            ticket: "🎫 **Confirmed e-Ticket**: Your journey is booked! Download your PDF receipt, share your PNR, or switch to live GPS tracking.",
+            completion: "🎉 **Booking Confirmation**: Seat confirmed! Download invoice or switch to live train tracking.",
+            track: "📍 **Live GPS Radar**: Real-time satellite tracking showing train speed, platform numbers, door direction, and upcoming station timelines.",
+            myjourneys: "🧳 **My Journeys**: View all your past, active, and upcoming DigiLocker-verified trips.",
+            profile: "👤 **Citizen Profile**: Your verified identity, wallet ledger, and saved co-passengers.",
+            settings: "⚙️ **Settings**: Toggle accessibility, Nira voice, and notification preferences.",
+          };
+          return pageDescs[activePage] || `You are currently on the **${activePage}** screen. Let me know how I can help!`;
+        })(),
+      },
+      {
+        patterns: ['question about payment', 'how does payment work', 'citizen wallet', 'payment recovery', '10,000', '10000', 'payment questions'],
+        response: `💳 **Nirantar Payment & Security Engine**:
 
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: plannerResponse.message,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(plannerResponse.message);
-        }
-      }, 250);
-      return;
+• **₹10,000 Citizen Virtual Wallet**: Pre-loaded government travel credit for instant 0-PIN checkouts with 0-second refunds upon cancellation.
+• **Bank & UPI Isolation**: UPI, QR, Net Banking, and Cards are processed via 256-bit encrypted bank gateways — banking credentials NEVER enter the AI layer.
+• **Double-Verification Safety**: If a transaction times out or fails, your train and passenger details are preserved on Step 4. You can safely verify payment status without risking a double charge.
+• **Retry**: Simply tap 'Retry Payment' or switch to Citizen Wallet for instant completion.`,
+      },
+      {
+        patterns: ['fill passenger details', 'filling passenger details', 'help me fill', 'what information is required', 'fill the passenger'],
+        response: `📝 **Passenger Details Form — What You Need**:
+
+• **Required Fields**: Full Name (as per Govt ID), Age, and Gender for each passenger.
+• **Optional Preferences**: Berth Choice (Lower Berth, Upper, Side Lower, Middle) and Food/Meal opt-in.
+• **Zero-PII Autofill**: Type or speak: *"Pratay Karali, 20, Male, Lower Berth"* and I will fill the fields on your screen automatically with green spotlight arrows.
+• **Multiple Passengers**: Add up to 6 passengers per booking. Say *"2 passengers: Ravi, 28, Male; Priya, 25, Female"*.`,
+      },
+      {
+        patterns: ['go back', 'change something', 'modify my previous', 'modify booking', 'without losing'],
+        response: `↩️ **Zero Data-Loss Navigation**:
+
+You can freely navigate back to any previous step — your entered information is 100% preserved:
+• Tap **← Change Train** to pick a different train or travel class.
+• Tap **← Edit Passengers** to update names, ages, or berth preferences.
+• Tap **← Change Route** to modify origin/destination stations.
+• **Nothing is lost** — Nira saves your progress in the Task Stack automatically.`,
+      },
+      {
+        patterns: ['help me find', 'help me choose', 'compare the best trains', 'which train is best', 'finding the right train', 'best trains for my route'],
+        response: `🚆 **Train Comparison & Selection Guide**:
+
+Tell me what matters most and I'll highlight the best match:
+• ⚡ **Fastest Train**: Vande Bharat / Rajdhani Express — shortest travel duration.
+• 💰 **Cheapest Fare**: Mail/Express in Sleeper (SL) or 3-Tier Economy (3E).
+• 🕐 **Evening Departure**: Overnight sleeper trains leaving between 5 PM and 9 PM.
+• 🛏️ **Maximum Comfort**: 1st AC (1A) and 2nd AC (2A) with inclusive pantry catering.
+
+Try asking: *"Show me the fastest train"* or *"cheapest option under ₹1000"*.`,
+      },
+      {
+        patterns: ['need assistance', 'i need help', 'help me with'],
+        response: `🤝 **Nira Assistance — What Can I Help With?**:
+
+• 🔍 **Find Trains**: Say your route (e.g. "Delhi to Mumbai") and I'll search instantly.
+• 📝 **Fill Passenger Details**: Tell me names and ages and I'll autofill the form.
+• 💳 **Payment Help**: Ask about Citizen Wallet, UPI, or payment recovery.
+• 📍 **Track a Train**: Say "Track 12302" for live GPS radar.
+• 🧭 **Page Guide**: Tap the 🧭 Page Guide button for a visual diagram of your current screen.`,
+      },
+    ];
+
+    // Check if any assistance pattern matches
+    for (const entry of assistanceResponses) {
+      const matched = entry.patterns.some((p) => lowerSafe.includes(p));
+      if (matched) {
+        setTimeout(() => {
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === botMsgId
+                ? {
+                    ...m,
+                    text: entry.response,
+                    isStreaming: false,
+                  }
+                : m
+            )
+          );
+          if (autoVoice) {
+            speakNiraResponse(entry.response.replace(/[*#•→←🏠🧭🚆📝💳🎫🎉📍🧳👤⚙️🤝🔍⚡💰🕐🛏️↩️🛡️]/g, '').substring(0, 200));
+          }
+        }, 200);
+        return;
+      }
     }
 
     // ─── 1A: Conversational Passenger Autofill ───
