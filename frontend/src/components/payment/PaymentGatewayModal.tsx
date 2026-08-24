@@ -35,7 +35,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   selectedMethod,
   onPaymentSuccess,
 }) => {
-  const { triggerMockPaymentResult, verifyPaymentStatus } = useJourney();
+  const { triggerMockPaymentResult, verifyPaymentStatus, walletBalance, setWalletBalance } = useJourney();
 
   const [currentStep, setCurrentStep] = useState<GatewayStep>('METHOD_SELECT');
   const [activeTab, setActiveTab] = useState<'upi' | 'cards' | 'netbanking' | 'wallets'>(
@@ -420,18 +420,31 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
               {/* Tab 4: WALLETS */}
               {activeTab === 'wallets' && (
-                <div className="grid grid-cols-2 gap-2 text-xs animate-in fade-in duration-200">
-                  {['Amazon Pay (Balance: ₹4,200)', 'Paytm Wallet', 'Mobikwik Wallet', 'Airtel Money'].map((w, idx) => (
-                    <button
-                      key={w}
-                      type="button"
-                      className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer ${
-                        idx === 0 ? 'bg-purple-50 border-purple-600 text-purple-950 ring-2 ring-purple-600' : 'border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {w}
-                    </button>
-                  ))}
+                <div className="space-y-2.5 animate-in fade-in duration-200">
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white border border-purple-400/30 space-y-1.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">Nirantar Citizen Virtual Wallet</span>
+                      <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                        ₹10,000 Credit
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-purple-200">Active Balance:</span>
+                      <strong className="text-emerald-300 font-mono text-sm">₹{walletBalance.toLocaleString('en-IN')}.00</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {['Amazon Pay (Balance: ₹4,200)', 'Paytm Wallet', 'Mobikwik Wallet', 'Airtel Money'].map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        className="p-2.5 rounded-xl border border-slate-200 text-slate-700 text-left font-semibold transition-all hover:bg-slate-50 cursor-pointer"
+                      >
+                        {w}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -688,7 +701,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             </div>
           )}
 
-          {/* ──────────────── STEP F: FAILED STATE ──────────────── */}
+          {/* ──────────────── STEP F: FAILED STATE (EXACT USER REQUIREMENT) ──────────────── */}
           {currentStep === 'FAILED' && (
             <div className="p-4 rounded-3xl bg-red-50 border-2 border-red-200 space-y-3 text-left animate-in fade-in">
               <div className="flex items-start gap-3">
@@ -696,20 +709,32 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                   ✕
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-red-950">Payment Could Not Be Completed</h4>
+                  <h4 className="text-sm font-bold text-red-950">
+                    OH no ! It seems transaction failed but ive saved your exact progress to continue ! wanna retry?
+                  </h4>
                   <p className="text-xs text-red-800 mt-1">
-                    Your issuing bank declined the transaction. No amount was deducted from your account. You may retry with a different card or UPI ID.
+                    Your selected train, coach quota, and passenger details are 100% preserved. No amount was debited.
                   </p>
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('wallets');
+                    setCurrentStep('METHOD_SELECT');
+                  }}
+                  className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-xs cursor-pointer"
+                >
+                  ⚡ Pay with Citizen Wallet (₹10,000)
+                </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep('METHOD_SELECT')}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-xs cursor-pointer"
                 >
-                  Try Another Payment Option
+                  🔄 Retry Payment (Progress Saved)
                 </button>
               </div>
             </div>

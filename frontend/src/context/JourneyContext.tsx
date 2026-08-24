@@ -145,6 +145,15 @@ export interface JourneyContextType {
     startWithGuidance?: boolean;
   }) => Promise<boolean>;
 
+  // Virtual Citizen Wallet (₹10,000 New User Credit)
+  walletBalance: number;
+  setWalletBalance: React.Dispatch<React.SetStateAction<number>>;
+  payWithWallet: (amount: number) => Promise<PaymentAttempt | null>;
+
+  // Global Chatbot Drawer State (stays open across entire journey)
+  showChatDrawer: boolean;
+  setShowChatDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+
   // Reset & Recovery
   resetJourney: () => void;
 }
@@ -206,6 +215,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [savedPassengers] = useState<PassengerProfile[]>(defaultSavedPassengers);
   const [recentJourneys, setRecentJourneys] = useState<RecentJourney[]>(defaultRecentJourneys);
   const [trackQuery, setTrackQuery] = useState<string>('');
+  const [walletBalance, setWalletBalance] = useState<number>(10000.00); // ₹10,000 New Citizen Travel Credit
+  const [showChatDrawer, setShowChatDrawer] = useState<boolean>(false);
 
   // Central Journey State
   const [journeyState, setJourneyState] = useState<JourneyState>(createInitialJourneyState());
@@ -225,6 +236,20 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [paymentState, setPaymentState] = useState<PaymentState>('READY');
   const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(null);
   const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(null);
+
+  const payWithWallet = async (amount: number): Promise<PaymentAttempt | null> => {
+    if (walletBalance < amount) {
+      setNamedError('PAYMENT_FAILED', 'Insufficient balance in Nirantar Citizen Wallet.');
+      return null;
+    }
+    setWalletBalance((prev) => Math.max(0, prev - amount));
+    const attempt = await initiatePayment('WALLET', amount);
+    if (attempt) {
+      const res = await triggerMockPaymentResult('SUCCESS');
+      return res;
+    }
+    return null;
+  };
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -741,6 +766,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         trackQuery,
         setTrackQuery,
         handleQuickTrack,
+        walletBalance,
+        setWalletBalance,
+        payWithWallet,
+        showChatDrawer,
+        setShowChatDrawer,
         guidanceActive,
         guidanceStep: currentGuidanceStep,
         guidanceStepIndex,

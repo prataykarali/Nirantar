@@ -38,6 +38,8 @@ export const PaymentBridgePage: React.FC = () => {
     initiatePayment,
     verifyPaymentStatus,
     triggerMockPaymentResult,
+    walletBalance,
+    payWithWallet,
   } = useJourney();
 
   const [activeTab, setActiveTab] = useState<PaymentTab>('upi');
@@ -77,6 +79,11 @@ export const PaymentBridgePage: React.FC = () => {
     if (e) e.preventDefault();
     const method = activeTab === 'upi' ? 'UPI' : activeTab === 'cards' ? 'CARD' : activeTab === 'netbanking' ? 'NET_BANKING' : 'WALLET';
     await initiatePayment(method, totalAmount);
+    setShowGatewayModal(true);
+  };
+
+  const handlePayWithWallet = async () => {
+    await initiatePayment('WALLET', totalAmount);
     setShowGatewayModal(true);
   };
 
@@ -207,18 +214,36 @@ export const PaymentBridgePage: React.FC = () => {
       )}
 
       {paymentState === 'FAILED' && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-3 flex items-center justify-between gap-3 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold text-red-800">
-            <span className="text-sm">❌</span>
-            <span>Payment could not be completed. No amount was deducted. You may retry or choose a different payment option.</span>
+        <div className="rounded-2xl bg-red-50 border-2 border-red-200 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 font-bold text-sm">
+              ✕
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-red-950">
+                OH no ! It seems transaction failed but ive saved your exact progress to continue ! wanna retry?
+              </h4>
+              <p className="text-[11px] text-red-800 font-medium mt-0.5">
+                Your selected train, quota, and passenger details remain intact. No amount was deducted.
+              </p>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => handlePay()}
-            className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors shrink-0"
-          >
-            Retry Payment
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handlePayWithWallet}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black transition-all cursor-pointer shadow-2xs"
+            >
+              ⚡ Use Wallet (₹10,000)
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePay()}
+              className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-colors cursor-pointer shadow-2xs"
+            >
+              🔄 Retry Payment
+            </button>
+          </div>
         </div>
       )}
 
@@ -260,9 +285,53 @@ export const PaymentBridgePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
         {/* ──────────────── COLUMN 1: PAYMENT METHOD SELECTOR & QR (5 Cols) ──────────────── */}
         <div className="lg:col-span-5 bg-white rounded-[24px] p-4 shadow-sm border border-purple-100 space-y-3.5">
-          <h2 className="text-sm font-bold text-slate-900">
-            Choose a payment method
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900">
+              Choose a payment method
+            </h2>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              Total: ₹{totalAmount.toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          {/* Virtual Citizen Wallet Highlight Card (₹10,000 New User Credit) */}
+          <div id="citizen-wallet-card" className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white shadow-md border border-purple-400/30 space-y-2.5 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-amber-300 shadow-xs">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-xs block leading-tight">
+                    Nirantar Citizen Virtual Wallet
+                  </span>
+                  <span className="text-[10px] text-purple-200">
+                    Active Balance: <strong className="text-emerald-300 font-mono text-xs">₹{walletBalance.toLocaleString('en-IN')}.00</strong>
+                  </span>
+                </div>
+              </div>
+              <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                ₹10,000 Credit
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-[10px] text-purple-200">
+                Debit: <strong className="text-white font-mono">₹{totalAmount.toLocaleString('en-IN')}</strong> • Remaining: <strong className="text-emerald-300 font-mono">₹{Math.max(0, walletBalance - totalAmount).toLocaleString('en-IN')}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={handlePayWithWallet}
+                className="py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs font-black shadow-sm transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+              >
+                <span>Pay with Wallet ➔</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">OR PAY VIA UPI / CARDS / NET BANKING</span>
+          </div>
 
           {/* 4 Payment Method Tabs */}
           <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-purple-50/50 border border-purple-100">

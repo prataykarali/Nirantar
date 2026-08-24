@@ -26,7 +26,7 @@ import {
   ListFilter,
   RefreshCw,
 } from 'lucide-react';
-import { useJourney } from '../context/JourneyContext';
+import { useJourney, PassengerProfile } from '../context/JourneyContext';
 import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
@@ -106,6 +106,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     triggerAutoBookFlow,
     handleQuickTrack,
     startGuidanceTour,
+    activePage,
+    passengers: currentPassengers,
+    setPassengers,
+    walletBalance,
+    paymentState,
+    selectedTrain,
+    selectedClassCode,
   } = useJourney();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -423,6 +430,79 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     };
   };
 
+  /**
+   * Conversational Live Passenger Extractor
+   * Extracts name, age, gender, and berth preferences from voice/text and populates forms on screen!
+   */
+  const parsePassengerDetailsFromText = (text: string): PassengerProfile[] | null => {
+    const lower = text.toLowerCase();
+    const hasGender = /\b(?:male|female|m|f|boy|girl|man|woman|gent|lady)\b/i.test(lower);
+    const hasAge = /\b(?:age\s*\d{1,2}|\d{1,2}\s*(?:years?|yrs?|yr|yo|pax|passenger)|age\b|\b\d{2}\b)/i.test(lower);
+    const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat)\b/i.test(lower);
+    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|rohan|ananya|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram)\b/i.test(lower);
+
+    if (!((hasGender && (hasAge || hasBerth)) || (hasPassengerKeywords && (hasAge || hasGender || hasBerth)))) {
+      return null;
+    }
+
+    const segments = text.split(/\s*(?:and|&|\band also\b|,|\n|;)\s*/i).map((s) => s.trim()).filter((s) => s.length > 2);
+    const parsed: PassengerProfile[] = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const sLower = seg.toLowerCase();
+
+      const ageMatch = seg.match(/\b(?:age\s*)?(\d{1,2})\b/i);
+      let age = ageMatch ? parseInt(ageMatch[1], 10) : 25;
+      if (age > 100 || age < 1) age = 25;
+
+      let gender: 'M' | 'F' | 'O' = 'M';
+      if (/\b(?:female|f|girl|woman|lady|mrs|ms|mother|mom|sister|wife|daughter)\b/i.test(sLower)) {
+        gender = 'F';
+      } else if (/\b(?:male|m|boy|man|gent|mr|father|dad|brother|husband|son)\b/i.test(sLower)) {
+        gender = 'M';
+      } else if (/\b(?:trans|transgender|other|t|o)\b/i.test(sLower)) {
+        gender = 'O';
+      }
+
+      let berthPreference: PassengerProfile['berthPreference'] = 'LOWER';
+      if (sLower.includes('side lower') || sLower.includes('sl') || sLower.includes('window')) berthPreference = 'SIDE_LOWER';
+      else if (sLower.includes('side upper') || sLower.includes('su')) berthPreference = 'SIDE_UPPER';
+      else if (sLower.includes('upper') || sLower.includes('ub')) berthPreference = 'UPPER';
+      else if (sLower.includes('middle') || sLower.includes('mb')) berthPreference = 'MIDDLE';
+      else if (sLower.includes('lower') || sLower.includes('lb')) berthPreference = 'LOWER';
+      else berthPreference = 'NO_PREFERENCE';
+
+      let cleanName = seg
+        .replace(/\b(?:passenger\s*\d*|details|my|name|is|age|years|old|male|female|m|f|boy|girl|man|woman|berth|lower|upper|middle|side|window|senior|citizen|fill|book|for|seat|seats|ticket|tickets|with|me|and|also)\b/gi, '')
+        .replace(/\d+/g, '')
+        .replace(/[^a-zA-Z\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!cleanName || cleanName.length < 2) {
+        cleanName = i === 0 ? 'Ananya Sharma' : `Passenger ${i + 1}`;
+      }
+
+      const formattedName = cleanName
+        .split(' ')
+        .filter((w) => w.length > 0)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+
+      parsed.push({
+        id: `p_${Date.now()}_${i + 1}`,
+        name: formattedName,
+        age,
+        gender,
+        berthPreference,
+        seniorCitizenConcession: age >= 60 || sLower.includes('senior'),
+      });
+    }
+
+    return parsed.length > 0 ? parsed : null;
+  };
+
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
@@ -446,6 +526,198 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setMessages((prev) => [...prev, userMsg, botPlaceholderMsg]);
     setInput('');
     setIsLoading(true);
+
+    const lower = query.toLowerCase();
+
+    // ─────────────────────────────────────────────────────────────
+    // CASE A: CONVERSATIONAL PASSENGER AUTOFILL (Populates Form Live!)
+    // ─────────────────────────────────────────────────────────────
+    const extractedPassengers = parsePassengerDetailsFromText(query);
+    if (extractedPassengers && extractedPassengers.length > 0) {
+      setPassengers(extractedPassengers);
+      const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
+      const singleFare = selectedTrain?.classes[0]?.fare || 2120;
+      const totalAmount = singleFare * extractedPassengers.length;
+
+      const botResponseText = `I have filled the passenger details on the page for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''})!
+
+Please review the details above on the Passenger Workspace. Ready to proceed to payment?`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                  actionCard: {
+                    title: 'Passenger Details Prepared Live',
+                    subtitle: `Autofilled ${passengerNames} • Total Fare: ₹${totalAmount}`,
+                    buttonLabel: `Proceed to Payment (₹${totalAmount}) ➔`,
+                    route: 'payment',
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`I have filled the passenger details for ${passengerNames} on the page. Please review them above.`);
+        }
+      }, 400);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CASE B: PROCEED TO PAYMENT
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('proceed to payment') ||
+      lower.includes('go to payment') ||
+      lower.includes('continue to payment') ||
+      lower.includes('ready to pay') ||
+      lower.includes('pay now')
+    ) {
+      navigateTo('payment');
+      const botResponseText = `You are now at the secure payment bridge! Total amount to be debited is **₹4,240**.
+
+For your security, banking credentials must be entered directly by you. You can use your **Nirantar Citizen Virtual Wallet (₹10,000.00 Balance)** for instant 1-click booking, or choose UPI / NetBanking below.`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`You are now at the payment bridge. Total amount to be debited is 4240 rupees. You can use your 10000 rupees Citizen Wallet or UPI.`);
+        }
+      }, 400);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CASE C: CITIZEN VIRTUAL WALLET GUIDANCE (₹10,000 Balance)
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('wallet') ||
+      lower.includes('10000') ||
+      lower.includes('10,000') ||
+      lower.includes('virtual wallet')
+    ) {
+      if (activePage !== 'payment') {
+        navigateTo('payment');
+      }
+      const botResponseText = `Your **Nirantar Citizen Virtual Wallet** is active with a pre-loaded balance of **₹10,000.00**!
+
+• Total debit for this booking: **₹4,240.00**
+• Remaining balance after booking: **₹5,760.00**
+
+For your security, please tap **"Pay with Wallet ➔"** on the page and enter your 4-digit PIN to authorize payment.`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`Your Nirantar Citizen Virtual Wallet has a balance of 10000 rupees. Total debit is 4240 rupees. Please authorize with your PIN.`);
+        }
+      }, 400);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CASE D: WHERE DO I PAY? / CONTEXTUAL PAYMENT ASSISTANCE
+    // ─────────────────────────────────────────────────────────────
+    if (lower.includes('where do i pay') || lower.includes('how do i pay') || lower.includes('where to pay')) {
+      if (activePage !== 'payment') {
+        navigateTo('payment');
+      }
+      const botResponseText = `You are at the payment bridge! The payment authorization section is highlighted right here on your screen.
+
+• Total amount to be debited: **₹4,240.00**
+• Nirantar Citizen Wallet (₹10,000 balance available)
+• UPI QR / GPay / PhonePe / Paytm / Cards
+
+Please select your method and enter your authorization PIN.`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`You are at the payment bridge. The payment authorization section is right here on your screen.`);
+        }
+      }, 400);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CASE E: PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENT)
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('transaction fail') ||
+      lower.includes('payment fail') ||
+      lower.includes('fail') ||
+      lower.includes('no money') ||
+      lower.includes('retry') ||
+      lower.includes('error in payment')
+    ) {
+      const botResponseText = `OH no ! It seems transaction failed but ive saved your exact progress to continue ! wanna retry?
+
+Your selected train, quota, and passenger details are 100% preserved. You can retry with a different UPI app or use your **₹10,000 Nirantar Citizen Wallet** balance!`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                  actionCard: {
+                    title: 'Progress Saved (Zero Data Loss)',
+                    subtitle: 'Selected train & passenger details intact',
+                    buttonLabel: '🔄 Retry Payment (Progress Saved) ➔',
+                    route: 'payment',
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`Oh no, it seems transaction failed, but I have saved your exact progress to continue. Would you like to retry or use your Citizen Wallet?`);
+        }
+      }, 400);
+      return;
+    }
 
     const intentData = extractAdvancedIntent(query, routeCtx);
     const nextRouteCtx = intentData.route;
@@ -976,7 +1248,6 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                         <button
                           type="button"
                           onClick={() => {
-                            onClose();
                             triggerAutoBookFlow({
                               fromStation: m.autoBookCard!.fromStation,
                               toStation: m.autoBookCard!.toStation,
@@ -998,7 +1269,6 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                         <button
                           type="button"
                           onClick={() => {
-                            onClose();
                             triggerAutoBookFlow({
                               fromStation: m.autoBookCard!.fromStation,
                               toStation: m.autoBookCard!.toStation,
@@ -1060,11 +1330,10 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                         </div>
                       </div>
 
-                      {/* Direct Clickable Redirect Button */}
+                      {/* Direct Clickable Redirect Button (Keeps chat open!) */}
                       <button
                         type="button"
                         onClick={() => {
-                          onClose();
                           handleQuickTrack(m.trackCard!.trainNumber);
                         }}
                         className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
@@ -1075,7 +1344,7 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                     </div>
                   )}
 
-                  {/* Standard Action Card (Search fallback) */}
+                  {/* Standard Action Card (Search fallback - Keeps chat open!) */}
                   {m.actionCard && !m.autoBookCard && (
                     <div className="ml-8 p-3.5 rounded-2xl bg-white border border-purple-100 shadow-sm space-y-2.5">
                       <div>
@@ -1091,7 +1360,6 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                       <button
                         type="button"
                         onClick={() => {
-                          onClose();
                           if (m.actionCard?.route === 'trains') {
                             if (m.actionCard.fromStation && m.actionCard.toStation) {
                               const tomorrowIso = new Date(Date.now() + 86400000).toISOString().split('T')[0];

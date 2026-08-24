@@ -23,8 +23,7 @@ import { FairAccessBanner } from '../journey/FairAccessBanner';
 import { SpotlightGuidance } from '../journey/SpotlightGuidance';
 
 export const AppShell: React.FC = () => {
-  const { activePage, setActivePage, searchParams } = useJourney();
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const { activePage, setActivePage, searchParams, showChatDrawer, setShowChatDrawer } = useJourney();
 
   // Page title mapping
   const pageMeta: Record<string, { title: string; subtitle: string }> = {
