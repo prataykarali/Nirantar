@@ -18,6 +18,10 @@ import { searchTrains } from '../data/mockTrains';
 export const DemoModePanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const {
+    activePage,
+    bookingState,
+    paymentState,
+    taskStack,
     resetJourney,
     navigateTo,
     triggerMockPaymentResult,
@@ -96,6 +100,22 @@ export const DemoModePanel: React.FC = () => {
             >
               <ChevronDown className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* LIVE NIRA CONTEXT TELEMETRY */}
+          <div className="p-2 rounded-xl bg-slate-950/90 border border-purple-500/20 text-[10px] font-mono space-y-1">
+            <div className="flex items-center justify-between text-purple-300 font-bold border-b border-slate-800 pb-1">
+              <span>NIRA ACTIVE</span>
+              <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                SafeMode ON
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-slate-300 pt-0.5">
+              <div><span className="text-slate-500">Page:</span> <strong className="text-white capitalize">{activePage}</strong></div>
+              <div><span className="text-slate-500">State:</span> <strong className="text-purple-300">{bookingState}</strong></div>
+              <div><span className="text-slate-500">Payment:</span> <strong className="text-amber-300">{paymentState}</strong></div>
+              <div><span className="text-slate-500">TaskStack:</span> <strong className="text-emerald-300">{taskStack.length > 0 ? `${taskStack.length} Paused` : 'Clean'}</strong></div>
+            </div>
           </div>
 
           <div className="space-y-1.5 text-xs">

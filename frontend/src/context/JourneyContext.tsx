@@ -180,6 +180,12 @@ export interface JourneyContextType {
   // Sanitized Context Builder
   getSanitizedContext: () => NiraSanitizedContext;
 
+  // Citizen Accessibility & "I'm Stuck"
+  easyMode: boolean;
+  setEasyMode: (enabled: boolean) => void;
+  showImStuck: boolean;
+  setShowImStuck: (show: boolean) => void;
+
   // Reset & Recovery
   resetJourney: () => void;
 }
@@ -258,13 +264,26 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(null);
   const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(null);
 
-  // ═══════════════════════════════════════════════════════════
-  // FORMAL STATE MACHINE, TASK STACK, SORT & HIGHLIGHT
-  // ═══════════════════════════════════════════════════════════
   const [bookingState, setBookingStateRaw] = useState<BookingState>('IDLE');
   const [taskStack, setTaskStack] = useState<TaskStackItem[]>([]);
   const [activeSort, setActiveSortRaw] = useState<'recommended' | 'fastest' | 'cheapest' | 'departure'>('recommended');
   const [activeHighlightTarget, setActiveHighlightTarget] = useState<string | null>(null);
+
+  // ─── Citizen Accessibility & "I'm Stuck" ───
+  const [easyMode, setEasyMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('nirantar_easy_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [showImStuck, setShowImStuck] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_easy_mode', String(easyMode));
+    } catch {}
+  }, [easyMode]);
 
   // Validated State Transition — LLM cannot force illegal transitions
   const setBookingState = useCallback((next: BookingState) => {
@@ -969,6 +988,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // ─── Sanitized Context ───
         getSanitizedContext,
         resetJourney,
+        // ─── Citizen Accessibility ───
+        easyMode,
+        setEasyMode,
+        showImStuck,
+        setShowImStuck,
       }}
     >
       {children}

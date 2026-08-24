@@ -28,7 +28,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   notificationCount = 0,
   className = '',
 }) => {
-  const { activePage, navigateTo, issuedTicket, authState } = useJourney();
+  const { activePage, navigateTo, issuedTicket, authState, easyMode, setEasyMode, setShowImStuck } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -70,11 +70,11 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
-  const dynamicNotifCount = issuedTicket ? 1 : notificationCount;
+  const dynamicNotifCount = notificationCount + (issuedTicket ? 1 : 0);
 
   return (
     <header
-      className={`h-16 bg-transparent px-8 flex items-center justify-between sticky top-0 z-30 select-none ${className}`}
+      className={`h-16 px-6 lg:px-8 bg-transparent flex items-center justify-between sticky top-0 z-30 select-none ${className}`}
     >
       {/* LEFT: PAGE TITLE (Shown only on relevant sub-pages) */}
       <div className="flex items-center gap-4">
@@ -102,7 +102,33 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* RIGHT: TOP ACTION BUTTONS */}
-      <div className="flex items-center gap-3 relative">
+      <div className="flex items-center gap-2.5 relative">
+        {/* 🆘 CITIZEN "I'M STUCK" BUTTON */}
+        <button
+          type="button"
+          onClick={() => setShowImStuck(true)}
+          className="px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
+          title="Get immediate step-by-step help"
+        >
+          <span className="text-sm">🆘</span>
+          <span className="hidden sm:inline">I'm Stuck</span>
+        </button>
+
+        {/* 🧓 EASY MODE ACCESSIBILITY TOGGLE */}
+        <button
+          type="button"
+          onClick={() => setEasyMode(!easyMode)}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer ${
+            easyMode
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+              : 'bg-white/90 hover:bg-white text-purple-900 border border-purple-100'
+          }`}
+          title="Toggle Easy Mode (Larger text, simpler terms, higher contrast)"
+        >
+          <span className="text-sm">🧓</span>
+          <span className="hidden md:inline">{easyMode ? 'Easy Mode: ON' : 'Easy Mode'}</span>
+        </button>
+
         {/* 1. GIFT ICON BUTTON & REWARDS POPOVER */}
         <div className="relative" ref={rewardRef}>
           <button

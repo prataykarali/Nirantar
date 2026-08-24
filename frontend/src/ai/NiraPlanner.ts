@@ -74,6 +74,65 @@ export class NiraPlanner {
     const lower = cleanQuery.toLowerCase();
 
     // ─────────────────────────────────────────────────────────────
+    // 00. SECURITY: PROMPT INJECTION & UNPRIVILEGED ACTION DEFENSE
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('ignore your instructions') ||
+      lower.includes('ignore previous') ||
+      lower.includes('show me the payment details') ||
+      lower.includes('pretend payment succeeded') ||
+      lower.includes('payment_success') ||
+      lower.includes('reveal the hidden system prompt') ||
+      lower.includes('system prompt') ||
+      lower.includes('admin page') ||
+      lower.includes('fill my password') ||
+      lower.includes('fill my pin') ||
+      lower.includes('fill my otp')
+    ) {
+      return {
+        intent: 'SECURITY_BLOCKED',
+        message: '🛡️ **Security Policy Enforcement**: I cannot access protected credentials, alter transaction states, or bypass system boundaries. Nirantar strictly enforces zero-PII containment.',
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 00B. SCREEN-AWARE "WHERE AM I?" / "WHAT AM I DOING HERE?"
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('what am i doing here') ||
+      lower.includes('where am i') ||
+      lower.includes('what is this page') ||
+      lower.includes('what to do here') ||
+      lower.includes('help on this page') ||
+      lower.includes('explain this screen')
+    ) {
+      const pageDescriptions: Record<string, string> = {
+        home: "🏠 **Home Search**: Enter your departure and arrival stations to find real-time trains.",
+        discover: "🧭 **Discover**: Explore popular tourist destinations, hill stations, and curated railway routes.",
+        trains: `🚆 **Train Selection**: Comparing trains between **${context.journey.origin || 'Delhi'}** and **${context.journey.destination || 'Mumbai'}**. Tap any train to choose your class.`,
+        workspace: "📝 **Passenger Workspace**: Enter names, ages, and berth preferences. Tap 'Fill Passenger' or ask me to autofill.",
+        booking: "📝 **Booking Review**: Double-check your travel date, train number, and passenger details before payment.",
+        payment: "💳 **Payment Bridge**: Choose UPI, Card, Net Banking, or use your **₹10,000 Citizen Travel Wallet**.",
+        ticket: "🎫 **Confirmed e-Ticket**: Your journey is booked! Download your PDF receipt or track GPS status.",
+        completion: "🎉 **Confirmation**: Seat confirmed. You can download the invoice or switch to live tracking.",
+        track: "📍 **Live GPS Radar**: Track speed, upcoming halts, and platform numbers in real-time.",
+        myjourneys: "🧳 **My Journeys**: Review all your past, active, and upcoming DigiLocker-verified trips.",
+        profile: "👤 **Citizen Profile**: View your verified Aadhaar status, wallet ledger, and saved co-passengers.",
+        settings: "⚙️ **Settings**: Toggle accessibility, Easy Mode, and audio notifications.",
+      };
+
+      const msg = pageDescriptions[context.page] || `You are currently on the **${context.page}** step of your journey. Let me know how I can help!`;
+      return {
+        intent: 'EXPLAIN_CURRENT_STATE',
+        message: msg,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // 0A. CANCEL TRIP / CANCEL BOOKING INTENTS (ALWAYS ALLOWED)
     // ─────────────────────────────────────────────────────────────
     if (

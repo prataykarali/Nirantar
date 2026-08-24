@@ -22,9 +22,19 @@ import { NiraChatDrawer } from '../NiraChatDrawer';
 import { FairAccessBanner } from '../journey/FairAccessBanner';
 import { SpotlightGuidance } from '../journey/SpotlightGuidance';
 import { DemoModePanel } from '../DemoModePanel';
+import { ImStuckModal } from '../ImStuckModal';
 
 export const AppShell: React.FC = () => {
-  const { activePage, setActivePage, searchParams, showChatDrawer, setShowChatDrawer } = useJourney();
+  const {
+    activePage,
+    setActivePage,
+    searchParams,
+    showChatDrawer,
+    setShowChatDrawer,
+    easyMode,
+    showImStuck,
+    setShowImStuck,
+  } = useJourney();
 
   // Page title mapping
   const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -135,6 +145,12 @@ export const AppShell: React.FC = () => {
 
       {/* 6. JUDGE / DEMO CONTROLS PANEL */}
       <DemoModePanel />
+
+      {/* 7. CITIZEN "I'M STUCK" ASSISTANCE MODAL */}
+      <ImStuckModal
+        isOpen={showImStuck}
+        onClose={() => setShowImStuck(false)}
+      />
     </div>
   );
 };
