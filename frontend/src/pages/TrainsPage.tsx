@@ -27,12 +27,19 @@ export const TrainsPage: React.FC = () => {
     selectTrain,
     executeSearch,
     navigateTo,
+    activeSort,
+    setActiveSort,
+    activeHighlightTarget,
   } = useJourney();
 
-  const [activeFilter, setActiveFilter] = useState<FilterType>('recommended');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedClassMap, setSelectedClassMap] = useState<Record<string, string>>({});
   const [expandedTrainId, setExpandedTrainId] = useState<string | null>(null);
+
+  const activeFilter = activeSort as FilterType;
+  const setActiveFilter = (val: FilterType) => {
+    setActiveSort(val as any);
+  };
 
   // Compare trains list
   const [compareList, setCompareList] = useState<TrainDetail[]>(() => {
@@ -257,7 +264,7 @@ export const TrainsPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            filteredTrains.map((train) => {
+            filteredTrains.map((train, idx) => {
               const isFav = favorites[train.trainNumber];
               const isExpanded = expandedTrainId === train.trainNumber;
               const currentSelectedClass = selectedClassMap[train.trainNumber] || (train.classes[0]?.classCode || '3A');
@@ -280,11 +287,27 @@ export const TrainsPage: React.FC = () => {
 
               const isRecommended = train.isFastest || train.isBestValue || !!train.aiRecommendationReason;
 
+            const isCardHighlighted =
+              activeHighlightTarget === `train_${train.trainNumber}` ||
+              (activeHighlightTarget === 'train_cheapest' && idx === 0);
+
             return (
               <div
                 key={train.trainNumber}
-                className="bg-white rounded-2xl p-3.5 shadow-[0_2px_10px_rgba(88,28,135,0.03)] border border-purple-50 hover:shadow-md transition-all duration-200 space-y-2.5 relative"
+                id={`train_${train.trainNumber}`}
+                className={`bg-white rounded-2xl p-3.5 transition-all duration-200 space-y-2.5 relative ${
+                  isCardHighlighted
+                    ? 'ring-3 ring-emerald-500 shadow-lg border-2 border-emerald-400 bg-emerald-50/20'
+                    : 'shadow-[0_2px_10px_rgba(88,28,135,0.03)] border border-purple-50 hover:shadow-md'
+                }`}
               >
+                {/* ─── GREEN ARROW GUIDANCE INDICATOR (STATE-AWARE ACTION ENGINE) ─── */}
+                {isCardHighlighted && (
+                  <div className="absolute -left-3 top-1/2 -translate-y-1/2 -translate-x-full hidden md:flex items-center gap-1.5 bg-emerald-600 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow-lg animate-bounce">
+                    <span>🟢 Recommended Option</span>
+                    <ArrowRight className="w-4 h-4 text-white" />
+                  </div>
+                )}
                 {/* TOP ROW: ICON, NAME, RECOMMENDED TAG, FAVORITE */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">

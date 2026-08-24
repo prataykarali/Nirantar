@@ -32,6 +32,10 @@ import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTra
 import { sendCitizenQuery } from '../services/api';
 import { speakNiraResponse, stopNiraSpeech } from '../services/voiceService';
 import { streamNiraChat } from '../services/niraApi';
+import { NiraPlanner, NiraSanitizedContext } from '../ai/NiraPlanner';
+import { PiiRedactor } from '../ai/PiiRedactor';
+import { ActionPolicyEngine } from '../actions/ActionPolicy';
+import { UiEventBus } from '../events/UiEventBus';
 
 interface AutoBookData {
   train: TrainDetail;
@@ -113,6 +117,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     paymentState,
     selectedTrain,
     selectedClassCode,
+    // ─── State-Aware Nira (Journey Orchestration) ───
+    getSanitizedContext,
+    bookingState,
+    emitUiEvent,
+    taskStack,
+    pushTask,
+    resumeTask,
+    setActiveSort,
+    setActiveHighlightTarget,
   } = useJourney();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -299,7 +312,40 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   useEffect(() => {
     if (!isOpen) {
       stopNiraSpeech();
+      return;
     }
+    // ─── STATE-AWARE GREETING: Nira knows what page the user is on ───
+    emitUiEvent('NIRA_OPENED', { page: activePage });
+    const ctx = getSanitizedContext();
+    const greeting = NiraPlanner.generateStateAwareGreeting(ctx);
+
+    // Only add greeting if chat is empty or user reopened on a new page
+    if (messages.length === 0) {
+      const greetMsg: ChatMessage = {
+        id: `nira-greeting-${Date.now()}`,
+        sender: 'nira',
+        text: greeting.message,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages([greetMsg]);
+    }
+  }, [isOpen]);
+
+  // ─── Listen for PAGE_CHANGED events to add contextual messages ───
+  useEffect(() => {
+    const unsub = UiEventBus.subscribe('PAGE_CHANGED', (event) => {
+      if (!isOpen) return;
+      const ctx = getSanitizedContext();
+      const contextMsg = NiraPlanner.generateStateAwareGreeting(ctx);
+      const pageMsg: ChatMessage = {
+        id: `nira-page-${Date.now()}`,
+        sender: 'nira',
+        text: contextMsg.message,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, pageMsg]);
+    });
+    return unsub;
   }, [isOpen]);
 
   /**
@@ -507,6 +553,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
 
+    // PII Redaction before any processing
+    const safeQuery = PiiRedactor.redact(query);
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -527,14 +576,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setInput('');
     setIsLoading(true);
 
-    const lower = query.toLowerCase();
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 1: DETERMINISTIC FAST-PATHS (No LLM needed)
+    // ═══════════════════════════════════════════════════════════
 
-    // ─────────────────────────────────────────────────────────────
-    // CASE A: CONVERSATIONAL PASSENGER AUTOFILL (Populates Form Live!)
-    // ─────────────────────────────────────────────────────────────
+    // ─── 1A: Conversational Passenger Autofill ───
     const extractedPassengers = parsePassengerDetailsFromText(query);
     if (extractedPassengers && extractedPassengers.length > 0) {
       setPassengers(extractedPassengers);
+      emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
       const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
       const singleFare = selectedTrain?.classes[0]?.fare || 2120;
       const totalAmount = singleFare * extractedPassengers.length;
@@ -569,172 +619,19 @@ Please review the details above on the Passenger Workspace. Ready to proceed to 
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // CASE B: PROCEED TO PAYMENT
-    // ─────────────────────────────────────────────────────────────
-    if (
-      lower.includes('proceed to payment') ||
-      lower.includes('go to payment') ||
-      lower.includes('continue to payment') ||
-      lower.includes('ready to pay') ||
-      lower.includes('pay now')
-    ) {
-      navigateTo('payment');
-      const botResponseText = `You are now at the secure payment bridge! Total amount to be debited is **₹4,240**.
-
-For your security, banking credentials must be entered directly by you. You can use your **Nirantar Citizen Virtual Wallet (₹10,000.00 Balance)** for instant 1-click booking, or choose UPI / NetBanking below.`;
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`You are now at the payment bridge. Total amount to be debited is 4240 rupees. You can use your 10000 rupees Citizen Wallet or UPI.`);
-        }
-      }, 400);
-      return;
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // CASE C: CITIZEN VIRTUAL WALLET GUIDANCE (₹10,000 Balance)
-    // ─────────────────────────────────────────────────────────────
-    if (
-      lower.includes('wallet') ||
-      lower.includes('10000') ||
-      lower.includes('10,000') ||
-      lower.includes('virtual wallet')
-    ) {
-      if (activePage !== 'payment') {
-        navigateTo('payment');
-      }
-      const botResponseText = `Your **Nirantar Citizen Virtual Wallet** is active with a pre-loaded balance of **₹10,000.00**!
-
-• Total debit for this booking: **₹4,240.00**
-• Remaining balance after booking: **₹5,760.00**
-
-For your security, please tap **"Pay with Wallet ➔"** on the page and enter your 4-digit PIN to authorize payment.`;
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`Your Nirantar Citizen Virtual Wallet has a balance of 10000 rupees. Total debit is 4240 rupees. Please authorize with your PIN.`);
-        }
-      }, 400);
-      return;
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // CASE D: WHERE DO I PAY? / CONTEXTUAL PAYMENT ASSISTANCE
-    // ─────────────────────────────────────────────────────────────
-    if (lower.includes('where do i pay') || lower.includes('how do i pay') || lower.includes('where to pay')) {
-      if (activePage !== 'payment') {
-        navigateTo('payment');
-      }
-      const botResponseText = `You are at the payment bridge! The payment authorization section is highlighted right here on your screen.
-
-• Total amount to be debited: **₹4,240.00**
-• Nirantar Citizen Wallet (₹10,000 balance available)
-• UPI QR / GPay / PhonePe / Paytm / Cards
-
-Please select your method and enter your authorization PIN.`;
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`You are at the payment bridge. The payment authorization section is right here on your screen.`);
-        }
-      }, 400);
-      return;
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // CASE E: PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENT)
-    // ─────────────────────────────────────────────────────────────
-    if (
-      lower.includes('transaction fail') ||
-      lower.includes('payment fail') ||
-      lower.includes('fail') ||
-      lower.includes('no money') ||
-      lower.includes('retry') ||
-      lower.includes('error in payment')
-    ) {
-      const botResponseText = `OH no ! It seems transaction failed but ive saved your exact progress to continue ! wanna retry?
-
-Your selected train, quota, and passenger details are 100% preserved. You can retry with a different UPI app or use your **₹10,000 Nirantar Citizen Wallet** balance!`;
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                  actionCard: {
-                    title: 'Progress Saved (Zero Data Loss)',
-                    subtitle: 'Selected train & passenger details intact',
-                    buttonLabel: '🔄 Retry Payment (Progress Saved) ➔',
-                    route: 'payment',
-                  },
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`Oh no, it seems transaction failed, but I have saved your exact progress to continue. Would you like to retry or use your Citizen Wallet?`);
-        }
-      }, 400);
-      return;
-    }
-
-    const intentData = extractAdvancedIntent(query, routeCtx);
+    // ─── 1B: Tracking Intent (preserves booking in task stack if active) ───
+    const intentData = extractAdvancedIntent(safeQuery, routeCtx);
     const nextRouteCtx = intentData.route;
     setRouteCtx(nextRouteCtx);
 
-    const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
-    const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
-    const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
-    const passengers = nextRouteCtx.passengers || 1;
-    const classCode = nextRouteCtx.classCode || '3A';
-    const quota = nextRouteCtx.quota || (intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)');
-
-    // ─────────────────────────────────────────────────────────────
-    // CASE 1: TRAIN TRACKING INTENT (WITH DIRECT RADAR REDIRECT)
-    // ─────────────────────────────────────────────────────────────
-    if (intentData.isTrack || intentData.trainNumber) {
+    if (intentData.isTrack || (intentData.trainNumber && !intentData.isAutoBook)) {
       const trainNo = intentData.trainNumber || '12302';
+
+      // If user is mid-booking, save progress to task stack before switching
+      if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
+        pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
+      }
+
       const matchedTrain =
         MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNo) || {
           trainNumber: trainNo,
@@ -778,10 +675,15 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // CASE 2: AUTO-BOOKING / SEAT RESERVATION INTENT
-    // ─────────────────────────────────────────────────────────────
+    // ─── 1C: Auto-Booking / Seat Reservation Intent ───
     if (intentData.isAutoBook || (nextRouteCtx.fromStation && nextRouteCtx.toStation)) {
+      const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
+      const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
+      const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
+      const paxCount = nextRouteCtx.passengers || 1;
+      const classCode = nextRouteCtx.classCode || '3A';
+      const quota = nextRouteCtx.quota || (intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)');
+
       const trains = searchTrains(fromSt.code, toSt.code);
       let selectedBestTrain = trains[0] || null;
 
@@ -805,14 +707,14 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
           travelDate: travelDate,
           classCode: clsObj.classCode,
           quota: quota,
-          passengersCount: passengers,
+          passengersCount: paxCount,
           passengerName: nextRouteCtx.passengerName || 'Ananya Sharma',
-          fare: clsObj.fare * passengers,
+          fare: clsObj.fare * paxCount,
           platform: 'Platform 8',
         };
 
         const tatkalText = intentData.isTatkal ? ' under Tatkal Quota' : '';
-        const botResponseText = `I've prepared the auto-booking for #${selectedBestTrain.trainNumber} ${selectedBestTrain.trainName} (${fromSt.city} → ${toSt.city})${tatkalText} for ${passengers} passenger${passengers > 1 ? 's' : ''} on ${travelDate} in ${clsObj.classCode}.
+        const botResponseText = `I've prepared the auto-booking for #${selectedBestTrain.trainNumber} ${selectedBestTrain.trainName} (${fromSt.city} → ${toSt.city})${tatkalText} for ${paxCount} passenger${paxCount > 1 ? 's' : ''} on ${travelDate} in ${clsObj.classCode}.
 
 Seat availability is confirmed on Platform 8. Tap "Auto Book Journey" to proceed with SafeAssist zero-PII autofill, or "Start Guided Booking" for interactive spotlight assistance!`;
 
@@ -837,7 +739,6 @@ Seat availability is confirmed on Platform 8. Tap "Auto Book Journey" to proceed
         }, 400);
         return;
       } else {
-        // Unknown or unavailable direct route -> Graceful fallback
         const noTrainText = `Sorry, I couldn't find scheduled direct trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our 550+ route database.
 
 Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or Mumbai Central (CSMT) are recommended. Would you like me to check connecting routes?`;
@@ -863,12 +764,88 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
       }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // CASE 3: GENERAL QUERY WITH STREAMING / FALLBACK
-    // ─────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 2: STATE-AWARE NIRA PLANNER (Sanitized Context)
+    // ═══════════════════════════════════════════════════════════
+    // The app tells Nira what screen the user is on via getSanitizedContext().
+    // NiraPlanner returns { intent, message, actionCue, source }.
+    // ActionPolicyEngine validates the action before execution.
+    try {
+      const ctx = getSanitizedContext();
+      const plannerResponse = await NiraPlanner.planResponse(safeQuery, ctx);
+
+      // Validate action through ActionPolicyEngine
+      const validatedAction = ActionPolicyEngine.sanitizeActionCue(plannerResponse.actionCue);
+
+      // Execute UI actions based on validated cue
+      if (validatedAction.type === 'SET_SORT' && validatedAction.parameters?.sortMode) {
+        setActiveSort(validatedAction.parameters.sortMode as any);
+      }
+      if (validatedAction.type === 'HIGHLIGHT' && validatedAction.target) {
+        setActiveHighlightTarget(validatedAction.target);
+      }
+      if (validatedAction.type === 'NAVIGATE' && validatedAction.target) {
+        navigateTo(validatedAction.target);
+      }
+      if (validatedAction.type === 'OPEN_TRACKING' && validatedAction.target) {
+        // Save booking to task stack if mid-journey
+        if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
+          pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
+        }
+        handleQuickTrack(validatedAction.target);
+      }
+      if (validatedAction.type === 'RESUME_TASK') {
+        resumeTask();
+      }
+
+      // Build action card for consequential or navigational actions
+      let actionCard: ChatMessage['actionCard'] | undefined;
+      if (validatedAction.type === 'NAVIGATE' && validatedAction.target === 'payment') {
+        actionCard = {
+          title: 'Secure Payment Bridge',
+          subtitle: `Total: ₹${ctx.payment.amount.toLocaleString('en-IN')} • Wallet: ₹${ctx.payment.walletBalance.toLocaleString('en-IN')}`,
+          buttonLabel: `Pay ₹${ctx.payment.amount.toLocaleString('en-IN')} ➔`,
+          route: 'payment',
+        };
+      }
+      if (validatedAction.type === 'RESUME_TASK' && taskStack.length > 0) {
+        actionCard = {
+          title: 'Resume Saved Journey',
+          subtitle: taskStack[0]?.subtitle || 'Your booking is preserved',
+          buttonLabel: 'Resume Booking ➔',
+          route: taskStack[0]?.page || 'workspace',
+        };
+      }
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: plannerResponse.message,
+                  isStreaming: false,
+                  actionCard,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(plannerResponse.message);
+        }
+      }, 350);
+      return;
+    } catch (plannerErr) {
+      console.warn('[NiraPlanner] Planner error, falling back to streaming:', plannerErr);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 3: LLM STREAMING + GRACEFUL FALLBACK (Safe Assist Mode)
+    // ═══════════════════════════════════════════════════════════
     let accumulated = '';
     streamNiraChat(
-      query,
+      safeQuery,
       'en',
       (token) => {
         accumulated += token;
@@ -888,18 +865,16 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
       },
       async (err) => {
         console.warn('Streaming fallback triggered:', err);
+        // ─── GRACEFUL DEGRADATION: Safe Assist Mode ───
+        // If LLM is unavailable, Nira still works via deterministic state-aware greeting
         try {
-          const res = await sendCitizenQuery(query, 'en');
-          const botText =
-            res.message ||
-            res.response ||
-            res.payload?.nira_response ||
-            "I'm here to help! You can search across 550+ trains, auto-book tickets, check Tatkal quota, or track live GPS running status.";
+          const ctx = getSanitizedContext();
+          const fallbackPlan = NiraPlanner.generateStateAwareGreeting(ctx);
           setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, text: botText, isStreaming: false } : m))
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackPlan.message, isStreaming: false } : m))
           );
           if (autoVoice) {
-            speakNiraResponse(botText);
+            speakNiraResponse(fallbackPlan.message);
           }
         } catch {
           const fallbackDefault =
@@ -1099,6 +1074,34 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
           2. CHAT BODY: INITIAL WELCOME & CONVERSATION STREAM
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+        {/* Interrupted Journey Task Stack Banner */}
+        {taskStack.length > 0 && (
+          <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 space-y-2 animate-in slide-in-from-top-2 duration-200 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-amber-900">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-600" />
+                </span>
+                <span>Interrupted Task Saved</span>
+              </div>
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                Zero Data Loss
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 font-medium">
+              {taskStack[0]?.subtitle || 'Your previous booking session is safely preserved.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => resumeTask()}
+              className="w-full py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-98"
+            >
+              <span>Resume Booking Journey ➔</span>
+            </button>
+          </div>
+        )}
+
         {/* Initial Speech Bubble & Prompt List if no messages */}
         {messages.length === 0 && (
           <div className="space-y-3.5 animate-in fade-in duration-200">

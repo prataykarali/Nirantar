@@ -32,6 +32,11 @@ import {
 } from '../services/journeyApi';
 import { admitFairAccess } from '../services/niraApi';
 import { setFairAccessTicket } from '../lib/fairAccessStore';
+import { UiEventBus } from '../events/UiEventBus';
+import { NirantarEventType, NirantarUiEvent } from '../events/eventTypes';
+import { BookingState, StateTransitionEngine } from '../state/JourneyStateMachine';
+import { TaskStackItem, TaskStackManager } from '../state/TaskStack';
+import { NiraSanitizedContext } from '../ai/NiraPlanner';
 
 export interface RecentJourney {
   id: string;
@@ -150,9 +155,29 @@ export interface JourneyContextType {
   setWalletBalance: React.Dispatch<React.SetStateAction<number>>;
   payWithWallet: (amount: number) => Promise<PaymentAttempt | null>;
 
+  // Formal State Machine & Event Bus
+  bookingState: BookingState;
+  setBookingState: (state: BookingState) => void;
+  emitUiEvent: (type: NirantarEventType, payload?: any) => NirantarUiEvent;
+
+  // Task Stack (Interrupted Journey Engine)
+  taskStack: TaskStackItem[];
+  pushTask: (type: TaskStackItem['taskType'], title: string, subtitle: string) => void;
+  resumeTask: (taskId?: string) => boolean;
+  clearTaskStack: () => void;
+
+  // Dynamic Sort & Highlight Target
+  activeSort: 'recommended' | 'fastest' | 'cheapest' | 'departure';
+  setActiveSort: (sort: 'recommended' | 'fastest' | 'cheapest' | 'departure') => void;
+  activeHighlightTarget: string | null;
+  setActiveHighlightTarget: (target: string | null) => void;
+  
   // Global Chatbot Drawer State (stays open across entire journey)
   showChatDrawer: boolean;
   setShowChatDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+
+  // Sanitized Context Builder
+  getSanitizedContext: () => NiraSanitizedContext;
 
   // Reset & Recovery
   resetJourney: () => void;
@@ -168,31 +193,13 @@ const defaultDate = tomorrow.toISOString().split('T')[0];
 const defaultSavedPassengers: PassengerProfile[] = [
   { id: '1', name: 'Ananya Sharma', age: 19, gender: 'F', berthPreference: 'LOWER' },
   { id: '2', name: 'Rahul Sharma', age: 22, gender: 'M', berthPreference: 'SIDE_LOWER' },
-  { id: '3', name: 'Sunita Sharma', age: 54, gender: 'F', berthPreference: 'LOWER', seniorCitizenConcession: true },
+  { id: '3', name: 'Sunita Sharma', age: 58, gender: 'F', berthPreference: 'LOWER' },
+  { id: '4', name: 'Rajesh Sharma', age: 62, gender: 'M', berthPreference: 'LOWER', seniorCitizenConcession: true },
 ];
 
 const defaultRecentJourneys: RecentJourney[] = [
-  {
-    id: 'r1',
-    from: POPULAR_STATIONS[0], // NDLS
-    to: POPULAR_STATIONS[1],   // HWH
-    date: defaultDate,
-    passengersCount: 2,
-  },
-  {
-    id: 'r2',
-    from: POPULAR_STATIONS[0], // NDLS
-    to: POPULAR_STATIONS[2],   // CSMT
-    date: defaultDate,
-    passengersCount: 1,
-  },
-  {
-    id: 'r3',
-    from: POPULAR_STATIONS[4], // MAS
-    to: POPULAR_STATIONS[3],   // SBC
-    date: defaultDate,
-    passengersCount: 1,
-  },
+  { id: '1', from: POPULAR_STATIONS[0], to: POPULAR_STATIONS[1], date: defaultDate, passengersCount: 2 },
+  { id: '2', from: POPULAR_STATIONS[0], to: POPULAR_STATIONS[2], date: defaultDate, passengersCount: 1 },
 ];
 
 const JourneyContext = createContext<JourneyContextType | undefined>(undefined);
@@ -236,6 +243,132 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [paymentState, setPaymentState] = useState<PaymentState>('READY');
   const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(null);
   const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(null);
+
+  // ═══════════════════════════════════════════════════════════
+  // FORMAL STATE MACHINE, TASK STACK, SORT & HIGHLIGHT
+  // ═══════════════════════════════════════════════════════════
+  const [bookingState, setBookingStateRaw] = useState<BookingState>('IDLE');
+  const [taskStack, setTaskStack] = useState<TaskStackItem[]>([]);
+  const [activeSort, setActiveSortRaw] = useState<'recommended' | 'fastest' | 'cheapest' | 'departure'>('recommended');
+  const [activeHighlightTarget, setActiveHighlightTarget] = useState<string | null>(null);
+
+  // Validated State Transition — LLM cannot force illegal transitions
+  const setBookingState = useCallback((next: BookingState) => {
+    setBookingStateRaw((current) => {
+      const result = StateTransitionEngine.transition(current, next, 'setBookingState');
+      if (!result.success) {
+        console.warn(`[JourneyContext] Blocked transition: ${current} → ${next}`);
+      }
+      return result.state;
+    });
+  }, []);
+
+  const setActiveSort = useCallback((sort: 'recommended' | 'fastest' | 'cheapest' | 'departure') => {
+    setActiveSortRaw(sort);
+    UiEventBus.emit('SORT_CHANGED', activePage, { sortMode: sort });
+  }, [activePage]);
+
+  // ─── UI Event Bus Emitter ───
+  const emitUiEvent = useCallback((type: NirantarEventType, payload: any = {}) => {
+    return UiEventBus.emit(type, activePage, payload);
+  }, [activePage]);
+
+  // ─── Task Stack Engine (Interruption + Resume) ───
+  const pushTask = useCallback((
+    type: TaskStackItem['taskType'],
+    title: string,
+    subtitle: string
+  ) => {
+    const fare = selectedTrain?.classes[0]?.fare || 0;
+    const snapshot: TaskStackItem['stateSnapshot'] = {
+      origin: searchParams.fromStation?.city,
+      destination: searchParams.toStation?.city,
+      travelDate: searchParams.travelDate,
+      selectedTrain: selectedTrain ? {
+        trainNumber: selectedTrain.trainNumber,
+        trainName: selectedTrain.trainName,
+      } : undefined,
+      selectedClassCode,
+      passengers: passengers.map(p => ({ ...p })),
+      bookingStep: bookingState,
+      fare,
+    };
+    const item = TaskStackManager.createTaskItem(type, activePage, title, subtitle, snapshot);
+    setTaskStack((prev) => [item, ...prev]);
+    emitUiEvent('TASK_INTERRUPTED', { taskId: item.taskId, title });
+  }, [activePage, searchParams, selectedTrain, selectedClassCode, passengers, bookingState, emitUiEvent]);
+
+  const resumeTask = useCallback((taskId?: string): boolean => {
+    const validTasks = TaskStackManager.filterValidTasks(taskStack);
+    if (validTasks.length === 0) return false;
+
+    const task = taskId
+      ? validTasks.find(t => t.taskId === taskId)
+      : validTasks[0];
+    if (!task) return false;
+
+    // Restore snapshot
+    const snap = task.stateSnapshot;
+    if (snap.bookingStep) {
+      setBookingStateRaw(snap.bookingStep as BookingState);
+    }
+    // Navigate back to the interrupted page
+    setActivePage(task.page);
+    emitUiEvent('TASK_RESUMED', { taskId: task.taskId, page: task.page });
+
+    // Remove from stack
+    setTaskStack((prev) => prev.filter(t => t.taskId !== task.taskId));
+    return true;
+  }, [taskStack, emitUiEvent]);
+
+  const clearTaskStack = useCallback(() => setTaskStack([]), []);
+
+  // ─── Sanitized Context Builder (Compact JSON for Nira / LLM) ───
+  const getSanitizedContext = useCallback((): NiraSanitizedContext => {
+    const completedSteps: string[] = [];
+    const pendingSteps: string[] = [];
+    const BOOKING_FLOW: BookingState[] = ['SEARCHING', 'RESULTS', 'TRAIN_SELECTED', 'PASSENGER_DETAILS', 'REVIEW', 'PAYMENT_READY'];
+    const currentIdx = BOOKING_FLOW.indexOf(bookingState);
+    BOOKING_FLOW.forEach((step, i) => {
+      if (i < currentIdx) completedSteps.push(step);
+      else if (i > currentIdx) pendingSteps.push(step);
+    });
+
+    const fare = selectedTrain?.classes?.find(c => c.classCode === selectedClassCode)?.fare
+      || selectedTrain?.classes[0]?.fare || 0;
+
+    return {
+      page: activePage,
+      bookingState,
+      journey: {
+        origin: searchParams.fromStation?.city,
+        destination: searchParams.toStation?.city,
+        travelDate: searchParams.travelDate,
+        passengersCount: passengers.length,
+        selectedTrainNumber: selectedTrain?.trainNumber,
+        selectedTrainName: selectedTrain?.trainName,
+        selectedClassCode,
+        fare: fare * passengers.length,
+      },
+      booking: {
+        step: bookingState,
+        completedSteps,
+        pendingSteps,
+      },
+      payment: {
+        status: paymentState,
+        amount: fare * passengers.length,
+        walletBalance,
+      },
+      tracking: {
+        activeTrainNumber: trackQuery || selectedTrain?.trainNumber,
+      },
+      interruptedTask: taskStack.length > 0
+        ? { hasTask: true, title: taskStack[0]?.title }
+        : { hasTask: false },
+      allowedActions: ['NAVIGATE', 'HIGHLIGHT', 'SET_SORT', 'SET_FILTER', 'AUTOFILL', 'OPEN_HELP', 'RESUME_TASK', 'OPEN_TICKET', 'OPEN_TRACKING'],
+    };
+  }, [activePage, bookingState, searchParams, passengers, selectedTrain, selectedClassCode, paymentState, walletBalance, trackQuery, taskStack]);
 
   const payWithWallet = async (amount: number): Promise<PaymentAttempt | null> => {
     if (walletBalance < amount) {
@@ -713,7 +846,18 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const navigateTo = (page: string) => {
+    const previousPage = activePage;
     setActivePage(page);
+    // ─── CORE FEEDBACK LOOP: Frontend event → State update → Nira gets new state ───
+    UiEventBus.emit('PAGE_CHANGED', page, { from: previousPage, to: page });
+    // Auto-transition booking state machine based on page
+    const mappedState = StateTransitionEngine.mapPageToBookingState(page, bookingState);
+    if (mappedState !== bookingState) {
+      const result = StateTransitionEngine.transition(bookingState, mappedState, `navigateTo(${page})`);
+      if (result.success) {
+        setBookingStateRaw(result.state);
+      }
+    }
   };
 
   const resetJourney = () => {
@@ -723,8 +867,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPaymentState('READY');
     setIssuedTicket(null);
     setBookingRecord(null);
+    setBookingStateRaw('IDLE');
+    setTaskStack([]);
+    setActiveSortRaw('recommended');
+    setActiveHighlightTarget(null);
     clearError();
     setActivePage('home');
+    UiEventBus.emit('PAGE_CHANGED', 'home', { from: activePage, to: 'home', reason: 'resetJourney' });
   };
 
   return (
@@ -778,6 +927,22 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         stopGuidanceTour,
         nextGuidanceStep,
         triggerAutoBookFlow,
+        // ─── State Machine & Event Bus ───
+        bookingState,
+        setBookingState,
+        emitUiEvent,
+        // ─── Task Stack ───
+        taskStack,
+        pushTask,
+        resumeTask,
+        clearTaskStack,
+        // ─── Dynamic Sort & Highlight ───
+        activeSort,
+        setActiveSort,
+        activeHighlightTarget,
+        setActiveHighlightTarget,
+        // ─── Sanitized Context ───
+        getSanitizedContext,
         resetJourney,
       }}
     >
