@@ -1,107 +1,486 @@
-import React from 'react';
-import { Sparkles, CheckCircle2, Download, FileText, ArrowRight, RefreshCw, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Copy,
+  Download,
+  Share2,
+  Utensils,
+  MapPin,
+  Calendar,
+  Clock,
+  User,
+  Ticket,
+  Train,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Lock,
+  Headphones,
+  Sparkles,
+} from 'lucide-react';
+import { useJourney } from '../context/JourneyContext';
 
-interface CompletionResultPageProps {
-  onNavigate: (route: string) => void;
-}
+export const CompletionResultPage: React.FC = () => {
+  const {
+    searchParams,
+    selectedTrain,
+    selectedClassCode,
+    passengers,
+    navigateTo,
+    issuedTicket,
+    bookingRecord,
+    journeyState,
+  } = useJourney();
 
-export const CompletionResultPage: React.FC<CompletionResultPageProps> = ({ onNavigate }) => {
+  const [copiedPnr, setCopiedPnr] = useState(false);
+
+  // Train data fallback
+  const train = issuedTicket?.train || selectedTrain || {
+    trainNumber: '12951',
+    trainName: 'Mumbai Rajdhani',
+    fromStationName: searchParams.fromStation.name || 'New Delhi',
+    fromStationCode: searchParams.fromStation.code || 'NDLS',
+    toStationName: searchParams.toStation.name || 'Mumbai CSMT',
+    toStationCode: searchParams.toStation.code || 'MMCT',
+    departureTime: '16:55',
+    arrivalTime: '08:40',
+    durationHours: '15h 45m',
+    classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
+  };
+
+  const passengerName = issuedTicket?.passengers[0]?.name || passengers[0]?.name || 'Ananya Sharma';
+  const pnrNumber = issuedTicket?.pnrNumber || bookingRecord?.pnrNumber || '2847 5896 1234';
+
+  const handleCopyPnr = () => {
+    navigator.clipboard.writeText(pnrNumber.replace(/\s/g, ''));
+    setCopiedPnr(true);
+    setTimeout(() => setCopiedPnr(false), 2000);
+  };
+
+  const handleDownloadPdf = () => {
+    console.log('📥 Digital e-Ticket PDF downloaded with DigiLocker QR verification code.');
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
-      {/* HEADER */}
-      <div className="space-y-2 text-center md:text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          PAGE 07 — COMPLETION / RESULT
+    <div className="max-w-7xl mx-auto space-y-2 pb-2 select-none font-sans text-slate-800">
+      {/* ═══════════════════════════════════════════════════════════════════
+          1. TOP HEADER & 6-STEP JOURNEY STEPPER
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigateTo('home')}
+              className="w-7 h-7 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title="Back to Home"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-1.5 leading-tight">
+                <span>All Set!</span>
+                <span className="text-xl">🎉</span>
+              </h1>
+              <p className="text-[11px] font-semibold text-slate-500">
+                Your booking is confirmed.
+              </p>
+            </div>
+          </div>
         </div>
-        <h1 className="text-3xl md:text-5xl font-display font-black text-white">You're done. ✓</h1>
-        <p className="text-slate-300 text-sm">Your application has been approved and cryptographically issued.</p>
+
+        {/* 6-Step Stepper */}
+        <div className="flex items-center justify-between max-w-xl mx-auto px-2 py-0.5 text-xs">
+          {[
+            { label: 'Search', done: true },
+            { label: 'Select Train', done: true },
+            { label: 'Booking Details', done: true },
+            { label: 'Autofill & Review', done: true },
+            { label: 'Payment', done: true },
+          ].map((s, idx) => (
+            <React.Fragment key={idx}>
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold shadow-xs">
+                  <Check className="w-2.5 h-2.5" />
+                </div>
+                <span className="text-[9px] font-semibold text-slate-600 truncate max-w-[70px] text-center">
+                  {s.label}
+                </span>
+              </div>
+              <div className="flex-1 h-0.5 bg-emerald-400 mx-1" />
+            </React.Fragment>
+          ))}
+
+          {/* Step 6: Confirmation (Active) */}
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-4 h-4 rounded-full bg-purple-700 text-white flex items-center justify-center text-[9px] font-bold shadow-sm shadow-purple-600/30 ring-2 ring-purple-100">
+              6
+            </div>
+            <span className="text-[9px] font-bold text-purple-900">Confirmation</span>
+          </div>
+        </div>
       </div>
 
-      {/* RESULT CARD SUMMARY */}
-      <div className="rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-[#091024] to-[#091024] p-6 md:p-8 space-y-6 backdrop-blur-md shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      {/* ═══════════════════════════════════════════════════════════════════
+          2. BOOKING CONFIRMED HERO BANNER WITH CELEBRATION SCENIC BG
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="relative rounded-2xl overflow-hidden shadow-sm border border-purple-200/60 p-3 sm:p-4 flex items-center justify-between gap-3 text-slate-900">
+        {/* Celebratory Sunset Terminal Backdrop */}
+        <img
+          src="/assets/images/ticket_platform_celebration_bg.jpg"
+          alt="Celebration Station"
+          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+        />
+
+        {/* Soft Translucent Gradient Mask */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/88 to-purple-50/75 pointer-events-none" />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 shrink-0">
+            <Check className="w-6 h-6 stroke-[3]" />
+          </div>
           <div>
-            <span className="text-[10px] font-mono text-emerald-400 uppercase">OFFICIAL ISSUANCE</span>
-            <h2 className="text-xl font-display font-bold text-white">Application NTR-20482</h2>
-          </div>
-          <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            Approved & Verified
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-            <span className="text-slate-400">APPLICATION</span>
-            <p className="font-bold text-white text-sm">Completed</p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-            <span className="text-slate-400">PAYMENT</span>
-            <p className="font-bold text-emerald-400 text-sm">Confirmed (₹50)</p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-            <span className="text-slate-400">DOCUMENTS</span>
-            <p className="font-bold text-white text-sm">Verified</p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-            <span className="text-slate-400">DECISION</span>
-            <p className="font-bold text-emerald-300 text-sm">Approved ✓</p>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              Booking Confirmed!
+            </h2>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">
+              We hope you have a safe and comfortable journey.
+            </p>
           </div>
         </div>
 
-        {/* ACTIONS */}
-        <div className="pt-2 flex flex-wrap gap-3">
-          <button
-            onClick={() => alert('Downloading official digital certificate PDF with cryptographic QR signature...')}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold text-xs shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" /> Download Certificate
-          </button>
+        {/* Train badge on right */}
+        <div className="relative z-10 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-purple-100 shadow-xs">
+          <Train className="w-4 h-4 text-purple-700" />
+          <span className="text-xs font-bold text-purple-950">Gati Shakti Express • Confirmed</span>
+        </div>
+      </section>
 
-          <button
-            onClick={() => alert('Downloading payment receipt TXN-99482710...')}
-            className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 text-white font-bold text-xs flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" /> Download Receipt
-          </button>
+      {/* ═══════════════════════════════════════════════════════════════════
+          3. MAIN TWO-COLUMN UNBOXED DIGITAL TICKET LAYOUT
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 items-start">
+        {/* ──────────────── LEFT COLUMN: DIGITAL TICKET DETAILS & ACTION TILES (2 Cols) ──────────────── */}
+        <div className="lg:col-span-2 space-y-2">
+          {/* DIGITAL TICKET TWO-PANEL GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* PANEL 1: ROUTE & TIMINGS */}
+            <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-slate-900">
+                  {train.trainNumber} • {train.trainName}
+                </span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.2 rounded">
+                  {selectedClassCode || 'AC 3 Tier'}
+                </span>
+              </div>
 
-          <button
-            onClick={() => onNavigate('tracking')}
-            className="px-5 py-3 rounded-2xl border border-white/20 hover:border-white/40 text-slate-300 font-bold text-xs"
-          >
-            View Journey Audit
-          </button>
+              {/* Timeline NDLS -> MMCT */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-base font-bold text-slate-900 block leading-tight">{train.fromStationCode}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{train.fromStationName}</span>
+                </div>
 
-          <button
-            onClick={() => onNavigate('home')}
-            className="px-5 py-3 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/40 font-bold text-xs flex items-center gap-2"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Start another service
-          </button>
+                <div className="flex-1 flex flex-col items-center px-2">
+                  <div className="w-full h-0.5 bg-purple-500 relative flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-purple-700 ring-2 ring-purple-100" />
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-bold mt-0.5">{train.durationHours}</span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-base font-bold text-slate-900 block leading-tight">{train.toStationCode}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{train.toStationName}</span>
+                </div>
+              </div>
+
+              {/* Grid Metadata */}
+              <div className="grid grid-cols-4 gap-1 text-center bg-purple-50/40 p-1.5 rounded-xl text-[10px]">
+                <div>
+                  <Calendar className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">24 May</span>
+                  <span className="text-[9px] text-slate-400">Sat</span>
+                </div>
+                <div>
+                  <Clock className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.departureTime}</span>
+                  <span className="text-[9px] text-slate-400">Departure</span>
+                </div>
+                <div>
+                  <Clock className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.arrivalTime}</span>
+                  <span className="text-[9px] text-slate-400">Arrival</span>
+                </div>
+                <div>
+                  <User className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{passengers.length} Adult</span>
+                  <span className="text-[9px] text-slate-400 truncate block">{passengerName.split(' ')[0]}</span>
+                </div>
+              </div>
+
+              {/* PNR & Download Row */}
+              <div className="flex items-center justify-between gap-2 pt-0.5 border-t border-purple-50">
+                <div className="flex items-center gap-1.5 bg-purple-50/90 px-2.5 py-1 rounded-xl border border-purple-100">
+                  <span className="text-[9px] uppercase font-bold text-slate-400">PNR</span>
+                  <span className="text-xs font-mono font-bold text-purple-950 tracking-wider">
+                    {pnrNumber}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyPnr}
+                    className="text-purple-700 hover:text-purple-900 cursor-pointer p-0.5"
+                    title="Copy PNR"
+                  >
+                    {copiedPnr ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  className="flex items-center gap-1 px-3 py-1 rounded-xl border border-purple-300 text-purple-900 hover:bg-purple-50 text-[11px] font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <Download className="w-3 h-3 text-purple-700" />
+                  <span>Download Ticket</span>
+                </button>
+              </div>
+
+              {/* Green Confirmation SMS/Email Notice */}
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-semibold bg-emerald-50/80 p-1.5 px-2 rounded-lg">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span>Confirmation sent to your mobile & email</span>
+              </div>
+            </div>
+
+            {/* PANEL 2: PASSENGER DETAILS & ADVENTURE CARD */}
+            <div className="space-y-2">
+              {/* Passenger Card */}
+              <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
+                <h4 className="text-xs font-bold text-slate-900 border-b border-purple-50 pb-1">
+                  Passenger Details
+                </h4>
+
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-900 font-bold text-[11px] flex items-center justify-center shrink-0">
+                    RS
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">{passengerName}</span>
+                    <span className="text-[10px] text-slate-500 font-medium">24 yrs • Male • Side Lower</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 text-xs pt-0.5 border-t border-purple-50">
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Booking Status</span>
+                    <span className="font-bold text-emerald-600 text-xs">Confirmed</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Berth / Seat</span>
+                    <span className="font-bold text-slate-900 text-xs">S5 - 36</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">ID Proof</span>
+                    <span className="font-semibold text-slate-800 text-[11px]">Aadhaar Card</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Nationality</span>
+                    <span className="font-semibold text-slate-800 text-[11px]">Indian</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan Your Next Adventure Card */}
+              <div className="bg-gradient-to-r from-purple-50 via-purple-50/60 to-indigo-50/40 rounded-2xl p-2.5 px-3 border border-purple-100 flex items-center justify-between gap-2 shadow-xs">
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block leading-tight">
+                    Plan your next adventure ✨
+                  </span>
+                  <p className="text-[10px] text-slate-500 font-medium mb-1">
+                    Explore more destinations
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('discover')}
+                    className="px-2.5 py-1 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                  >
+                    Explore Trains
+                  </button>
+                </div>
+                <div className="w-14 h-10 flex items-center justify-center shrink-0">
+                  <img
+                    src="/assets/images/plan_adventure_card.png"
+                    alt="Adventure"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* WHAT WOULD YOU LIKE TO DO NEXT? (2 ACTION CARDS) */}
+          <div className="space-y-1.5 pt-0.5">
+            <h4 className="text-xs font-bold text-slate-900 px-1">
+              What would you like to do next?
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Action 1: Book Another Ticket */}
+              <button
+                type="button"
+                onClick={() => navigateTo('discover')}
+                className="p-2.5 px-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-left transition-all group cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-purple-900 block">
+                      Book Another Ticket
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">Plan a new journey</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Action 2: Go to My Journeys */}
+              <button
+                type="button"
+                onClick={() => navigateTo('my-journeys')}
+                className="p-2.5 px-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-left transition-all group cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                    <Train className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-purple-900 block">
+                      Go to My Journeys
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">View your upcoming trips</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ──────────────── RIGHT COLUMN: UNBOXED TRANSPARENT MASCOTS + QUICK ACTIONS (1 Col) ──────────────── */}
+        <div className="space-y-2">
+          {/* 1. CELEBRATING ANANYA CARD (NO INNER BOX / NO FRAME) */}
+          <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-2xl p-3 border border-purple-100 shadow-xs relative overflow-hidden text-center space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-purple-900">
+              <div className="flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-purple-700" />
+                <span>Nira</span>
+              </div>
+              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Online
+              </span>
+            </div>
+
+            {/* Transparent 3D Character Cutout (Zero Box Frame) */}
+            <div className="w-28 h-28 mx-auto flex items-center justify-center pointer-events-none">
+              <img
+                src="/assets/images/characters/citizen_excited.png"
+                alt="Ananya Celebrating"
+                className="w-full h-full object-contain drop-shadow-md"
+              />
+            </div>
+
+            {/* Clean Speech Bubble */}
+            <div className="bg-white rounded-xl p-2 shadow-xs border border-purple-100">
+              <span className="text-xs font-bold text-purple-950 block">Yay! We're all set! 🎉</span>
+              <p className="text-[10px] text-slate-600 font-semibold mt-0.2">Have a safe and amazing journey!</p>
+            </div>
+          </div>
+
+          {/* 2. QUICK ACTIONS (3 TILES) */}
+          <div className="bg-white rounded-2xl p-2.5 border border-purple-100 shadow-xs space-y-1.5">
+            <span className="text-[11px] font-bold text-slate-800 block">Quick Actions</span>
+            <div className="grid grid-cols-3 gap-1.5 text-center">
+              <button
+                type="button"
+                onClick={() => navigateTo('track')}
+                className="p-2 rounded-xl bg-purple-50/50 hover:bg-purple-100 text-purple-900 flex flex-col items-center justify-center transition-all cursor-pointer"
+              >
+                <MapPin className="w-4 h-4 text-purple-700 mb-0.5" />
+                <span className="text-[10px] font-bold leading-tight">Track Journey</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => console.log('🍱 IRCTC e-Catering: Fresh hot meals will be delivered to seat 36 at Nagpur station.')}
+                className="p-2 rounded-xl bg-orange-50/50 hover:bg-orange-100 text-orange-900 flex flex-col items-center justify-center transition-all cursor-pointer"
+              >
+                <Utensils className="w-4 h-4 text-orange-600 mb-0.5" />
+                <span className="text-[10px] font-bold leading-tight">Order Food</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => console.log('🔗 Share link copied to clipboard: https://nirantar.gov.in/t/284758961234')}
+                className="p-2 rounded-xl bg-blue-50/50 hover:bg-blue-100 text-blue-900 flex flex-col items-center justify-center transition-all cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-blue-600 mb-0.5" />
+                <span className="text-[10px] font-bold leading-tight">Share Ticket</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* WHAT HAPPENS NEXT */}
-      <div className="rounded-3xl border border-white/10 bg-[#091024]/80 p-6 md:p-8 space-y-4 backdrop-blur-md shadow-xl">
-        <h3 className="text-sm font-mono font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4" /> What happens next?
-        </h3>
+      {/* ═══════════════════════════════════════════════════════════════════
+          4. BOTTOM TRUST FOOTER BAR
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-purple-100 text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-3 h-3" />
+          </div>
+          <div>
+            <span className="font-bold text-slate-800 block text-[10px]">Secure Payments</span>
+            <span className="text-[9px] text-slate-400 font-medium">100% safe & encrypted</span>
+          </div>
+        </div>
 
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            • <strong>No further action is required:</strong> Your digital certificate is immediately valid for all official government transactions.
-          </p>
-          <p>
-            • <strong>Digital Locker Sync:</strong> A copy has been automatically saved to your verified DigiLocker vault tied to your NIRANTAR profile.
-          </p>
-          <p>
-            • <strong>Verification QR:</strong> Anyone can verify the authenticity of this document by scanning the embedded QR code on page 1.
-          </p>
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <Clock className="w-3 h-3" />
+          </div>
+          <div>
+            <span className="font-bold text-slate-800 block text-[10px]">Instant Confirmation</span>
+            <span className="text-[9px] text-slate-400 font-medium">Get ticket in seconds</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Lock className="w-3 h-3" />
+          </div>
+          <div>
+            <span className="font-bold text-slate-800 block text-[10px]">No Hidden Charges</span>
+            <span className="text-[9px] text-slate-400 font-medium">Transparent pricing</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-md bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <Headphones className="w-3 h-3" />
+          </div>
+          <div>
+            <span className="font-bold text-slate-800 block text-[10px]">24x7 Support</span>
+            <span className="text-[9px] text-slate-400 font-medium">We're here to help</span>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default CompletionResultPage;

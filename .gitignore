@@ -21,9 +21,14 @@ htmlcov/
 
 # Node / frontend build
 node_modules/
+**/node_modules/
+modules/node_modules
+modules/node_modules/
 frontend/dist/
 dist/
 build/
+m6_prayog
+m6_prayog/
 
 # Local databases and runtime state
 *.db

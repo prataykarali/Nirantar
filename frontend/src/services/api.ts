@@ -7,7 +7,9 @@ import {
   CommandCenterSnapshot,
 } from '../types';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api/v1';
+import { apiBase } from '../lib/apiBase';
+
+const API_BASE = apiBase();
 
 // ============================================================================
 // 1. PREDICTIONS & TELEMETRY REST ENDPOINTS (/api/v1/predictions/*, /api/v1/telemetry/*)

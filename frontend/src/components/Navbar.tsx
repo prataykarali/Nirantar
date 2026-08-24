@@ -182,7 +182,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenN
             type="button"
             tabIndex={0}
             aria-label="Sign in"
-            onClick={() => alert('NIRANTAR Civic Identity Single Sign-On (Mock Login)')}
+            onClick={() => console.log('NIRANTAR Civic Identity Single Sign-On (Mock Login)')}
             className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition-all flex items-center gap-1.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <User className="w-3.5 h-3.5" />

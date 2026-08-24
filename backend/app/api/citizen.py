@@ -9,8 +9,9 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body
 from pydantic import BaseModel, Field
 
-from contracts.citizen import CitizenIntent, CitizenJourneyResponse, CitizenSession, SafeAutofillPayload
+from contracts.citizen import CitizenIntent, CitizenJourneyResponse, CitizenSession, IntentType, SafeAutofillPayload
 from backend.app.services.citizen.intent_extractor import MultilingualIntentExtractor
+from backend.app.services.citizen.nira_parser import parse_nira_intent
 from backend.app.services.citizen.voice_interface import VoiceInterfaceAdapter
 from backend.app.services.citizen.journey_engine import ProgressiveJourneyEngine, JourneyStage
 from backend.app.services.citizen.failure_recovery import FailureRecoveryEngine
@@ -105,33 +106,89 @@ def _endpoint_for(stage: JourneyStage) -> str:
     return mapping.get(stage, "SEARCH")
 
 
+_NIRA_TO_CITIZEN = {
+    "SEARCH_TRAINS": IntentType.SEARCH_TRAINS,
+    "TRACK_TRAIN": IntentType.TRACK_STATUS,
+    "VIEW_TICKET": IntentType.TRACK_STATUS,
+    "PAYMENT_HELP": IntentType.RECOVER_PAYMENT,
+    "GENERAL_HELP": IntentType.EXPLAIN_FIELD,
+}
+
+
 @router.post("/intent")
 def extract_citizen_intent(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-    """Extract structured intent from text or voice audio."""
+    """Extract structured intent via NVIDIA JSON, with Safe Assist fallback."""
     query = payload.get("query", "")
     language = payload.get("language", "hi")
     voice_b64 = payload.get("voice_audio_base64")
 
     if voice_b64:
         _, intent = voice_adapter.process_voice_request(voice_b64, language)
-    else:
-        intent = intent_extractor.extract_intent(query, language)
+        dumped = intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
+        return {"status": 200, "intent": dumped, **dumped}
 
-    dumped = intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
+    nira = parse_nira_intent(query, language or "en")
+    entities = nira.get("entities") or {}
+    citizen = CitizenIntent(
+        intent_type=_NIRA_TO_CITIZEN.get(nira.get("intent"), IntentType.SEARCH_TRAINS),
+        source_station=(entities.get("from") or {}).get("code") or entities.get("from_station"),
+        destination_station=(entities.get("to") or {}).get("code") or entities.get("to_station"),
+        travel_date=entities.get("date"),
+        language=language or "en",
+        time_preference=entities.get("timeOfDay") or entities.get("time_of_day"),
+        passenger_count=int(entities.get("passengers") or 1),
+        confidence=float(nira.get("confidence") or 0.0),
+        entities=entities,
+        raw_query=query,
+    )
+    dumped = citizen.model_dump()
     return {
         "status": 200,
         "intent": dumped,
         **dumped,
+        **nira,
     }
 
 
 @router.post("/journey/step")
 def advance_journey_step(payload: StepAdvanceRequest = Body(...)) -> Dict[str, Any]:
-    """Advance citizen journey through progressive disclosure."""
+    """Advance citizen journey through progressive disclosure with smart Nira conversational answering."""
     if payload.intent is not None:
         intent = payload.intent
     elif payload.query:
-        intent = intent_extractor.extract_intent(payload.query, payload.language)
+        nira = parse_nira_intent(payload.query, payload.language or "en")
+        nira_intent_type = nira.get("intent", "GENERAL_HELP")
+
+        # Conversational greetings, railway FAQs, and general questions
+        if nira_intent_type == "GENERAL_HELP":
+            return {
+                "message": nira.get("response", "Hello! I'm Nira, your 24/7 AI Railway Companion. How can I help you with your journey today?"),
+                "intent": {
+                    "intent_type": "EXPLAIN_FIELD",
+                    "raw_query": payload.query,
+                    "confidence": nira.get("confidence", 0.95),
+                },
+                "session": {"session_id": "ses_live"},
+                "action_required": "INFORM",
+                "payload": {
+                    "nira_response": nira.get("response"),
+                    "stage": "INTENT",
+                },
+            }
+
+        entities = nira.get("entities") or {}
+        intent = CitizenIntent(
+            intent_type=_NIRA_TO_CITIZEN.get(nira.get("intent"), IntentType.SEARCH_TRAINS),
+            source_station=(entities.get("from") or {}).get("code") or entities.get("from_station"),
+            destination_station=(entities.get("to") or {}).get("code") or entities.get("to_station"),
+            travel_date=entities.get("date"),
+            language=payload.language or "en",
+            time_preference=entities.get("timeOfDay") or entities.get("time_of_day"),
+            passenger_count=int(entities.get("passengers") or 1),
+            confidence=float(nira.get("confidence") or 0.0),
+            entities=entities,
+            raw_query=payload.query,
+        )
     else:
         intent = CitizenIntent(language=payload.language)
 

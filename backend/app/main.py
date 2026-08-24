@@ -23,6 +23,15 @@ from backend.app.api.command_center import router as command_center_router
 from backend.app.api.security import router as security_router
 from backend.app.api.executor import router as executor_router
 from backend.app.api.system import router as system_router, get_system_version, get_system_audit_summary
+from backend.app.api.journey import router as journey_router
+from backend.app.api.trains import router as trains_router
+from backend.app.api.payment import router as payment_router
+from backend.app.api.auth import router as auth_router
+from backend.app.api.nira import router as nira_router
+from backend.app.api.ingestion import router as ingestion_router
+from backend.app.api.fair_access import router as fair_access_router
+from backend.app.api.voice import router as voice_router
+from backend.app.seeds.seed_data import seed_all
 
 app = FastAPI(
     title="NIRANTAR Platform API",
@@ -31,6 +40,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        seed_all()
+    except Exception as e:
+        print(f"Warning: database seed initialization failed: {e}")
 
 # CORS configuration for React frontend
 app.add_middleware(
@@ -42,6 +58,14 @@ app.add_middleware(
 )
 
 # Mount API Routers
+app.include_router(journey_router)
+app.include_router(trains_router)
+app.include_router(payment_router)
+app.include_router(auth_router)
+app.include_router(voice_router)
+app.include_router(nira_router)
+app.include_router(ingestion_router)
+app.include_router(fair_access_router)
 app.include_router(citizen_router)
 app.include_router(predictions_router)
 app.include_router(search_router)

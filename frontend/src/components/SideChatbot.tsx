@@ -13,6 +13,8 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { sendCitizenQuery } from '../services/api';
+import { apiSearchTrains } from '../services/journeyApi';
+import { searchTrains as localSearchTrains } from '../data/mockTrains';
 import { TrainCard } from './TrainCard';
 
 interface SideChatbotProps {
@@ -129,39 +131,39 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
       ) {
         if (res.payload?.top_options?.length) {
           trainCardsList = res.payload.top_options.map((t: any) => ({
-            train_no: t.train_no || '12301',
-            train_name: t.train_name || 'Train 123 - NIRANTAR Express',
-            source: t.source || 'Kolkata (HWH)',
-            destination: t.destination || 'Delhi (NDLS)',
-            departure_time: t.departure_time || '08:00 AM',
-            arrival_time: t.arrival_time || '04:30 PM',
-            fare_inr: t.fare_inr || 750,
-            seats_available: t.seats_available || 42,
+            train_no: t.train_no || '12951',
+            train_name: t.train_name || 'Mumbai Rajdhani',
+            source: t.source || 'Delhi (NDLS)',
+            destination: t.destination || 'Mumbai (MMCT)',
+            departure_time: t.departure_time || '16:55',
+            arrival_time: t.arrival_time || '08:40',
+            fare_inr: t.fare_inr || 2990,
+            seats_available: t.available_seats || 48,
           }));
         } else {
-          // Dynamic Dummy Train details matching user request ("train 123, xyz etc, time also, same with fairs")
-          trainCardsList = [
-            {
-              train_no: '12301',
-              train_name: 'Train 123 — NIRANTAR Superfast Express',
-              source: 'Kolkata (HWH)',
-              destination: 'Delhi (NDLS)',
-              departure_time: '06:50 AM',
-              arrival_time: '10:15 PM',
-              fare_inr: 850,
-              seats_available: 48,
-            },
-            {
-              train_no: '98452',
-              train_name: 'Train XYZ — Vande Bharat Special',
-              source: 'Kolkata (HWH)',
-              destination: 'Delhi (NDLS)',
-              departure_time: '02:00 PM',
-              arrival_time: '11:30 PM',
-              fare_inr: 1420,
-              seats_available: 18,
-            },
-          ];
+          // Dynamic train query matching user route
+          const srcCode = qLower.includes('kolkata') || qLower.includes('howrah') ? 'HWH' : 'NDLS';
+          const dstCode = qLower.includes('mumbai') ? 'MMCT' : qLower.includes('kolkata') ? 'HWH' : 'NDLS';
+          let realTrains: any[] = [];
+          try {
+            const apiRes = await apiSearchTrains(srcCode, dstCode);
+            realTrains = apiRes.trains || [];
+          } catch {
+            realTrains = localSearchTrains(srcCode, dstCode);
+          }
+          if (realTrains.length === 0) {
+            realTrains = localSearchTrains(srcCode, dstCode);
+          }
+          trainCardsList = realTrains.slice(0, 3).map((t) => ({
+            train_no: t.trainNumber,
+            train_name: t.trainName,
+            source: `${t.fromStationName} (${t.fromStationCode})`,
+            destination: `${t.toStationName} (${t.toStationCode})`,
+            departure_time: t.departureTime,
+            arrival_time: t.arrivalTime,
+            fare_inr: t.classes?.[0]?.fare || 1500,
+            seats_available: t.classes?.[0]?.availableSeats || 24,
+          }));
         }
       }
 
@@ -211,22 +213,6 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
 
   return (
     <>
-      {/* FLOATING BOT LAUNCHER BUTTON */}
-      {!isOpen && (
-        <button
-          onClick={onToggle}
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 text-white shadow-2xl hover:scale-105 active:scale-95 transition-all group flex items-center gap-3 border border-purple-400/30"
-          title="Chat with Nira"
-        >
-          <div className="relative">
-            <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-              <Bot className="w-6 h-6 text-white" />
-            </div>
-            <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-emerald-400 border-2 border-[#060a19] rounded-full animate-pulse" />
-          </div>
-          <span className="font-bold text-sm pr-2 hidden sm:inline-block">Chat with Nira</span>
-        </button>
-      )}
 
       {/* FLOATING SIDE WINDOW CHATBOT */}
       {isOpen && (

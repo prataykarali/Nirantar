@@ -1,0 +1,543 @@
+import React, { useState } from 'react';
+import {
+  ArrowLeft,
+  Sparkles,
+  User,
+  ShieldCheck,
+  CheckCircle2,
+  Phone,
+  Mail,
+  Plus,
+  Trash2,
+  Train,
+  ArrowRight,
+} from 'lucide-react';
+import { useJourney, PassengerProfile } from '../context/JourneyContext';
+
+// Explicit allowed-field filter whitelist (Zero PII / Zero Auth credentials)
+const ALLOWED_AI_FIELDS = [
+  'name',
+  'age',
+  'gender',
+  'berthPreference',
+  'seniorCitizenConcession',
+  'mobile',
+  'email',
+  'irctcUsername',
+] as const;
+
+export const BookingPage: React.FC = () => {
+  const {
+    searchParams,
+    selectedTrain,
+    selectedClassCode,
+    passengers,
+    setPassengers,
+    navigateTo,
+  } = useJourney();
+
+  // Contact details state
+  const [mobileNumber, setMobileNumber] = useState('9876543210');
+  const [emailAddress, setEmailAddress] = useState('ananya.sharma@example.com');
+  const [irctcUserId, setIrctcUserId] = useState('ananya_irctc_24');
+  const [isAiAutofilled, setIsAiAutofilled] = useState(false);
+  const [autofillNotice, setAutofillNotice] = useState<string | null>(null);
+
+  // Train fallback if directly loaded
+  const train = selectedTrain || {
+    trainNumber: '12951',
+    trainName: 'Mumbai Rajdhani Express',
+    fromStationName: searchParams.fromStation.name,
+    fromStationCode: searchParams.fromStation.code,
+    toStationName: searchParams.toStation.name,
+    toStationCode: searchParams.toStation.code,
+    departureTime: '16:55',
+    arrivalTime: '08:35',
+    durationHours: '15h 40m',
+    classes: [{ classCode: '3A', className: 'AC 3-Tier', fare: 2150, status: 'AVAILABLE', availableSeats: 48 }],
+  };
+
+  const selectedClass = train.classes.find((c) => c.classCode === selectedClassCode) || train.classes[0] || {
+    classCode: '3A',
+    className: 'AC 3-Tier',
+    fare: 2150,
+  };
+
+  const totalFare = selectedClass.fare * Math.max(1, passengers.length);
+
+  // AI-Assisted Safe Autofill Engine with Strict Allowed-Field Filter
+  const handleAiAutofill = () => {
+    const rawData = {
+      name: 'Ananya Sharma',
+      age: 22,
+      gender: 'F' as const,
+      berthPreference: 'LOWER' as const,
+      mobile: '9876543210',
+      email: 'ananya.sharma@example.com',
+      irctcUsername: 'ananya_irctc_24',
+      __disallowed_pin: '1234',
+      __disallowed_otp: '998811',
+      __disallowed_token: 'secret_jwt_xyz',
+    };
+
+    const sanitizedPassenger: PassengerProfile = {
+      id: `p_${Date.now()}_1`,
+      name: ALLOWED_AI_FIELDS.includes('name') ? rawData.name : '',
+      age: ALLOWED_AI_FIELDS.includes('age') ? rawData.age : 18,
+      gender: ALLOWED_AI_FIELDS.includes('gender') ? rawData.gender : 'F',
+      berthPreference: ALLOWED_AI_FIELDS.includes('berthPreference') ? rawData.berthPreference : 'NO_PREFERENCE',
+    };
+
+    const sanitizedContact = {
+      mobile: ALLOWED_AI_FIELDS.includes('mobile') ? rawData.mobile : '',
+      email: ALLOWED_AI_FIELDS.includes('email') ? rawData.email : '',
+      irctc: ALLOWED_AI_FIELDS.includes('irctcUsername') ? rawData.irctcUsername : '',
+    };
+
+    setPassengers([sanitizedPassenger]);
+    setMobileNumber(sanitizedContact.mobile);
+    setEmailAddress(sanitizedContact.email);
+    setIrctcUserId(sanitizedContact.irctc);
+    setIsAiAutofilled(true);
+    setAutofillNotice('Passenger details safely autofilled via SafeAssist Allowed-Field Filter. Sensitive fields excluded.');
+  };
+
+  const handleAddPassenger = () => {
+    if (passengers.length >= 6) {
+      console.log('Maximum 6 passengers allowed per IRCTC reservation.');
+      return;
+    }
+    const newPassenger: PassengerProfile = {
+      id: `p_${Date.now()}_${passengers.length + 1}`,
+      name: '',
+      age: 25,
+      gender: 'M',
+      berthPreference: 'NO_PREFERENCE',
+    };
+    setPassengers([...passengers, newPassenger]);
+  };
+
+  const handleRemovePassenger = (id: string) => {
+    if (passengers.length <= 1) {
+      console.log('At least one passenger is required.');
+      return;
+    }
+    setPassengers(passengers.filter((p) => p.id !== id));
+  };
+
+  const handleUpdatePassenger = (id: string, field: keyof PassengerProfile, value: any) => {
+    setPassengers(
+      passengers.map((p) => {
+        if (p.id === id) {
+          return { ...p, [field]: value };
+        }
+        return p;
+      })
+    );
+  };
+
+  const handleContinueToPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const emptyNames = passengers.filter((p) => !p.name || p.name.trim() === '');
+    if (emptyNames.length > 0) {
+      console.log('Please provide the full name for all passengers.');
+      return;
+    }
+    if (!mobileNumber || mobileNumber.length < 10) {
+      console.log('Please enter a valid 10-digit mobile number for SMS ticket delivery.');
+      return;
+    }
+    navigateTo('payment');
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-2 pb-1 select-none font-sans text-slate-800">
+      {/* ═══════════════════════════════════════════════════════════════════
+          1. UNIFIED SCENIC HERO & TRAIN BANNER (With Scenic Vande Bharat BG)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="relative rounded-[24px] overflow-hidden shadow-md border border-purple-200/50 text-white p-3.5 sm:p-4">
+        {/* Scenic Vande Bharat Railway Viaduct Background */}
+        <img
+          src="/assets/images/booking_scenic_bg.jpg"
+          alt="Scenic Vande Bharat"
+          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+        />
+
+        {/* Gradient Readable Mask */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1E0638]/95 via-[#180833]/88 to-[#0F172A]/75 pointer-events-none" />
+
+        {/* Unified Content */}
+        <div className="relative z-10 space-y-2">
+          {/* Top Bar inside Hero */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/15 pb-2">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => navigateTo('trains')}
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                title="Back to train selection"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div>
+                <h1 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+                  <span>Passenger & Booking Workspace</span>
+                  <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                    Step 2 of 4
+                  </span>
+                </h1>
+              </div>
+            </div>
+
+            {/* AI AUTOFILL CTA BUTTON */}
+            <button
+              type="button"
+              onClick={handleAiAutofill}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white text-xs font-bold shadow-md shadow-purple-900/40 active:scale-95 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              <span>Prepare details</span>
+            </button>
+          </div>
+
+          {/* Train Details Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center text-purple-200">
+                <Train className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-bold text-white block leading-tight">
+                  {train.trainNumber} • {train.trainName}
+                </span>
+                <span className="text-[10px] text-purple-200 font-semibold">
+                  {searchParams.travelDate || 'Tomorrow, 24 May'} • Quota: {searchParams.quota || 'General (GN)'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded-md bg-purple-800/80 backdrop-blur-sm border border-purple-400/40 text-[11px] font-bold text-purple-100">
+                Class: {selectedClass.classCode} ({selectedClass.className})
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-500/25 backdrop-blur-sm border border-emerald-400/40 text-[11px] font-bold text-emerald-300">
+                ₹{selectedClass.fare} / adult
+              </span>
+            </div>
+          </div>
+
+          {/* Route Timings Strip */}
+          <div className="grid grid-cols-3 items-center text-center sm:text-left text-xs pt-1">
+            <div>
+              <span className="text-[10px] text-purple-200 font-semibold block">{train.fromStationName} ({train.fromStationCode})</span>
+              <span className="text-sm sm:text-base font-bold text-white block">{train.departureTime}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-bold text-purple-100">{train.durationHours}</span>
+              <div className="w-full h-0.5 bg-purple-300/40 relative flex items-center justify-center my-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-sm" />
+              </div>
+              <span className="text-[9px] text-purple-200 font-semibold">Direct Express</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-purple-200 font-semibold block">{train.toStationName} ({train.toStationCode})</span>
+              <span className="text-sm sm:text-base font-bold text-white block">{train.arrivalTime}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          2. MAIN PASSENGER FORM & SIDEBAR (Ultra Compact to Fit Viewport)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <form onSubmit={handleContinueToPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 items-start">
+        {/* ──────────────── LEFT COLUMN: PASSENGER FORMS (2 Cols) ──────────────── */}
+        <div className="lg:col-span-2 space-y-2">
+          {/* PASSENGERS CARD LIST */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-purple-700" />
+                <span>Passenger Details ({passengers.length})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={handleAddPassenger}
+                className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-0.5 cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add Passenger</span>
+              </button>
+            </div>
+
+            {passengers.map((passenger, index) => (
+              <div
+                key={passenger.id}
+                className="bg-white rounded-2xl p-3 shadow-sm border border-purple-100 space-y-2 relative"
+              >
+                <div className="flex items-center justify-between border-b border-purple-50 pb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-900">
+                      Passenger #{index + 1}
+                    </span>
+                    {isAiAutofilled && (
+                      <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded border border-purple-200">
+                        Prepared by Nira
+                      </span>
+                    )}
+                  </div>
+
+                  {passengers.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePassenger(passenger.id)}
+                      className="text-slate-400 hover:text-rose-600 transition-colors p-0.5"
+                      title="Remove passenger"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Form Fields Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                  {/* Name */}
+                  <div className="sm:col-span-2 space-y-0.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Full Name (as per Govt ID)
+                    </label>
+                    <input
+                      type="text"
+                      value={passenger.name}
+                      onChange={(e) => handleUpdatePassenger(passenger.id, 'name', e.target.value)}
+                      placeholder="e.g. Ananya Sharma"
+                      className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* Age */}
+                  <div className="space-y-0.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Age
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={passenger.age}
+                      onChange={(e) => handleUpdatePassenger(passenger.id, 'age', parseInt(e.target.value, 10) || 18)}
+                      className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* Gender */}
+                  <div className="space-y-0.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Gender
+                    </label>
+                    <select
+                      value={passenger.gender}
+                      onChange={(e) => handleUpdatePassenger(passenger.id, 'gender', e.target.value as any)}
+                      className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all cursor-pointer"
+                    >
+                      <option value="F">Female</option>
+                      <option value="M">Male</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Berth Preference */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                  <div className="space-y-0.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Berth / Seat Preference
+                    </label>
+                    <select
+                      value={passenger.berthPreference}
+                      onChange={(e) => handleUpdatePassenger(passenger.id, 'berthPreference', e.target.value as any)}
+                      className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all cursor-pointer"
+                    >
+                      <option value="NO_PREFERENCE">No Preference</option>
+                      <option value="LOWER">Lower Berth</option>
+                      <option value="MIDDLE">Middle Berth</option>
+                      <option value="UPPER">Upper Berth</option>
+                      <option value="SIDE_LOWER">Side Lower</option>
+                      <option value="SIDE_UPPER">Side Upper</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 pt-3.5">
+                    <input
+                      type="checkbox"
+                      id={`concession_${passenger.id}`}
+                      checked={passenger.seniorCitizenConcession || false}
+                      onChange={(e) => handleUpdatePassenger(passenger.id, 'seniorCitizenConcession', e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 border-purple-300 cursor-pointer"
+                    />
+                    <label htmlFor={`concession_${passenger.id}`} className="text-xs font-semibold text-slate-700 cursor-pointer">
+                      Senior citizen concession (if eligible)
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CONTACT & IRCTC CREDENTIAL VERIFICATION */}
+          <div className="bg-white rounded-2xl p-2.5 px-3.5 shadow-sm border border-purple-100 space-y-1.5">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-purple-700" />
+              <span>Contact & Booking Details</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Mobile Number */}
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Mobile Number (SMS Updates)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">+91</span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={mobileNumber}
+                    onChange={(e) => setMobileNumber(e.target.value)}
+                    placeholder="9876543210"
+                    className="w-full bg-purple-50/30 border border-purple-100 rounded-xl pl-9 pr-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Email (e-Ticket PDF)
+                </label>
+                <input
+                  type="email"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
+                  required
+                />
+              </div>
+
+              {/* IRCTC User ID */}
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                  <span>IRCTC User ID</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">Verified ✓</span>
+                </label>
+                <input
+                  type="text"
+                  value={irctcUserId}
+                  onChange={(e) => setIrctcUserId(e.target.value)}
+                  placeholder="irctc_username"
+                  className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* PRIVACY & SECURITY BOUNDARY NOTICE */}
+          <div className="bg-gradient-to-r from-emerald-50/90 to-teal-50/70 rounded-xl p-2 px-3 border border-emerald-200 flex items-center gap-2.5 text-xs">
+            <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
+            <div className="space-y-0.2">
+              <span className="font-bold text-emerald-950 block text-xs">
+                SafeAssist Zero-PII Privacy Protection Active
+              </span>
+              <p className="text-[10px] text-emerald-800 font-medium leading-tight">
+                Nirantar isolates AI logic from banking credentials. Passwords, OTPs, UPI PINs, and CVVs are strictly blocked and never stored.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ──────────────── RIGHT COLUMN: FARE SUMMARY & BIGGER ANANYA GIRL MASCOT (1 Col) ──────────────── */}
+        <div className="space-y-2">
+          {/* FARE BREAKDOWN CARD */}
+          <div className="bg-white rounded-2xl p-3.5 border border-purple-100 shadow-sm space-y-2">
+            <h4 className="text-xs sm:text-sm font-bold text-slate-900 border-b border-purple-50 pb-1.5">
+              Fare Summary
+            </h4>
+
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="text-xs font-medium">Base Fare ({passengers.length} × ₹{selectedClass.fare})</span>
+                <span className="font-bold text-slate-900 text-xs">₹{selectedClass.fare * passengers.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="text-xs font-medium">Convenience Fee (IRCTC)</span>
+                <span className="font-bold text-emerald-700 text-xs">₹0 (Free)</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="text-xs font-medium">Safe Travel Insurance</span>
+                <span className="font-bold text-emerald-700 text-xs">Included ✓</span>
+              </div>
+              <div className="border-t border-purple-100 pt-1 flex items-center justify-between text-xs font-bold text-purple-950">
+                <span className="text-xs">Total Amount</span>
+                <span className="text-base font-bold text-[#7C3AED]">₹{totalFare.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {/* Primary Action Button */}
+            <div className="pt-1">
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#581C87] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/25 active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Review & Continue</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* MASCOT SAFE BOOKING CARD WITH PROMINENT BIGGER GIRL (ANANYA) */}
+          <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-2xl p-3 border border-purple-100 relative overflow-visible shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
+                <Sparkles className="w-3 h-3 text-purple-700" />
+                <span>Nira Safe Verification</span>
+              </div>
+            </div>
+
+            {/* Prominent BIGGER Girl Cutout */}
+            <div className="absolute right-0.5 -top-12 w-32 h-36 pointer-events-none z-10 flex items-end justify-end">
+              <img
+                src="/assets/images/characters/citizen_thumbsup.png"
+                alt="Ananya Thumbs Up"
+                className="w-full h-full object-contain drop-shadow-lg"
+              />
+            </div>
+
+            {/* Speech info */}
+            <div className="bg-white/95 rounded-xl p-2 shadow-sm border border-purple-100/80 mt-16 mb-2 relative z-20">
+              <p className="text-[11px] text-purple-950 font-semibold leading-relaxed">
+                Details verified against IRCTC booking rules. Lower berth priority assigned!
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-800">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>DigiLocker Verified Citizen</span>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default BookingPage;

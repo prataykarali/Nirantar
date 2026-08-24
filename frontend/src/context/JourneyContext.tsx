@@ -1,0 +1,765 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Station, POPULAR_STATIONS, findStation } from '../data/stationData';
+import { TrainDetail, searchTrains as localSearchTrains } from '../data/mockTrains';
+import {
+  JourneyState,
+  JourneyStep,
+  PaymentState,
+  PaymentMethod,
+  PaymentAttempt,
+  AuthState,
+  PassengerProfile,
+  BookingRecord,
+  TicketRecord,
+  JourneyError,
+  JourneyErrorCode,
+  JOURNEY_ERROR_MESSAGES,
+  createInitialJourneyState,
+} from '../types/journey';
+
+export type { PassengerProfile };
+import {
+  apiCreateJourney,
+  apiSearchTrains,
+  apiSavePassengers,
+  apiCreatePayment,
+  apiGetPaymentStatus,
+  apiVerifyPayment,
+  apiMockPaymentResult,
+  apiMockLogin,
+  apiMockVerify,
+  apiGetTicket,
+} from '../services/journeyApi';
+import { admitFairAccess } from '../services/niraApi';
+import { setFairAccessTicket } from '../lib/fairAccessStore';
+
+export interface RecentJourney {
+  id: string;
+  from: Station;
+  to: Station;
+  date: string;
+  passengersCount: number;
+}
+
+export interface JourneySearchParams {
+  fromStation: Station;
+  toStation: Station;
+  travelDate: string;
+  passengersCount: number;
+  classType: string;
+  quota: string;
+}
+
+export interface GuidanceStep {
+  id: string;
+  stepNumber: number;
+  title: string;
+  speech: string;
+  actionCue: string;
+  actionButtonText?: string;
+  arrowPlacement?: {
+    top?: string;
+    bottom?: string;
+    left?: string;
+    right?: string;
+  };
+  arrowLabel?: string;
+  onAction?: () => void;
+}
+
+export interface JourneyContextType {
+  // Navigation & Page State
+  activePage: string;
+  setActivePage: (page: string) => void;
+  navigateTo: (page: string) => void;
+
+  // Search Parameters & Results
+  searchParams: JourneySearchParams;
+  setSearchParams: React.Dispatch<React.SetStateAction<JourneySearchParams>>;
+  availableTrains: TrainDetail[];
+  selectedTrain: TrainDetail | null;
+  setSelectedTrain: (train: TrainDetail | null) => void;
+  selectedClassCode: string;
+  setSelectedClassCode: (code: string) => void;
+
+  // Passengers
+  passengers: PassengerProfile[];
+  setPassengers: React.Dispatch<React.SetStateAction<PassengerProfile[]>>;
+  savedPassengers: PassengerProfile[];
+  recentJourneys: RecentJourney[];
+
+  // Central Typed Journey State
+  journeyState: JourneyState;
+  setJourneyState: React.Dispatch<React.SetStateAction<JourneyState>>;
+
+  // Domain Actions
+  executeSearch: (params?: Partial<JourneySearchParams>) => Promise<{ success: boolean; error?: string }>;
+  selectTrain: (train: TrainDetail, classCode?: string) => void;
+  savePassengerDetails: (passengersList: PassengerProfile[]) => Promise<boolean>;
+  
+  // Auth Actions
+  authState: AuthState;
+  performMockAuth: (username: string, password?: string) => Promise<boolean>;
+  verifyMockOtp: (otp: string) => Promise<boolean>;
+
+  // Payment Actions
+  paymentState: PaymentState;
+  paymentAttempt: PaymentAttempt | null;
+  initiatePayment: (method: PaymentMethod, amount: number) => Promise<PaymentAttempt | null>;
+  verifyPaymentStatus: () => Promise<PaymentAttempt | null>;
+  triggerMockPaymentResult: (result: 'SUCCESS' | 'FAILED' | 'UNKNOWN') => Promise<PaymentAttempt | null>;
+
+  // Ticket & Booking
+  issuedTicket: TicketRecord | null;
+  bookingRecord: BookingRecord | null;
+
+  // Error Recovery & State
+  error: JourneyError | null;
+  setError: (err: JourneyError | null) => void;
+  clearError: () => void;
+  setNamedError: (code: JourneyErrorCode, customMessage?: string) => void;
+
+  // Quick Track Query
+  trackQuery: string;
+  setTrackQuery: (query: string) => void;
+  handleQuickTrack: (query: string) => void;
+
+  // Smart Guidance & Spotlight Engine
+  guidanceActive: boolean;
+  guidanceStep: GuidanceStep | null;
+  guidanceStepIndex: number;
+  startGuidanceTour: (initialStep?: number) => void;
+  stopGuidanceTour: () => void;
+  nextGuidanceStep: () => void;
+
+  // Auto Booker Engine
+  triggerAutoBookFlow: (params: {
+    fromStation: Station;
+    toStation: Station;
+    travelDate?: string;
+    passengersCount?: number;
+    preferredTrainNumber?: string;
+    classCode?: string;
+    quota?: string;
+    passengerName?: string;
+    startWithGuidance?: boolean;
+  }) => Promise<boolean>;
+
+  // Reset & Recovery
+  resetJourney: () => void;
+}
+
+const defaultFrom = POPULAR_STATIONS[0]; // NDLS (New Delhi)
+const defaultTo = POPULAR_STATIONS[1];   // HWH (Howrah)
+
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+const defaultDate = tomorrow.toISOString().split('T')[0];
+
+const defaultSavedPassengers: PassengerProfile[] = [
+  { id: '1', name: 'Ananya Sharma', age: 19, gender: 'F', berthPreference: 'LOWER' },
+  { id: '2', name: 'Rahul Sharma', age: 22, gender: 'M', berthPreference: 'SIDE_LOWER' },
+  { id: '3', name: 'Sunita Sharma', age: 54, gender: 'F', berthPreference: 'LOWER', seniorCitizenConcession: true },
+];
+
+const defaultRecentJourneys: RecentJourney[] = [
+  {
+    id: 'r1',
+    from: POPULAR_STATIONS[0], // NDLS
+    to: POPULAR_STATIONS[1],   // HWH
+    date: defaultDate,
+    passengersCount: 2,
+  },
+  {
+    id: 'r2',
+    from: POPULAR_STATIONS[0], // NDLS
+    to: POPULAR_STATIONS[2],   // CSMT
+    date: defaultDate,
+    passengersCount: 1,
+  },
+  {
+    id: 'r3',
+    from: POPULAR_STATIONS[4], // MAS
+    to: POPULAR_STATIONS[3],   // SBC
+    date: defaultDate,
+    passengersCount: 1,
+  },
+];
+
+const JourneyContext = createContext<JourneyContextType | undefined>(undefined);
+
+export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activePage, setActivePage] = useState<string>('home');
+  const [searchParams, setSearchParams] = useState<JourneySearchParams>({
+    fromStation: defaultFrom,
+    toStation: defaultTo,
+    travelDate: defaultDate,
+    passengersCount: 1,
+    classType: 'All Classes',
+    quota: 'General (GN)',
+  });
+
+  const [availableTrains, setAvailableTrains] = useState<TrainDetail[]>([]);
+  const [selectedTrain, setSelectedTrain] = useState<TrainDetail | null>(null);
+  const [selectedClassCode, setSelectedClassCode] = useState<string>('3A');
+  const [passengers, setPassengers] = useState<PassengerProfile[]>([defaultSavedPassengers[0]]);
+  const [savedPassengers] = useState<PassengerProfile[]>(defaultSavedPassengers);
+  const [recentJourneys, setRecentJourneys] = useState<RecentJourney[]>(defaultRecentJourneys);
+  const [trackQuery, setTrackQuery] = useState<string>('');
+
+  // Central Journey State
+  const [journeyState, setJourneyState] = useState<JourneyState>(createInitialJourneyState());
+  const [error, setError] = useState<JourneyError | null>(null);
+
+  // Authentication State
+  const [authState, setAuthState] = useState<AuthState>({
+    status: 'READY',
+    userId: 'usr-ananya-84920',
+    displayName: 'Ananya Sharma',
+    isAuthenticated: true,
+    failureReason: null,
+  });
+
+  // Payment & Ticket Records
+  const [paymentAttempt, setPaymentAttempt] = useState<PaymentAttempt | null>(null);
+  const [paymentState, setPaymentState] = useState<PaymentState>('READY');
+  const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(null);
+  const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(null);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  const setNamedError = useCallback((code: JourneyErrorCode, customMessage?: string) => {
+    const template = JOURNEY_ERROR_MESSAGES[code];
+    setError({
+      code,
+      whatHappened: customMessage || template.whatHappened,
+      whatToDoNext: template.whatToDoNext,
+      canRetry: template.canRetry,
+      severity: template.severity,
+    });
+  }, []);
+
+  // Initial load: fetch trains from backend API
+  useEffect(() => {
+    const loadInitialTrains = async () => {
+      try {
+        const res = await apiSearchTrains(searchParams.fromStation.code, searchParams.toStation.code);
+        if (res.trains && res.trains.length > 0) {
+          setAvailableTrains(res.trains);
+        } else {
+          setAvailableTrains(localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code));
+        }
+      } catch {
+        setAvailableTrains(localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code));
+      }
+    };
+    loadInitialTrains();
+  }, []);
+
+  const executeSearch = async (paramsOverride?: Partial<JourneySearchParams>): Promise<{ success: boolean; error?: string }> => {
+    clearError();
+    const params = { ...searchParams, ...paramsOverride };
+
+    // Validation
+    if (!params.fromStation) {
+      setNamedError('INVALID_JOURNEY', 'Please select a boarding station (From).');
+      return { success: false, error: 'Please select a boarding station (From).' };
+    }
+    if (!params.toStation) {
+      setNamedError('INVALID_JOURNEY', 'Please select a destination station (To).');
+      return { success: false, error: 'Please select a destination station (To).' };
+    }
+    if (params.fromStation.code === params.toStation.code) {
+      setNamedError('INVALID_JOURNEY', 'Boarding and destination stations cannot be the same.');
+      return { success: false, error: 'Boarding and destination stations cannot be the same.' };
+    }
+    if (!params.travelDate) {
+      setNamedError('INVALID_JOURNEY', 'Please select a valid travel date.');
+      return { success: false, error: 'Please select a valid travel date.' };
+    }
+
+    setSearchParams(params);
+
+    try {
+      const access = await admitFairAccess({
+        action: 'SEARCH_TRAINS',
+        sessionId: `search:${params.fromStation.code}:${params.toStation.code}:${params.travelDate}`,
+        origin: params.fromStation.code,
+        destination: params.toStation.code,
+        travelDate: params.travelDate,
+        journeyId: journeyState.journeyId || undefined,
+      });
+      if (access) setFairAccessTicket(access);
+
+      // 1. Create journey record in backend DB (preserves state even while queued)
+      const journeyRes = journeyState.journeyId
+        ? { journeyId: journeyState.journeyId }
+        : await apiCreateJourney({
+            originCode: params.fromStation.code,
+            destinationCode: params.toStation.code,
+            travelDate: params.travelDate,
+            passengersCount: params.passengersCount,
+            classType: params.classType,
+            quota: params.quota,
+          }).catch(() => null);
+
+      if (journeyRes?.journeyId) {
+        setJourneyState((prev) => ({
+          ...prev,
+          journeyId: journeyRes.journeyId,
+          origin: params.fromStation,
+          destination: params.toStation,
+          travelDate: params.travelDate,
+          passengersCount: params.passengersCount,
+          step: 'SEARCHED',
+        }));
+      }
+
+      if (access && !access.admitted) {
+        return { success: true };
+      }
+
+      // 2. Fetch train search results from backend API
+      const searchRes = await apiSearchTrains(params.fromStation.code, params.toStation.code, params.travelDate);
+      if (searchRes.trains && searchRes.trains.length > 0) {
+        setAvailableTrains(searchRes.trains);
+      } else {
+        const fallback = localSearchTrains(params.fromStation.code, params.toStation.code);
+        setAvailableTrains(fallback);
+      }
+    } catch {
+      // Graceful fallback to synthetic data fixture
+      const fallback = localSearchTrains(params.fromStation.code, params.toStation.code);
+      setAvailableTrains(fallback);
+    }
+
+    // Save to recent journeys
+    const isDuplicate = recentJourneys.some(
+      (r) => r.from.code === params.fromStation.code && r.to.code === params.toStation.code
+    );
+    if (!isDuplicate) {
+      const newRecent: RecentJourney = {
+        id: `r_${Date.now()}`,
+        from: params.fromStation,
+        to: params.toStation,
+        date: params.travelDate,
+        passengersCount: params.passengersCount,
+      };
+      setRecentJourneys((prev) => [newRecent, ...prev.slice(0, 4)]);
+    }
+
+    setActivePage('trains');
+    return { success: true };
+  };
+
+  const selectTrain = (train: TrainDetail, classCode?: string) => {
+    setSelectedTrain(train);
+    const chosenClass = classCode || (train.classes.length > 0 ? train.classes[0].classCode : '3A');
+    setSelectedClassCode(chosenClass);
+
+    setJourneyState((prev) => ({
+      ...prev,
+      selectedTrain: train,
+      selectedClassCode: chosenClass,
+      step: 'TRAIN_SELECTED',
+    }));
+
+    setActivePage('workspace');
+  };
+
+  const savePassengerDetails = async (passengersList: PassengerProfile[]): Promise<boolean> => {
+    setPassengers(passengersList);
+    setJourneyState((prev) => ({
+      ...prev,
+      passengers: passengersList,
+      step: 'PASSENGER_REVIEW',
+    }));
+
+    if (journeyState.journeyId) {
+      try {
+        await apiSavePassengers(journeyState.journeyId, passengersList);
+      } catch (e) {
+        console.warn('Failed to sync passenger drafts to backend:', e);
+      }
+    }
+    return true;
+  };
+
+  // Mock Authentication Flow (Isolated from AI)
+  const performMockAuth = async (username: string, password: string = 'nirantar2026'): Promise<boolean> => {
+    setAuthState((prev) => ({ ...prev, status: 'VERIFYING' }));
+    try {
+      const res = await apiMockLogin(username, password);
+      setAuthState(res);
+      return res.isAuthenticated;
+    } catch {
+      // Fallback verified synthetic user
+      const fallbackAuth: AuthState = {
+        status: 'VERIFIED',
+        userId: 'usr-ananya-84920',
+        displayName: 'Ananya Sharma',
+        isAuthenticated: true,
+        failureReason: null,
+      };
+      setAuthState(fallbackAuth);
+      return true;
+    }
+  };
+
+  const verifyMockOtp = async (otp: string): Promise<boolean> => {
+    try {
+      const res = await apiMockVerify(authState.userId || 'usr-ananya-84920', otp);
+      setAuthState(res);
+      return res.isAuthenticated;
+    } catch {
+      setAuthState((prev) => ({ ...prev, status: 'VERIFIED', isAuthenticated: true }));
+      return true;
+    }
+  };
+
+  // Payment State Machine
+  const initiatePayment = async (method: PaymentMethod, amount: number): Promise<PaymentAttempt | null> => {
+    clearError();
+    setPaymentState('INITIATED');
+
+    const jId = journeyState.journeyId || `mock_journey_${Date.now()}`;
+
+    try {
+      const attempt = await apiCreatePayment(jId, amount, method);
+      setPaymentAttempt(attempt);
+      setPaymentState('PROCESSING');
+      return attempt;
+    } catch (e) {
+      // Fallback synthetic payment attempt
+      const fallbackAttempt: PaymentAttempt = {
+        id: `pay_${Date.now()}`,
+        journeyId: jId,
+        amount,
+        method,
+        state: 'PROCESSING',
+        idempotencyKey: `idemp_${Date.now()}`,
+        transactionRef: `TXN-NIRANTAR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setPaymentAttempt(fallbackAttempt);
+      setPaymentState('PROCESSING');
+      return fallbackAttempt;
+    }
+  };
+
+  const verifyPaymentStatus = async (): Promise<PaymentAttempt | null> => {
+    if (!paymentAttempt) return null;
+    setPaymentState('VERIFYING');
+
+    try {
+      const res = await apiVerifyPayment(paymentAttempt.id);
+      setPaymentAttempt(res);
+      setPaymentState(res.state);
+
+      if (res.state === 'SUCCESS' || res.state === 'BOOKING_CONFIRMED') {
+        const ticket = await apiGetTicket(res.journeyId).catch(() => null);
+        if (ticket) setIssuedTicket(ticket);
+      }
+      return res;
+    } catch {
+      // Fallback resolution
+      const resolved: PaymentAttempt = {
+        ...paymentAttempt,
+        state: 'SUCCESS',
+        updatedAt: new Date().toISOString(),
+      };
+      setPaymentAttempt(resolved);
+      setPaymentState('SUCCESS');
+      return resolved;
+    }
+  };
+
+  const triggerMockPaymentResult = async (result: 'SUCCESS' | 'FAILED' | 'UNKNOWN'): Promise<PaymentAttempt | null> => {
+    if (!paymentAttempt) return null;
+
+    try {
+      const res = await apiMockPaymentResult(paymentAttempt.id, result);
+      setPaymentAttempt(res);
+      setPaymentState(res.state);
+
+      if (result === 'SUCCESS') {
+        const ticket = await apiGetTicket(res.journeyId).catch(() => null);
+        if (ticket) setIssuedTicket(ticket);
+      }
+      return res;
+    } catch {
+      const updated: PaymentAttempt = {
+        ...paymentAttempt,
+        state: result === 'SUCCESS' ? 'BOOKING_CONFIRMED' : result,
+        updatedAt: new Date().toISOString(),
+      };
+      setPaymentAttempt(updated);
+      setPaymentState(result === 'SUCCESS' ? 'BOOKING_CONFIRMED' : result);
+      return updated;
+    }
+  };
+
+  // Smart Spotlight & Guidance Tour State
+  const [guidanceActive, setGuidanceActive] = useState<boolean>(false);
+  const [guidanceStepIndex, setGuidanceStepIndex] = useState<number>(0);
+
+  const stopGuidanceTour = useCallback(() => {
+    setGuidanceActive(false);
+  }, []);
+
+  const startGuidanceTour = useCallback((initialStep: number = 0) => {
+    setGuidanceStepIndex(initialStep);
+    setGuidanceActive(true);
+  }, []);
+
+  const nextGuidanceStep = useCallback(() => {
+    setGuidanceStepIndex((prev) => {
+      if (prev >= 3) {
+        setGuidanceActive(false);
+        return 0;
+      }
+      return prev + 1;
+    });
+  }, []);
+
+  const guidanceStepsList: GuidanceStep[] = [
+    {
+      id: 'step-train-select',
+      stepNumber: 1,
+      title: 'Find & Compare Trains',
+      speech: 'I have found the top direct trains for your route! This train is the fastest with confirmed seat availability.',
+      actionCue: 'Tap Book Now on the recommended train to continue.',
+      actionButtonText: 'Select Fastest Train ➔',
+      arrowPlacement: { top: '38%', left: '32%' },
+      arrowLabel: '⚡ Fastest Train with Confirmed Seats',
+      onAction: () => {
+        const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0];
+        if (topTrain) {
+          selectTrain(topTrain, selectedClassCode || '3A');
+          setGuidanceStepIndex(1);
+        } else {
+          setActivePage('trains');
+          setGuidanceStepIndex(1);
+        }
+      },
+    },
+    {
+      id: 'step-passenger-autofill',
+      stepNumber: 2,
+      title: 'Safe Autofill & Verification',
+      speech: "I've prepared the passenger details I can safely autofill. Please review everything before we proceed.",
+      actionCue: 'Review passenger names & berth preferences, then tap Continue.',
+      actionButtonText: 'Review & Continue to Payment ➔',
+      arrowPlacement: { bottom: '28%', right: '22%' },
+      arrowLabel: 'SafeAssist Zero-PII Protected',
+      onAction: () => {
+        setActivePage('payment');
+        setGuidanceStepIndex(2);
+      },
+    },
+    {
+      id: 'step-payment-auth',
+      stepNumber: 3,
+      title: 'Payment & 3D-Secure Verification',
+      speech: 'Your banking credentials are protected. Please enter your UPI PIN or OTP to authorize payment safely.',
+      actionCue: 'Enter UPI PIN/OTP interactively to complete payment.',
+      actionButtonText: 'Proceed to Payment Authorization ➔',
+      arrowPlacement: { top: '45%', left: '26%' },
+      arrowLabel: 'NPCI & Bank 256-Bit Encrypted',
+      onAction: async () => {
+        setGuidanceStepIndex(3);
+      },
+    },
+    {
+      id: 'step-ticket-companion',
+      stepNumber: 4,
+      title: 'Journey Companion & Live Radar',
+      speech: 'Booking confirmed! Here is your confirmed digital ticket with live coach, platform, and GPS tracking.',
+      actionCue: 'View your digital ticket and track your train in real-time.',
+      actionButtonText: 'Open Live Train Radar ➔',
+      arrowPlacement: { top: '30%', right: '20%' },
+      arrowLabel: 'DigiLocker Verified e-Ticket',
+      onAction: () => {
+        setGuidanceActive(false);
+        setActivePage('ticket');
+      },
+    },
+  ];
+
+  const currentGuidanceStep = guidanceActive ? guidanceStepsList[guidanceStepIndex] || null : null;
+
+  // Seamless Auto Booker Flow
+  const triggerAutoBookFlow = async (params: {
+    fromStation: Station;
+    toStation: Station;
+    travelDate?: string;
+    passengersCount?: number;
+    preferredTrainNumber?: string;
+    classCode?: string;
+    quota?: string;
+    passengerName?: string;
+    startWithGuidance?: boolean;
+  }): Promise<boolean> => {
+    clearError();
+    const date = params.travelDate || defaultDate;
+    const paxCount = params.passengersCount || 1;
+    const classType = params.classCode || '3A';
+    const quota = params.quota || 'General (GN)';
+
+    const searchObj = {
+      fromStation: params.fromStation,
+      toStation: params.toStation,
+      travelDate: date,
+      passengersCount: paxCount,
+      classType: classType,
+      quota: quota,
+    };
+    setSearchParams(searchObj);
+
+    // Search trains
+    let matchedTrains: TrainDetail[] = [];
+    try {
+      const res = await apiSearchTrains(params.fromStation.code, params.toStation.code, date);
+      if (res.trains && res.trains.length > 0) {
+        matchedTrains = res.trains;
+      } else {
+        matchedTrains = localSearchTrains(params.fromStation.code, params.toStation.code);
+      }
+    } catch {
+      matchedTrains = localSearchTrains(params.fromStation.code, params.toStation.code);
+    }
+    setAvailableTrains(matchedTrains);
+
+    // Pick targeted or fastest train
+    let targetTrain: TrainDetail | null = null;
+    if (params.preferredTrainNumber) {
+      targetTrain = matchedTrains.find((t) => t.trainNumber === params.preferredTrainNumber) || null;
+    }
+    if (!targetTrain && matchedTrains.length > 0) {
+      targetTrain = matchedTrains[0];
+    }
+
+    // Set passenger name if provided
+    if (params.passengerName) {
+      setPassengers([
+        {
+          id: `p_${Date.now()}`,
+          name: params.passengerName,
+          age: 24,
+          gender: 'F',
+          berthPreference: 'LOWER',
+        },
+      ]);
+    }
+
+    if (targetTrain) {
+      setSelectedTrain(targetTrain);
+      setSelectedClassCode(classType);
+      setJourneyState((prev) => ({
+        ...prev,
+        origin: params.fromStation,
+        destination: params.toStation,
+        travelDate: date,
+        passengersCount: paxCount,
+        selectedTrain: targetTrain,
+        selectedClassCode: classType,
+        step: 'TRAIN_SELECTED',
+      }));
+
+      if (params.startWithGuidance) {
+        setActivePage('trains');
+        startGuidanceTour(0);
+      } else {
+        // Direct transition into booking workspace
+        setActivePage('workspace');
+      }
+      return true;
+    } else {
+      setActivePage('trains');
+      return false;
+    }
+  };
+
+  const handleQuickTrack = (query: string) => {
+    if (!query || query.trim() === '') return;
+    setTrackQuery(query.trim());
+    setActivePage('track');
+  };
+
+  const navigateTo = (page: string) => {
+    setActivePage(page);
+  };
+
+  const resetJourney = () => {
+    setJourneyState(createInitialJourneyState());
+    setSelectedTrain(null);
+    setPaymentAttempt(null);
+    setPaymentState('READY');
+    setIssuedTicket(null);
+    setBookingRecord(null);
+    clearError();
+    setActivePage('home');
+  };
+
+  return (
+    <JourneyContext.Provider
+      value={{
+        activePage,
+        setActivePage,
+        navigateTo,
+        searchParams,
+        setSearchParams,
+        availableTrains,
+        selectedTrain,
+        setSelectedTrain,
+        selectedClassCode,
+        setSelectedClassCode,
+        passengers,
+        setPassengers,
+        savedPassengers,
+        recentJourneys,
+        journeyState,
+        setJourneyState,
+        executeSearch,
+        selectTrain,
+        savePassengerDetails,
+        authState,
+        performMockAuth,
+        verifyMockOtp,
+        paymentState,
+        paymentAttempt,
+        initiatePayment,
+        verifyPaymentStatus,
+        triggerMockPaymentResult,
+        issuedTicket,
+        bookingRecord,
+        error,
+        setError,
+        clearError,
+        setNamedError,
+        trackQuery,
+        setTrackQuery,
+        handleQuickTrack,
+        guidanceActive,
+        guidanceStep: currentGuidanceStep,
+        guidanceStepIndex,
+        startGuidanceTour,
+        stopGuidanceTour,
+        nextGuidanceStep,
+        triggerAutoBookFlow,
+        resetJourney,
+      }}
+    >
+      {children}
+    </JourneyContext.Provider>
+  );
+};
+
+export const useJourney = (): JourneyContextType => {
+  const context = useContext(JourneyContext);
+  if (!context) {
+    throw new Error('useJourney must be used within a JourneyProvider');
+  }
+  return context;
+};

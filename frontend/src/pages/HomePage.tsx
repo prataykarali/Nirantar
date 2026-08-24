@@ -1,333 +1,989 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
-  Search,
-  Sparkles,
-  FileText,
   MapPin,
-  CreditCard,
-  AlertTriangle,
-  HelpCircle,
-  ChevronRight,
-  Shield,
-  Zap,
+  Calendar,
   Users,
-  Award,
-  MessageSquare,
+  ArrowRight,
+  Mic,
+  Train,
+  Sparkles,
 } from 'lucide-react';
+import { useJourney } from '../context/JourneyContext';
+import { POPULAR_STATIONS, Station, searchStations, findStation } from '../data/stationData';
+import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
+import { CitizenCharacter } from '../components/characters/CitizenCharacter';
+import { NiraRobot } from '../components/characters/NiraRobot';
+import { Card } from '../design-system/components/Card';
+import TypewriterText from '../components/smoothui/typewriter-text';
+import { parseNiraIntent } from '../services/niraApi';
+import { SafeAssistParser } from '../utils/SafeAssistParser';
 
-interface HomePageProps {
-  onNavigate: (route: string, query?: string) => void;
-  onOpenNira: (initialQuery?: string) => void;
-}
+export const HomePage: React.FC = () => {
+  const {
+    searchParams,
+    executeSearch,
+    navigateTo,
+  } = useJourney();
 
-export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenNira }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [nlQuery, setNlQuery] = useState('');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
-  const handleSearchSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (searchQuery.trim()) {
-      onNavigate('discover', searchQuery);
+  const tomorrowStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Dynamic Autocomplete Engine for Home & Discover
+  const autocompleteSuggestions = useMemo(() => {
+    const raw = nlQuery.trim();
+    if (!raw || raw.length < 2) return [];
+
+    const lower = raw.toLowerCase();
+
+    // 1. Check if user typed "X to Y" or "X to"
+    if (lower.includes(' to ') || lower.endsWith(' to') || lower.includes(' - ') || lower.includes(' -> ')) {
+      const parts = lower.split(/\s+(?:to|-|->)\s*/i);
+      const fromQueryPart = parts[0]?.trim();
+      const toQueryPart = parts[1]?.trim() || '';
+
+      const matchedFrom = findStation(fromQueryPart);
+      if (matchedFrom) {
+        // Find direct routes from this station in our 550+ trains database
+        const routesFromStation = MOCK_TRAINS_DATABASE.filter(
+          (t) => t.fromStationCode === matchedFrom.code || t.fromCity.toLowerCase() === matchedFrom.city.toLowerCase()
+        );
+
+        const uniqueDestinations = new Map<string, { station: Station; trainCount: number; sampleTrain: string; duration: string }>();
+
+        for (const tr of routesFromStation) {
+          const destStation = findStation(tr.toStationCode) || {
+            code: tr.toStationCode,
+            name: tr.toStationName,
+            city: tr.toCity,
+            state: '',
+            aliases: [tr.toStationCode, tr.toCity],
+          };
+
+          if (toQueryPart) {
+            const matchesTo =
+              destStation.city.toLowerCase().includes(toQueryPart) ||
+              destStation.name.toLowerCase().includes(toQueryPart) ||
+              destStation.code.toLowerCase().includes(toQueryPart);
+            if (!matchesTo) continue;
+          }
+
+          if (!uniqueDestinations.has(destStation.code)) {
+            uniqueDestinations.set(destStation.code, {
+              station: destStation,
+              trainCount: 1,
+              sampleTrain: tr.trainName,
+              duration: tr.durationHours,
+            });
+          } else {
+            uniqueDestinations.get(destStation.code)!.trainCount += 1;
+          }
+        }
+
+        return Array.from(uniqueDestinations.values()).slice(0, 6).map((dest) => ({
+          type: 'ROUTE' as const,
+          fromStation: matchedFrom,
+          toStation: dest.station,
+          label: `${matchedFrom.city} (${matchedFrom.code}) → ${dest.station.city} (${dest.station.code})`,
+          subtitle: `${dest.station.name} • ${dest.trainCount} direct train${dest.trainCount > 1 ? 's' : ''} (${dest.sampleTrain}) • ${dest.duration}`,
+        }));
+      }
     }
+
+    // 2. User typed a single station name or code (e.g. "howrah", "delhi", "hwh", "ndls", "sbc", "mumbai")
+    const matchedStations = searchStations(raw, 6);
+    return matchedStations.map((st) => ({
+      type: 'STATION' as const,
+      fromStation: st,
+      toStation: null,
+      label: `[${st.code}] ${st.name}`,
+      subtitle: `${st.city}, ${st.state} • Official IRCTC Station Code`,
+    }));
+  }, [nlQuery]);
+
+  const tourSteps = [
+    {
+      step: 1,
+      title: 'Search & Discover Trains',
+      boxLabel: 'Box 1: Route Search',
+      speech: 'Enter where you are going or speak in natural Hindi/English. I will pull live availability from Indian Railways.',
+      mascot: '/assets/images/characters/nira_idea.png',
+      route: 'discover',
+      actionLabel: 'Try Search Now →',
+      preview: 'Delhi (NDLS) → Mumbai (MMCT) • Tomorrow',
+    },
+    {
+      step: 2,
+      title: 'Compare & Select Best Option',
+      boxLabel: 'Box 2: Live Selection',
+      speech: 'I recommend the fastest and safest trains with real-time seat availability across 3A, 2A, and Sleeper coaches.',
+      mascot: '/assets/images/characters/nira_thumbsup.png',
+      route: 'trains',
+      actionLabel: 'View Trains →',
+      preview: '12951 Mumbai Rajdhani • 48 Seats Available',
+    },
+    {
+      step: 3,
+      title: 'Autofill & Safe Booking',
+      boxLabel: 'Box 3: Passenger Verification',
+      speech: 'Your passenger details are securely autofilled with zero PII exposure to AI models. Check concessions and berth preferences.',
+      mascot: '/assets/images/characters/citizen_ticket.png',
+      route: 'booking',
+      actionLabel: 'Open Booking Workspace →',
+      preview: 'Verified Citizen: Rahul Sharma (IN-84920)',
+    },
+    {
+      step: 4,
+      title: 'Double-Verification Payment Bridge',
+      boxLabel: 'Box 4: Safe Payment',
+      speech: 'Pay safely via UPI, Net Banking, or Cards. If any bank timeout occurs, our status verification ensures you never pay twice.',
+      mascot: '/assets/images/characters/nira_happy.png',
+      route: 'payment',
+      actionLabel: 'Open Payment Bridge →',
+      preview: '256-bit SSL • Instant QR & Auto-Refund Safeguard',
+    },
+    {
+      step: 5,
+      title: 'Live GPS Train Tracking',
+      boxLabel: 'Box 5: GPS Radar',
+      speech: 'Track your coach, berth, real-time speed, and upcoming station timeline directly from your phone.',
+      mascot: '/assets/images/characters/nira_tablet.png',
+      route: 'track',
+      actionLabel: 'Open Live Tracker →',
+      preview: 'Speed: 120 km/h • Next Stop: Bhusawal Jn in 38m',
+    },
+  ];
+
+  // Natural Language Search — NVIDIA first, Safe Assist if the LLM is down.
+  const handleNLSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!nlQuery.trim()) {
+      executeSearch({
+        fromStation: POPULAR_STATIONS[0],
+        toStation: POPULAR_STATIONS[2],
+        travelDate: tomorrowStr,
+        passengersCount: 1,
+        classType: 'All Classes',
+        quota: 'General (GN)',
+      });
+      return;
+    }
+    let parsed;
+    try {
+      parsed = await parseNiraIntent(nlQuery, 'en');
+    } catch {
+      parsed = SafeAssistParser.parse(nlQuery);
+    }
+    if (parsed.intent === 'TRACK_TRAIN') {
+      navigateTo('track');
+      return;
+    }
+    if (parsed.intent === 'VIEW_TICKET') {
+      navigateTo('my-journeys');
+      return;
+    }
+    if (parsed.intent === 'PAYMENT_HELP') {
+      navigateTo('payments');
+      return;
+    }
+    const from = parsed.entities.from || searchParams.fromStation;
+    const to = parsed.entities.to || searchParams.toStation;
+    executeSearch({
+      fromStation: from,
+      toStation: to,
+      travelDate: parsed.entities.date || tomorrowStr,
+      passengersCount: parsed.entities.passengers || 1,
+      classType: 'All Classes',
+      quota: 'General (GN)',
+    });
   };
 
-  const POPULAR_SEARCHES = ['Aadhaar Update', 'Caste Certificate', 'Driving Licence', 'PAN Card'];
+  // Quick pill click handlers
+  const handleQuickPill = (from: Station, to: Station, date: string, passengers: number) => {
+    executeSearch({
+      fromStation: from,
+      toStation: to,
+      travelDate: date,
+      passengersCount: passengers,
+      classType: 'All Classes',
+      quota: 'General (GN)',
+    });
+  };
+
+  // Voice Query Handler
+  const handleApplyVoiceQuery = (from: Station, to: Station, date: string, passengers: number) => {
+    setShowVoiceModal(false);
+    executeSearch({
+      fromStation: from,
+      toStation: to,
+      travelDate: date,
+      passengersCount: passengers,
+      classType: 'All Classes',
+      quota: 'General (GN)',
+    });
+  };
+
+  // 4 Feature Cards (exact match to reference mockup, clean & unboxed)
+  const featureCards = [
+    {
+      id: 'find-trains',
+      title: 'Find Trains',
+      image: '/assets/images/cards/card_find_trains.png',
+      alt: 'Find Trains 3D Illustration',
+      onClick: () => navigateTo('discover'),
+    },
+    {
+      id: 'pnr-status',
+      title: 'PNR Status',
+      image: '/assets/images/cards/card_pnr_status.png',
+      alt: 'PNR Status 3D Ticket',
+      onClick: () => navigateTo('my-journeys'),
+    },
+    {
+      id: 'live-trains',
+      title: 'Live Trains',
+      image: '/assets/images/cards/card_live_trains.png',
+      alt: 'Live Trains 3D Map Pin',
+      badge: 'LIVE',
+      onClick: () => navigateTo('track'),
+    },
+    {
+      id: 'train-schedule',
+      title: 'Train Schedule',
+      image: '/assets/images/cards/card_train_schedule.png',
+      alt: 'Train Schedule 3D Calendar',
+      onClick: () => navigateTo('discover'),
+    },
+  ];
 
   return (
-    <div className="space-y-10 pb-12">
-      {/* HERO SECTION */}
-      <section className="relative rounded-3xl p-8 md:p-12 overflow-hidden border border-indigo-500/20 bg-gradient-to-b from-[#0e1738] via-[#091026] to-[#060a19] shadow-2xl">
-        {/* Background glow effects */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-4 max-w-7xl mx-auto pb-4">
+      {/* ═══════════════════════════════════════════════════════════════════
+          1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="relative rounded-[32px] overflow-hidden min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
+        {/* Background Station Scene */}
+        <img
+          src="/assets/images/hero_station_bg.jpg"
+          alt="Nirantar Railway Station"
+          className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none"
+        />
 
-        <div className="relative z-10 max-w-3xl space-y-6">
-          {/* Hero Tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold tracking-wide shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            Smart guidance for every citizen
-          </div>
+        {/* Soft gradient mask on the left */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 via-[50%] to-transparent pointer-events-none" />
 
-          {/* Heading */}
-          <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tight leading-tight">
-            Government services, <br />
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-300 bg-clip-text text-transparent">
-              without the guesswork.
-            </span>
-          </h1>
+        {/* Hero Content Container */}
+        <div className="relative z-10 flex flex-col justify-between h-full min-h-[350px] lg:min-h-[380px] p-6 sm:p-10 lg:p-11">
+          <div className="max-w-xl space-y-4">
+            {/* HEADLINE */}
+            <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-[3.2rem] text-slate-950 leading-[1.1] tracking-tight">
+              Let's plan<br />
+              your next<br />
+              <span className="text-[#7C3AED]">
+                journey
+              </span>
+              <span className="text-[#C4B5FD] ml-2 text-2xl lg:text-3xl">✦</span>
+            </h1>
 
-          {/* Subtitle */}
-          <p className="text-base md:text-lg text-slate-300 font-medium max-w-xl">
-            Tell us what you need. We'll guide you through the right service, step by step.
-          </p>
+            {/* SEARCH BAR (Pill shaped with mic on left & arrow on right) */}
+            <div ref={searchContainerRef} className="relative max-w-md">
+              <form onSubmit={handleNLSubmit} className="relative">
+                <div className="flex items-center bg-white rounded-full p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
+                  {/* Microphone Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowVoiceModal(true)}
+                    className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 transition-colors shadow-sm cursor-pointer"
+                    title="Voice Search"
+                  >
+                    <Mic className="w-4 h-4" />
+                  </button>
 
-          {/* Search Box */}
-          <form onSubmit={handleSearchSubmit} className="relative max-w-2xl pt-2">
-            <div className="relative flex items-center bg-[#070d22]/90 border border-indigo-400/30 hover:border-purple-400/50 rounded-2xl p-2 shadow-2xl backdrop-blur-xl transition-all group">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="What do you need help with today?"
-                className="w-full bg-transparent px-5 py-3 text-base text-white placeholder-slate-400 focus:outline-none"
-              />
+                  {/* Input Text */}
+                  <input
+                    type="text"
+                    value={nlQuery}
+                    onChange={(e) => {
+                      setNlQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder="Where are you going? (e.g. Howrah to, Delhi to)"
+                    className="flex-1 bg-transparent text-sm sm:text-base font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none px-3 py-1.5"
+                  />
+
+                  {/* Submit Arrow Button */}
+                  <button
+                    type="submit"
+                    className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
+                    title="Search Trains"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+
+              {/* ── VERIFIED STATION & ROUTE AUTOCOMPLETE DROPDOWN ── */}
+              {showSuggestions && autocompleteSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[340px] overflow-y-auto">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-purple-900 px-3 py-1.5 flex items-center justify-between border-b border-purple-50 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-[#7C3AED]" />
+                      <span>Verified IRCTC Routes & Codes</span>
+                    </span>
+                    <span className="text-[9px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-mono font-bold">
+                      550+ Real Trains
+                    </span>
+                  </div>
+                  {autocompleteSuggestions.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (item.type === 'ROUTE' && item.toStation) {
+                          setNlQuery(`${item.fromStation.city} (${item.fromStation.code}) to ${item.toStation.city} (${item.toStation.code})`);
+                          setShowSuggestions(false);
+                          executeSearch({
+                            fromStation: item.fromStation,
+                            toStation: item.toStation,
+                            travelDate: tomorrowStr,
+                            passengersCount: 1,
+                            classType: 'All Classes',
+                            quota: 'General (GN)',
+                          });
+                        } else {
+                          setNlQuery(`${item.fromStation.city} (${item.fromStation.code}) to `);
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      className="w-full text-left px-3 py-3 rounded-xl hover:bg-purple-50/90 transition-all flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-100 mb-1"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
+                          {item.type === 'ROUTE' ? <Train className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 group-hover:text-purple-950 flex items-center gap-1.5">
+                            <span>{item.label}</span>
+                            {item.type === 'ROUTE' ? (
+                              <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.2 rounded font-mono font-bold">
+                                DIRECT TRAIN
+                              </span>
+                            ) : (
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                                CODE
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-medium mt-0.2">{item.subtitle}</div>
+                        </div>
+                      </div>
+                      <div className="text-purple-700 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                        <span>Select</span>
+                        <span>→</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* QUICK PILLS */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <button
-                type="submit"
-                className="h-12 w-12 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 shrink-0 transition-transform active:scale-95"
+                type="button"
+                onClick={() => {
+                  setTourStep(0);
+                  setShowTourModal(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs sm:text-sm font-black transition-all shadow-md shadow-purple-600/20 cursor-pointer hover:scale-102"
               >
-                <Sparkles className="w-5 h-5" />
+                <span>✨</span>
+                <span>Step-by-Step Guide</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[2], tomorrowStr, 1)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-[#7C3AED]" />
+                Delhi to Mumbai
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[1], tomorrowStr, 1)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-[#7C3AED]" />
+                Tomorrow morning
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[2], tomorrowStr, 2)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5 text-[#7C3AED]" />
+                2 Passengers
               </button>
             </div>
-          </form>
+          </div>
 
-          {/* Popular Searches */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <span className="text-xs font-mono text-slate-400 mr-1">Popular searches:</span>
-            {POPULAR_SEARCHES.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => onNavigate('discover', tag)}
-                className="text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-400/40 text-slate-200 px-3 py-1.5 rounded-full transition-colors"
-              >
-                {tag}
-              </button>
-            ))}
+          {/* RIGHT SIDE: Ananya Character Mascot holding Ticket */}
+          <div className="hidden lg:block absolute right-14 bottom-0 pointer-events-none">
+            <CitizenCharacter
+              size="2xl"
+              pose="booking"
+              showBadge={false}
+            />
           </div>
         </div>
       </section>
 
-      {/* 6 GUIDED CARDS GRID */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {[
-          {
-            icon: <Search className="w-6 h-6 text-blue-400" />,
-            title: "Find a service",
-            desc: "Find the right government service for your need.",
-            route: "discover",
-            gradient: "from-blue-500/20 to-cyan-500/10 border-blue-500/30",
-            arrowColor: "bg-blue-500/20 text-blue-300",
-          },
-          {
-            icon: <FileText className="w-6 h-6 text-emerald-400" />,
-            title: "Apply for something",
-            desc: "Start a new application with guided support.",
-            route: "workspace",
-            gradient: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
-            arrowColor: "bg-emerald-500/20 text-emerald-300",
-          },
-          {
-            icon: <MapPin className="w-6 h-6 text-amber-400" />,
-            title: "Track my application",
-            desc: "Check status and get real-time updates.",
-            route: "tracking",
-            gradient: "from-amber-500/20 to-orange-500/10 border-amber-500/30",
-            arrowColor: "bg-amber-500/20 text-amber-300",
-          },
-          {
-            icon: <CreditCard className="w-6 h-6 text-purple-400" />,
-            title: "Check a payment",
-            desc: "Verify payments and download receipts.",
-            route: "payment",
-            gradient: "from-purple-500/20 to-indigo-500/10 border-purple-500/30",
-            arrowColor: "bg-purple-500/20 text-purple-300",
-          },
-          {
-            icon: <AlertTriangle className="w-6 h-6 text-rose-400" />,
-            title: "Something went wrong",
-            desc: "Get help resolving issues faster.",
-            route: "workspace",
-            gradient: "from-rose-500/20 to-red-500/10 border-rose-500/30",
-            arrowColor: "bg-rose-500/20 text-rose-300",
-          },
-          {
-            icon: <HelpCircle className="w-6 h-6 text-sky-400" />,
-            title: "I'm not sure",
-            desc: "Answer a few questions, we'll guide you.",
-            route: "discover",
-            gradient: "from-sky-500/20 to-indigo-500/10 border-sky-500/30",
-            arrowColor: "bg-sky-500/20 text-sky-300",
-          },
-        ].map((card, idx) => (
-          <div
-            key={idx}
-            onClick={() => onNavigate(card.route)}
-            className={`group cursor-pointer rounded-2xl p-6 border bg-gradient-to-br ${card.gradient} hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between shadow-lg backdrop-blur-md`}
+      {/* ═══════════════════════════════════════════════════════════════════
+          2. 4 UNBOXED FEATURE CARDS (Higher up, seamless white surfaces)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {featureCards.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={card.onClick}
+            className="relative bg-white rounded-[28px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-56 text-left group cursor-pointer"
           >
-            <div className="space-y-3">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 group-hover:bg-white/20 transition-colors">
-                {card.icon}
-              </div>
-              <div>
-                <h3 className="text-lg font-display font-bold text-white group-hover:text-purple-200 transition-colors">
-                  {card.title}
-                </h3>
-                <p className="text-xs text-slate-300 mt-1 font-medium">{card.desc}</p>
+            {/* LIVE Tag for Live Trains card */}
+            {card.badge && (
+              <span className="absolute top-4 right-4 bg-[#00B074] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm z-10">
+                {card.badge}
+              </span>
+            )}
+
+            {/* Transparent Circular 3D Illustration */}
+            <div className="w-full flex-1 flex items-center justify-center">
+              <img
+                src={card.image}
+                alt={card.alt}
+                className="w-28 h-28 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+              />
+            </div>
+
+            {/* Bottom Row: Title + Arrow Action Button */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="font-display font-extrabold text-base text-slate-900 group-hover:text-[#7C3AED] transition-colors">
+                {card.title}
+              </span>
+              <div className="w-8 h-8 rounded-full border border-purple-200 text-[#7C3AED] flex items-center justify-center group-hover:bg-[#7C3AED] group-hover:text-white group-hover:border-[#7C3AED] transition-all shadow-sm">
+                <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </div>
-            <div className="pt-6 flex justify-end">
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${card.arrowColor} group-hover:translate-x-1 transition-transform`}>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
+          </button>
         ))}
       </section>
 
-      {/* SECONDARY SECTION (2 COLUMNS: YOUR JOURNEYS & NEED HELP) */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Your Journeys */}
-        <div className="lg:col-span-8 rounded-3xl border border-white/10 bg-[#091024]/80 p-6 md:p-8 space-y-6 shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-display font-bold text-white">Your journeys</h2>
-                <p className="text-xs text-slate-400">Continue where you left off</p>
-              </div>
-            </div>
-
+      {/* ═══════════════════════════════════════════════════════════════════
+          3. GUIDANCE HIGHLIGHTS, TIPS FROM NIRA & HOW IT WORKS (MATCHING REF)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+        {/* ── LEFT: GUIDANCE HIGHLIGHTS WITH NIRA SPEECH ROWS (5 Cols) ── */}
+        <div className="lg:col-span-5 bg-white rounded-3xl p-5 shadow-sm border border-purple-100 space-y-3.5">
+          <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
+            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Guidance Highlights</span>
+            </h3>
             <button
-              onClick={() => onNavigate('tracking')}
-              className="text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1 transition-colors"
+              type="button"
+              onClick={() => {
+                setTourStep(0);
+                setShowTourModal(true);
+              }}
+              className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer"
             >
-              View all <ChevronRight className="w-3.5 h-3.5" />
+              Interactive Tour ➔
             </button>
           </div>
 
-          <div className="space-y-3">
-            {/* Active Journey 1 */}
-            <div
-              onClick={() => onNavigate('tracking')}
-              className="group cursor-pointer p-4 md:p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-emerald-500/40 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shrink-0">
-                  <FileText className="w-5 h-5" />
+          <div className="space-y-2.5">
+            {/* Row 1: Recommended */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5">
+                  <img src="/assets/images/characters/nira_idea.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm group-hover:text-emerald-300 transition-colors">
-                    Address Certificate
-                  </h3>
-                  <p className="text-xs font-mono text-slate-400">Application ID: NTR-20482</p>
-
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="w-36 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-emerald-400 h-full w-2/3 rounded-full" />
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-300">Step 4 of 6 • Department review</span>
-                  </div>
+                <div className="p-2 px-3 rounded-2xl rounded-tl-xs bg-purple-50/70 border border-purple-100 text-[11px] text-slate-700 font-semibold truncate">
+                  I recommend the best option for you!
                 </div>
               </div>
-
-              <div className="flex items-center gap-3 self-end md:self-center shrink-0">
-                <div className="text-right hidden sm:block">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    In progress
-                  </span>
-                  <p className="text-[10px] font-mono text-slate-400 mt-1">Updated 2 hours ago</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-              </div>
+              <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('discover')}
+                className="px-3 py-1.5 rounded-full border border-purple-200 bg-white hover:bg-purple-50 text-purple-800 text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
+              >
+                <span>✨</span>
+                <span>Recommended</span>
+              </button>
             </div>
 
-            {/* Active Journey 2 */}
-            <div
-              onClick={() => onNavigate('workspace')}
-              className="group cursor-pointer p-4 md:p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-amber-500/40 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
-                  <FileText className="w-5 h-5" />
+            {/* Row 2: Continue */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5">
+                  <img src="/assets/images/characters/nira_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm group-hover:text-amber-300 transition-colors">
-                    Learner's License
-                  </h3>
-                  <p className="text-xs font-mono text-slate-400">Application ID: NTR-19873</p>
-
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="w-36 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-amber-400 h-full w-2/5 rounded-full" />
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-300">Step 2 of 5 • Documents uploaded</span>
-                  </div>
+                <div className="p-2 px-3 rounded-2xl rounded-tl-xs bg-purple-50/70 border border-purple-100 text-[11px] text-slate-700 font-semibold truncate">
+                  Good choice! Let's continue.
                 </div>
               </div>
+              <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('booking')}
+                className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
 
-              <div className="flex items-center gap-3 self-end md:self-center shrink-0">
-                <div className="text-right hidden sm:block">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Action required
-                  </span>
-                  <p className="text-[10px] font-mono text-slate-400 mt-1">Updated yesterday</p>
+            {/* Row 3: Track Train */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5">
+                  <img src="/assets/images/characters/nira_tablet.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <div className="p-2 px-3 rounded-2xl rounded-tl-xs bg-purple-50/70 border border-purple-100 text-[11px] text-slate-700 font-semibold truncate">
+                  Track your train in real-time here.
+                </div>
               </div>
+              <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('track')}
+                className="px-3 py-1.5 rounded-full border border-purple-200 bg-white hover:bg-purple-50 text-purple-800 text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
+              >
+                <span>📍</span>
+                <span>Track Your Train</span>
+              </button>
+            </div>
+
+            {/* Row 4: Help Center */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5">
+                  <img src="/assets/images/characters/nira_wave.png" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <div className="p-2 px-3 rounded-2xl rounded-tl-xs bg-purple-50/70 border border-purple-100 text-[11px] text-slate-700 font-semibold truncate">
+                  Need help? I'm here!
+                </div>
+              </div>
+              <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('help')}
+                className="px-3 py-1.5 rounded-full border border-purple-200 bg-white hover:bg-purple-50 text-purple-800 text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
+              >
+                <span>❓</span>
+                <span>Help Center</span>
+              </button>
+            </div>
+
+            {/* Row 5: Secure Payment */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5">
+                  <img src="/assets/images/characters/nira_happy.png" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <div className="p-2 px-3 rounded-2xl rounded-tl-xs bg-purple-50/70 border border-purple-100 text-[11px] text-slate-700 font-semibold truncate">
+                  Your payment is secure with us.
+                </div>
+              </div>
+              <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('payments')}
+                className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
+              >
+                <span>🛡️</span>
+                <span>Secure Payment</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Need Help Card */}
-        <div className="lg:col-span-4 rounded-3xl border border-purple-500/20 bg-gradient-to-b from-[#13193a] to-[#0b1029] p-6 md:p-8 space-y-6 flex flex-col justify-between shadow-xl backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+        {/* ── MIDDLE: TIPS FROM NIRA (3 Cols) ── */}
+        <div className="lg:col-span-3 bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-5 border border-purple-100 shadow-sm space-y-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-purple-950">Tips from Nira</span>
+            <div className="w-8 h-8 rounded-full bg-white/80 p-1 flex items-center justify-center border border-purple-200">
+              <img src="/assets/images/characters/nira_idea.png" alt="Nira" className="w-full h-full object-contain" />
+            </div>
+          </div>
 
-          <div className="space-y-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-500 p-[1.5px] shadow-lg shadow-purple-500/30 flex items-center justify-center">
-              <div className="h-full w-full bg-[#0b1029] rounded-[14px] flex items-center justify-center text-purple-300">
-                <Sparkles className="w-6 h-6" />
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => navigateTo('profile')}
+              className="w-full p-3 rounded-2xl bg-white/90 hover:bg-white border border-purple-100/80 text-left transition-all hover:scale-101 shadow-2xs group cursor-pointer"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-base">👥</span>
+                <p className="text-[11px] text-slate-700 font-bold leading-snug group-hover:text-purple-950">
+                  You can save your passengers for faster booking.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => console.log('🔔 Push & SMS Notifications enabled for live PNR, gate, and train delay updates.')}
+              className="w-full p-3 rounded-2xl bg-white/90 hover:bg-white border border-purple-100/80 text-left transition-all hover:scale-101 shadow-2xs group cursor-pointer"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-base">🔔</span>
+                <p className="text-[11px] text-slate-700 font-bold leading-snug group-hover:text-purple-950">
+                  Enable notifications to stay updated.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowVoiceModal(true)}
+              className="w-full p-3 rounded-2xl bg-white/90 hover:bg-white border border-purple-100/80 text-left transition-all hover:scale-101 shadow-2xs group cursor-pointer"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-base">🎙️</span>
+                <p className="text-[11px] text-slate-700 font-bold leading-snug group-hover:text-purple-950">
+                  Use voice search for quick booking.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* ── RIGHT: HOW IT WORKS STEPPER WITH ANANYA MASCOT (4 Cols) ── */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-5 shadow-sm border border-purple-100 space-y-3">
+          <div className="flex items-center justify-between border-b border-purple-50 pb-2">
+            <h3 className="font-black text-sm text-slate-900">How It Works</h3>
+            <button
+              type="button"
+              onClick={() => {
+                setTourStep(0);
+                setShowTourModal(true);
+              }}
+              className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer"
+            >
+              5 Simple Steps ➔
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Mascot on Left */}
+            <div className="w-20 sm:w-24 shrink-0 hidden sm:block">
+              <img
+                src="/assets/images/characters/citizen_ticket.png"
+                alt="How It Works"
+                className="w-full h-full object-contain drop-shadow-sm"
+              />
+            </div>
+
+            {/* Vertical Flow Steps */}
+            <div className="flex-1 space-y-2 relative pl-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-emerald-400">
+              {/* Step 1 */}
+              <button
+                type="button"
+                onClick={() => navigateTo('discover')}
+                className="relative text-left block group w-full cursor-pointer"
+              >
+                <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Search
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">Find trains easily</div>
+              </button>
+
+              {/* Step 2 */}
+              <button
+                type="button"
+                onClick={() => navigateTo('trains')}
+                className="relative text-left block group w-full cursor-pointer"
+              >
+                <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Select
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">Choose the best option</div>
+              </button>
+
+              {/* Step 3 */}
+              <button
+                type="button"
+                onClick={() => navigateTo('booking')}
+                className="relative text-left block group w-full cursor-pointer"
+              >
+                <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Book
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">Secure your seat</div>
+              </button>
+
+              {/* Step 4 */}
+              <button
+                type="button"
+                onClick={() => navigateTo('payment')}
+                className="relative text-left block group w-full cursor-pointer"
+              >
+                <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Pay
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">Safe & quick payment</div>
+              </button>
+
+              {/* Step 5 */}
+              <button
+                type="button"
+                onClick={() => navigateTo('track')}
+                className="relative text-left block group w-full cursor-pointer"
+              >
+                <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-purple-700 border-2 border-white shadow-2xs" />
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                  Travel
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">Enjoy your journey</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          VOICE SEARCH MODAL
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card variant="standard" padding="lg" className="max-w-lg w-full space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <NiraRobot size="sm" expression="speaking" isFloating />
+                <div>
+                  <h3 className="font-display font-extrabold text-lg text-purple-950">
+                    Voice Journey Search
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Speak your route in natural English or Hindi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVoiceModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Listening Wave Box */}
+            <div className="p-6 rounded-3xl bg-purple-950 text-white text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-purple-800 mx-auto flex items-center justify-center border-2 border-purple-400 shadow-lg shadow-purple-900/50">
+                <Mic className="w-8 h-8 text-cyan-400 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[11px] font-mono uppercase text-cyan-300 font-bold block mb-1">
+                  Listening to Voice Input...
+                </span>
+                <div className="text-base font-semibold text-purple-100 font-mono">
+                  <TypewriterText speed={35}>
+                    "Find fastest train from Delhi to Kolkata tomorrow for 2 passengers"
+                  </TypewriterText>
+                </div>
               </div>
             </div>
 
-            <h3 className="text-xl font-display font-bold text-white">Need help?</h3>
-            <p className="text-sm text-slate-300 leading-relaxed font-medium">
-              Nira is here to guide you at every step of your journey.
-            </p>
-          </div>
+            {/* Demo Queries */}
+            <div className="space-y-2">
+              <span className="text-xs font-mono font-bold text-purple-900 uppercase">
+                Tap to try:
+              </span>
+              {[
+                { label: '🗣️ "Delhi to Kolkata tomorrow for 2 people"', from: 0, to: 1, pass: 2 },
+                { label: '🗣️ "Fastest train from Delhi to Mumbai"', from: 0, to: 2, pass: 1 },
+                { label: '🗣️ "Vande Bharat Chennai to Bangalore"', from: 4, to: 3, pass: 1 },
+              ].map((q, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleApplyVoiceQuery(POPULAR_STATIONS[q.from], POPULAR_STATIONS[q.to], tomorrowStr, q.pass)}
+                  className="w-full p-3 rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-left text-xs font-bold text-purple-950 flex items-center justify-between group cursor-pointer"
+                >
+                  <span>{q.label}</span>
+                  <span className="text-purple-700 font-mono text-[11px] group-hover:underline">Search →</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
-          <button
-            onClick={() => onOpenNira('What services are available for address change?')}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2 active:scale-95"
+      {/* ═══════════════════════════════════════════════════════════════════
+          INTERACTIVE STEP-BY-STEP GUIDANCE TOUR OVERLAY (BOX 1 -> 2 -> 3...)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showTourModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card
+            variant="standard"
+            padding="lg"
+            className="max-w-xl w-full space-y-5 animate-in zoom-in-95 duration-200 border-2 border-purple-200 shadow-2xl"
           >
-            <MessageSquare className="w-4 h-4" />
-            Chat with Nira
-          </button>
-        </div>
-      </section>
-
-      {/* BOTTOM SECURITY & TRUST BAR */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/10">
-        {[
-          {
-            icon: <Shield className="w-5 h-5 text-indigo-400" />,
-            title: "Secure & Private",
-            desc: "Your data is safe with us",
-          },
-          {
-            icon: <Zap className="w-5 h-5 text-purple-400" />,
-            title: "Fast & Easy",
-            desc: "Simple steps, quicker results",
-          },
-          {
-            icon: <Users className="w-5 h-5 text-pink-400" />,
-            title: "Citizen First",
-            desc: "Designed for every Indian citizen",
-          },
-          {
-            icon: <Award className="w-5 h-5 text-emerald-400" />,
-            title: "Trusted Platform",
-            desc: "Reliable. Transparent. Accountable.",
-          },
-        ].map((pillar, idx) => (
-          <div key={idx} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/5">
-            <div className="p-2 rounded-xl bg-white/5 shrink-0">{pillar.icon}</div>
-            <div>
-              <h4 className="text-xs font-bold text-white">{pillar.title}</h4>
-              <p className="text-[11px] text-slate-400 font-medium">{pillar.desc}</p>
+            {/* Header with Title and Close */}
+            <div className="flex items-center justify-between border-b border-purple-50 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-xs">
+                  ✨
+                </div>
+                <div>
+                  <h3 className="font-display font-black text-base text-slate-900 leading-tight">
+                    Interactive Journey Guide
+                  </h3>
+                  <p className="text-[11px] font-semibold text-purple-700">
+                    Step {tourStep + 1} of {tourSteps.length}: {tourSteps[tourStep].boxLabel}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTourModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-        ))}
-      </section>
+
+            {/* Stepper Progress Bubbles: Box 1 -> Box 2 -> Box 3 -> Box 4 -> Box 5 */}
+            <div className="flex items-center justify-between gap-1 px-1">
+              {tourSteps.map((s, idx) => (
+                <React.Fragment key={idx}>
+                  <button
+                    type="button"
+                    onClick={() => setTourStep(idx)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      tourStep === idx
+                        ? 'bg-[#7C3AED] text-white shadow-sm scale-105'
+                        : tourStep > idx
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 hover:bg-purple-50'
+                    }`}
+                  >
+                    <span>Box {idx + 1}</span>
+                  </button>
+                  {idx < tourSteps.length - 1 && (
+                    <span className={`text-[10px] font-bold ${tourStep > idx ? 'text-emerald-500' : 'text-slate-300'}`}>
+                      ➔
+                    </span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Active Box Card Content */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-purple-50/40 border border-purple-100 space-y-4">
+              <div className="flex items-start gap-4">
+                {/* Mascot */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+                  <img
+                    src={tourSteps[tourStep].mascot}
+                    alt="Step Mascot"
+                    className="w-full h-full object-contain drop-shadow-sm animate-bounce-gentle"
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
+                    {tourSteps[tourStep].boxLabel}
+                  </span>
+                  <h4 className="font-bold text-sm sm:text-base text-slate-900">
+                    {tourSteps[tourStep].title}
+                  </h4>
+                  <div className="p-2.5 rounded-xl bg-white border border-purple-100 text-xs text-slate-700 font-medium shadow-2xs leading-relaxed">
+                    💬 "{tourSteps[tourStep].speech}"
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Chip */}
+              <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-100/50 border border-purple-200 text-purple-950 font-bold">
+                <span className="text-[11px] text-slate-500 font-medium">Live Action:</span>
+                <span className="truncate">{tourSteps[tourStep].preview}</span>
+              </div>
+            </div>
+
+            {/* Bottom Actions Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={tourStep === 0}
+                  onClick={() => setTourStep((prev) => Math.max(0, prev - 1))}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs disabled:opacity-30 cursor-pointer"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (tourStep < tourSteps.length - 1) {
+                      setTourStep((prev) => prev + 1);
+                    } else {
+                      setShowTourModal(false);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 font-black text-xs cursor-pointer"
+                >
+                  {tourStep < tourSteps.length - 1 ? `Box ${tourStep + 2} (Tap) ➔` : 'Complete Guide ✓'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTourModal(false);
+                  navigateTo(tourSteps[tourStep].route as any);
+                }}
+                className="py-2.5 px-5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs shadow-md shadow-purple-600/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>{tourSteps[tourStep].actionLabel}</span>
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
+
+export default HomePage;
