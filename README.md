@@ -1,249 +1,152 @@
-# 🇮🇳 NIRANTAR: AI-Powered Public-Service Resilience Platform
+# 🇮🇳 NIRANTAR (निरंतर)
+### State-Aware AI Assistant & Resilience Layer for Indian Public-Service Journeys
 
-> **Predictive Traffic Intelligence, Deep Learning Telemetry Simulation, Real Database Persistence & Provable Trust for High-Concurrency Public Infrastructure.**
-> 
-> *Project Codename:* **NIRANTAR** | *Flagship Benchmark:* **Peak Tatkal-Scale Surge (10,000+ VUs)**
+> **Problem**: Complex public-service portals force citizens to navigate dozens of fragmented screens, decipher railway terminology, fill redundant forms, and recover manually from network failures or payment timeouts.
+>
+> **Solution**: NIRANTAR introduces **Nira** — a state-aware AI journey orchestrator that understands where you are on the screen, shows you the next step with spotlight guidance, preserves your journey across interruptions, and protects your financial credentials behind a zero-PII security boundary.
 
 ---
 
-## 🏛️ The Core Architectural Principle
+## 🎯 The 90-Second "Aha Moment"
 
-> **"External APIs should be optional adapters. Core intelligence, simulation, orchestration, database, security, and dashboards must run locally."**
+```
+Citizen: "Book me the cheapest train to Mumbai tomorrow evening for two."
+   ↓
+[1. UNDERSTAND]   Nira extracts origin, destination, date, time & passenger count
+   ↓
+[2. SHOW]         Nira renders "I Understood" verification card + Best Match (#12952)
+   ↓
+[3. GUIDE]        Spotlight dims screen & arrows point directly at controls
+   ↓
+[4. AUTOFILL]     Nira autofills passenger drafts without touching PII/credentials
+   ↓
+[5. INTERRUPT]    Citizen says: "Actually, track my previous train #12302"
+   ↓
+[6. PRESERVE]     Nira pauses booking, pushes state to Task Stack, opens Live GPS Radar
+   ↓
+[7. RESUME]       Citizen taps [Resume Booking →] — exact booking state restored instantly!
+   ↓
+[8. PAY & TICKET] Payment succeeds → DigiLocker-verified e-Ticket generated with PNR
+```
 
-NIRANTAR is designed from first principles for **₹0/near-₹0 hackathon and production-grade resilience**. It operates under full network isolation (Internet OFF mode) with zero paid API lock-in.
+---
 
-Canonical map: `docs/architecture/system.md`
+## ⚖️ What Is Real vs. What Is Mocked (Complete Honesty)
+
+| Layer | Implementation Status | Technical Details |
+|---|---|---|
+| **Frontend Interactions** | 🟢 **100% Real** | React 18, Vite, TypeScript, Tailwind CSS, Smooth UI |
+| **State Machine & Orchestration** | 🟢 **100% Real** | Formal state machine (`IDLE` $\rightarrow$ `SEARCH` $\rightarrow$ `SELECTION` $\rightarrow$ `PASSENGERS` $\rightarrow$ `PAYMENT` $\rightarrow$ `CONFIRMED`) |
+| **Nira AI & Slot Filling** | 🟢 **100% Real** | NLP slot-filling, intent classification, zero-PII sanitizer |
+| **Task Stack & Recovery** | 🟢 **100% Real** | Cross-screen interruption preservation and 1-click state restore |
+| **Database & OAuth** | 🟢 **100% Real** | SQLAlchemy ORM, SQLite/PostgreSQL, Google OAuth & DigiLocker auth |
+| **Payment State Machine** | 🟢 **100% Real** | Success, Failure (state preserved), Unknown/Timeout handling |
+| **Voice TTS & Indian Railway Chime** | 🟢 **100% Real** | Web Speech API synthesis + 4-tone Web Audio API railway chime |
+| **Railway Inventory & Availability** | 🟡 **Normalized Synthetic** | 85+ stations, 550+ trains with multi-class seat quotas |
+| **Bank Payment Gateway** | 🟡 **Simulated Protocol** | Idempotency key tracking, 0-PIN Virtual Citizen Wallet |
+| **Government Portal Integration** | 🟡 **Architectural Prototype** | Sits in front of public portals as a safe citizen interaction layer |
+
+---
+
+## 🛡️ "Nira Safe" Zero-PII Security Boundary
+
+```
+   CITIZEN INPUT
+        │
+        ▼
+   ┌──────────────┐
+   │ PiiRedactor  │ ──► Strips Passwords, OTPs, CVVs, PINs & Aadhaar numbers
+   └──────────────┘
+        │
+        ▼  (Sanitized Context Only: Page, State, Train Number, Fare)
+   ┌──────────────┐
+   │   Nira AI    │ ──► Generates suggestions, navigations, and spotlight cues
+   └──────────────┘
+        │
+        ▼  (Action Cues)
+   ┌──────────────┐
+   │ ActionPolicy │ ──► Validates actions against strict ALLOWLIST before execution
+   └──────────────┘
+        │
+        ▼
+   SECURE APPLICATION STATE
+```
+
+- **Nira NEVER sees passwords, OTPs, CVVs, or payment PINs.**
+- **The LLM CANNOT force illegal state transitions.**
+- **Offline Resilient**: If AI/LLM is unreachable, NIRANTAR seamlessly falls back to local deterministic safe-mode with zero degradation to search, booking, payment, or recovery.
+
+---
+
+## 🏛️ System Architecture
 
 ```
                          ┌──────────────────────────┐
-                         │        CITIZEN            │
-                         │ "Book an overnight train  │
-                         │  Kolkata → Delhi"          │
-                         └────────────┬───────────────┘
-                                      ▼
-                         ┌──────────────────────────┐
-                         │  M1  NIRANTAR CITIZEN UX  │
-                         │  Intent · guidance        │
-                         └────────────┬───────────────┘
-                                      ▼
-                         ┌──────────────────────────┐
-                         │  M2  WORKFLOW ENGINE      │
-                         │  Intent → Actions → Tools │
-                         └────────────┬───────────────┘
-                                      ▼
-                         ┌──────────────────────────┐
-                         │  MOCK RAILWAY BACKEND     │
-                         │  Search → Booking → Pay   │
-                         └────────────┬───────────────┘
-                     ┌────────────────┼────────────────┐
-                     ▼                ▼                ▼
-              M3 PORTALPULSE     M4 KAVACH        M5 DHARA
-                 Predict          Detect           Decide
-                     └────────────────┼────────────────┘
-                                      ▼
-                         ┌──────────────────────────┐
-                         │  M6  PRAYOG SIMULATION    │
-                         │  1K → 5K → 10K VUs        │
-                         └────────────┬───────────────┘
-                                      ▼
-                         ┌──────────────────────────┐
-                         │  M7  COMMAND CENTER       │
-                         └────────────┬───────────────┘
-                         ┌────────────┴─────────────┐
-                         ▼                          ▼
-                    M8 CAIRO TRUST            M9 EVALUATION
+                         │         CITIZEN          │
+                         │   Voice / Text / Touch   │
                          └────────────┬─────────────┘
                                       ▼
-                               M10 SAFETY / HONESTY /
-                                   SUBMISSION LAYER
+                         ┌──────────────────────────┐
+                         │   M1: CITIZEN UX LAYER   │
+                         │  Spotlight · Stepper · UI│
+                         └────────────┬─────────────┘
+                                      ▼
+                         ┌──────────────────────────┐
+                         │  M2: JOURNEY ORCHESTRATOR│
+                         │  State Machine · TaskStack│
+                         └────────────┬─────────────┘
+                                      ▼
+                         ┌──────────────────────────┐
+                         │ M3: ZERO-PII SAFETY RING │
+                         │ PiiRedactor · Allowlist  │
+                         └────────────┬─────────────┘
+                                      ▼
+                         ┌──────────────────────────┐
+                         │  M4: PERSISTENT DATABASE │
+                         │ SQLite / PostgreSQL ORM  │
+                         └──────────────────────────┘
 ```
 
 ---
 
-## 🧭 The 5 Codex Agents & Ownership
+## 🚀 Quickstart & Local Setup
 
-NIRANTAR divides system development into 5 specialized Codex agents with clear ownership boundaries:
+### Prerequisites
+- Node.js 18+ & npm
+- Python 3.10+ & pip
 
-| Agent | Codename | Role | Owns | Responsibilities |
-|---|---|---|---|---|
-| **Agent 1** | **ORBIT** | Architect | `contracts/`, `docs/`, `backend/core/`, `backend/api/`, Database, Docker, CI/CD | System architecture, API contracts, Pydantic schemas, database migrations, Docker |
-| **Agent 2** | **NOVA** | Intelligence | `ml/` | Datasets, feature engineering, XGBoost, PyTorch Multi-output MLP, Isolation Forest, SHAP |
-| **Agent 3** | **DHARA / FORGE** | Orchestrator | `orchestrator/`, `services/` | DSA, NetworkX service graphs, priority queues, admission control, load shedding |
-| **Agent 4** | **SAATHI** | Experience | `frontend/`, `backend/services/citizen/`, `backend/app/adapters/llm/` | Citizen portal, command center, LLM intent extraction, multilingual UX (Indic NLP), tool calling |
-| **Agent 5** | **KAVACH / SENTINEL** | Security & SRE | `security/`, `simulation/`, `loadtest/`, `cairo/`, `observability/` | Threat detection, 10K Locust VUs, chaos testing, Cairo proof verification, Prometheus/OTEL |
+### 1. Backend Server
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install -r backend/requirements.txt
+python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 2. Frontend Application
+```bash
+cd frontend
+npm install
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+### 3. Open Application
+- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Demo Controls**: Click the **⚡ Demo Controls** button in the bottom-left corner for instant 1-click test scenarios during presentations!
 
 ---
 
-## 📁 Repository Structure
+## 👥 Product Defense & Key Questions
 
-```
-NIRANTAR/
-├── README.md                           # Master project documentation & architecture
-├── .companyrc                          # AI Agent Company workforce configuration
-├── .env.example                        # Environment variables template
-├── docker-compose.yml                  # Postgres, Redis, Prometheus, Grafana stack
-├── Makefile                            # Developer automation commands
-├── pyproject.toml                      # Dependencies & pytest configuration
-│
-├── modules/                            # All 10 product modules (source of implementation)
-│   ├── m01_citizen_ux/                 # Module 1 — Citizen UX
-│   ├── m02_workflow_engine/            # Module 2 — Workflow engine
-│   ├── m03_portalpulse/                # Module 3 — PortalPulse (predict)
-│   ├── m04_kavach/                     # Module 4 — Kavach (detect)
-│   ├── m05_dhara/                      # Module 5 — Dhara (decide)
-│   ├── m06_prayog/                     # Module 6 — Prayog (simulate)
-│   ├── m07_command_center/             # Module 7 — Command Center
-│   ├── m08_cairo_trust/                # Module 8 — drop new Cairo files here
-│   ├── m09_evaluation/                 # Module 9 — Evaluation
-│   └── m10_safety/                     # Module 10 — Safety / honesty
-│
-├── docs/                               # Architecture, ADRs, and API specifications
-│   ├── architecture/
-│   │   └── system.md                   # High-level architecture & tech stack
-│   └── decisions/
-│       ├── ADR-001-local-first.md       # Local-first ₹0 architecture decision
-│       ├── ADR-002-llm-provider.md      # Provider-agnostic LLM adapter & tools
-│       └── ADR-003-cairo.md             # Narrow Cairo verifiable trust primitive
-│
-├── contracts/                          # Canonical Pydantic integration contracts
-│   ├── __init__.py
-│   ├── citizen.py                      # Intent & journey schemas
-│   ├── experiment.py                   # Resilience benchmark & metric schemas
-│   ├── orchestration.py                # Queue, admission & load shed schemas
-│   ├── prediction.py                   # Model forecast & SHAP explanation schemas
-│   ├── security.py                     # Threat assessment & access control schemas
-│   ├── simulation.py                   # Workload & chaos configuration schemas
-│   └── telemetry.py                    # Real-time metric & derived feature schemas
-│
-├── backend/                            # FastAPI Modular Monolith
-│   └── app/
-│       ├── main.py                     # Central API gateway & OpenAPI docs
-│       ├── api/                        # Route controllers (/api/v1/...)
-│       ├── core/                       # Database, Redis, config, security
-│       ├── models/                     # SQLAlchemy models
-│       ├── schemas/                    # Pydantic schemas
-│       ├── services/                   # Business & domain services
-│       ├── adapters/
-│       │   └── llm/                    # Ollama (Local ₹0), Gemini, OpenAI, Tool Registry
-│       └── policies/                   # Rate limits, access control, admission
-│
-├── ml/                                 # Machine Learning & Explainability
-│   ├── data/                           # Raw, processed, and synthetic datasets
-│   ├── features/                       # Telemetry & capacity feature engineering
-│   ├── models/                         # Baseline GBDT, PyTorch MLP, Isolation Forest
-│   ├── training/                       # Train & validation scripts
-│   └── evaluation/                     # SHAP explainability & critical region checks
-│
-├── orchestrator/                       # Deterministic Resilience & DSA Engine
-│   ├── graph/                          # NetworkX dependency graph & critical path
-│   ├── scheduling/                     # Priority queues & admission control
-│   ├── resilience/                     # Load shedding, circuit breakers, cache layer
-│   └── decision_engine/                # Policy & action dispatchers
-│
-├── security/                           # KAVACH Security & Privacy
-│   ├── detection/                      # Bot classification & anomaly scoring
-│   ├── controls/                       # Redis rate limiters & token buckets
-│   ├── audit/                          # Audit logging & event streaming
-│   └── privacy/                        # Zero-PII anonymization & data masking
-│
-├── simulation/                         # Digital Twin & Chaos Simulation
-│   ├── scenarios/                      # Tatkal rush, normal, database failure profiles
-│   ├── personas/                       # Citizen, scalper bot, retry storm personas
-│   ├── telemetry/                      # Real-time synthetic telemetry emitter
-│   └── chaos/                          # Latency injection, DB partition, CPU spikes
-│
-├── loadtest/                           # 10,000 Virtual User Load Generation
-│   ├── locustfile.py                   # Locust master harness
-│   ├── users/                          # FastHttpUser definitions
-│   ├── journeys/                       # Search, booking, queue status journeys
-│   └── distributed/                    # Master/worker execution scripts
-│
-├── services/                           # Digital Twin Microservices
-│   ├── railway/                        # Mock Railway booking & inventory engine
-│   └── common/                         # Auth, notifications, mock payment
-│
-├── frontend/                           # React + TypeScript Command Center
-│   ├── src/
-│   │   ├── app/                        # Main React application shell
-│   │   ├── components/                 # shadcn/ui components
-│   │   ├── charts/                     # Recharts real-time telemetry panels
-│   │   └── graph/                      # React Flow service dependency graph
-│   └── public/
-│
-├── cairo/                              # Cairo Verifiable STARK Trust Primitive
-│   ├── Scarb.toml                      # Scarb build configuration
-│   └── src/
-│       └── lib.cairo                   # Verifiable telemetry & security proof
-│
-├── observability/                      # Metrics & Tracing
-│   ├── prometheus/                     # Prometheus scrape configs
-│   ├── grafana/                        # Grafana dashboards
-│   └── otel/                           # OpenTelemetry collector config
-│
-├── tests/                              # Automated Pytest Suite
-│   ├── test_contracts_and_llm_adapters.py
-│   └── test_m0_digital_twin.py
-│
-├── scripts/                            # CLI Automation Scripts
-│   ├── setup.sh
-│   ├── seed_db.py
-│   └── run_simulation.py
-│
-└── .company/                           # Encapsulated AI Agent Company Blueprint
-    ├── agents/                         # Global workforce profiles
-    ├── evals/                          # Code quality & UX evaluators
-    ├── pipelines/                      # CI/CD pipeline definitions
-    └── rules/                          # File governance & MASTER_CODER policies
-```
+### "Why not just ChatGPT?"
+> **ChatGPT can tell you what to do. Nirantar knows where you are in the application journey and guides you through the live interface.** ChatGPT has no knowledge of your current screen, cannot preserve your booking when interrupted, and cannot guarantee safety on consequential actions.
+
+### "Why not just IRCTC?"
+> **We are not replacing the underlying railway infrastructure. We are exploring a safer, state-aware citizen interaction layer on top of complex public services.**
+
+### "Why does this need AI?"
+> **The AI handles the ambiguity of natural human requests ("cheapest evening train for two"); deterministic software handles state, permissions, transaction safety, and consequential actions.**
 
 ---
 
-## 🔬 Core Architectural Invariants
-
-1. **LLM as Intent Parser, Not Traffic Controller:**
-   The LLM translates multilingual citizen input (Hindi, Bengali, English) and explains model decisions. Deterministic Python engines (`orchestrator/`, `security/`) enforce admission queues, rate limits, and database protections.
-2. **Zero-PII Synthetic Sandbox:**
-   All citizen identities, PNRs, and transaction IDs are synthetic and masked (`P*** K****`, `VID-XXXX-1234`).
-3. **Provable Trust Primitive:**
-   Cairo is used strictly as a narrow, verifiable STARK proof primitive (`cairo/src/lib.cairo`) to mathematically verify telemetry batches and policy enforcement with zero gas fees.
-4. **10,000-User Distributed Load Generation:**
-   Locust simulates realistic citizen and scalper bot traffic hitting the FastAPI backend, demonstrating queue activation, load shedding, and database protection in real time.
-
----
-
-## 🚀 Quickstart Guide
-
-### 1. Run Automated Test Suite
-```bash
-make test
-```
-
-### 2. Launch Local FastAPI Digital Twin Server
-```bash
-make dev
-# API runs at http://localhost:8000
-# OpenAPI documentation at http://localhost:8000/docs
-# Operator Command Center: GET /api/v1/command-center/snapshot
-```
-
-### 3. Run 100–10,000 Virtual User Load Test
-```bash
-make load-test
-# In-process PRAYOG (no Locust cluster required):
-make prayog
-python3 -m simulation.engine F 200   # scenario F: 10k-shape + DB latency ×5, sampled
-```
-
-### 4. Run Code Quality & Architecture Review
-```bash
-make review
-```
-
-### 5. Launch Docker Infrastructure (PostgreSQL, Redis, Prometheus)
-```bash
-make compose-up
-```
-
----
-
-*Built with ❤️ for resilient, accessible public services in India.*
+*Built with ❤️ for accessible, resilient, and inclusive public service delivery.*

@@ -273,7 +273,35 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 6. MULTI-TRAIN TRACKING INTENTS & OPTIONS
+    // 6. "WHY THIS TRAIN?" STRUCTURED EXPLANATION
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('why this train') ||
+      lower.includes('why this one') ||
+      lower.includes('why did you recommend') ||
+      lower.includes('why recommend') ||
+      lower.includes('why rajdhani') ||
+      lower.includes('why vande bharat')
+    ) {
+      const train = context.journey.selectedTrainName || 'Mumbai Rajdhani Express (#12952)';
+      const fare = context.journey.fare || 2840;
+      return {
+        intent: 'EXPLAIN_RECOMMENDATION',
+        message: `**Why ${train}?**
+───────────────────────────
+⚡ **Fastest on corridor**: 15h 40m (overnight arrival)
+💰 **Best value in 3A**: ₹${fare} with dynamic pricing discount
+📊 **Reliability**: 97.4% on-time historical benchmark
+🍽️ **Gourmet Catering**: Breakfast, Dinner & Tea included
+✅ **Availability**: 42 confirmed berths on Platform 8
+🛡️ **Nira Safe**: Zero-PII booking with instant confirmation`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 7. MULTI-TRAIN TRACKING INTENTS & OPTIONS
     // ─────────────────────────────────────────────────────────────
     if (
       lower.includes('where is my train') ||

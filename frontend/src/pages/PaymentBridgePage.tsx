@@ -247,14 +247,19 @@ export const PaymentBridgePage: React.FC = () => {
         </div>
       )}
 
-      {/* DEMO / REVIEWER STATE MACHINE CONTROLLER */}
-      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-purple-50/60 border border-purple-100 text-[11px] text-purple-950 font-semibold">
+      {/* 🛡️ NIRA SAFE ZERO-PII SHIELD (Item 5 & 7) */}
+      <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-50 via-purple-50 to-indigo-50 border border-emerald-200/80 text-[11px] text-slate-800 font-semibold shadow-xs">
         <div className="flex items-center gap-2">
-          <Lock className="w-3.5 h-3.5 text-purple-700" />
-          <span>Payment Security: Credentials isolated from AI context</span>
+          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-[10px]">
+            🛡️
+          </div>
+          <div>
+            <span className="font-bold text-slate-900">Nira Safe: </span>
+            <span className="text-slate-600">Nira never sees your PIN, OTP, CVV, or password. Financial credentials bypass AI context entirely.</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-slate-400 font-bold uppercase">Demo State Controls:</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] text-slate-400 font-bold uppercase hidden sm:inline">Demo State:</span>
           <button
             type="button"
             onClick={() => handleSimulateState('SUCCESS')}

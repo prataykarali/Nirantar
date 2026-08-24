@@ -77,6 +77,19 @@ interface ChatMessage {
     travelDate?: string;
     trainNumber?: string;
   };
+  understoodCard?: {
+    from: string;
+    to: string;
+    date: string;
+    time?: string;
+    passengers: number;
+    classCode?: string;
+    fare?: number;
+    trainName?: string;
+    trainNumber?: string;
+    fromStation: Station;
+    toStation: Station;
+  };
   autoBookCard?: AutoBookData;
   trackCard?: TrackData;
   trainList?: TrainDetail[];
@@ -894,10 +907,8 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
           platform: 'Platform 8',
         };
 
-        const tatkalText = intentData.isTatkal ? ' under Tatkal Quota' : '';
-        const botResponseText = `I've prepared the auto-booking for #${selectedBestTrain.trainNumber} ${selectedBestTrain.trainName} (${fromSt.city} → ${toSt.city})${tatkalText} for ${paxCount} passenger${paxCount > 1 ? 's' : ''} on ${travelDate} in ${clsObj.classCode}.
-
-Seat availability is confirmed on Platform 8. Tap "Auto Book Journey" to proceed with SafeAssist zero-PII autofill, or "Start Guided Booking" for interactive spotlight assistance!`;
+        const tatkalText = intentData.isTatkal ? ' (Tatkal Quota)' : '';
+        const botResponseText = `I found **${trains.length} trains** (${fromSt.city} → ${toSt.city})${tatkalText}.\n\n**Best match**: #${selectedBestTrain.trainNumber} **${selectedBestTrain.trainName}** • ⚡ Fastest • ₹${clsObj.fare} (${clsObj.classCode}) • ⭐ Matches preferences`;
 
         setTimeout(() => {
           setIsLoading(false);
@@ -908,6 +919,19 @@ Seat availability is confirmed on Platform 8. Tap "Auto Book Journey" to proceed
                     ...m,
                     text: botResponseText,
                     isStreaming: false,
+                    understoodCard: {
+                      from: `${fromSt.name} (${fromSt.code})`,
+                      to: `${toSt.name} (${toSt.code})`,
+                      date: travelDate,
+                      time: 'Evening Departure',
+                      passengers: paxCount,
+                      classCode: clsObj.classCode,
+                      fare: clsObj.fare * paxCount,
+                      trainName: selectedBestTrain.trainName,
+                      trainNumber: selectedBestTrain.trainNumber,
+                      fromStation: fromSt,
+                      toStation: toSt,
+                    },
                     autoBookCard: autoBookCardData,
                     trainList: trains.slice(0, 3),
                   }
@@ -915,9 +939,9 @@ Seat availability is confirmed on Platform 8. Tap "Auto Book Journey" to proceed
             )
           );
           if (autoVoice) {
-            speakNiraResponse(`I've found ${selectedBestTrain.trainName} for your journey to ${toSt.city}. Seat availability is confirmed.`);
+            speakNiraResponse(`I found ${trains.length} trains. Best match is ${selectedBestTrain.trainName}.`);
           }
-        }, 400);
+        }, 350);
         return;
       } else {
         const noTrainText = `Sorry, I couldn't find scheduled direct trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our 550+ route database.
@@ -1139,8 +1163,11 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
           <div>
             <div className="flex items-center gap-1.5">
               <h3 className="font-bold text-sm text-slate-900 leading-tight">Nira</h3>
+              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200">
+                🛡️ Nira Safe
+              </span>
             </div>
-            <p className="text-[10px] font-semibold text-purple-700">AI Journey Copilot</p>
+            <p className="text-[10px] font-semibold text-purple-700">AI Journey Copilot • Zero-PII</p>
           </div>
         </div>
 
@@ -1407,6 +1434,70 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                   </div>
 
                   {/* ─────────────────────────────────────────────────────────────
+                      "NIRA UNDERSTOOD YOU" CONFIRMATION CARD (Item 1 & 4)
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.understoodCard && (
+                    <div className="ml-8 p-3 rounded-2xl bg-gradient-to-br from-purple-50/90 via-white to-indigo-50/40 border border-purple-200/90 shadow-sm space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-purple-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>I understood:</span>
+                        </span>
+                        <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Verified Query ✓
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-purple-100 shadow-2xs font-mono">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span className="text-[10px] font-bold">FROM</span>
+                            <span className="font-bold text-slate-900 truncate ml-1">{m.understoodCard.from.split('(')[0]}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span className="text-[10px] font-bold">TO</span>
+                            <span className="font-bold text-slate-900 truncate ml-1">{m.understoodCard.to.split('(')[0]}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1 border-l border-purple-100 pl-2">
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span className="text-[10px] font-bold">DATE</span>
+                            <span className="font-bold text-slate-900">{m.understoodCard.date}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span className="text-[10px] font-bold">PAX</span>
+                            <span className="font-bold text-purple-900 font-black">{m.understoodCard.passengers} Adult</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-purple-950 text-white flex items-center justify-between gap-2 shadow-xs">
+                        <div className="min-w-0">
+                          <div className="text-xs font-black truncate">{m.understoodCard.trainName}</div>
+                          <div className="text-[10px] text-purple-200 truncate">
+                            ⚡ Fastest • ₹{m.understoodCard.fare} ({m.understoodCard.classCode}) • ⭐ Best Match
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            executeSearch({
+                              fromStation: m.understoodCard!.fromStation,
+                              toStation: m.understoodCard!.toStation,
+                              passengersCount: m.understoodCard!.passengers,
+                              travelDate: m.understoodCard!.date !== 'Tomorrow' ? m.understoodCard!.date : undefined,
+                            });
+                            navigateTo('trains');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all cursor-pointer shrink-0 shadow-sm"
+                        >
+                          Review Search →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─────────────────────────────────────────────────────────────
                       INTERACTIVE AUTO-BOOK CARD
                       ───────────────────────────────────────────────────────────── */}
                   {m.autoBookCard && (
@@ -1667,6 +1758,33 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
             </div>
           );
         })}
+
+        {/* ─── RESUME PAUSED JOURNEY BANNER (Item 6) ─── */}
+        {taskStack.length > 0 && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950 text-white border border-purple-500/30 shadow-lg space-y-2 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-purple-300 font-bold flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5 text-purple-400 animate-spin" style={{ animationDuration: '6s' }} />
+                <span>Journey Paused</span>
+              </span>
+              <span className="bg-purple-500/20 text-purple-200 text-[10px] px-2 py-0.5 rounded-full font-bold border border-purple-400/30">
+                State Preserved
+              </span>
+            </div>
+            <div className="text-xs font-bold text-white">{taskStack[0].title}</div>
+            <div className="text-[11px] text-purple-200 font-medium">{taskStack[0].subtitle}</div>
+            <button
+              type="button"
+              onClick={() => {
+                resumeTask(taskStack[0].taskId);
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+            >
+              <span>Resume Booking →</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         <div ref={messagesEndRef} />
       </div>

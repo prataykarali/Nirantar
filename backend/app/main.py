@@ -175,3 +175,23 @@ async def websocket_telemetry_endpoint(websocket: WebSocket) -> None:
             await websocket.send_json(snapshot)
     except WebSocketDisconnect:
         pass
+
+
+# ═══════════════════════════════════════════════════════════════
+# SPA STATIC ASSETS & FALLBACK (FOR DOCKER PRODUCTION)
+# ═══════════════════════════════════════════════════════════════
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+dist_dir = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if dist_dir.exists() and dist_dir.is_dir():
+    assets_dir = dist_dir / "assets"
+    if assets_dir.exists() and assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static_assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = dist_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(dist_dir / "index.html"))

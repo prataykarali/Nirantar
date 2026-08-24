@@ -21,6 +21,7 @@ import { SettingsPage } from '../../pages/SettingsPage';
 import { NiraChatDrawer } from '../NiraChatDrawer';
 import { FairAccessBanner } from '../journey/FairAccessBanner';
 import { SpotlightGuidance } from '../journey/SpotlightGuidance';
+import { DemoModePanel } from '../DemoModePanel';
 
 export const AppShell: React.FC = () => {
   const { activePage, setActivePage, searchParams, showChatDrawer, setShowChatDrawer } = useJourney();
@@ -131,6 +132,9 @@ export const AppShell: React.FC = () => {
 
       {/* 5. SMART SPOTLIGHT & GREEN ARROW GUIDANCE OVERLAY */}
       <SpotlightGuidance />
+
+      {/* 6. JUDGE / DEMO CONTROLS PANEL */}
+      <DemoModePanel />
     </div>
   );
 };
