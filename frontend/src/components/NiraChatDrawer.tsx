@@ -700,8 +700,43 @@ Enter your authorization credentials on the payment bridge below (Banking creden
     setIsLoading(true);
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER 1: DETERMINISTIC FAST-PATHS (No LLM needed)
+    // LAYER 1: STATE-AWARE NIRA PLANNER (EXACT INTENT DISPATCH)
     // ═══════════════════════════════════════════════════════════
+    const ctx = getSanitizedContext();
+    const plannerResponse = await NiraPlanner.planResponse(safeQuery, ctx);
+
+    if (
+      plannerResponse.source === 'SAFE_ASSIST_DETERMINISTIC' &&
+      plannerResponse.intent !== 'FALLBACK' &&
+      plannerResponse.intent !== 'AUTO_BOOK_CONFIRMATION' &&
+      plannerResponse.intent !== 'SEARCH_TRAINS'
+    ) {
+      if (plannerResponse.actionCue?.type === 'NAVIGATE' && plannerResponse.actionCue.target) {
+        navigateTo(plannerResponse.actionCue.target);
+      }
+      if (plannerResponse.suggestedBookingState) {
+        // Only valid transitions
+      }
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: plannerResponse.message,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(plannerResponse.message);
+        }
+      }, 250);
+      return;
+    }
 
     // ─── 1A: Conversational Passenger Autofill ───
     const parsedPaxResult = parsePassengerDetailsFromText(query);
@@ -868,8 +903,9 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
       return;
     }
 
-    // ─── 1C: Auto-Booking / Seat Reservation Intent (Requires explicit route or train number) ───
-    const hasExplicitRoute = !!(nextRouteCtx.fromStation && nextRouteCtx.toStation);
+    // ─── 1C: Auto-Booking / Seat Reservation Intent (Requires explicit route or train number in current query) ───
+    const queryHasRoute = safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from ') || /\b\d{5}\b/.test(safeQuery);
+    const hasExplicitRoute = !!(nextRouteCtx.fromStation && nextRouteCtx.toStation && (queryHasRoute || intentData.isAutoBook));
     const hasExplicitTrain = !!intentData.trainNumber;
 
     if (hasExplicitRoute || hasExplicitTrain) {

@@ -133,6 +133,94 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // 00C. PAYMENT INQUIRIES & CITIZEN WALLET
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('question about payment') ||
+      lower.includes('how does payment work') ||
+      lower.includes('citizen wallet') ||
+      lower.includes('payment recovery') ||
+      lower.includes('payment failed') ||
+      lower.includes('payment unknown') ||
+      lower.includes('10,000') ||
+      lower.includes('10000')
+    ) {
+      return {
+        intent: 'EXPLAIN_PAYMENT',
+        message: `💳 **Nirantar Payment & Security Engine**:
+• **₹10,000 Citizen Virtual Wallet**: Pre-loaded for instant 0-PIN checkouts with 0-second refunds upon cancellation.
+• **Bank & UPI Isolation**: UPI, QR, Net Banking, and Cards are processed via 256-bit encrypted bank gateways (banking credentials never enter the AI).
+• **Double-Verification Safety**: If a transaction times out, your train and passenger details are saved on Step 4. You can safely verify payment status without paying twice.`,
+        actionCue: { type: 'NAVIGATE', target: 'payment', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 00D. PASSENGER FORM GUIDANCE
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('fill passenger details') ||
+      lower.includes('filling passenger details') ||
+      lower.includes('fill the passenger') ||
+      lower.includes('help me fill') ||
+      lower.includes('what information is required')
+    ) {
+      return {
+        intent: 'EXPLAIN_PASSENGER_FORM',
+        message: `📝 **Passenger Details Form Guidance**:
+• **Required Information**: Full Name (as per Govt ID), Age, and Gender.
+• **Optional Preferences**: Berth Choice (Lower Berth, Upper, Side Lower) and Food/Meal Choice.
+• **Zero-PII Autofill**: You can type or speak: *"Pratay Karali, 20, Male, Lower Berth"* and Nira will fill the fields on your screen automatically with green spotlight arrows.`,
+        actionCue: { type: 'NAVIGATE', target: 'workspace', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 00E. GO BACK & CHANGE BOOKING STEP
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('go back') ||
+      lower.includes('change something') ||
+      lower.includes('modify my previous') ||
+      lower.includes('modify booking')
+    ) {
+      return {
+        intent: 'GO_BACK_STEP',
+        message: `↩️ **Zero Data-Loss Navigation**:
+You can freely navigate back to previous steps without losing your passenger details:
+• Tap **[ ← Change Train ]** to pick a different train or class.
+• Tap **[ ← Edit Passengers ]** to update names or berth preferences.
+• Your entered information is preserved across all navigation.`,
+        actionCue: { type: 'NAVIGATE', target: 'trains', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 00F. HELP ME FIND / COMPARE TRAINS
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('help me find') ||
+      lower.includes('help me choose') ||
+      lower.includes('compare the best trains') ||
+      lower.includes('which train is best')
+    ) {
+      return {
+        intent: 'HELP_CHOOSE_TRAIN',
+        message: `🚆 **Train Comparison Assistance**:
+Tell me what matters most to you and I will highlight the best match:
+• ⚡ **Fastest Train**: Vande Bharat / Rajdhani Express with shortest travel duration.
+• 💰 **Cheapest Fare**: Mail/Express in Sleeper (SL) or 3-Tier Economy (3E).
+• 🕐 **Evening Departure**: Overnight sleeper trains leaving between 5 PM and 9 PM.
+• 🛏️ **Maximum Comfort**: 1st AC (1A) and 2nd AC (2A) with inclusive pantry catering.`,
+        actionCue: { type: 'NAVIGATE', target: 'trains', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // 0A. CANCEL TRIP / CANCEL BOOKING INTENTS (ALWAYS ALLOWED)
     // ─────────────────────────────────────────────────────────────
     if (
