@@ -346,24 +346,30 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Vande Bharat Express';
         const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '20642';
         const fare = ctx.journey.fare || selectedTrain?.classes[0]?.fare || 450;
-        msgText = `You are now on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
+        msgText = `You are on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
 
-Tell me the passenger details (Name, Age, Gender, Berth) to fill this form, or speak naturally. You can also tap **"⚡ Autofill Form"** below to fill directly!`;
+Please enter your passenger details: **Name, Age, Gender, and Berth Preference** (e.g. 'Rahul Sharma, 28, Male, Lower Berth') to fill this form. You can speak or type naturally.`;
         actionCard = {
           title: 'Passenger Details Stage',
           subtitle: `Selected Train: #${trainNo} • Fare: ₹${fare}`,
-          buttonLabel: '⚡ Autofill Form with Passenger Details ➔',
+          buttonLabel: '⚡ Autofill with Saved Profile (Ananya Sharma) ➔',
           route: 'autofill_passenger',
         };
       } else if (targetPage === 'payment') {
         const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 450;
-        msgText = `You are now at the **Secure Payment Bridge**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.
+        msgText = `You are now at the **Payment Step**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.
 
-For your security, banking credentials must be entered directly by you. You can use your **Nirantar Citizen Virtual Wallet (₹${ctx.payment.walletBalance.toLocaleString('en-IN')} balance)** for instant 1-click booking, or choose UPI / NetBanking below.`;
+Please select your payment method:
+1. 💳 **Nirantar Citizen Virtual Wallet (₹${ctx.payment.walletBalance.toLocaleString('en-IN')} Balance)**
+2. 📱 **UPI / QR Code (GPay / PhonePe / Paytm)**
+3. 🏦 **Net Banking (SBI / HDFC / ICICI)**
+4. 💳 **Credit / Debit Cards**
+
+Enter your authorization credentials on the payment bridge below (Banking credentials are 100% isolated from AI context).`;
         actionCard = {
           title: 'Payment Authorization Ready',
-          subtitle: `Citizen Wallet Available: ₹${ctx.payment.walletBalance.toLocaleString('en-IN')}`,
-          buttonLabel: `Pay ₹${fare.toLocaleString('en-IN')} with Wallet ➔`,
+          subtitle: `Select a payment method (Debiting ₹${fare.toLocaleString('en-IN')})`,
+          buttonLabel: `💳 Pay ₹${fare.toLocaleString('en-IN')} with Citizen Wallet ➔`,
           route: 'payment',
         };
       } else {
@@ -444,73 +450,89 @@ For your security, banking credentials must be entered directly by you. You can 
       }
     }
 
-    // 2. Station Extraction: "from X to Y" or "X to Y"
+    // 2. Station Extraction: explicit route regex or verified station names
+    let extractedFrom: Station | undefined = undefined;
+    let extractedTo: Station | undefined = undefined;
+
     const routeRegex = /(?:from\s+)?([a-z\s]+?)\s+(?:to|->|towards|–|-)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i;
     const match = text.match(routeRegex);
     if (match) {
       const s1 = findStation(match[1].trim());
       const s2 = findStation(match[2].trim());
-      if (s1) updated.fromStation = s1;
-      if (s2) updated.toStation = s2;
+      if (s1) extractedFrom = s1;
+      if (s2) extractedTo = s2;
     }
 
-    // Direct single station tests
-    if (!updated.fromStation || !updated.toStation) {
+    if (!extractedFrom || !extractedTo) {
       const words = lower.split(/[\s,]+/);
+      const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help'];
       for (const w of words) {
-        if (w.length < 2) continue;
+        if (w.length < 3 || ignoreWords.includes(w)) continue;
         const st = findStation(w);
         if (st) {
-          if (!updated.fromStation) {
-            updated.fromStation = st;
-          } else if (!updated.toStation && updated.fromStation.code !== st.code) {
-            updated.toStation = st;
+          if (!extractedFrom) {
+            extractedFrom = st;
+          } else if (!extractedTo && extractedFrom.code !== st.code) {
+            extractedTo = st;
           }
         }
       }
     }
 
+    // Only update route stations if explicitly found in current text
+    const updatedRoute: RouteContext = {
+      ...current,
+      fromStation: extractedFrom,
+      toStation: extractedTo,
+      trainNumber: updated.trainNumber,
+      travelDate: updated.travelDate,
+      passengers: updated.passengers,
+      classCode: updated.classCode,
+      quota: updated.quota,
+      passengerName: updated.passengerName,
+    };
+
     // 3. Date expressions
     const dateMatch = text.match(/\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|september|oct|nov|dec)[a-z]*|\b(?:today|tomorrow|day after tomorrow|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)))\b/i);
     if (dateMatch) {
-      updated.travelDate = dateMatch[1];
+      updatedRoute.travelDate = dateMatch[1];
     }
 
     // 4. Passenger Count
     const paxMatch = text.match(/\b(\d+)\s*(?:passenger|adult|seat|ticket|person|pax)/i);
     if (paxMatch) {
-      updated.passengers = Math.min(6, Math.max(1, parseInt(paxMatch[1], 10)));
+      updatedRoute.passengers = Math.min(6, Math.max(1, parseInt(paxMatch[1], 10)));
     } else if (lower.includes('two') || lower.includes('2 seats')) {
-      updated.passengers = 2;
+      updatedRoute.passengers = 2;
     }
 
     // 5. Class code
     if (lower.includes('1a') || lower.includes('first ac')) {
-      updated.classCode = '1A';
+      updatedRoute.classCode = '1A';
     } else if (lower.includes('2a') || lower.includes('2 tier') || lower.includes('second ac')) {
-      updated.classCode = '2A';
+      updatedRoute.classCode = '2A';
     } else if (lower.includes('3a') || lower.includes('3 tier') || lower.includes('third ac')) {
-      updated.classCode = '3A';
+      updatedRoute.classCode = '3A';
     } else if (lower.includes('sl') || lower.includes('sleeper')) {
-      updated.classCode = 'SL';
+      updatedRoute.classCode = 'SL';
     } else if (lower.includes('cc') || lower.includes('chair car')) {
-      updated.classCode = 'CC';
+      updatedRoute.classCode = 'CC';
     } else if (lower.includes('ec') || lower.includes('executive')) {
-      updated.classCode = 'EC';
+      updatedRoute.classCode = 'EC';
     }
 
     // 6. Custom Passenger Name (e.g. "for Ananya Sharma", "for John Doe")
     const nameMatch = text.match(/for\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
     if (nameMatch && !['tomorrow', 'today', 'tatkal', 'two', 'three'].includes(nameMatch[1].toLowerCase())) {
-      updated.passengerName = nameMatch[1];
+      updatedRoute.passengerName = nameMatch[1];
     }
 
     return {
-      route: updated,
+      route: updatedRoute,
       isAutoBook,
       isTrack,
       isTatkal,
-      trainNumber: updated.trainNumber,
+      trainNumber: updatedRoute.trainNumber,
     };
   };
 
@@ -766,8 +788,47 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
       return;
     }
 
-    // ─── 1C: Auto-Booking / Seat Reservation Intent ───
-    if (intentData.isAutoBook || (nextRouteCtx.fromStation && nextRouteCtx.toStation)) {
+    // ─── 1B.2: Slot Filling for generic booking queries without route ───
+    const isGenericBooking =
+      lowerQuery === 'i want to book a ticket' ||
+      lowerQuery === 'i want to book a train' ||
+      lowerQuery === 'i want to book train' ||
+      lowerQuery === 'book train' ||
+      lowerQuery === 'book a train' ||
+      lowerQuery === 'book ticket' ||
+      lowerQuery === 'book a ticket' ||
+      lowerQuery === 'reserve ticket' ||
+      lowerQuery === 'train booking' ||
+      lowerQuery === 'ticket booking' ||
+      ((lowerQuery.includes('book') || lowerQuery.includes('reserve')) && !lowerQuery.includes(' to ') && !lowerQuery.includes(' from ') && !intentData.trainNumber && !lowerQuery.includes('payment') && !lowerQuery.includes('autofill') && !lowerQuery.includes('passenger') && !lowerQuery.includes('tatkal'));
+
+    if (isGenericBooking && (!nextRouteCtx.fromStation || !nextRouteCtx.toStation) && !intentData.trainNumber) {
+      const slotReplyText = "Sure! Where would you like to travel? Please tell me your **origin and destination stations** (for example: *'Delhi to Mumbai'* or *'Bengaluru to Chennai'*) or a specific train number/name.";
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: slotReplyText,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse("Where would you like to travel? Please tell me your origin and destination station.");
+        }
+      }, 300);
+      return;
+    }
+
+    // ─── 1C: Auto-Booking / Seat Reservation Intent (Requires explicit route or train number) ───
+    const hasExplicitRoute = !!(nextRouteCtx.fromStation && nextRouteCtx.toStation);
+    const hasExplicitTrain = !!intentData.trainNumber;
+
+    if (hasExplicitRoute || hasExplicitTrain) {
       const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
       const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
       const travelDate = nextRouteCtx.travelDate || 'Tomorrow';

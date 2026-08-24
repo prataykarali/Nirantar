@@ -132,24 +132,6 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
           </button>
         </div>
       </div>
-
-      {/* 3. THE KILLER FLOATING GREEN ARROW BEACON (Pointing to target on screen) */}
-      {currentStepData.arrowPlacement && (
-        <div
-          className="pointer-events-none fixed z-50 flex items-center gap-2 animate-bounce transition-all duration-500"
-          style={{
-            top: currentStepData.arrowPlacement.top,
-            left: currentStepData.arrowPlacement.left,
-            right: currentStepData.arrowPlacement.right,
-            bottom: currentStepData.arrowPlacement.bottom,
-          }}
-        >
-          <div className="flex items-center gap-2 bg-emerald-500 text-white font-black text-xs px-3.5 py-1.5 rounded-full shadow-[0_8px_25px_rgba(16,185,129,0.5)] border-2 border-white ring-4 ring-emerald-300/60">
-            <span className="text-sm">👇</span>
-            <span>{currentStepData.arrowLabel || 'Nira Recommends This'}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -3,9 +3,9 @@
  * ========================================================
  * Implements the State-Aware Nira architecture:
  * 1. Builds compact sanitized context.
- * 2. Matches deterministic state-aware intents & railway knowledge base.
- * 3. Passes unknown questions through to LLM (without getting stuck in repeating greetings).
- * 4. Passes output through ActionPolicyEngine for execution.
+ * 2. Slot-fills journey parameters (e.g. asking origin/destination when missing).
+ * 3. Handles cancellation, railway knowledge, and deterministic intents.
+ * 4. Passes unknown questions through to LLM.
  */
 
 import { Station, POPULAR_STATIONS, findStation } from '../data/stationData';
@@ -74,7 +74,32 @@ export class NiraPlanner {
     const lower = cleanQuery.toLowerCase();
 
     // ─────────────────────────────────────────────────────────────
-    // 0. RESET / START OVER INTENTS
+    // 0A. CANCEL TRIP / CANCEL BOOKING INTENTS (ALWAYS ALLOWED)
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('cancel trip') ||
+      lower.includes('cancel booking') ||
+      lower.includes('cancel my booking') ||
+      lower.includes('cancel my trip') ||
+      lower.includes('cancel ticket') ||
+      lower.includes('stop booking') ||
+      lower === 'cancel'
+    ) {
+      return {
+        intent: 'CANCEL_TRIP',
+        message: 'Your trip booking has been cancelled and saved progress has been cleared. Where would you like to travel next?',
+        actionCue: {
+          type: 'NAVIGATE',
+          target: 'home',
+          requiresConfirmation: false,
+        },
+        suggestedBookingState: 'IDLE',
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 0B. RESET / START OVER INTENTS
     // ─────────────────────────────────────────────────────────────
     if (
       lower === 'reset' ||
@@ -93,6 +118,34 @@ export class NiraPlanner {
           requiresConfirmation: false,
         },
         suggestedBookingState: 'IDLE',
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 0C. SLOT FILLING: "I WANT TO BOOK A TRAIN/TICKET" (MISSING STATIONS)
+    // ─────────────────────────────────────────────────────────────
+    const isGenericBookingQuery =
+      lower === 'i want to book a ticket' ||
+      lower === 'i want to book a train' ||
+      lower === 'i want to book train' ||
+      lower === 'book train' ||
+      lower === 'book a train' ||
+      lower === 'book ticket' ||
+      lower === 'book a ticket' ||
+      lower === 'reserve ticket' ||
+      lower === 'train booking' ||
+      lower === 'ticket booking';
+
+    const hasRouteSpecifier = lower.includes(' to ') || lower.includes(' from ') || /\b\d{5}\b/.test(lower);
+
+    if (isGenericBookingQuery || ((lower.includes('book') || lower.includes('reserve')) && !hasRouteSpecifier && !lower.includes('payment') && !lower.includes('autofill') && !lower.includes('passenger'))) {
+      return {
+        intent: 'ASK_FOR_STATIONS',
+        message: "Sure! Where would you like to travel? Please tell me your **origin and destination stations** (for example: *'Delhi to Mumbai'* or *'Bengaluru to Chennai'*) or a specific train number/name.",
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        clarificationRequired: true,
+        missingSlots: ['origin', 'destination'],
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
     }
@@ -120,7 +173,6 @@ export class NiraPlanner {
         actionCue: {
           type: 'HIGHLIGHT',
           target: context.journey.selectedTrainNumber ? `train_${context.journey.selectedTrainNumber}` : undefined,
-          style: 'GREEN_ARROW',
           requiresConfirmation: false,
         },
         source: 'SAFE_ASSIST_DETERMINISTIC',
@@ -257,7 +309,7 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
     if (lower.includes('where do i pay') || lower.includes('where to pay')) {
       return {
         intent: 'NAVIGATE_PAYMENT',
-        message: `You are at the secure payment step! Total amount to be debited is ₹${context.payment.amount || 4240}. You can use your Nirantar Citizen Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) or UPI.`,
+        message: `You are at the secure payment step! Total amount to be debited is ₹${context.payment.amount || 4240}. Please select your payment method below or use your Nirantar Citizen Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance).`,
         actionCue: {
           type: 'HIGHLIGHT',
           target: 'citizen-wallet-card',
@@ -325,14 +377,14 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
       case 'booking':
         return {
           intent: 'BOOKING_GUIDANCE',
-          message: `You're at the Passenger Workspace for #${context.journey.selectedTrainNumber || '12951'} ${context.journey.selectedTrainName || 'Mumbai Rajdhani'}. Tell me your passenger details or say "Autofill" to prepare details safely!`,
+          message: `You are on Step 2 (Passenger & Booking Workspace) for #${context.journey.selectedTrainNumber || '12951'} ${context.journey.selectedTrainName || 'Mumbai Rajdhani'}. Please enter your passenger details (Name, Age, Gender, Berth Preference) to fill this form!`,
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
       case 'payment':
         return {
           intent: 'PAYMENT_GUIDANCE',
-          message: `You are at the secure payment step for ₹${context.payment.amount || 4240}. You can use your Nirantar Citizen Virtual Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) or UPI.`,
+          message: `You are at the secure payment step for ₹${context.payment.amount || 4240}. Please choose your payment method or use your Nirantar Citizen Virtual Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) below.`,
           actionCue: { type: 'HIGHLIGHT', target: 'citizen-wallet-card', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
