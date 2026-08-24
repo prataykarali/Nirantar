@@ -23,6 +23,7 @@ import { FairAccessBanner } from '../journey/FairAccessBanner';
 import { SpotlightGuidance } from '../journey/SpotlightGuidance';
 import { DemoModePanel } from '../DemoModePanel';
 import { ImStuckModal } from '../ImStuckModal';
+import { VisualDiagramModal } from '../VisualDiagramModal';
 
 export const AppShell: React.FC = () => {
   const {
@@ -34,6 +35,8 @@ export const AppShell: React.FC = () => {
     easyMode,
     showImStuck,
     setShowImStuck,
+    showVisualDiagram,
+    setShowVisualDiagram,
   } = useJourney();
 
   // Page title mapping
@@ -150,6 +153,12 @@ export const AppShell: React.FC = () => {
       <ImStuckModal
         isOpen={showImStuck}
         onClose={() => setShowImStuck(false)}
+      />
+
+      {/* 8. INTERACTIVE VISUAL PAGE GUIDE / ARCHITECTURE DIAGRAM */}
+      <VisualDiagramModal
+        isOpen={showVisualDiagram}
+        onClose={() => setShowVisualDiagram(false)}
       />
     </div>
   );

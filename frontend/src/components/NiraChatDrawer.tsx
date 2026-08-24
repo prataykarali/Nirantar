@@ -140,6 +140,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setActiveSort,
     setActiveHighlightTarget,
     resetJourney,
+    niraPendingQuery,
+    setNiraPendingQuery,
   } = useJourney();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -1107,6 +1109,17 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
       messages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
     );
   };
+
+  // ─── Programmatic Query Trigger (from "I'm Stuck", Quick Buttons, or Voice) ───
+  useEffect(() => {
+    if (isOpen && niraPendingQuery) {
+      const q = niraPendingQuery;
+      setNiraPendingQuery(null);
+      setTimeout(() => {
+        handleSend(q);
+      }, 100);
+    }
+  }, [isOpen, niraPendingQuery]);
 
   const handleFeedback = (msgId: string, feedback: 'up' | 'down') => {
     setMessages((prev) =>

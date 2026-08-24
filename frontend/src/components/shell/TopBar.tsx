@@ -28,7 +28,14 @@ export const TopBar: React.FC<TopBarProps> = ({
   notificationCount = 0,
   className = '',
 }) => {
-  const { activePage, navigateTo, issuedTicket, authState, easyMode, setEasyMode, setShowImStuck } = useJourney();
+  const {
+    activePage,
+    navigateTo,
+    issuedTicket,
+    authState,
+    setShowImStuck,
+    setShowVisualDiagram,
+  } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -114,19 +121,15 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden sm:inline">I'm Stuck</span>
         </button>
 
-        {/* 🧓 EASY MODE ACCESSIBILITY TOGGLE */}
+        {/* 🧭 VISUAL PAGE GUIDE / ARCHITECTURE DIAGRAM */}
         <button
           type="button"
-          onClick={() => setEasyMode(!easyMode)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer ${
-            easyMode
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'bg-white/90 hover:bg-white text-purple-900 border border-purple-100'
-          }`}
-          title="Toggle Easy Mode (Larger text, simpler terms, higher contrast)"
+          onClick={() => setShowVisualDiagram(true)}
+          className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
+          title="Open interactive visual diagram of this specific screen"
         >
-          <span className="text-sm">🧓</span>
-          <span className="hidden md:inline">{easyMode ? 'Easy Mode: ON' : 'Easy Mode'}</span>
+          <span className="text-sm">🧭</span>
+          <span className="hidden md:inline">Page Guide</span>
         </button>
 
         {/* 1. GIFT ICON BUTTON & REWARDS POPOVER */}

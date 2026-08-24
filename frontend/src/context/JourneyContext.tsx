@@ -186,6 +186,13 @@ export interface JourneyContextType {
   showImStuck: boolean;
   setShowImStuck: (show: boolean) => void;
 
+  // Visual Page Diagram & Programmatic Query
+  showVisualDiagram: boolean;
+  setShowVisualDiagram: (show: boolean) => void;
+  niraPendingQuery: string | null;
+  setNiraPendingQuery: (query: string | null) => void;
+  sendNiraQuery: (query: string) => void;
+
   // Reset & Recovery
   resetJourney: () => void;
 }
@@ -278,6 +285,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
   const [showImStuck, setShowImStuck] = useState(false);
+  const [showVisualDiagram, setShowVisualDiagram] = useState(false);
+  const [niraPendingQuery, setNiraPendingQuery] = useState<string | null>(null);
+
+  const sendNiraQuery = useCallback((query: string) => {
+    setShowChatDrawer(true);
+    setNiraPendingQuery(query);
+  }, []);
 
   useEffect(() => {
     try {
@@ -993,6 +1007,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setEasyMode,
         showImStuck,
         setShowImStuck,
+        showVisualDiagram,
+        setShowVisualDiagram,
+        niraPendingQuery,
+        setNiraPendingQuery,
+        sendNiraQuery,
       }}
     >
       {children}

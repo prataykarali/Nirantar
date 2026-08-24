@@ -22,7 +22,7 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
   const {
     activePage,
     navigateTo,
-    setShowChatDrawer,
+    sendNiraQuery,
     startGuidanceTour,
     resetJourney,
     bookingState,
@@ -34,27 +34,22 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
     onClose();
     switch (type) {
       case 'find_train':
-        navigateTo('discover');
-        setShowChatDrawer(true);
+        sendNiraQuery("Help me find and compare the best trains for my route based on price and speed.");
         break;
       case 'fill_form':
-        navigateTo('workspace');
-        setTimeout(() => startGuidanceTour(1), 300);
+        sendNiraQuery("Help me fill passenger details and explain what information is required.");
         break;
       case 'payment_help':
-        navigateTo('payment');
-        setShowChatDrawer(true);
+        sendNiraQuery("I have a question about payment. How does the ₹10,000 Citizen Wallet and payment recovery work?");
         break;
       case 'go_back':
-        if (activePage === 'payment') navigateTo('booking');
-        else if (activePage === 'booking' || activePage === 'workspace') navigateTo('trains');
-        else navigateTo('home');
+        sendNiraQuery("I want to go back or change something in my booking without losing my entered details.");
         break;
       case 'explain_page':
-        setShowChatDrawer(true);
+        sendNiraQuery("What am I doing here? Please explain this screen and what action I should take next.");
         break;
       default:
-        setShowChatDrawer(true);
+        sendNiraQuery("I need assistance with my current journey step.");
     }
   };
 
