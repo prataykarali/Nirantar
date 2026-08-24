@@ -126,6 +126,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     resumeTask,
     setActiveSort,
     setActiveHighlightTarget,
+    resetJourney,
   } = useJourney();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -857,75 +858,81 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
     // ═══════════════════════════════════════════════════════════
     // LAYER 2: STATE-AWARE NIRA PLANNER (Sanitized Context)
     // ═══════════════════════════════════════════════════════════
-    // The app tells Nira what screen the user is on via getSanitizedContext().
-    // NiraPlanner returns { intent, message, actionCue, source }.
-    // ActionPolicyEngine validates the action before execution.
+    // LAYER 2: STATE-AWARE NIRA PLANNER (Sanitized Context)
+    // ═══════════════════════════════════════════════════════════
     try {
       const ctx = getSanitizedContext();
       const plannerResponse = await NiraPlanner.planResponse(safeQuery, ctx);
 
-      // Validate action through ActionPolicyEngine
-      const validatedAction = ActionPolicyEngine.sanitizeActionCue(plannerResponse.actionCue);
-
-      // Execute UI actions based on validated cue
-      if (validatedAction.type === 'SET_SORT' && validatedAction.parameters?.sortMode) {
-        setActiveSort(validatedAction.parameters.sortMode as any);
-      }
-      if (validatedAction.type === 'HIGHLIGHT' && validatedAction.target) {
-        setActiveHighlightTarget(validatedAction.target);
-      }
-      if (validatedAction.type === 'NAVIGATE' && validatedAction.target) {
-        navigateTo(validatedAction.target);
-      }
-      if (validatedAction.type === 'OPEN_TRACKING' && validatedAction.target) {
-        // Save booking to task stack if mid-journey
-        if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
-          pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
+      // Only short-circuit if planner produced a specific deterministic response
+      if (!plannerResponse.shouldPassToLlm && plannerResponse.intent !== 'PASS_THROUGH_TO_LLM' && plannerResponse.message) {
+        if (plannerResponse.intent === 'RESET_JOURNEY') {
+          resetJourney();
         }
-        handleQuickTrack(validatedAction.target);
-      }
-      if (validatedAction.type === 'RESUME_TASK') {
-        resumeTask();
-      }
 
-      // Build action card for consequential or navigational actions
-      let actionCard: ChatMessage['actionCard'] | undefined;
-      if (validatedAction.type === 'NAVIGATE' && validatedAction.target === 'payment') {
-        actionCard = {
-          title: 'Secure Payment Bridge',
-          subtitle: `Total: ₹${ctx.payment.amount.toLocaleString('en-IN')} • Wallet: ₹${ctx.payment.walletBalance.toLocaleString('en-IN')}`,
-          buttonLabel: `Pay ₹${ctx.payment.amount.toLocaleString('en-IN')} ➔`,
-          route: 'payment',
-        };
-      }
-      if (validatedAction.type === 'RESUME_TASK' && taskStack.length > 0) {
-        actionCard = {
-          title: 'Resume Saved Journey',
-          subtitle: taskStack[0]?.subtitle || 'Your booking is preserved',
-          buttonLabel: 'Resume Booking ➔',
-          route: taskStack[0]?.page || 'workspace',
-        };
-      }
+        // Validate action through ActionPolicyEngine
+        const validatedAction = ActionPolicyEngine.sanitizeActionCue(plannerResponse.actionCue);
 
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: plannerResponse.message,
-                  isStreaming: false,
-                  actionCard,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(plannerResponse.message);
+        // Execute UI actions based on validated cue
+        if (validatedAction.type === 'SET_SORT' && validatedAction.parameters?.sortMode) {
+          setActiveSort(validatedAction.parameters.sortMode as any);
         }
-      }, 350);
-      return;
+        if (validatedAction.type === 'HIGHLIGHT' && validatedAction.target) {
+          setActiveHighlightTarget(validatedAction.target);
+        }
+        if (validatedAction.type === 'NAVIGATE' && validatedAction.target) {
+          navigateTo(validatedAction.target);
+        }
+        if (validatedAction.type === 'OPEN_TRACKING' && validatedAction.target) {
+          // Save booking to task stack if mid-journey
+          if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
+            pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
+          }
+          handleQuickTrack(validatedAction.target);
+        }
+        if (validatedAction.type === 'RESUME_TASK') {
+          resumeTask();
+        }
+
+        // Build action card for consequential or navigational actions
+        let actionCard: ChatMessage['actionCard'] | undefined;
+        if (validatedAction.type === 'NAVIGATE' && validatedAction.target === 'payment') {
+          actionCard = {
+            title: 'Secure Payment Bridge',
+            subtitle: `Total: ₹${ctx.payment.amount.toLocaleString('en-IN')} • Wallet: ₹${ctx.payment.walletBalance.toLocaleString('en-IN')}`,
+            buttonLabel: `Pay ₹${ctx.payment.amount.toLocaleString('en-IN')} ➔`,
+            route: 'payment',
+          };
+        }
+        if (validatedAction.type === 'RESUME_TASK' && taskStack.length > 0) {
+          actionCard = {
+            title: 'Resume Saved Journey',
+            subtitle: taskStack[0]?.subtitle || 'Your booking is preserved',
+            buttonLabel: 'Resume Booking ➔',
+            route: taskStack[0]?.page || 'workspace',
+          };
+        }
+
+        setTimeout(() => {
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === botMsgId
+                ? {
+                    ...m,
+                    text: plannerResponse.message,
+                    isStreaming: false,
+                    actionCard,
+                  }
+                : m
+            )
+          );
+          if (autoVoice) {
+            speakNiraResponse(plannerResponse.message);
+          }
+        }, 350);
+        return;
+      }
     } catch (plannerErr) {
       console.warn('[NiraPlanner] Planner error, falling back to streaming:', plannerErr);
     }
@@ -1075,6 +1082,29 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
           >
             <ListFilter className="w-3.5 h-3.5" />
             <span>25 Demos</span>
+          </button>
+
+          {/* Reset Journey State Button */}
+          <button
+            type="button"
+            onClick={() => {
+              resetJourney();
+              const resetMsg: ChatMessage = {
+                id: `nira-reset-${Date.now()}`,
+                sender: 'nira',
+                text: "I've reset your journey state and returned to the home search. Where would you like to travel?",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              };
+              setMessages([resetMsg]);
+              if (autoVoice) {
+                speakNiraResponse("I have reset your journey state. Where would you like to travel?");
+              }
+            }}
+            className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+            title="Reset Journey State & Start New Search"
+          >
+            <RefreshCw className="w-3 h-3 text-purple-700" />
+            <span>Reset</span>
           </button>
 
           <button

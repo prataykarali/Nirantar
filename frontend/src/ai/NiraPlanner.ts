@@ -3,8 +3,8 @@
  * ========================================================
  * Implements the State-Aware Nira architecture:
  * 1. Builds compact sanitized context.
- * 2. Slot-fills journey parameters.
- * 3. Proactively guides across all 6 Journey Families (20 Flows).
+ * 2. Matches deterministic state-aware intents & railway knowledge base.
+ * 3. Passes unknown questions through to LLM (without getting stuck in repeating greetings).
  * 4. Passes output through ActionPolicyEngine for execution.
  */
 
@@ -58,6 +58,7 @@ export interface NiraPlannerResponse {
   suggestedBookingState?: BookingState;
   clarificationRequired?: boolean;
   missingSlots?: string[];
+  shouldPassToLlm?: boolean;
   source: 'SAFE_ASSIST_DETERMINISTIC' | 'LLM_NVIDIA' | 'FALLBACK';
 }
 
@@ -71,6 +72,30 @@ export class NiraPlanner {
   ): Promise<NiraPlannerResponse> {
     const cleanQuery = PiiRedactor.redact(rawQuery.trim());
     const lower = cleanQuery.toLowerCase();
+
+    // ─────────────────────────────────────────────────────────────
+    // 0. RESET / START OVER INTENTS
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower === 'reset' ||
+      lower === 'clear' ||
+      lower.includes('reset journey') ||
+      lower.includes('start over') ||
+      lower.includes('restart') ||
+      lower.includes('new search')
+    ) {
+      return {
+        intent: 'RESET_JOURNEY',
+        message: "I've reset your journey state and returned to the home search. Where would you like to travel?",
+        actionCue: {
+          type: 'NAVIGATE',
+          target: 'home',
+          requiresConfirmation: false,
+        },
+        suggestedBookingState: 'IDLE',
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
 
     // ─────────────────────────────────────────────────────────────
     // 1. CONTEXTUAL DISTRACTION QUESTIONS (DO NOT RESET APPLICATION)
@@ -103,17 +128,89 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 2. FLOW B & C: DISCOVERY COMPARISON & SORTING
+    // 2. RAILWAY KNOWLEDGE & DOMAIN INQUIRIES (TATKAL, CANCELLATION, PNR, RULES)
+    // ─────────────────────────────────────────────────────────────
+    if (lower.includes('tatkal') || lower.includes('tq')) {
+      return {
+        intent: 'EXPLAIN_TATKAL',
+        message: `⚡ **Tatkal Quota Guidelines (IRCTC / Indian Railways)**:
+• **AC Classes (2A/3A/CC/EC)**: Booking window opens daily at **10:00 AM**, 1 day before journey date.
+• **Non-AC Classes (SL/2S)**: Booking window opens daily at **11:00 AM**.
+• **Charges**: Extra 10% to 30% of base fare (min ₹100, max ₹500 depending on class).
+• **Refund Policy**: Zero refund on cancellation of confirmed Tatkal tickets.
+
+*(Your active screen is preserved above)*`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    if (lower.includes('cancel') || lower.includes('refund')) {
+      return {
+        intent: 'EXPLAIN_CANCELLATION',
+        message: `🎫 **Ticket Cancellation & Refund Rules**:
+• **> 48 hours before departure**: Flat clerkage (₹240 for 1A/EC, ₹200 for 2A, ₹180 for 3A/CC, ₹120 for SL).
+• **12 to 48 hours**: 25% deduction of total fare.
+• **4 to 12 hours**: 50% deduction of total fare.
+• **< 4 hours (Chart Prepared)**: No refund for confirmed tickets.
+
+*(Your active screen is preserved above)*`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    if (lower.includes('pnr') || lower.includes('chart')) {
+      return {
+        intent: 'EXPLAIN_PNR',
+        message: `📋 **PNR & Charting Guidelines**:
+• PNR (Passenger Name Record) is a 10-digit unique booking identifier.
+• Reservation charts are finalized **4 hours before departure** from train origin.
+• For morning trains (departing before 14:00), the first chart is prepared by 20:00 previous evening.
+
+*(Your active screen is preserved above)*`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    if (lower.includes('food') || lower.includes('meal') || lower.includes('catering')) {
+      return {
+        intent: 'EXPLAIN_FOOD',
+        message: `🍽️ **Onboard Catering & Meals**:
+Nirantar does not directly place onboard food orders in this prototype, but on premium trains (Rajdhani, Shatabdi, Vande Bharat), meals are provided or available via IRCTC e-Catering at major junction halts.
+
+*(Your active screen is preserved above)*`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    if (lower.includes('what can you do') || lower.includes('help me') || lower.includes('features')) {
+      return {
+        intent: 'EXPLAIN_CAPABILITIES',
+        message: `🤖 **Here is how I can assist your railway journey**:
+1. **Find & Compare Trains**: Search 550+ routes, sort by fastest or cheapest.
+2. **Safe Passenger Autofill**: Type or speak passenger names to populate forms live.
+3. **Live GPS Radar**: Track train speed, next stoppage, and deboarding platform.
+4. **Instant Citizen Wallet**: Use ₹10,000 pre-loaded credit for 1-click test checkout.
+5. **Zero Data Loss Recovery**: Resume interrupted bookings if payments fail or you jump between tabs.`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. DISCOVERY COMPARISON & SORTING
     // ─────────────────────────────────────────────────────────────
     if (lower.includes('cheapest') || lower.includes('sasta')) {
       return {
         intent: 'SORT_TRAINS',
-        message: 'The cheapest available option is highlighted below with the signature green arrow.',
+        message: 'The cheapest available option is highlighted below.',
         actionCue: {
           type: 'SET_SORT',
           parameters: { sortMode: 'cheapest' },
           target: 'train_cheapest',
-          style: 'GREEN_ARROW',
           requiresConfirmation: false,
         },
         source: 'SAFE_ASSIST_DETERMINISTIC',
@@ -128,7 +225,6 @@ export class NiraPlanner {
           type: 'SET_SORT',
           parameters: { sortMode: 'fastest' },
           target: 'train_12951',
-          style: 'GREEN_ARROW',
           requiresConfirmation: false,
         },
         source: 'SAFE_ASSIST_DETERMINISTIC',
@@ -136,7 +232,7 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 3. FLOW I & PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENTS)
+    // 4. PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENTS)
     // ─────────────────────────────────────────────────────────────
     if (
       lower.includes('transaction fail') ||
@@ -165,7 +261,6 @@ export class NiraPlanner {
         actionCue: {
           type: 'HIGHLIGHT',
           target: 'citizen-wallet-card',
-          style: 'GREEN_ARROW',
           requiresConfirmation: false,
         },
         source: 'SAFE_ASSIST_DETERMINISTIC',
@@ -173,7 +268,7 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 4. FLOW P: TASK STACK INTERRUPTED TASK RESUME
+    // 5. TASK STACK INTERRUPTED TASK RESUME
     // ─────────────────────────────────────────────────────────────
     if (lower.includes('resume') || lower.includes('continue booking') || lower.includes('go back to booking')) {
       return {
@@ -188,7 +283,7 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 5. FLOW K: TRACKING REQUEST
+    // 6. TRACKING REQUEST
     // ─────────────────────────────────────────────────────────────
     if (lower.includes('where is my train') || lower.includes('track') || lower.includes('running status')) {
       const trainNo = context.journey.selectedTrainNumber || '12951';
@@ -205,9 +300,15 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 6. DEFAULT CONTEXTUAL GUIDANCE (BASED ON CURRENT APPLICATION STATE)
+    // 7. UNKNOWN / GENERAL QUESTION -> DELEGATE TO LLM (DO NOT REPEAT GREETING)
     // ─────────────────────────────────────────────────────────────
-    return this.generateStateAwareGreeting(context);
+    return {
+      intent: 'PASS_THROUGH_TO_LLM',
+      message: '',
+      actionCue: { type: 'NONE', requiresConfirmation: false },
+      shouldPassToLlm: true,
+      source: 'LLM_NVIDIA',
+    };
   }
 
   public static generateStateAwareGreeting(context: NiraSanitizedContext): NiraPlannerResponse {
@@ -232,7 +333,7 @@ export class NiraPlanner {
         return {
           intent: 'PAYMENT_GUIDANCE',
           message: `You are at the secure payment step for ₹${context.payment.amount || 4240}. You can use your Nirantar Citizen Virtual Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) or UPI.`,
-          actionCue: { type: 'HIGHLIGHT', target: 'citizen-wallet-card', style: 'GREEN_ARROW', requiresConfirmation: false },
+          actionCue: { type: 'HIGHLIGHT', target: 'citizen-wallet-card', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
       case 'track':
