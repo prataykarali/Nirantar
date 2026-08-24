@@ -2,10 +2,10 @@
  * NIRANTAR — Nira Planner & Journey Orchestration Engine
  * ========================================================
  * Implements the State-Aware Nira architecture:
- * 1. Builds compact sanitized context.
- * 2. Slot-fills journey parameters (e.g. asking origin/destination when missing).
- * 3. Handles cancellation, railway knowledge, and deterministic intents.
- * 4. Passes unknown questions through to LLM.
+ * 1. Compact sanitized context.
+ * 2. Slot-fills journey parameters (origin, destination, passengers, email delimiter).
+ * 3. Domain handlers: Food yes/no, travel duration, number of stops, journey history, wallet/transactions.
+ * 4. Confirmation announcements and live tracking choices.
  */
 
 import { Station, POPULAR_STATIONS, findStation } from '../data/stationData';
@@ -139,7 +139,7 @@ export class NiraPlanner {
 
     const hasRouteSpecifier = lower.includes(' to ') || lower.includes(' from ') || /\b\d{5}\b/.test(lower);
 
-    if (isGenericBookingQuery || ((lower.includes('book') || lower.includes('reserve')) && !hasRouteSpecifier && !lower.includes('payment') && !lower.includes('autofill') && !lower.includes('passenger'))) {
+    if (isGenericBookingQuery || ((lower.includes('book') || lower.includes('reserve')) && !hasRouteSpecifier && !lower.includes('payment') && !lower.includes('autofill') && !lower.includes('passenger') && !lower.includes('tatkal'))) {
       return {
         intent: 'ASK_FOR_STATIONS',
         message: "Sure! Where would you like to travel? Please tell me your **origin and destination stations** (for example: *'Delhi to Mumbai'* or *'Bengaluru to Chennai'*) or a specific train number/name.",
@@ -151,28 +151,94 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 1. CONTEXTUAL DISTRACTION QUESTIONS (DO NOT RESET APPLICATION)
+    // 1. DOMAIN FEATURE: FOOD / MEALS / CATERING (YES / NO)
     // ─────────────────────────────────────────────────────────────
-    if (lower.includes('how much') || lower.includes('cost') || lower.includes('fare') || lower.includes('price')) {
-      const fare = context.journey.fare || context.payment.amount || 2120;
-      const train = context.journey.selectedTrainName || 'your selected train';
+    if (
+      lower.includes('food') ||
+      lower.includes('meal') ||
+      lower.includes('catering') ||
+      lower.includes('lunch') ||
+      lower.includes('dinner') ||
+      lower.includes('breakfast') ||
+      lower.includes('chai') ||
+      lower.includes('tea')
+    ) {
       return {
-        intent: 'ANSWER_FARE',
-        message: `The total fare for ${train} in ${context.journey.selectedClassCode || '3A'} is ₹${fare.toLocaleString('en-IN')}. Your progress is saved below.`,
+        intent: 'EXPLAIN_FOOD',
+        message: `🍽️ **Food & Onboard Catering Options**:
+• **Vande Bharat, Rajdhani & Shatabdi Express**: Gourmet catering (Breakfast, Lunch, Evening Snacks, Dinner) is available. You can choose **Opt-in (Yes)** or **Opt-out (No)** during booking to save on catering charges.
+• **Mail / Express Trains**: Standard IRCTC pantry car services and station e-Catering deliver fresh hot meals directly to your berth.
+• **Dietary Preferences**: 100% FSSAI-certified Veg, Jain Meals, and Non-Veg selections are available onboard.`,
         actionCue: { type: 'NONE', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
     }
 
-    if (lower.includes('which train') || lower.includes('what train did i select') || lower.includes('selected train')) {
-      const trainName = context.journey.selectedTrainName || '12951 Mumbai Rajdhani Express';
-      const time = '16:55';
+    // ─────────────────────────────────────────────────────────────
+    // 2. DOMAIN FEATURE: TRAVEL TIME / DURATION
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('time required') ||
+      lower.includes('travel time') ||
+      lower.includes('how long') ||
+      lower.includes('duration') ||
+      lower.includes('journey time') ||
+      lower.includes('how many hours')
+    ) {
       return {
-        intent: 'ANSWER_TRAIN_DETAILS',
-        message: `You have selected #${context.journey.selectedTrainNumber || '12951'} ${trainName}, departing at ${time} from ${context.journey.origin || 'Delhi'} to ${context.journey.destination || 'Mumbai'}.`,
+        intent: 'EXPLAIN_DURATION',
+        message: `⏱️ **Travel Time & Duration Breakdown**:
+• **#12951 Mumbai Rajdhani (Delhi → Mumbai)**: 15 hours 40 minutes (Fastest overnight superfast)
+• **#12302 Howrah Rajdhani (Delhi → Kolkata)**: 17 hours 10 minutes
+• **#22436 Vande Bharat Express (Delhi → Varanasi)**: 8 hours flat
+• **#20642 Vande Bharat Express (Bengaluru → Coimbatore)**: 4 hours 15 minutes
+• **Express Trains (Standard)**: 18 to 26 hours depending on stops and route.`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. DOMAIN FEATURE: NUMBER OF STOPS / HALTS
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('number of stops') ||
+      lower.includes('how many stops') ||
+      lower.includes('how many halts') ||
+      lower.includes('stoppages') ||
+      lower.includes('halts') ||
+      lower.includes('stations in between')
+    ) {
+      return {
+        intent: 'EXPLAIN_STOPS',
+        message: `📍 **Train Stoppages & Halts Breakdown**:
+• **#12951 Mumbai Rajdhani**: 6 Major Halts (Kota, Ratlam, Vadodara, Surat, Borivali, Mumbai Central)
+• **#12302 Howrah Rajdhani**: 5 Major Halts (Kanpur Central, Prayagraj Jn, Pt. Deen Dayal Upadhyaya, Gaya Jn, Dhanbad Jn)
+• **#22436 Vande Bharat (NDLS → BSB)**: 2 Technical Express Halts (Kanpur Central, Prayagraj Jn)
+• **#20642 Vande Bharat (SBC → CBE)**: 4 Halts (Hosur, Dharmapuri, Salem, Erode, Tiruppur)`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. DOMAIN FEATURE: MY JOURNEY HISTORY & BOOKINGS
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('journey history') ||
+      lower.includes('my journeys') ||
+      lower.includes('my journey') ||
+      lower.includes('past booking') ||
+      lower.includes('my bookings') ||
+      lower.includes('past journey') ||
+      lower.includes('ticket history')
+    ) {
+      return {
+        intent: 'NAVIGATE_MY_JOURNEYS',
+        message: 'Opening your **My Journeys** dashboard with active bookings, past trips, and DigiLocker-verified e-Tickets ready for download.',
         actionCue: {
-          type: 'HIGHLIGHT',
-          target: context.journey.selectedTrainNumber ? `train_${context.journey.selectedTrainNumber}` : undefined,
+          type: 'NAVIGATE',
+          target: 'myjourneys',
           requiresConfirmation: false,
         },
         source: 'SAFE_ASSIST_DETERMINISTIC',
@@ -180,7 +246,73 @@ export class NiraPlanner {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 2. RAILWAY KNOWLEDGE & DOMAIN INQUIRIES (TATKAL, CANCELLATION, PNR, RULES)
+    // 5. DOMAIN FEATURE: TRANSACTION HISTORY & CITIZEN WALLET
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('transaction history') ||
+      lower.includes('payment history') ||
+      lower.includes('wallet balance') ||
+      lower.includes('citizen wallet') ||
+      lower.includes('my transactions') ||
+      lower.includes('wallet details')
+    ) {
+      const balance = context.payment.walletBalance || 10000;
+      return {
+        intent: 'NAVIGATE_PAYMENTS',
+        message: `💳 **Nirantar Citizen Virtual Wallet & Payments**:
+• **Active Balance**: ₹${balance.toLocaleString('en-IN')}.00
+• **Government Travel Credit**: ₹10,000.00 Pre-loaded
+• **Settlement Status**: 100% Instant 1-click checkout & instant reversal on cancellation. Opening Payments history below.`,
+        actionCue: {
+          type: 'NAVIGATE',
+          target: 'payments',
+          requiresConfirmation: false,
+        },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. MULTI-TRAIN TRACKING INTENTS & OPTIONS
+    // ─────────────────────────────────────────────────────────────
+    if (
+      lower.includes('where is my train') ||
+      lower.includes('track') ||
+      lower.includes('running status') ||
+      lower.includes('live status') ||
+      lower.includes('gps radar')
+    ) {
+      return {
+        intent: 'TRACK_TRAIN',
+        message: `🚆 **Live High-Speed GPS Radar Telemetry (3 Active Corridors)**:
+1. **#12302 Howrah Rajdhani**: Cruising at 118 km/h • Approaching Prayagraj Jn (Platform 4 • Doors Right) in 3m
+2. **#12951 Mumbai Rajdhani**: Cruising at 124 km/h • 5m Before Time • Next: Vadodara Jn (Platform 2)
+3. **#22436 Vande Bharat**: Cruising at 132 km/h • Right on Time • Next: Kanpur Central (Platform 1)`,
+        actionCue: {
+          type: 'OPEN_TRACKING',
+          target: context.journey.selectedTrainNumber || '12302',
+          requiresConfirmation: false,
+        },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 7. CONTEXTUAL DISTRACTION QUESTIONS (DO NOT RESET APPLICATION)
+    // ─────────────────────────────────────────────────────────────
+    if (lower.includes('how much') || lower.includes('cost') || lower.includes('fare') || lower.includes('price')) {
+      const fare = context.journey.fare || context.payment.amount || 2120;
+      const train = context.journey.selectedTrainName || 'your selected train';
+      return {
+        intent: 'ANSWER_FARE',
+        message: `The total fare for ${train} in ${context.journey.selectedClassCode || '3A'} is ₹${fare.toLocaleString('en-IN')}. Your active screen is preserved below.`,
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 8. RAILWAY KNOWLEDGE & DOMAIN INQUIRIES (TATKAL, CANCELLATION, PNR)
     // ─────────────────────────────────────────────────────────────
     if (lower.includes('tatkal') || lower.includes('tq')) {
       return {
@@ -189,9 +321,7 @@ export class NiraPlanner {
 • **AC Classes (2A/3A/CC/EC)**: Booking window opens daily at **10:00 AM**, 1 day before journey date.
 • **Non-AC Classes (SL/2S)**: Booking window opens daily at **11:00 AM**.
 • **Charges**: Extra 10% to 30% of base fare (min ₹100, max ₹500 depending on class).
-• **Refund Policy**: Zero refund on cancellation of confirmed Tatkal tickets.
-
-*(Your active screen is preserved above)*`,
+• **Refund Policy**: Zero refund on cancellation of confirmed Tatkal tickets.`,
         actionCue: { type: 'NONE', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
@@ -204,9 +334,7 @@ export class NiraPlanner {
 • **> 48 hours before departure**: Flat clerkage (₹240 for 1A/EC, ₹200 for 2A, ₹180 for 3A/CC, ₹120 for SL).
 • **12 to 48 hours**: 25% deduction of total fare.
 • **4 to 12 hours**: 50% deduction of total fare.
-• **< 4 hours (Chart Prepared)**: No refund for confirmed tickets.
-
-*(Your active screen is preserved above)*`,
+• **< 4 hours (Chart Prepared)**: No refund for confirmed tickets.`,
         actionCue: { type: 'NONE', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
@@ -218,73 +346,14 @@ export class NiraPlanner {
         message: `📋 **PNR & Charting Guidelines**:
 • PNR (Passenger Name Record) is a 10-digit unique booking identifier.
 • Reservation charts are finalized **4 hours before departure** from train origin.
-• For morning trains (departing before 14:00), the first chart is prepared by 20:00 previous evening.
-
-*(Your active screen is preserved above)*`,
-        actionCue: { type: 'NONE', requiresConfirmation: false },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
-    if (lower.includes('food') || lower.includes('meal') || lower.includes('catering')) {
-      return {
-        intent: 'EXPLAIN_FOOD',
-        message: `🍽️ **Onboard Catering & Meals**:
-Nirantar does not directly place onboard food orders in this prototype, but on premium trains (Rajdhani, Shatabdi, Vande Bharat), meals are provided or available via IRCTC e-Catering at major junction halts.
-
-*(Your active screen is preserved above)*`,
-        actionCue: { type: 'NONE', requiresConfirmation: false },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
-    if (lower.includes('what can you do') || lower.includes('help me') || lower.includes('features')) {
-      return {
-        intent: 'EXPLAIN_CAPABILITIES',
-        message: `🤖 **Here is how I can assist your railway journey**:
-1. **Find & Compare Trains**: Search 550+ routes, sort by fastest or cheapest.
-2. **Safe Passenger Autofill**: Type or speak passenger names to populate forms live.
-3. **Live GPS Radar**: Track train speed, next stoppage, and deboarding platform.
-4. **Instant Citizen Wallet**: Use ₹10,000 pre-loaded credit for 1-click test checkout.
-5. **Zero Data Loss Recovery**: Resume interrupted bookings if payments fail or you jump between tabs.`,
+• For morning trains (departing before 14:00), the first chart is prepared by 20:00 previous evening.`,
         actionCue: { type: 'NONE', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 3. DISCOVERY COMPARISON & SORTING
-    // ─────────────────────────────────────────────────────────────
-    if (lower.includes('cheapest') || lower.includes('sasta')) {
-      return {
-        intent: 'SORT_TRAINS',
-        message: 'The cheapest available option is highlighted below.',
-        actionCue: {
-          type: 'SET_SORT',
-          parameters: { sortMode: 'cheapest' },
-          target: 'train_cheapest',
-          requiresConfirmation: false,
-        },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
-    if (lower.includes('fastest') || lower.includes('jaldi')) {
-      return {
-        intent: 'SORT_TRAINS',
-        message: 'I have sorted the schedule by travel duration with the fastest superfast train highlighted.',
-        actionCue: {
-          type: 'SET_SORT',
-          parameters: { sortMode: 'fastest' },
-          target: 'train_12951',
-          requiresConfirmation: false,
-        },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 4. PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENTS)
+    // 9. PAYMENT FAILURE RECOVERY (EXACT USER REQUIREMENTS)
     // ─────────────────────────────────────────────────────────────
     if (
       lower.includes('transaction fail') ||
@@ -306,21 +375,8 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
       };
     }
 
-    if (lower.includes('where do i pay') || lower.includes('where to pay')) {
-      return {
-        intent: 'NAVIGATE_PAYMENT',
-        message: `You are at the secure payment step! Total amount to be debited is ₹${context.payment.amount || 4240}. Please select your payment method below or use your Nirantar Citizen Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance).`,
-        actionCue: {
-          type: 'HIGHLIGHT',
-          target: 'citizen-wallet-card',
-          requiresConfirmation: false,
-        },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
     // ─────────────────────────────────────────────────────────────
-    // 5. TASK STACK INTERRUPTED TASK RESUME
+    // 10. TASK STACK INTERRUPTED TASK RESUME
     // ─────────────────────────────────────────────────────────────
     if (lower.includes('resume') || lower.includes('continue booking') || lower.includes('go back to booking')) {
       return {
@@ -335,24 +391,7 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 6. TRACKING REQUEST
-    // ─────────────────────────────────────────────────────────────
-    if (lower.includes('where is my train') || lower.includes('track') || lower.includes('running status')) {
-      const trainNo = context.journey.selectedTrainNumber || '12951';
-      return {
-        intent: 'TRACK_TRAIN',
-        message: `Live GPS Satellite Telemetry for #${trainNo}: Approaching Prayagraj Jn (Platform 4 • Doors opening on RIGHT SIDE) in 3 mins.`,
-        actionCue: {
-          type: 'OPEN_TRACKING',
-          target: trainNo,
-          requiresConfirmation: false,
-        },
-        source: 'SAFE_ASSIST_DETERMINISTIC',
-      };
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 7. UNKNOWN / GENERAL QUESTION -> DELEGATE TO LLM (DO NOT REPEAT GREETING)
+    // 11. UNKNOWN / GENERAL QUESTION -> DELEGATE TO LLM
     // ─────────────────────────────────────────────────────────────
     return {
       intent: 'PASS_THROUGH_TO_LLM',
@@ -365,6 +404,15 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
 
   public static generateStateAwareGreeting(context: NiraSanitizedContext): NiraPlannerResponse {
     switch (context.page) {
+      case 'completion':
+      case 'ticket':
+      case 'myjourneys':
+        return {
+          intent: 'BOOKING_CONFIRMED',
+          message: '🎉 Congrats! Your train seat is confirmed! PNR: #2847 5896 1234 • Seat: S5-36 (Confirmed). Your DigiLocker-verified e-Ticket is ready for download!',
+          actionCue: { type: 'NONE', requiresConfirmation: false },
+          source: 'SAFE_ASSIST_DETERMINISTIC',
+        };
       case 'trains':
       case 'results':
         return {
@@ -377,28 +425,28 @@ Nirantar does not directly place onboard food orders in this prototype, but on p
       case 'booking':
         return {
           intent: 'BOOKING_GUIDANCE',
-          message: `You are on Step 2 (Passenger & Booking Workspace) for #${context.journey.selectedTrainNumber || '12951'} ${context.journey.selectedTrainName || 'Mumbai Rajdhani'}. Please enter your passenger details (Name, Age, Gender, Berth Preference) to fill this form!`,
+          message: `You are on Step 2 (Passenger & Booking Workspace) for #${context.journey.selectedTrainNumber || '12951'} ${context.journey.selectedTrainName || 'Mumbai Rajdhani'}. Please enter passenger details in the format: [Name], [Age], [Gender], [Berth], [Mobile], [Email]!`,
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
       case 'payment':
         return {
           intent: 'PAYMENT_GUIDANCE',
-          message: `You are at the secure payment step for ₹${context.payment.amount || 4240}. Please choose your payment method or use your Nirantar Citizen Virtual Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) below.`,
+          message: `You are at the secure payment step for ₹${context.payment.amount || 4240}. Choose your payment method or use your Nirantar Citizen Virtual Wallet (₹${context.payment.walletBalance.toLocaleString('en-IN')} balance) below.`,
           actionCue: { type: 'HIGHLIGHT', target: 'citizen-wallet-card', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
       case 'track':
         return {
           intent: 'TRACKING_GUIDANCE',
-          message: `Live GPS tracking is active for #${context.tracking.activeTrainNumber || '12951'}. Next stoppage: Prayagraj Junction (Platform 4).`,
+          message: `Live GPS tracking is active for #${context.tracking.activeTrainNumber || '12302'}. Next stoppage: Prayagraj Junction (Platform 4 • Doors opening on RIGHT SIDE).`,
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
       default:
         return {
           intent: 'GENERAL_HELP',
-          message: "I'm Nira, your state-aware journey copilot. I can search trains, live auto-fill passengers, explain fares, or track live running status.",
+          message: "I'm Nira, your state-aware journey copilot. I can search trains, auto-fill passengers, explain food & halts, or track live running status.",
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };

@@ -342,12 +342,27 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       let msgText = '';
       let actionCard: ChatMessage['actionCard'] | undefined = undefined;
 
-      if (targetPage === 'workspace' || targetPage === 'booking') {
+      if (targetPage === 'completion' || targetPage === 'ticket' || targetPage === 'myjourneys') {
+        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Mumbai Rajdhani Express';
+        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '12952';
+        msgText = `🎉 **Congrats! Your train seat is confirmed!**
+
+PNR: **#2847 5896 1234** • Seat: **S5 - 36 (Confirmed)**
+Train: **#${trainNo} ${trainName}**
+
+Your DigiLocker-verified e-Ticket is ready for download! You can also track your train via Live GPS Radar anytime.`;
+        actionCard = {
+          title: 'Ticket Confirmed & Issued',
+          subtitle: `PNR: #2847 5896 1234 • Seat S5-36`,
+          buttonLabel: '🛰️ Open Live GPS Radar Tracking ➔',
+          route: 'track',
+        };
+      } else if (targetPage === 'workspace' || targetPage === 'booking') {
         const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Vande Bharat Express';
         const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '20642';
         msgText = `You are on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
 
-Please enter your passenger details: **Name, Age, Gender, Berth Preference, Mobile, and Email** (e.g. *Pratay Karali, 20, Male, 8420773730, pratay@gmail.com*). You can speak or type naturally to fill the form.`;
+Please enter passenger details in the format: **[Name], [Age], [Gender], [Berth], [Mobile], [Email]** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay.karali2005@gmail.com*). You can speak or type naturally to fill the form.`;
         actionCard = undefined;
       } else if (targetPage === 'payment') {
         const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 450;
@@ -558,9 +573,27 @@ Enter your authorization credentials on the payment bridge below (Banking creden
       email: emailMatch ? emailMatch[1] : undefined,
     };
 
-    // Split ONLY on multi-passenger delimiters (NOT single commas!)
-    const multiPaxRegex = /\s*(?:\band\b|&|\band also\b|\bsecond passenger\b|\bpassenger 2\b|\bpassenger 3\b|\bpassenger 4\b|\n|;)\s*/i;
-    const rawSegments = text.split(multiPaxRegex).map((s) => s.trim()).filter((s) => s.length > 2);
+    // Check if multiple emails are present to split passenger records by email delimiter
+    let rawSegments: string[] = [];
+    const allEmails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+    if (allEmails && allEmails.length > 1) {
+      let remainingText = text;
+      allEmails.forEach((email) => {
+        const idx = remainingText.indexOf(email);
+        if (idx !== -1) {
+          const seg = remainingText.substring(0, idx + email.length);
+          rawSegments.push(seg);
+          remainingText = remainingText.substring(idx + email.length).trim();
+        }
+      });
+      if (remainingText.trim().length > 2) {
+        rawSegments.push(remainingText.trim());
+      }
+    } else {
+      // Split ONLY on multi-passenger delimiters (NOT single commas!)
+      const multiPaxRegex = /\s*(?:\band\b|&|\band also\b|\bsecond passenger\b|\bpassenger 2\b|\bpassenger 3\b|\bpassenger 4\b|\n|;)\s*/i;
+      rawSegments = text.split(multiPaxRegex).map((s) => s.trim()).filter((s) => s.length > 2);
+    }
 
     const parsed: PassengerProfile[] = [];
 
@@ -1106,9 +1139,6 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
           <div>
             <div className="flex items-center gap-1.5">
               <h3 className="font-bold text-sm text-slate-900 leading-tight">Nira</h3>
-              <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Auto-Booker
-              </span>
             </div>
             <p className="text-[10px] font-semibold text-purple-700">AI Journey Copilot</p>
           </div>
@@ -1119,15 +1149,14 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
           <button
             type="button"
             onClick={() => setAutoVoice(!autoVoice)}
-            className={`p-1.5 px-2 rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+            className={`p-2 rounded-xl text-[10px] font-bold flex items-center justify-center transition-all cursor-pointer ${
               autoVoice
-                ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
                 : 'bg-slate-100 text-slate-400 hover:text-slate-700'
             }`}
-            title={autoVoice ? 'Auto-Voice TTS Enabled' : 'Auto-Voice Muted'}
+            title={autoVoice ? 'Voice TTS Active (Click to mute)' : 'Voice TTS Muted (Click to enable)'}
           >
-            {autoVoice ? <Volume2 className="w-3.5 h-3.5 text-[#7C3AED]" /> : <VolumeX className="w-3.5 h-3.5" />}
-            <span>{autoVoice ? 'TTS ON' : 'Muted'}</span>
+            {autoVoice ? <Volume2 className="w-4 h-4 text-[#7C3AED]" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
           {/* 25 Examples Drawer Toggle */}

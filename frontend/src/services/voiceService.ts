@@ -1,10 +1,9 @@
 /**
- * NIRANTAR Voice Service (Murf TTS & Deepgram STT with Browser Fallback)
- * ====================================================================
+ * NIRANTAR Voice Service (Cute AI Companion Voice + Web Speech Synthesis)
+ * =======================================================================
  * High-quality Indian English speech synthesis and voice recognition for Nira AI.
+ * Equipped with friendly, cute robotic assistant timbre (pitch: 1.3, rate: 1.08).
  */
-
-// API keys are handled server-side only — no secrets in the browser bundle.
 
 let currentAudio: HTMLAudioElement | null = null;
 
@@ -46,20 +45,28 @@ export const speakNiraResponse = async (text: string): Promise<void> => {
     // Continue to browser fallback
   }
 
-  // 2. High-fidelity Web Speech API Fallback
+  // 2. High-fidelity Web Speech API with cute, friendly assistant timbre
   if ('speechSynthesis' in window) {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'en-IN';
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
+    utterance.rate = 1.08;
+    utterance.pitch = 1.32; // Cute, friendly, bright robotic assistant pitch
 
-    // Pick best available English/Indian voice
+    // Pick best available friendly English/Indian voice
     const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(
-      (v) => v.lang === 'en-IN' || v.name.includes('India') || v.name.includes('Indian') || v.name.includes('Natural')
-    );
-    if (indianVoice) {
-      utterance.voice = indianVoice;
+    const friendlyVoice = voices.find(
+      (v) =>
+        v.name.includes('Google UK English Female') ||
+        v.name.includes('Google US English') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Priya') ||
+        v.lang === 'en-IN' ||
+        v.name.includes('India')
+    ) || voices[0];
+
+    if (friendlyVoice) {
+      utterance.voice = friendlyVoice;
     }
 
     window.speechSynthesis.speak(utterance);

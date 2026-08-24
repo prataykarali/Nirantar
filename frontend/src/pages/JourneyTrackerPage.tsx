@@ -401,6 +401,64 @@ export const JourneyTrackerPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 3 Active Express Trains Radar Switcher */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchInput('12302');
+            setActiveStationIndex(2);
+            setCountdownSeconds(240);
+            setPhase('APPROACHING');
+          }}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12302'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Train className="w-3.5 h-3.5" />
+          <span>#12302 Howrah Rajdhani</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSearchInput('12951');
+            setActiveStationIndex(2);
+            setCountdownSeconds(210);
+            setPhase('TRAVELING');
+          }}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12951'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-400" />
+          <span>#12951 Mumbai Rajdhani</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSearchInput('22436');
+            setActiveStationIndex(1);
+            setCountdownSeconds(180);
+            setPhase('APPROACHING');
+          }}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '22436'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+          <span>#22436 Vande Bharat</span>
+        </button>
+      </div>
+
       {/* ═══════════════════════════════════════════════════════════════════
           2. LIVE SPEED & RUNNING STATUS HERO CARD
           ═══════════════════════════════════════════════════════════════════ */}
@@ -774,6 +832,28 @@ export const JourneyTrackerPage: React.FC = () => {
                       <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
                         {st.distanceKm} km • Scheduled Dep: {st.scheduledDep}
                       </span>
+                      {isCurrent && (
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">
+                            <Train className="w-3.5 h-3.5" />
+                            <span>
+                              {phase === 'HALTED'
+                                ? `Halted on Platform • Departs in ${haltSeconds}s`
+                                : phase === 'DESTINATION_ARRIVED'
+                                ? 'Final Destination Reached 🏁'
+                                : `Train Moving (${currentSpeed} km/h) • Arriving in ${formatTimer(countdownSeconds)}`}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-24 bg-purple-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                              style={{
+                                width: `${Math.min(100, Math.max(5, (1 - countdownSeconds / 240) * 100))}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
