@@ -3,20 +3,13 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "functions": {
-    "api/[[...path]].js": {
+    "api/*.js": {
       "maxDuration": 30
     }
   },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "handle": "filesystem" },
-    {
-      "src": "/assets/(.*)",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      },
-      "dest": "/assets/$1"
-    },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/api/v1/nira/chat/stream", "destination": "/api/chat" },
+    { "source": "/api/v1/:match*", "destination": "/api/[[...path]]" },
+    { "source": "/api/:match*", "destination": "/api/[[...path]]" }
   ]
 }
