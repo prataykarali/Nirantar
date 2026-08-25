@@ -1,4 +1,8 @@
-"""Resolve a sync SQLAlchemy URL for local SQLite and Cloud SQL PostgreSQL."""
+"""Resolve a sync SQLAlchemy URL for local SQLite and hosted PostgreSQL.
+
+Antideploy injects DATABASE_URL and requires SSL:
+https://antideploy.com/docs/guides/deploy-an-app-with-a-database.md
+"""
 
 from __future__ import annotations
 
@@ -14,8 +18,29 @@ def _first_env(*names: str) -> str | None:
     return None
 
 
+def _is_unix_socket(url: str) -> bool:
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    host = query.get("host") or parsed.hostname or ""
+    return host.startswith("/")
+
+
+def _ensure_postgres_ssl(url: str) -> str:
+    """Antideploy (and most hosted Postgres) reject non-SSL clients."""
+    if not url.startswith("postgresql"):
+        return url
+    if _is_unix_socket(url):
+        return url
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if "sslmode" not in query:
+        query["sslmode"] = "require"
+        url = urlunparse(parsed._replace(query=urlencode(query)))
+    return url
+
+
 def normalize_database_url(url: str | None) -> str:
-    """Convert async / Heroku / pg8000 URLs into a sync psycopg2 or SQLite URL."""
+    """Convert async / Heroku URLs into a sync psycopg2 or SQLite URL."""
     if not url:
         return "sqlite:////tmp/nirantar_journey.db"
 
@@ -43,11 +68,11 @@ def normalize_database_url(url: str | None) -> str:
             query["host"] = sock
         url = urlunparse(parsed._replace(query=urlencode(query)))
 
-    return url
+    return _ensure_postgres_ssl(url)
 
 
 def resolve_database_url() -> str:
-    """Prefer DATABASE_URL, then Cloud SQL socket parts, then local SQLite."""
+    """Prefer DATABASE_URL, then discrete Postgres env vars, then local SQLite."""
     direct = _first_env(
         "DATABASE_URL",
         "CLOUDSQL_URL",
@@ -86,6 +111,8 @@ def resolve_database_url() -> str:
             else:
                 host_q = socket
             return f"postgresql://{auth}@/{dbname}?host={host_q}"
-        return f"postgresql://{auth}@{host}:{port}/{dbname}"
+        return _ensure_postgres_ssl(
+            f"postgresql://{auth}@{host}:{port}/{dbname}"
+        )
 
     return "sqlite:////tmp/nirantar_journey.db"
