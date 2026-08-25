@@ -459,10 +459,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       updated.quota = 'Tatkal (TQ)';
     }
 
-    // 1. Train Number extraction
-    const trainNumMatch = text.match(/\b(\d{5})\b/);
-    if (trainNumMatch) {
-      updated.trainNumber = trainNumMatch[1];
+    // 1. Train Number extraction (strictly 5 digits in Indian Railways)
+    const rawNumberMatch = text.match(/(?:train|#)\s*(\d+)/i) || text.match(/\b(\d+)\b/);
+    if (rawNumberMatch) {
+      const num = rawNumberMatch[1];
+      if (num.length === 5) {
+        updated.trainNumber = num;
+      } else if (num.length > 0 && num.length < 5 && isTrack) {
+        (updated as any).invalidTrainNumber = num;
+      }
     } else {
       // Named train lookups
       if (lower.includes('rajdhani')) {
@@ -888,7 +893,28 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     setRouteCtx(nextRouteCtx);
 
     if (intentData.isTrack || (intentData.trainNumber && !intentData.isAutoBook)) {
-      const trainNo = (intentData.trainNumber || '12302').trim();
+      const invalidNum = (intentData.route as any)?.invalidTrainNumber;
+      if (invalidNum) {
+        const invalidMsg = `⚠️ **Invalid Train Number (#${invalidNum})**: Train numbers in Indian Railways must be **5 digits long** (for example: **#12302** Howrah Rajdhani or **#12951** Mumbai Rajdhani).\n\nPlease provide a valid 5-digit train number to track live GPS status!`;
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: invalidMsg, isStreaming: false } : m))
+        );
+        if (autoVoice) speakNiraResponse(invalidMsg);
+        return;
+      }
+
+      if (!intentData.trainNumber) {
+        const askMsg = `Please provide a **5-digit train number** (e.g. **#12302** Howrah Rajdhani or **#12951** Mumbai Rajdhani) to track its real-time GPS telemetry and upcoming station halts!`;
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: askMsg, isStreaming: false } : m))
+        );
+        if (autoVoice) speakNiraResponse(askMsg);
+        return;
+      }
+
+      const trainNo = intentData.trainNumber.trim();
 
       // If user is mid-booking, save progress to task stack before switching
       if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
@@ -1609,114 +1635,79 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                   )}
 
                   {/* ─────────────────────────────────────────────────────────────
-                      INTERACTIVE MULTI-TRAIN LIST (Ranked, Wait for User Choice)
+                      INTERACTIVE TRAIN RECOMMENDATION (Single Clean Card + Search Link)
                       ───────────────────────────────────────────────────────────── */}
-                  {m.trainList && m.trainList.length > 0 && (
-                    <div className="ml-8 space-y-2.5">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
-                        <span>Found {m.trainList.length} Top Ranked Trains:</span>
-                        <span className="text-[#7C3AED] font-semibold">Select to Book</span>
-                      </div>
-                      {m.trainList.map((train) => {
-                        const bestClass = train.classes?.[0] || { classCode: '3A', fare: 1500, status: 'AVAILABLE', availableSeats: 20 };
-                        const fastest = train.isFastest;
-                        const bestVal = train.isBestValue;
-                        return (
-                          <div
-                            key={train.trainNumber}
-                            className="p-3 rounded-2xl bg-white border border-purple-100 hover:border-purple-300 shadow-sm space-y-2 transition-all"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-xs text-slate-900">
-                                    #{train.trainNumber} • {train.trainName}
-                                  </span>
-                                  {fastest && (
-                                    <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded-full">
-                                      ⚡ Fastest
-                                    </span>
-                                  )}
-                                  {bestVal && (
-                                    <span className="text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded-full">
-                                      💰 Best Value
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[10px] text-slate-500 mt-0.5">
-                                  Dep {train.departureTime} → Arr {train.arrivalTime} • {train.durationHours}
-                                </p>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className="text-xs font-black text-emerald-700 block font-mono">
-                                  ₹{bestClass.fare}
+                  {m.trainList && m.trainList.length > 0 && (() => {
+                    const topTrain = m.trainList[0];
+                    const bestClass = topTrain.classes?.[0] || { classCode: '3A', fare: 1958, status: 'AVAILABLE', availableSeats: 20 };
+                    return (
+                      <div className="ml-8 space-y-2.5">
+                        <div className="p-3.5 rounded-2xl bg-white border-2 border-purple-200 shadow-sm space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-xs text-slate-900">
+                                  #{topTrain.trainNumber} • {topTrain.trainName}
                                 </span>
-                                <span className="text-[9px] text-purple-700 font-semibold">
-                                  {plainClass(bestClass.classCode)}
+                                <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded-full">
+                                  ⭐ Recommended
                                 </span>
                               </div>
+                              <p className="text-[10px] text-slate-500 mt-0.5">
+                                Dep {topTrain.departureTime} → Arr {topTrain.arrivalTime} • {topTrain.durationHours}
+                              </p>
                             </div>
-
-                            <div className="flex items-center gap-2 pt-1 border-t border-purple-50">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  selectTrain(train, bestClass.classCode);
-                                  const selectMsg: ChatMessage = {
-                                    id: `nira-select-${Date.now()}`,
-                                    sender: 'nira',
-                                    text: `Selected **#${train.trainNumber} ${train.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\nProceeding to Step 2 (Passenger Workspace). Please fill your passenger details!`,
-                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                  };
-                                  setMessages((prev) => [...prev, selectMsg]);
-                                  if (autoVoice) {
-                                    speakNiraResponse(`Selected ${train.trainName}. Proceeding to passenger workspace.`);
-                                  }
-                                }}
-                                className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-98"
-                              >
-                                <span>Book This Train ➔</span>
-                              </button>
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-black text-emerald-700 block font-mono">
+                                ₹{bestClass.fare}
+                              </span>
+                              <span className="text-[9px] text-purple-700 font-semibold">
+                                {plainClass(bestClass.classCode)}
+                              </span>
                             </div>
                           </div>
-                        );
-                      })}
-                      <div className="space-y-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            executeSearch({
-                              fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
-                              toStation: m.understoodCard?.toStation || searchParams.toStation,
-                              passengersCount: m.understoodCard?.passengers || 1,
-                              travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
-                            });
-                            onClose();
-                            startGuidanceTour(0);
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-[11px] shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>🌟 Step-by-Step Guided Tour (Spotlight Overlay & Arrows) ➔</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            executeSearch({
-                              fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
-                              toStation: m.understoodCard?.toStation || searchParams.toStation,
-                              passengersCount: m.understoodCard?.passengers || 1,
-                              travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
-                            });
-                            navigateTo('trains');
-                          }}
-                          className="w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[11px] font-bold text-center cursor-pointer transition-all"
-                        >
-                          Review All Trains on Search Screen →
-                        </button>
+
+                          <div className="flex flex-col gap-2 pt-1 border-t border-purple-50">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                selectTrain(topTrain, bestClass.classCode);
+                                const selectMsg: ChatMessage = {
+                                  id: `nira-select-${Date.now()}`,
+                                  sender: 'nira',
+                                  text: `Selected **#${topTrain.trainNumber} ${topTrain.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\nProceeding to Step 2 (Passenger Workspace). Please fill your passenger details!`,
+                                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                };
+                                setMessages((prev) => [...prev, selectMsg]);
+                                if (autoVoice) {
+                                  speakNiraResponse(`Selected ${topTrain.trainName}. Proceeding to passenger workspace.`);
+                                }
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                            >
+                              <span>Book #{topTrain.trainNumber} ({plainClass(bestClass.classCode)}) ➔</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                executeSearch({
+                                  fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
+                                  toStation: m.understoodCard?.toStation || searchParams.toStation,
+                                  passengersCount: m.understoodCard?.passengers || 1,
+                                  travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
+                                });
+                                navigateTo('trains');
+                              }}
+                              className="w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-xs font-bold text-center cursor-pointer transition-all"
+                            >
+                              Review All Trains on Search Screen →
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* ─────────────────────────────────────────────────────────────
                       INTERACTIVE AUTO-BOOK CARD (Explicit single-train confirmation)
