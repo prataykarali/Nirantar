@@ -31,14 +31,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy all application code and modules
+# Copy application code, digital twin, and modules
 COPY backend/ ./backend/
 COPY m0_digital_twin/ ./m0_digital_twin/
 COPY modules/ ./modules/
-COPY services/ ./services/
-COPY simulation/ ./simulation/
+COPY simulation ./simulation
+COPY cairo ./cairo
+COPY ml ./ml
+COPY orchestrator ./orchestrator
+COPY security ./security
+COPY loadtest ./loadtest
 COPY pyproject.toml ./
-COPY *.db ./
 
 # Copy built frontend assets for serving via FastAPI static mounts
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
