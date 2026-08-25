@@ -124,9 +124,9 @@ export const TrainsPage: React.FC = () => {
           {/* Back Button */}
           <button
             type="button"
-            onClick={() => navigateTo('discover')}
+            onClick={() => navigateTo('home')}
             className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title="Back to Discover"
+            title="Back to Search"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>

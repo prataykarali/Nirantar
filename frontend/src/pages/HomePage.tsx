@@ -29,6 +29,9 @@ export const HomePage: React.FC = () => {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(() => {
+    return localStorage.getItem('nirantar_tour_dismissed') !== 'true';
+  });
 
   const tomorrowStr = (() => {
     const d = new Date();
@@ -279,6 +282,52 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-4">
+      {/* ═══════════════════════════════════════════════════════════════════
+          0. WELCOME GUIDED TUTORIAL BANNER (Interactive Tour Yes/No)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showWelcomeTutorial && (
+        <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-purple-700/60 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-800/80 border border-purple-600/50 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-300" />
+            </div>
+            <div>
+              <span className="font-bold text-xs sm:text-sm text-white block">
+                Welcome to Nirantar! Would you like a guided tutorial?
+              </span>
+              <p className="text-[11px] text-purple-200 font-medium">
+                Take a 30-second interactive walkthrough of smart train discovery, Tatkal booking, and live GPS radar.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setTourStep(0);
+                setShowTourModal(true);
+                setShowWelcomeTutorial(false);
+                localStorage.setItem('nirantar_tour_dismissed', 'true');
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            >
+              <span>Yes, Start Tour</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowWelcomeTutorial(false);
+                localStorage.setItem('nirantar_tour_dismissed', 'true');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-purple-200 hover:text-white text-xs font-bold border border-white/10 transition-colors cursor-pointer"
+            >
+              No, Thanks
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════
           1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
           ═══════════════════════════════════════════════════════════════════ */}

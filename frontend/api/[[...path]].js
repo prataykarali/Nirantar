@@ -111,57 +111,37 @@ async function handleChatStream(req, res) {
   try {
     const nvidiaRes = await fetch(`${NVIDIA_API_BASE}/chat/completions`, {
       method: 'POST',
-      headers: nvidiaHeaders(),
+      headers: {
+        Authorization: `Bearer ${NVIDIA_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         model: NVIDIA_MODEL,
         messages,
         max_tokens: 500,
         temperature: 0.35,
-        stream: true,
       }),
     });
 
-    if (!nvidiaRes.ok || !nvidiaRes.body) {
-      writeToken(localNiraFallback(query, grounding));
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    }
-
-    const reader = nvidiaRes.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let emitted = false;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed === 'data: [DONE]') continue;
-        if (!trimmed.startsWith('data: ')) continue;
-        try {
-          const chunk = JSON.parse(trimmed.slice(6));
-          const token = chunk?.choices?.[0]?.delta?.content || '';
-          if (token) {
-            emitted = true;
-            writeToken(token);
-          }
-        } catch {
-          /* ignore partial json */
+    if (nvidiaRes.ok) {
+      const data = await nvidiaRes.json();
+      const content = data?.choices?.[0]?.message?.content || '';
+      if (content) {
+        const words = content.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          const space = i < words.length - 1 ? ' ' : '';
+          writeToken(words[i] + space);
         }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
       }
     }
-
-    if (!emitted) {
-      writeToken(localNiraFallback(query, grounding));
-    }
+    writeToken(localNiraFallback(query, grounding));
     res.write('data: [DONE]\n\n');
     res.end();
-  } catch {
+  } catch (err) {
+    console.error('NVIDIA proxy error:', err);
     writeToken(localNiraFallback(query, grounding));
     res.write('data: [DONE]\n\n');
     res.end();

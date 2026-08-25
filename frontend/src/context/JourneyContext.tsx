@@ -605,7 +605,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       step: 'TRAIN_SELECTED',
     }));
 
-    setActivePage('workspace');
+    UiEventBus.emit('TRAIN_SELECTED', 'trains', { train, classCode: chosenClass });
+    navigateTo('workspace');
   };
 
   const savePassengerDetails = async (passengersList: PassengerProfile[]): Promise<boolean> => {

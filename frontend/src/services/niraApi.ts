@@ -236,54 +236,32 @@ ${context ? `\nGROUNDING TIMETABLE DATA:\n${context}` : ''}`;
       headers: {
         Authorization: `Bearer ${NVIDIA_CLIENT_KEY}`,
         'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
       },
       body: JSON.stringify({
         model: NVIDIA_CLIENT_MODEL,
         messages,
         max_tokens: 500,
         temperature: 0.35,
-        stream: true,
       }),
     });
 
-    if (nvidiaRes.ok && nvidiaRes.body) {
-      const reader = nvidiaRes.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      let receivedTokens = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed === 'data: [DONE]') continue;
-          if (!trimmed.startsWith('data: ')) continue;
-          try {
-            const chunk = JSON.parse(trimmed.slice(6));
-            const token = chunk?.choices?.[0]?.delta?.content || '';
-            if (token) {
-              receivedTokens = true;
-              onToken(token);
-            }
-          } catch {
-            // ignore partial
+    if (nvidiaRes.ok) {
+      const data = await nvidiaRes.json();
+      const text = data?.choices?.[0]?.message?.content || '';
+      if (text) {
+        const words = text.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          const space = i < words.length - 1 ? ' ' : '';
+          onToken(words[i] + space);
+          if (words.length > 1) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
           }
         }
-      }
-
-      if (receivedTokens) {
         onComplete();
         return;
       }
     }
-    throw new Error('NVIDIA stream failed to deliver tokens');
+    throw new Error('NVIDIA direct completion returned empty content');
   } catch (err) {
     console.error('Nira stream error:', err);
     onError(err);

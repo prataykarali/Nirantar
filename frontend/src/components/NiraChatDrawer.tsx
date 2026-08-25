@@ -145,6 +145,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     resetJourney,
     niraPendingQuery,
     setNiraPendingQuery,
+    trackQuery,
   } = useJourney();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -355,20 +356,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const unsub = UiEventBus.subscribe('PAGE_CHANGED', (event) => {
       if (!isOpen) return;
       const targetPage = event.payload?.to || event.sourcePage;
+      const fromPage = event.payload?.from || '';
       const ctx = getSanitizedContext();
 
       let msgText = '';
       let actionCard: ChatMessage['actionCard'] | undefined = undefined;
 
       if (targetPage === 'completion' || targetPage === 'ticket' || targetPage === 'myjourneys') {
-        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Mumbai Rajdhani Express';
-        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '12952';
-        msgText = `🎉 **Congrats! Your train seat is confirmed!**
-
-PNR: **#2847 5896 1234** • Seat: **S5 - 36 (Confirmed)**
-Train: **#${trainNo} ${trainName}**
-
-Your DigiLocker-verified e-Ticket is ready for download! You can also track your train via Live GPS Radar anytime.`;
+        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Howrah Rajdhani Express';
+        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '12302';
+        msgText = `🎉 **Congrats! Your train seat is confirmed!**\n\nPNR: **#2847 5896 1234** • Seat: **S5 - 36 (Confirmed)**\nTrain: **#${trainNo} ${trainName}**\n\nYour DigiLocker-verified e-Ticket is ready for download! You can also track your train via Live GPS Radar anytime.`;
         actionCard = {
           title: 'Ticket Confirmed & Issued',
           subtitle: `PNR: #2847 5896 1234 • Seat S5-36`,
@@ -376,48 +373,52 @@ Your DigiLocker-verified e-Ticket is ready for download! You can also track your
           route: 'track',
         };
       } else if (targetPage === 'workspace' || targetPage === 'booking') {
-        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Vande Bharat Express';
-        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '20642';
-        msgText = `You are on **Step 2 (Passenger & Booking Workspace)** for #${trainNo} ${trainName}!
+        const trainName = selectedTrain?.trainName || ctx.journey.selectedTrainName || 'Express Train';
+        const trainNo = selectedTrain?.trainNumber || ctx.journey.selectedTrainNumber || '12302';
+        const classCode = selectedClassCode || ctx.journey.selectedClassCode || '3A';
+        const fare = selectedTrain?.classes?.find((c) => c.classCode === classCode)?.fare || 1958;
 
-Please enter passenger details in the format: **[Name], [Age], [Gender], [Berth], [Mobile], [Email]** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay.karali2005@gmail.com*). You can speak or type naturally to fill the form.`;
+        msgText = `You selected **#${trainNo} ${trainName}** (${plainClass(classCode)} • ₹${fare.toLocaleString('en-IN')})!\n\nYou are now on **Step 2 (Passenger & Booking Workspace)**. Please enter your passenger details in the format: **[Name], [Age], [Gender], [Berth], [Mobile], [Email]** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay.karali2005@gmail.com*) to proceed to payment.`;
         actionCard = undefined;
+      } else if (targetPage === 'trains' || targetPage === 'results') {
+        const origin = searchParams.fromStation?.city || ctx.journey.origin || 'Delhi';
+        const dest = searchParams.toStation?.city || ctx.journey.destination || 'Kolkata';
+        msgText = `Navigated back to train results for **${origin} → ${dest}**.\n\nWould you like to pick a different train, compare departure times, or sort by fastest/cheapest?`;
+      } else if (targetPage === 'home' || targetPage === 'discover') {
+        msgText = `Back on the search screen. Where in India would you like to travel next?`;
       } else if (targetPage === 'payment') {
-        const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 450;
-        msgText = `You are now at the **Payment Step**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.
-
-Please select your payment method:
-1. 💳 **Nirantar Citizen Virtual Wallet (₹${ctx.payment.walletBalance.toLocaleString('en-IN')} Balance)**
-2. 📱 **UPI / QR Code (GPay / PhonePe / Paytm)**
-3. 🏦 **Net Banking (SBI / HDFC / ICICI)**
-4. 💳 **Credit / Debit Cards**
-
-Enter your authorization credentials on the payment bridge below (Banking credentials are 100% isolated from AI context).`;
+        const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 1958;
+        msgText = `You are now at the **Payment Step**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.\n\nPlease select your payment method: UPI, Net Banking, Card, or your **₹10,000 Nirantar Citizen Travel Wallet** below.`;
         actionCard = {
           title: 'Payment Authorization Ready',
           subtitle: `Select a payment method (Debiting ₹${fare.toLocaleString('en-IN')})`,
           buttonLabel: `💳 Pay ₹${fare.toLocaleString('en-IN')} with Citizen Wallet ➔`,
           route: 'payment',
         };
+      } else if (targetPage === 'track') {
+        const trainNo = ctx.tracking.activeTrainNumber || trackQuery || '12302';
+        msgText = `🛰️ Live GPS Radar is active for **#${trainNo}**. Cruising at 118 km/h right on time.`;
       } else {
         const contextMsg = NiraPlanner.generateStateAwareGreeting(ctx);
         msgText = contextMsg.message;
       }
 
-      const pageMsg: ChatMessage = {
-        id: `nira-page-${Date.now()}`,
-        sender: 'nira',
-        text: msgText,
-        actionCard,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, pageMsg]);
-      if (autoVoice && msgText) {
-        speakNiraResponse(msgText);
+      if (msgText) {
+        const pageMsg: ChatMessage = {
+          id: `nira-page-${Date.now()}`,
+          sender: 'nira',
+          text: msgText,
+          actionCard,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, pageMsg]);
+        if (autoVoice) {
+          speakNiraResponse(msgText);
+        }
       }
     });
     return unsub;
-  }, [isOpen, autoVoice, selectedTrain]);
+  }, [isOpen, autoVoice, selectedTrain, selectedClassCode, searchParams, trackQuery]);
 
   /**
    * Comprehensive Local Natural Language Extractor for Train/Route/Auto-Book/Track/Tatkal intents
