@@ -432,35 +432,41 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   } => {
     const lower = text.toLowerCase();
     const updated = { ...current };
+    const isQuestion = /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|tatkal|pnr|chart|cancel|refund|boarding|food|cater|concession)\b/i.test(text.trim()) || text.trim().endsWith('?');
 
     const isAutoBook =
-      lower.includes('auto book') ||
-      lower.includes('autobook') ||
-      lower.includes('book ticket') ||
-      lower.includes('book train') ||
-      lower.includes('book 2 seats') ||
-      lower.includes('book seat') ||
-      lower.includes('reserve seat');
+      !isQuestion && (
+        lower.startsWith('auto book') ||
+        lower.startsWith('autobook') ||
+        lower.startsWith('book ') ||
+        lower.startsWith('reserve ') ||
+        lower.includes('find trains from') ||
+        lower.includes('search trains from') ||
+        lower.includes('book ticket from') ||
+        lower.includes('book train from')
+      );
 
     const isTrack =
-      lower.includes('track') ||
-      lower.includes('where is') ||
-      lower.includes('running status') ||
-      lower.includes('live status') ||
-      lower.includes('radar') ||
-      lower.includes('platform is');
+      lower.startsWith('track') ||
+      lower.startsWith('where is train') ||
+      lower.startsWith('running status') ||
+      lower.startsWith('live status') ||
+      lower.includes('gps radar') ||
+      (/^\d{5}$/.test(text.trim()));
 
     const isTatkal =
-      lower.includes('tatkal') ||
-      lower.includes('premium tatkal') ||
-      lower.includes('emergency quota');
+      !isQuestion && (
+        lower.includes('tatkal booking') ||
+        lower.includes('book in tatkal') ||
+        lower.includes('emergency quota')
+      );
 
     if (isTatkal) {
       updated.quota = 'Tatkal (TQ)';
     }
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
-    const rawNumberMatch = text.match(/(?:train|#)\s*(\d+)/i) || text.match(/\b(\d+)\b/);
+    const rawNumberMatch = text.match(/(?:train|#)\s*(\d{5})/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
     if (rawNumberMatch) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
@@ -468,45 +474,34 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       } else if (num.length > 0 && num.length < 5 && isTrack) {
         (updated as any).invalidTrainNumber = num;
       }
-    } else {
-      // Named train lookups
-      if (lower.includes('rajdhani')) {
-        updated.trainNumber = lower.includes('mumbai') ? '12951' : '12302';
-      } else if (lower.includes('vande bharat')) {
-        updated.trainNumber = '22436';
-      } else if (lower.includes('shatabdi')) {
-        updated.trainNumber = '12002';
-      } else if (lower.includes('duronto')) {
-        updated.trainNumber = '12259';
-      } else if (lower.includes('gomti')) {
-        updated.trainNumber = '12419';
-      }
     }
 
     // 2. Station Extraction: explicit route regex or verified station names
     let extractedFrom: Station | undefined = undefined;
     let extractedTo: Station | undefined = undefined;
 
-    const routeRegex = /(?:from\s+)?([a-z\s]+?)\s+(?:to|->|towards|–|-)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i;
-    const match = text.match(routeRegex);
-    if (match) {
-      const s1 = findStation(match[1].trim());
-      const s2 = findStation(match[2].trim());
-      if (s1) extractedFrom = s1;
-      if (s2) extractedTo = s2;
-    }
+    if (!isQuestion) {
+      const routeRegex = /(?:from\s+)?([a-z\s]+?)\s+(?:to|->|towards|–|-)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i;
+      const match = text.match(routeRegex);
+      if (match) {
+        const s1 = findStation(match[1].trim());
+        const s2 = findStation(match[2].trim());
+        if (s1) extractedFrom = s1;
+        if (s2) extractedTo = s2;
+      }
 
-    if (!extractedFrom || !extractedTo) {
-      const words = lower.split(/[\s,]+/);
-      const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help', 'go', 'going', 'hey', 'wanna', 'the', 'a', 'an', 'my', 'live', 'status', 'track', 'where'];
-      for (const w of words) {
-        if (w.length < 3 || ignoreWords.includes(w)) continue;
-        const st = findStation(w);
-        if (st) {
-          if (!extractedFrom) {
-            extractedFrom = st;
-          } else if (!extractedTo && extractedFrom.code !== st.code) {
-            extractedTo = st;
+      if (!extractedFrom || !extractedTo) {
+        const words = lower.split(/[\s,]+/);
+        const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help', 'go', 'going', 'hey', 'wanna', 'the', 'a', 'an', 'my', 'live', 'status', 'track', 'where'];
+        for (const w of words) {
+          if (w.length < 3 || ignoreWords.includes(w)) continue;
+          const st = findStation(w);
+          if (st) {
+            if (!extractedFrom) {
+              extractedFrom = st;
+            } else if (!extractedTo && extractedFrom.code !== st.code) {
+              extractedTo = st;
+            }
           }
         }
       }
@@ -515,9 +510,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     // Only update route stations if explicitly found in current text
     const updatedRoute: RouteContext = {
       ...current,
-      fromStation: extractedFrom || current.fromStation,
-      toStation: extractedTo || current.toStation,
-      trainNumber: updated.trainNumber || current.trainNumber,
+      fromStation: extractedFrom,
+      toStation: extractedTo,
+      trainNumber: updated.trainNumber,
       travelDate: updated.travelDate,
       passengers: updated.passengers,
       classCode: updated.classCode,
@@ -708,112 +703,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setInput('');
     setIsLoading(true);
 
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 0: INLINE ASSISTANCE DISPATCH (SYNCHRONOUS, ZERO DEPS)
-    // Handles all "I'm Stuck" modal queries and general help queries
-    // BEFORE any route parsing, station extraction, or LLM calls.
-    // ═══════════════════════════════════════════════════════════
-    const lowerSafe = safeQuery.toLowerCase();
-
-    // Map of keyword patterns → direct response text
-    const assistanceResponses: { patterns: string[]; response: string }[] = [
-      {
-        patterns: ['what am i doing here', 'explain this screen', 'what is this page', 'where am i', 'what to do here', 'what does this page mean', 'what action i should take'],
-        response: (() => {
-          const pageDescs: Record<string, string> = {
-            home: "🏠 **Home Search Screen**: You're at the starting point. Enter your departure and arrival stations, travel date, and passenger count to search real-time trains. Tap '🔍 Search Trains' to begin your journey.",
-            discover: "🧭 **Discover Screen**: Explore curated tourist destinations, hill stations, and popular railway routes across India.",
-            trains: `🚆 **Train Selection Screen**: You're comparing available trains. Look at Speed, Price, and Class columns. Tap any train card to select it, then tap 'Book This Train ➔' to proceed to passenger details.`,
-            workspace: "📝 **Passenger Workspace**: Fill in passenger names, ages, gender, and berth preferences. You can type details or say them to Nira for zero-PII autofill. Once done, tap 'Proceed to Payment ➔'.",
-            booking: "📝 **Booking Review**: Double-check your travel date, selected train, class, and passenger details before making payment.",
-            payment: "💳 **Payment Bridge**: Choose UPI, Card, Net Banking, or your pre-loaded **₹10,000 Citizen Travel Wallet** for instant 0-PIN checkout. Nothing is charged until you confirm.",
-            ticket: "🎫 **Confirmed e-Ticket**: Your journey is booked! Download your PDF receipt, share your PNR, or switch to live GPS tracking.",
-            completion: "🎉 **Booking Confirmation**: Seat confirmed! Download invoice or switch to live train tracking.",
-            track: "📍 **Live GPS Radar**: Real-time satellite tracking showing train speed, platform numbers, door direction, and upcoming station timelines.",
-            myjourneys: "🧳 **My Journeys**: View all your past, active, and upcoming DigiLocker-verified trips.",
-            profile: "👤 **Citizen Profile**: Your verified identity, wallet ledger, and saved co-passengers.",
-            settings: "⚙️ **Settings**: Toggle accessibility, Nira voice, and notification preferences.",
-          };
-          return pageDescs[activePage] || `You are currently on the **${activePage}** screen. Let me know how I can help!`;
-        })(),
-      },
-      {
-        patterns: ['question about payment', 'how does payment work', 'citizen wallet', 'payment recovery', '10,000', '10000', 'payment questions'],
-        response: `💳 **Nirantar Payment & Security Engine**:
-
-• **₹10,000 Citizen Virtual Wallet**: Pre-loaded government travel credit for instant 0-PIN checkouts with 0-second refunds upon cancellation.
-• **Bank & UPI Isolation**: UPI, QR, Net Banking, and Cards are processed via 256-bit encrypted bank gateways — banking credentials NEVER enter the AI layer.
-• **Double-Verification Safety**: If a transaction times out or fails, your train and passenger details are preserved on Step 4. You can safely verify payment status without risking a double charge.
-• **Retry**: Simply tap 'Retry Payment' or switch to Citizen Wallet for instant completion.`,
-      },
-      {
-        patterns: ['fill passenger details', 'filling passenger details', 'help me fill', 'what information is required', 'fill the passenger'],
-        response: `📝 **Passenger Details Form — What You Need**:
-
-• **Required Fields**: Full Name (as per Govt ID), Age, and Gender for each passenger.
-• **Optional Preferences**: Berth Choice (Lower Berth, Upper, Side Lower, Middle) and Food/Meal opt-in.
-• **Zero-PII Autofill**: Type or speak: *"Pratay Karali, 20, Male, Lower Berth"* and I will fill the fields on your screen automatically with green spotlight arrows.
-• **Multiple Passengers**: Add up to 6 passengers per booking. Say *"2 passengers: Ravi, 28, Male; Priya, 25, Female"*.`,
-      },
-      {
-        patterns: ['go back', 'change something', 'modify my previous', 'modify booking', 'without losing'],
-        response: `↩️ **Zero Data-Loss Navigation**:
-
-You can freely navigate back to any previous step — your entered information is 100% preserved:
-• Tap **← Change Train** to pick a different train or travel class.
-• Tap **← Edit Passengers** to update names, ages, or berth preferences.
-• Tap **← Change Route** to modify origin/destination stations.
-• **Nothing is lost** — Nira saves your progress in the Task Stack automatically.`,
-      },
-      {
-        patterns: ['help me find', 'help me choose', 'compare the best trains', 'which train is best', 'finding the right train', 'best trains for my route'],
-        response: `🚆 **Train Comparison & Selection Guide**:
-
-Tell me what matters most and I'll highlight the best match:
-• ⚡ **Fastest Train**: Vande Bharat / Rajdhani Express — shortest travel duration.
-• 💰 **Cheapest Fare**: Mail/Express in Sleeper (SL) or 3-Tier Economy (3E).
-• 🕐 **Evening Departure**: Overnight sleeper trains leaving between 5 PM and 9 PM.
-• 🛏️ **Maximum Comfort**: 1st AC (1A) and 2nd AC (2A) with inclusive pantry catering.
-
-Try asking: *"Show me the fastest train"* or *"cheapest option under ₹1000"*.`,
-      },
-      {
-        patterns: ['need assistance', 'i need help', 'help me with'],
-        response: `🤝 **Nira Assistance — What Can I Help With?**:
-
-• 🔍 **Find Trains**: Say your route (e.g. "Delhi to Mumbai") and I'll search instantly.
-• 📝 **Fill Passenger Details**: Tell me names and ages and I'll autofill the form.
-• 💳 **Payment Help**: Ask about Citizen Wallet, UPI, or payment recovery.
-• 📍 **Track a Train**: Say "Track 12302" for live GPS radar.
-• 🧭 **Page Guide**: Tap the 🧭 Page Guide button for a visual diagram of your current screen.`,
-      },
-    ];
-
-    // Check if any assistance pattern matches
-    for (const entry of assistanceResponses) {
-      const matched = entry.patterns.some((p) => lowerSafe.includes(p));
-      if (matched) {
-        setTimeout(() => {
-          setIsLoading(false);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === botMsgId
-                ? {
-                    ...m,
-                    text: entry.response,
-                    isStreaming: false,
-                  }
-                : m
-            )
-          );
-          if (autoVoice) {
-            speakNiraResponse(entry.response.replace(/[*#•→←🏠🧭🚆📝💳🎫🎉📍🧳👤⚙️🤝🔍⚡💰🕐🛏️↩️🛡️]/g, '').substring(0, 200));
-          }
-        }, 200);
-        return;
-      }
-    }
-
     // ─── 1A: Conversational Passenger Autofill ───
     const parsedPaxResult = parsePassengerDetailsFromText(query);
     if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
@@ -997,9 +886,10 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     }
 
     // ─── 1C: Route Search & Booking Intent with Real Multi-Train Grounding ───
-    const queryHasRoute = safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from ') || /\b\d{5}\b/.test(safeQuery);
-    const hasExplicitRoute = !!(nextRouteCtx.fromStation && nextRouteCtx.toStation && (queryHasRoute || intentData.isAutoBook));
-    const hasExplicitTrain = !!intentData.trainNumber;
+    const isQuestion = /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|tatkal|pnr|chart|cancel|refund|boarding|food|cater|concession)\b/i.test(safeQuery.trim()) || safeQuery.trim().endsWith('?');
+    const queryHasRoute = !isQuestion && (safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from '));
+    const hasExplicitRoute = !isQuestion && !!(nextRouteCtx.fromStation && nextRouteCtx.toStation && (queryHasRoute || intentData.isAutoBook));
+    const hasExplicitTrain = !isQuestion && !!(intentData.trainNumber && intentData.isAutoBook);
 
     if (hasExplicitRoute || hasExplicitTrain) {
       const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
