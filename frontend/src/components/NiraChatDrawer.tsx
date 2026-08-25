@@ -1681,21 +1681,40 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                           </div>
                         );
                       })}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          executeSearch({
-                            fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
-                            toStation: m.understoodCard?.toStation || searchParams.toStation,
-                            passengersCount: m.understoodCard?.passengers || 1,
-                            travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
-                          });
-                          navigateTo('trains');
-                        }}
-                        className="w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[11px] font-bold text-center cursor-pointer transition-all"
-                      >
-                        Review All Trains on Search Screen →
-                      </button>
+                      <div className="space-y-1.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            executeSearch({
+                              fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
+                              toStation: m.understoodCard?.toStation || searchParams.toStation,
+                              passengersCount: m.understoodCard?.passengers || 1,
+                              travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
+                            });
+                            onClose();
+                            startGuidanceTour(0);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-[11px] shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>🌟 Step-by-Step Guided Tour (Spotlight Overlay & Arrows) ➔</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            executeSearch({
+                              fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
+                              toStation: m.understoodCard?.toStation || searchParams.toStation,
+                              passengersCount: m.understoodCard?.passengers || 1,
+                              travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
+                            });
+                            navigateTo('trains');
+                          }}
+                          className="w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[11px] font-bold text-center cursor-pointer transition-all"
+                        >
+                          Review All Trains on Search Screen →
+                        </button>
+                      </div>
                     </div>
                   )}
 

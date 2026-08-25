@@ -23,15 +23,13 @@ export const HomePage: React.FC = () => {
     searchParams,
     executeSearch,
     navigateTo,
+    startGuidanceTour,
   } = useJourney();
 
   const [nlQuery, setNlQuery] = useState('');
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
   const [tourStep, setTourStep] = useState(0);
-  const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(() => {
-    return localStorage.getItem('nirantar_tour_dismissed') !== 'true';
-  });
 
   const tomorrowStr = (() => {
     const d = new Date();
@@ -283,50 +281,38 @@ export const HomePage: React.FC = () => {
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-4">
       {/* ═══════════════════════════════════════════════════════════════════
-          0. WELCOME GUIDED TUTORIAL BANNER (Interactive Tour Yes/No)
+          0. PERMANENT TOP GUIDED WALKTHROUGH BANNER (Always accessible)
           ═══════════════════════════════════════════════════════════════════ */}
-      {showWelcomeTutorial && (
-        <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-purple-700/60 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-800/80 border border-purple-600/50 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-amber-300" />
-            </div>
-            <div>
-              <span className="font-bold text-xs sm:text-sm text-white block">
-                Welcome to Nirantar! Would you like a guided tutorial?
-              </span>
-              <p className="text-[11px] text-purple-200 font-medium">
-                Take a 30-second interactive walkthrough of smart train discovery, Tatkal booking, and live GPS radar.
-              </p>
-            </div>
+      <div className="bg-gradient-to-r from-[#2E1065] via-[#3B0764] to-[#1E1B4B] text-white p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-purple-600/50 animate-in fade-in">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-700/80 border border-purple-500/60 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setTourStep(0);
-                setShowTourModal(true);
-                setShowWelcomeTutorial(false);
-                localStorage.setItem('nirantar_tour_dismissed', 'true');
-              }}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
-            >
-              <span>Yes, Start Tour</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowWelcomeTutorial(false);
-                localStorage.setItem('nirantar_tour_dismissed', 'true');
-              }}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-purple-200 hover:text-white text-xs font-bold border border-white/10 transition-colors cursor-pointer"
-            >
-              No, Thanks
-            </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs sm:text-sm text-white block">
+                Want a Step-by-Step Guided Walkthrough?
+              </span>
+              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider">
+                Live Spotlight Tour
+              </span>
+            </div>
+            <p className="text-[11px] text-purple-200 font-medium mt-0.5">
+              Experience the full guided walkthrough with blurred overlays, live arrows, voice audio, and 1-tap booking!
+            </p>
           </div>
         </div>
-      )}
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => startGuidanceTour(0)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          >
+            <span>Start Interactive Tour ➔</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
