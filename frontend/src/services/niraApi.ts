@@ -141,6 +141,11 @@ export async function fetchPublicRailwayInfo(query = ''): Promise<any> {
 const NVIDIA_CLIENT_KEY = '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';
 const NVIDIA_CLIENT_MODEL = 'meta/llama-3.1-70b-instruct';
 
+// ── Rate limiter: minimum 1.5s between NVIDIA API calls ──
+let _lastStreamCall = 0;
+const STREAM_COOLDOWN_MS = 1500;
+const STREAM_TIMEOUT_MS = 12000; // 12 second hard timeout per tier
+
 export async function streamNiraChat(
   query: string,
   language = 'en',
@@ -150,6 +155,14 @@ export async function streamNiraChat(
   history: { role: string; content: string }[] = [],
   context = ''
 ): Promise<void> {
+  // Rate limit: wait if we fired too recently
+  const now = Date.now();
+  const elapsed = now - _lastStreamCall;
+  if (elapsed < STREAM_COOLDOWN_MS) {
+    await new Promise((r) => setTimeout(r, STREAM_COOLDOWN_MS - elapsed));
+  }
+  _lastStreamCall = Date.now();
+
   // Tier 1: Try serverless endpoint proxies
   const candidateUrls = [
     `${API_BASE}/nira/chat/stream`,
@@ -157,11 +170,14 @@ export async function streamNiraChat(
   ];
 
   for (const url of candidateUrls) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, language, history, context }),
+        signal: controller.signal,
       });
 
       if (response.ok && response.body) {
@@ -181,6 +197,7 @@ export async function streamNiraChat(
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed === 'data: [DONE]') {
+              clearTimeout(timer);
               onComplete();
               return;
             }
@@ -198,28 +215,42 @@ export async function streamNiraChat(
           }
         }
 
+        clearTimeout(timer);
         if (receivedTokens) {
           onComplete();
           return;
         }
+      } else {
+        clearTimeout(timer);
       }
     } catch {
+      clearTimeout(timer);
       // Continue to next tier
     }
   }
 
-  // Tier 2: Direct NVIDIA NIM client streaming (Bypasses any proxy/network blocker)
+  // Tier 2: Direct NVIDIA NIM client (bypasses proxy)
+  const controller2 = new AbortController();
+  const timer2 = setTimeout(() => controller2.abort(), STREAM_TIMEOUT_MS);
   try {
     const systemPrompt = `You are Nira, an intelligent railway copilot on NIRANTAR for Indian train travel.
 STYLE:
 - NEVER introduce yourself with "Hello! I'm Nira", "I am Nira", or "I'm Nira, your...".
 - Speak like a helpful, friendly human expert: natural, clear, 2 to 4 sentences.
 - Simplify railway terms: "3-tier AC", "2-tier AC", "Sleeper", "Executive Chair Car".
+
+STATUTORY RAILWAY KNOWLEDGE (Scrapling Verified):
+- Tatkal: Opens 10:00 AM for AC classes & 11:00 AM for Non-AC classes 1 day prior. Max 4 passengers per PNR. No refund on confirmed Tatkal cancellation.
+- Charting: Chart 1 finalized 4 hours before departure; Chart 2 finalized 30 minutes before departure.
+- Cancellation: >48 hrs = flat clerkage (₹240 1A/EC, ₹200 2A, ₹125 3A/CC, ₹60 SL). 12-48 hrs = 25%. 4-12 hrs = 50%. After chart = 0%.
+- Senior Citizens: Lower berth priority for men 60+ and women 45+ traveling alone.
+- Luggage: 70kg (1A), 50kg (2A), 40kg (3A/CC/SL).
+- Boarding Station Change: Up to 24 hours prior via IRCTC without fee.
+
 SCOPE:
 - You specialize in Indian Railways: booking, train discovery, fares, live GPS running status, PNR, tatkal rules, platform details.
-- For out-of-scope queries (like other countries, Hawaii, flights, hotels, ice cream, coding, trivia):
-  Acknowledge the user's intent politely, state clearly that you are specialized in Indian train travel, and invite an Indian railway query.
-  Example: "I understand you'd like that, but I'm specialized in Indian train travel — for example Delhi to Mumbai or Kolkata to Puri. Where in India would you like to travel?"
+- For out-of-scope queries (flights, hotels, other countries, coding, trivia):
+  Acknowledge politely, state you specialize in Indian train travel, invite an Indian railway query.
 ${context ? `\nGROUNDING TIMETABLE DATA:\n${context}` : ''}`;
 
     const messages = [
@@ -243,7 +274,10 @@ ${context ? `\nGROUNDING TIMETABLE DATA:\n${context}` : ''}`;
         max_tokens: 500,
         temperature: 0.35,
       }),
+      signal: controller2.signal,
     });
+
+    clearTimeout(timer2);
 
     if (nvidiaRes.ok) {
       const data = await nvidiaRes.json();
@@ -263,6 +297,7 @@ ${context ? `\nGROUNDING TIMETABLE DATA:\n${context}` : ''}`;
     }
     throw new Error('NVIDIA direct completion returned empty content');
   } catch (err) {
+    clearTimeout(timer2);
     console.error('Nira stream error:', err);
     onError(err);
   }

@@ -1081,8 +1081,28 @@ Please review the details above on the screen. Ready to proceed to payment?`;
 
     // ═══════════════════════════════════════════════════════════
     // LAYER 3: LLM STREAMING + GRACEFUL FALLBACK (Safe Assist Mode)
+    // With 15-second UI safety timeout to prevent infinite spinner
     // ═══════════════════════════════════════════════════════════
     let accumulated = '';
+    let streamResolved = false;
+
+    // Safety timeout: if no response after 15s, show fallback
+    const safetyTimer = setTimeout(() => {
+      if (!streamResolved) {
+        streamResolved = true;
+        const timeoutMsg = accumulated
+          ? accumulated  // partial tokens arrived — show what we got
+          : "I'm having trouble reaching the AI service right now. Please try again in a moment, or ask me to find trains, track a train, or help with your booking.";
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: timeoutMsg, isStreaming: false } : m))
+        );
+        if (autoVoice && timeoutMsg) {
+          speakNiraResponse(timeoutMsg);
+        }
+      }
+    }, 15000);
+
     streamNiraChat(
       safeQuery,
       'en',
@@ -1094,6 +1114,9 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         );
       },
       () => {
+        if (streamResolved) return;
+        streamResolved = true;
+        clearTimeout(safetyTimer);
         setIsLoading(false);
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, isStreaming: false } : m))
@@ -1103,6 +1126,9 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         }
       },
       async (err) => {
+        if (streamResolved) return;
+        streamResolved = true;
+        clearTimeout(safetyTimer);
         console.warn('Streaming fallback triggered:', err);
         try {
           const lower = safeQuery.toLowerCase();
