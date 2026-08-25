@@ -19,7 +19,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8000 \
+    PYTHONPATH=/app
 
 # Install system utilities and clean up cache
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -30,8 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy backend code
+# Copy all application code and modules
 COPY backend/ ./backend/
+COPY m0_digital_twin/ ./m0_digital_twin/
+COPY modules/ ./modules/
+COPY services/ ./services/
+COPY simulation/ ./simulation/
+COPY pyproject.toml ./
+COPY *.db ./
 
 # Copy built frontend assets for serving via FastAPI static mounts
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
