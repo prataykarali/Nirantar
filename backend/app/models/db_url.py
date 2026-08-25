@@ -34,7 +34,8 @@ def _ensure_postgres_ssl(url: str) -> str:
     parsed = urlparse(url)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     if "sslmode" not in query:
-        query["sslmode"] = "require"
+        # prefer: use SSL when the server offers it, still work when it does not.
+        query["sslmode"] = "prefer"
         url = urlunparse(parsed._replace(query=urlencode(query)))
     return url
 
