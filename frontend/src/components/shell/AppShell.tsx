@@ -24,6 +24,7 @@ import { SpotlightGuidance } from '../journey/SpotlightGuidance';
 import { DemoModePanel } from '../DemoModePanel';
 import { ImStuckModal } from '../ImStuckModal';
 import { VisualDiagramModal } from '../VisualDiagramModal';
+import { NotificationToasts } from '../NotificationToasts';
 
 export const AppShell: React.FC = () => {
   const {
@@ -160,6 +161,8 @@ export const AppShell: React.FC = () => {
         isOpen={showVisualDiagram}
         onClose={() => setShowVisualDiagram(false)}
       />
+
+      <NotificationToasts />
     </div>
   );
 };

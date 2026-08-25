@@ -16,35 +16,20 @@ import {
   Zap,
   Info,
   Volume2,
-  VolumeX,
   Sparkles,
-  RefreshCw,
-  FastForward,
-  Play,
-  RotateCcw,
   Trophy,
   Award,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { speakNiraResponse } from '../services/voiceService';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
+import { getTrainStoppages, StationStop } from '../data/trainStoppages';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
 
-interface StationStop {
-  code: string;
-  name: string;
-  platform: string;
-  scheduledArr: string;
-  scheduledDep: string;
-  distanceKm: number;
-  doorSide: 'RIGHT SIDE' | 'LEFT SIDE';
-  pillarInfo: string;
-}
-
 export const JourneyTrackerPage: React.FC = () => {
-  const { searchParams, selectedTrain, issuedTicket, trackQuery, setTrackQuery, navigateTo } = useJourney();
+  const { searchParams, selectedTrain, issuedTicket, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
   const [searchInput, setSearchInput] = useState(trackQuery || selectedTrain?.trainNumber || '12302');
 
   useEffect(() => {
@@ -62,78 +47,17 @@ export const JourneyTrackerPage: React.FC = () => {
   const toCode = foundTrain?.toStationCode || issuedTicket?.destination?.code || searchParams.toStation.code || 'NDLS';
   const toCity = foundTrain?.toCity || issuedTicket?.destination?.city || searchParams.toStation.city || 'Delhi';
 
-  // Station route timeline
-  const routeStations: StationStop[] = [
-    {
-      code: fromCode,
-      name: fromCity,
-      platform: 'Platform 8',
-      scheduledArr: '--:--',
-      scheduledDep: '16:55',
-      distanceKm: 0,
-      doorSide: 'RIGHT SIDE',
-      pillarInfo: 'Pillar #4 & North Overbridge',
-    },
-    {
-      code: 'CNB',
-      name: 'Kanpur Central',
-      platform: 'Platform 1',
-      scheduledArr: '21:30',
-      scheduledDep: '21:35',
-      distanceKm: 440,
-      doorSide: 'LEFT SIDE',
-      pillarInfo: 'Pillar #8 & Main Exit',
-    },
-    {
-      code: 'PRYJ',
-      name: 'Prayagraj Junction',
-      platform: 'Platform 4',
-      scheduledArr: '23:43',
-      scheduledDep: '23:45',
-      distanceKm: 635,
-      doorSide: 'RIGHT SIDE',
-      pillarInfo: 'Pillar #14 & Escalator',
-    },
-    {
-      code: 'DDU',
-      name: 'Pt. Deen Dayal Upadhyaya',
-      platform: 'Platform 2',
-      scheduledArr: '01:25',
-      scheduledDep: '01:35',
-      distanceKm: 785,
-      doorSide: 'RIGHT SIDE',
-      pillarInfo: 'Pillar #6 & Ramp',
-    },
-    {
-      code: 'GAYA',
-      name: 'Gaya Junction',
-      platform: 'Platform 1',
-      scheduledArr: '03:55',
-      scheduledDep: '03:58',
-      distanceKm: 990,
-      doorSide: 'LEFT SIDE',
-      pillarInfo: 'Pillar #11 & Footover Bridge',
-    },
-    {
-      code: toCode,
-      name: toCity,
-      platform: 'Platform 9',
-      scheduledArr: '09:55',
-      scheduledDep: '--:--',
-      distanceKm: 1451,
-      doorSide: 'RIGHT SIDE',
-      pillarInfo: 'Platform Pillar #18 & Cabway',
-    },
-  ];
+  const routeStations: StationStop[] = getTrainStoppages(trainNumber, foundTrain);
 
   // Active station tracker state machine
-  const [activeStationIndex, setActiveStationIndex] = useState(2); // Starts approaching Prayagraj Jn (PRYJ)
-  const [countdownSeconds, setCountdownSeconds] = useState(240); // 4 min leg
-  const [haltSeconds, setHaltSeconds] = useState(20); // 20s scheduled halt in simulation
-  const [phase, setPhase] = useState<TravelPhase>('APPROACHING');
+  const [activeStationIndex, setActiveStationIndex] = useState(1);
+  const [countdownSeconds, setCountdownSeconds] = useState(180);
+  const [haltSeconds, setHaltSeconds] = useState(20);
+  const [phase, setPhase] = useState<TravelPhase>('TRAVELING');
   const [delayStatus, setDelayStatus] = useState<DelayStatus>('ON_TIME');
   const [isPlayingAnnouncement, setIsPlayingAnnouncement] = useState(false);
   const [speedJitter, setSpeedJitter] = useState(0);
+  const lastNotifKey = useRef('');
 
   const isFinalDestination = activeStationIndex === routeStations.length - 1;
   const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1];
@@ -264,47 +188,46 @@ export const JourneyTrackerPage: React.FC = () => {
 
   const currentSpeed = Math.max(0, baseSpeed === 0 ? 0 : baseSpeed + speedJitter);
 
-  // Manual simulation controls
-  const handleSimulateTime = (seconds: number) => {
-    setCountdownSeconds(seconds);
-    if (seconds <= 0) {
-      if (isFinalDestination) {
-        setPhase('DESTINATION_ARRIVED');
-      } else {
-        setPhase('HALTED');
-        setHaltSeconds(20);
-      }
-    } else if (seconds <= 120) {
-      setPhase('APPROACHING');
-    } else {
-      setPhase('TRAVELING');
-    }
-  };
-
-  const handleStartFromOrigin = () => {
-    setActiveStationIndex(0);
-    setCountdownSeconds(300);
+  useEffect(() => {
+    const stops = getTrainStoppages(trainNumber, foundTrain);
+    const mid = Math.max(1, Math.min(stops.length - 2, Math.floor(stops.length / 3)));
+    setActiveStationIndex(mid);
     setPhase('TRAVELING');
-    setDelayStatus('ON_TIME');
-  };
+    const seed = Number.parseInt(trainNumber, 10) || trainNumber.length;
+    setCountdownSeconds(150 + (seed % 120));
+    const delayPick: DelayStatus[] = ['ON_TIME', 'BEFORE_TIME', 'ON_TIME', 'DELAY_8M'];
+    setDelayStatus(delayPick[seed % delayPick.length]);
+    lastNotifKey.current = '';
+  }, [trainNumber]);
 
-  const handleReachDestination = () => {
-    setActiveStationIndex(routeStations.length - 1);
-    setCountdownSeconds(0);
-    setPhase('DESTINATION_ARRIVED');
-  };
-
-  const handleNextStation = () => {
-    if (activeStationIndex < routeStations.length - 1) {
-      const nextIdx = activeStationIndex + 1;
-      setActiveStationIndex(nextIdx);
-      const randomSecs = [240, 300, 360, 480][Math.floor(Math.random() * 4)];
-      setCountdownSeconds(randomSecs);
-      setPhase('TRAVELING');
-    } else {
-      setPhase('DESTINATION_ARRIVED');
+  useEffect(() => {
+    const key = `${phase}-${activeStationIndex}`;
+    if (lastNotifKey.current === key) return;
+    const station = routeStations[activeStationIndex];
+    if (!station) return;
+    if (phase === 'APPROACHING') {
+      lastNotifKey.current = key;
+      addNotification({
+        type: 'track',
+        title: `Approaching ${station.name}`,
+        body: `${trainName} (#${trainNumber}) arrives on ${station.platform}. Doors open on the ${station.doorSide.toLowerCase()}.`,
+      });
+    } else if (phase === 'HALTED') {
+      lastNotifKey.current = key;
+      addNotification({
+        type: 'track',
+        title: `Halted at ${station.name}`,
+        body: `Scheduled departure ${station.scheduledDep}. ${station.platform}.`,
+      });
+    } else if (phase === 'DESTINATION_ARRIVED') {
+      lastNotifKey.current = key;
+      addNotification({
+        type: 'track',
+        title: `Arrived at ${station.name}`,
+        body: `${trainName} has reached its destination on ${station.platform}.`,
+      });
     }
-  };
+  }, [phase, activeStationIndex, routeStations, trainName, trainNumber, addNotification]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,55 +254,26 @@ export const JourneyTrackerPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Delay Simulation Mode Selector & Search */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-full border border-slate-200 text-xs">
-            <span className="text-[10px] font-bold text-slate-500 px-2">Status:</span>
-            <button
-              type="button"
-              onClick={() => setDelayStatus('ON_TIME')}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                delayStatus === 'ON_TIME'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-emerald-700'
-              }`}
-            >
-              Right On Time
-            </button>
-            <button
-              type="button"
-              onClick={() => setDelayStatus('BEFORE_TIME')}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                delayStatus === 'BEFORE_TIME'
-                  ? 'bg-purple-700 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-purple-700'
-              }`}
-            >
-              -5m Early
-            </button>
-            <button
-              type="button"
-              onClick={() => setDelayStatus('DELAY_8M')}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                delayStatus === 'DELAY_8M'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-amber-700'
-              }`}
-            >
-              +8m Delay
-            </button>
-            <button
-              type="button"
-              onClick={() => setDelayStatus('DELAY_25M')}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                delayStatus === 'DELAY_25M'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-red-700'
-              }`}
-            >
-              +25m Delay
-            </button>
-          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+              delayStatus === 'ON_TIME'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : delayStatus === 'BEFORE_TIME'
+                ? 'bg-purple-50 text-purple-800 border-purple-200'
+                : delayStatus === 'DELAY_8M'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}
+          >
+            {delayStatus === 'ON_TIME'
+              ? 'On time'
+              : delayStatus === 'BEFORE_TIME'
+              ? 'Running early'
+              : delayStatus === 'DELAY_8M'
+              ? 'About 8 min late'
+              : 'About 25 min late'}
+          </span>
 
           <form onSubmit={handleSearch} className="flex items-center gap-1.5">
             <div className="relative">
@@ -401,17 +295,12 @@ export const JourneyTrackerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Active Express Trains Radar Switcher */}
+      {/* Active Express Trains Radar Switcher */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
         <button
           type="button"
-          onClick={() => {
-            setSearchInput('12302');
-            setActiveStationIndex(2);
-            setCountdownSeconds(240);
-            setPhase('APPROACHING');
-          }}
+          onClick={() => setSearchInput('12302')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12302'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -424,12 +313,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => {
-            setSearchInput('12951');
-            setActiveStationIndex(2);
-            setCountdownSeconds(210);
-            setPhase('TRAVELING');
-          }}
+          onClick={() => setSearchInput('12951')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12951'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -442,12 +326,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => {
-            setSearchInput('22436');
-            setActiveStationIndex(1);
-            setCountdownSeconds(180);
-            setPhase('APPROACHING');
-          }}
+          onClick={() => setSearchInput('22436')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '22436'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -455,7 +334,46 @@ export const JourneyTrackerPage: React.FC = () => {
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-          <span>#22436 Vande Bharat</span>
+          <span>#22436 Varanasi Vande Bharat</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSearchInput('12002')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12002'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5 text-emerald-500" />
+          <span>#12002 Bhopal Shatabdi</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSearchInput('20835')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '20835'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Navigation className="w-3.5 h-3.5 text-blue-500" />
+          <span>#20835 Puri Vande Bharat</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSearchInput('22692')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '22692'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Train className="w-3.5 h-3.5 text-purple-500" />
+          <span>#22692 Bengaluru Rajdhani</span>
         </button>
       </div>
 
@@ -581,7 +499,7 @@ export const JourneyTrackerPage: React.FC = () => {
                 </span>
               </div>
               <h3 className="text-sm sm:text-base font-black text-white mt-0.5">
-                Welcome to {toCity}! All 1,451 km Traveled Safely
+                Welcome to {toCity}! {routeStations[routeStations.length - 1]?.distanceKm || foundTrain?.distanceKm || 0} km traveled safely
               </h3>
               <p className="text-[11px] text-emerald-100 font-medium">
                 Deboarding on <strong>{currentTargetStation.doorSide}</strong>. Exit towards <strong>{currentTargetStation.pillarInfo}</strong>.
@@ -589,25 +507,15 @@ export const JourneyTrackerPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => announceArrival()}
-              disabled={isPlayingAnnouncement}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 shadow-sm transition-all cursor-pointer"
-            >
-              <Volume2 className="w-4 h-4 text-emerald-800" />
-              <span>{isPlayingAnnouncement ? 'Announcing...' : 'Final Arrival TTS'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleStartFromOrigin}
-              className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-white text-xs font-bold border border-emerald-400/40 transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Journey</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => announceArrival()}
+            disabled={isPlayingAnnouncement}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 shadow-sm transition-all cursor-pointer shrink-0"
+          >
+            <Volume2 className="w-4 h-4 text-emerald-800" />
+            <span>{isPlayingAnnouncement ? 'Announcing...' : 'Play arrival announcement'}</span>
+          </button>
         </div>
       ) : phase === 'HALTED' ? (
         /* GREEN STATION HALT BANNER */
@@ -703,7 +611,7 @@ export const JourneyTrackerPage: React.FC = () => {
             className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold transition-all cursor-pointer self-start sm:self-center shrink-0"
           >
             <Volume2 className="w-3.5 h-3.5 text-purple-700" />
-            <span>Test Chime & Audio</span>
+            <span>Play announcement</span>
           </button>
         </div>
       )}
@@ -722,56 +630,9 @@ export const JourneyTrackerPage: React.FC = () => {
               </h3>
             </div>
 
-            {/* Simulation Shift & Stoppage Stepper Controls */}
-            <div className="flex items-center gap-1 flex-wrap text-xs">
-              <span className="text-[10px] text-slate-400 font-bold mr-1">Controls:</span>
-              <button
-                type="button"
-                onClick={handleStartFromOrigin}
-                className="px-2 py-0.5 rounded-md bg-purple-100 hover:bg-purple-200 text-purple-900 text-[10px] font-bold cursor-pointer flex items-center gap-0.5"
-                title="Start from Origin (Station 1)"
-              >
-                <span>Origin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSimulateTime(300)}
-                className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-800 text-[10px] font-bold cursor-pointer"
-              >
-                5m Left
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSimulateTime(115)}
-                className="px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold cursor-pointer"
-              >
-                2m Alert
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSimulateTime(0)}
-                className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold cursor-pointer"
-              >
-                Halt
-              </button>
-              <button
-                type="button"
-                onClick={handleNextStation}
-                className="px-2 py-0.5 rounded-md bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[10px] font-bold cursor-pointer flex items-center gap-0.5"
-                title="Shift to Next Station in Route"
-              >
-                <span>Next Stop</span>
-                <FastForward className="w-2.5 h-2.5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleReachDestination}
-                className="px-2 py-0.5 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold cursor-pointer flex items-center gap-0.5"
-                title="Reach Final Stoppage"
-              >
-                <span>Destination 🏁</span>
-              </button>
-            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Live timetable • {routeStations.length} stoppages
+            </span>
           </div>
 
           {/* Interactive Route Timeline */}
@@ -830,7 +691,8 @@ export const JourneyTrackerPage: React.FC = () => {
                         </span>
                       </div>
                       <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
-                        {st.distanceKm} km • Scheduled Dep: {st.scheduledDep}
+                        {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
+                        {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
                       </span>
                       {isCurrent && (
                         <div className="mt-2 flex items-center gap-2 flex-wrap">

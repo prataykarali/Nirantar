@@ -31,7 +31,9 @@ import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
 import { speakNiraResponse, stopNiraSpeech } from '../services/voiceService';
-import { streamNiraChat } from '../services/niraApi';
+import { streamNiraChat, transcribeAudio } from '../services/niraApi';
+import { getTrainStoppages } from '../data/trainStoppages';
+import { formatTrainGrounding, rankTrains, plainClass } from '../utils/rankTrains';
 import { NiraPlanner, NiraSanitizedContext } from '../ai/NiraPlanner';
 import { PiiRedactor } from '../ai/PiiRedactor';
 import { ActionPolicyEngine } from '../actions/ActionPolicy';
@@ -130,6 +132,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     paymentState,
     selectedTrain,
     selectedClassCode,
+    selectTrain,
     // ─── State-Aware Nira (Journey Orchestration) ───
     getSanitizedContext,
     bookingState,
@@ -335,12 +338,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const ctx = getSanitizedContext();
     const greeting = NiraPlanner.generateStateAwareGreeting(ctx);
 
-    // Only add greeting if chat is empty or user reopened on a new page
     if (messages.length === 0) {
       const greetMsg: ChatMessage = {
         id: `nira-greeting-${Date.now()}`,
         sender: 'nira',
-        text: greeting.message,
+        text: greeting.message.replace(/i'?m nira[^.!]*/i, '').trim() ||
+          'Where in India do you want to go? I can find trains, rank them, or track a live train number.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages([greetMsg]);
@@ -489,7 +492,7 @@ Enter your authorization credentials on the payment bridge below (Banking creden
 
     if (!extractedFrom || !extractedTo) {
       const words = lower.split(/[\s,]+/);
-      const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help'];
+      const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help', 'go', 'going', 'hey', 'wanna', 'the', 'a', 'an', 'my', 'live', 'status', 'track', 'where'];
       for (const w of words) {
         if (w.length < 3 || ignoreWords.includes(w)) continue;
         const st = findStation(w);
@@ -506,9 +509,9 @@ Enter your authorization credentials on the payment bridge below (Banking creden
     // Only update route stations if explicitly found in current text
     const updatedRoute: RouteContext = {
       ...current,
-      fromStation: extractedFrom,
-      toStation: extractedTo,
-      trainNumber: updated.trainNumber,
+      fromStation: extractedFrom || current.fromStation,
+      toStation: extractedTo || current.toStation,
+      trainNumber: updated.trainNumber || current.trainNumber,
       travelDate: updated.travelDate,
       passengers: updated.passengers,
       classCode: updated.classCode,
@@ -910,67 +913,43 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         delayMins: 0,
       };
 
-      const trackReplyText = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}):
-Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform 4 • Doors opening on RIGHT SIDE) in 3 mins.`;
+      const trackGrounding = `LIVE TRACKING DATA:\nTrain: #${trainNo} ${matchedTrain.trainName}\nSpeed: 118 km/h\nStatus: Right on time\nApproaching: Prayagraj Junction (Platform 4, Doors open on Right Side)\nDistance remaining to destination: 816 km`;
 
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: trackReplyText,
-                  isStreaming: false,
-                  trackCard: trackCardData,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(trackReplyText);
-        }
-      }, 400);
+      let accumulated = '';
+      streamNiraChat(
+        safeQuery,
+        'en',
+        (token) => {
+          accumulated += token;
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: accumulated, isStreaming: true, trackCard: trackCardData } : m))
+          );
+        },
+        () => {
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === botMsgId ? { ...m, isStreaming: false, trackCard: trackCardData } : m))
+          );
+          if (autoVoice && accumulated) {
+            speakNiraResponse(accumulated);
+          }
+        },
+        (err) => {
+          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform 4 • Doors opening on RIGHT SIDE).`;
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackTrack, isStreaming: false, trackCard: trackCardData } : m))
+          );
+          if (autoVoice) speakNiraResponse(fallbackTrack);
+        },
+        messages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+        trackGrounding
+      );
       return;
     }
 
-    // ─── 1B.2: Slot Filling for generic booking queries without route ───
-    const isGenericBooking =
-      lowerQuery === 'i want to book a ticket' ||
-      lowerQuery === 'i want to book a train' ||
-      lowerQuery === 'i want to book train' ||
-      lowerQuery === 'book train' ||
-      lowerQuery === 'book a train' ||
-      lowerQuery === 'book ticket' ||
-      lowerQuery === 'book a ticket' ||
-      lowerQuery === 'reserve ticket' ||
-      lowerQuery === 'train booking' ||
-      lowerQuery === 'ticket booking' ||
-      ((lowerQuery.includes('book') || lowerQuery.includes('reserve')) && !lowerQuery.includes(' to ') && !lowerQuery.includes(' from ') && !intentData.trainNumber && !lowerQuery.includes('payment') && !lowerQuery.includes('autofill') && !lowerQuery.includes('passenger') && !lowerQuery.includes('tatkal'));
-
-    if (isGenericBooking && (!nextRouteCtx.fromStation || !nextRouteCtx.toStation) && !intentData.trainNumber) {
-      const slotReplyText = "Sure! Where would you like to travel? Please tell me your **origin and destination stations** (for example: *'Delhi to Mumbai'* or *'Bengaluru to Chennai'*) or a specific train number/name.";
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: slotReplyText,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse("Where would you like to travel? Please tell me your origin and destination station.");
-        }
-      }, 300);
-      return;
-    }
-
-    // ─── 1C: Auto-Booking / Seat Reservation Intent (Requires explicit route or train number in current query) ───
+    // ─── 1C: Route Search & Booking Intent with Real Multi-Train Grounding ───
     const queryHasRoute = safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from ') || /\b\d{5}\b/.test(safeQuery);
     const hasExplicitRoute = !!(nextRouteCtx.fromStation && nextRouteCtx.toStation && (queryHasRoute || intentData.isAutoBook));
     const hasExplicitTrain = !!intentData.trainNumber;
@@ -981,78 +960,89 @@ Currently cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform
       const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
       const paxCount = nextRouteCtx.passengers || 1;
       const classCode = nextRouteCtx.classCode || '3A';
-      const quota = nextRouteCtx.quota || (intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)');
 
       const trains = searchTrains(fromSt.code, toSt.code);
-      let selectedBestTrain = trains[0] || null;
 
-      if (intentData.trainNumber) {
-        const directMatch = trains.find((t) => t.trainNumber === intentData.trainNumber);
-        if (directMatch) selectedBestTrain = directMatch;
-      }
-
-      if (selectedBestTrain) {
-        const clsObj = selectedBestTrain.classes.find((c) => c.classCode === classCode) || selectedBestTrain.classes[0] || {
-          classCode: '3A',
-          fare: 2150,
-          status: 'AVAILABLE',
-          availableSeats: 48,
-        };
-
-        const autoBookCardData: AutoBookData = {
-          train: selectedBestTrain,
+      if (trains && trains.length > 0) {
+        const groundingContext = formatTrainGrounding(trains, fromSt.city, toSt.city);
+        const topTrains = rankTrains(trains).slice(0, 3);
+        const understoodCard = {
+          from: `${fromSt.name} (${fromSt.code})`,
+          to: `${toSt.name} (${toSt.code})`,
+          date: travelDate,
+          time: 'Available Schedules',
+          passengers: paxCount,
+          classCode,
+          fare: (topTrains[0]?.classes[0]?.fare || 1500) * paxCount,
+          trainName: topTrains[0]?.trainName,
+          trainNumber: topTrains[0]?.trainNumber,
           fromStation: fromSt,
           toStation: toSt,
-          travelDate: travelDate,
-          classCode: clsObj.classCode,
-          quota: quota,
-          passengersCount: paxCount,
-          passengerName: nextRouteCtx.passengerName || 'Ananya Sharma',
-          fare: clsObj.fare * paxCount,
-          platform: 'Platform 8',
         };
 
-        const tatkalText = intentData.isTatkal ? ' (Tatkal Quota)' : '';
-        const botResponseText = `I found **${trains.length} trains** (${fromSt.city} → ${toSt.city})${tatkalText}.\n\n**Best match**: #${selectedBestTrain.trainNumber} **${selectedBestTrain.trainName}** • ⚡ Fastest • ₹${clsObj.fare} (${clsObj.classCode}) • ⭐ Matches preferences`;
-
-        setTimeout(() => {
-          setIsLoading(false);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === botMsgId
-                ? {
-                    ...m,
-                    text: botResponseText,
-                    isStreaming: false,
-                    understoodCard: {
-                      from: `${fromSt.name} (${fromSt.code})`,
-                      to: `${toSt.name} (${toSt.code})`,
-                      date: travelDate,
-                      time: 'Evening Departure',
-                      passengers: paxCount,
-                      classCode: clsObj.classCode,
-                      fare: clsObj.fare * paxCount,
-                      trainName: selectedBestTrain.trainName,
-                      trainNumber: selectedBestTrain.trainNumber,
-                      fromStation: fromSt,
-                      toStation: toSt,
-                    },
-                    autoBookCard: autoBookCardData,
-                    trainList: trains.slice(0, 3),
-                  }
-                : m
-            )
-          );
-          if (autoVoice) {
-            speakNiraResponse(`I found ${trains.length} trains. Best match is ${selectedBestTrain.trainName}.`);
-          }
-        }, 350);
+        let accumulated = '';
+        streamNiraChat(
+          safeQuery,
+          'en',
+          (token) => {
+            accumulated += token;
+            setIsLoading(false);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === botMsgId
+                  ? {
+                      ...m,
+                      text: accumulated,
+                      isStreaming: true,
+                      trainList: topTrains,
+                      understoodCard,
+                    }
+                  : m
+              )
+            );
+          },
+          () => {
+            setIsLoading(false);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === botMsgId
+                  ? {
+                      ...m,
+                      isStreaming: false,
+                      trainList: topTrains,
+                      understoodCard,
+                    }
+                  : m
+              )
+            );
+            if (autoVoice && accumulated) {
+              speakNiraResponse(accumulated);
+            }
+          },
+          (err) => {
+            const fallbackText = `I found **${trains.length} trains** between ${fromSt.city} and ${toSt.city}.\n\nRanked options:\n${topTrains.map((t, i) => `${i + 1}. #${t.trainNumber} ${t.trainName} — ${t.durationHours}, ${plainClass(t.classes[0]?.classCode || '3A')} from ₹${t.classes[0]?.fare}${t.isFastest ? ' (Fastest)' : t.isBestValue ? ' (Cheapest)' : ''}`).join('\n')}\n\nWhich do you prefer? Tap 'Book This Train' below when you are ready to proceed.`;
+            setIsLoading(false);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === botMsgId
+                  ? {
+                      ...m,
+                      text: fallbackText,
+                      isStreaming: false,
+                      trainList: topTrains,
+                      understoodCard,
+                    }
+                  : m
+              )
+            );
+            if (autoVoice) speakNiraResponse(fallbackText);
+          },
+          messages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+          groundingContext
+        );
         return;
       } else {
-        const noTrainText = `Sorry, I couldn't find scheduled direct trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our 550+ route database.
-
-Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or Mumbai Central (CSMT) are recommended. Would you like me to check connecting routes?`;
-
+        const noTrainText = `I couldn't find direct scheduled trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our database. Connecting trains via major junctions like New Delhi (NDLS), Howrah (HWH), or Mumbai Central (CSMT) are recommended. Would you like to try another route?`;
         setTimeout(() => {
           setIsLoading(false);
           setMessages((prev) =>
@@ -1066,16 +1056,12 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                 : m
             )
           );
-          if (autoVoice) {
-            speakNiraResponse(`I didn't find direct trains between ${fromSt.city} and ${toSt.city}. Connecting trains via major junctions are recommended.`);
-          }
-        }, 400);
+          if (autoVoice) speakNiraResponse(noTrainText);
+        }, 300);
         return;
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // LAYER 2: STATE-AWARE NIRA PLANNER (Sanitized Context)
     // ═══════════════════════════════════════════════════════════
     // LAYER 2: STATE-AWARE NIRA PLANNER (Sanitized Context)
     // ═══════════════════════════════════════════════════════════
@@ -1181,29 +1167,17 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
       },
       async (err) => {
         console.warn('Streaming fallback triggered:', err);
-        // ─── GRACEFUL DEGRADATION: Safe Assist Mode ───
-        // If LLM is unavailable, Nira still works via deterministic state-aware greeting
         try {
-          const ctx = getSanitizedContext();
-          const fallbackPlan = NiraPlanner.generateStateAwareGreeting(ctx);
+          const lower = safeQuery.toLowerCase();
+          const isForeign = /(hawaii|hawai|paris|london|dubai|new york|tokyo|flight|airplane|hotel|visa)/i.test(lower);
+          const fallbackText = isForeign
+            ? `I understand you want to visit ${safeQuery.replace(/hey[,!]?\s*/i, '').trim()}, but I can only help with Indian train travel — for example Delhi to Mumbai or Kolkata to Puri. Where in India do you want to go?`
+            : "I can find Indian trains, compare them in plain language, track live running status, or guide your booking. Where in India do you want to travel?";
           setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackPlan.message, isStreaming: false } : m))
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackText, isStreaming: false } : m))
           );
           if (autoVoice) {
-            speakNiraResponse(fallbackPlan.message);
-          }
-        } catch {
-          const fallbackDefault =
-            "I'm here to help! You can auto-book trains, check Tatkal rules & availability, track live GPS running status, or resolve payment issues.";
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === botMsgId
-                ? { ...m, text: fallbackDefault, isStreaming: false }
-                : m
-            )
-          );
-          if (autoVoice) {
-            speakNiraResponse(fallbackDefault);
+            speakNiraResponse(fallbackText);
           }
         } finally {
           setIsLoading(false);
@@ -1464,9 +1438,9 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                 />
               </div>
               <div className="p-3 rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 text-slate-800 space-y-1 shadow-2xs">
-                <span className="font-bold text-slate-900 block">Hi! I'm Nira 🤖</span>
+                <span className="font-bold text-slate-900 block">Nira Rail Assistant</span>
                 <p className="text-slate-600 font-medium leading-relaxed">
-                  I can <strong>auto-book tickets</strong>, reserve <strong>Tatkal slots</strong>, track <strong>live GPS telemetry</strong>, or verify PNRs. How can I help you today?
+                  Where in India would you like to travel? Tell me your route (e.g. <em>Delhi to Mumbai</em>) or train number, and I'll find, rank, and help you book your journey.
                 </p>
               </div>
             </div>
@@ -1614,9 +1588,100 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                   )}
 
                   {/* ─────────────────────────────────────────────────────────────
-                      INTERACTIVE AUTO-BOOK CARD
+                      INTERACTIVE MULTI-TRAIN LIST (Ranked, Wait for User Choice)
                       ───────────────────────────────────────────────────────────── */}
-                  {m.autoBookCard && (
+                  {m.trainList && m.trainList.length > 0 && (
+                    <div className="ml-8 space-y-2.5">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
+                        <span>Found {m.trainList.length} Top Ranked Trains:</span>
+                        <span className="text-[#7C3AED] font-semibold">Select to Book</span>
+                      </div>
+                      {m.trainList.map((train) => {
+                        const bestClass = train.classes?.[0] || { classCode: '3A', fare: 1500, status: 'AVAILABLE', availableSeats: 20 };
+                        const fastest = train.isFastest;
+                        const bestVal = train.isBestValue;
+                        return (
+                          <div
+                            key={train.trainNumber}
+                            className="p-3 rounded-2xl bg-white border border-purple-100 hover:border-purple-300 shadow-sm space-y-2 transition-all"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-xs text-slate-900">
+                                    #{train.trainNumber} • {train.trainName}
+                                  </span>
+                                  {fastest && (
+                                    <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded-full">
+                                      ⚡ Fastest
+                                    </span>
+                                  )}
+                                  {bestVal && (
+                                    <span className="text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded-full">
+                                      💰 Best Value
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-0.5">
+                                  Dep {train.departureTime} → Arr {train.arrivalTime} • {train.durationHours}
+                                </p>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="text-xs font-black text-emerald-700 block font-mono">
+                                  ₹{bestClass.fare}
+                                </span>
+                                <span className="text-[9px] text-purple-700 font-semibold">
+                                  {plainClass(bestClass.classCode)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1 border-t border-purple-50">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  selectTrain(train, bestClass.classCode);
+                                  const selectMsg: ChatMessage = {
+                                    id: `nira-select-${Date.now()}`,
+                                    sender: 'nira',
+                                    text: `Selected **#${train.trainNumber} ${train.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\nProceeding to Step 2 (Passenger Workspace). Please fill your passenger details!`,
+                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                  };
+                                  setMessages((prev) => [...prev, selectMsg]);
+                                  if (autoVoice) {
+                                    speakNiraResponse(`Selected ${train.trainName}. Proceeding to passenger workspace.`);
+                                  }
+                                }}
+                                className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-98"
+                              >
+                                <span>Book This Train ➔</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          executeSearch({
+                            fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
+                            toStation: m.understoodCard?.toStation || searchParams.toStation,
+                            passengersCount: m.understoodCard?.passengers || 1,
+                            travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
+                          });
+                          navigateTo('trains');
+                        }}
+                        className="w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[11px] font-bold text-center cursor-pointer transition-all"
+                      >
+                        Review All Trains on Search Screen →
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ─────────────────────────────────────────────────────────────
+                      INTERACTIVE AUTO-BOOK CARD (Explicit single-train confirmation)
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.autoBookCard && !m.trainList && (
                     <div className="ml-8 p-3.5 rounded-2xl bg-white border-2 border-purple-200 shadow-md space-y-3">
                       <div className="flex items-center justify-between border-b border-purple-50 pb-2">
                         <div className="flex items-center gap-1.5">
@@ -1664,43 +1729,12 @@ Connecting trains via major railway hubs like New Delhi (NDLS), Howrah (HWH), or
                         <button
                           type="button"
                           onClick={() => {
-                            triggerAutoBookFlow({
-                              fromStation: m.autoBookCard!.fromStation,
-                              toStation: m.autoBookCard!.toStation,
-                              travelDate: m.autoBookCard!.travelDate,
-                              passengersCount: m.autoBookCard!.passengersCount,
-                              preferredTrainNumber: m.autoBookCard!.train.trainNumber,
-                              classCode: m.autoBookCard!.classCode,
-                              quota: m.autoBookCard!.quota,
-                              passengerName: m.autoBookCard!.passengerName,
-                              startWithGuidance: false,
-                            });
+                            selectTrain(m.autoBookCard!.train, m.autoBookCard!.classCode);
                           }}
                           className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
                         >
                           <Zap className="w-3.5 h-3.5 text-amber-300" />
-                          <span>⚡ Auto Book Journey (SafeAssist Autofill)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            triggerAutoBookFlow({
-                              fromStation: m.autoBookCard!.fromStation,
-                              toStation: m.autoBookCard!.toStation,
-                              travelDate: m.autoBookCard!.travelDate,
-                              passengersCount: m.autoBookCard!.passengersCount,
-                              preferredTrainNumber: m.autoBookCard!.train.trainNumber,
-                              classCode: m.autoBookCard!.classCode,
-                              quota: m.autoBookCard!.quota,
-                              passengerName: m.autoBookCard!.passengerName,
-                              startWithGuidance: true,
-                            });
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                        >
-                          <Compass className="w-3.5 h-3.5 text-[#7C3AED]" />
-                          <span>🧭 Start Guided Spotlight Booking</span>
+                          <span>Book This Train ➔</span>
                         </button>
                       </div>
                     </div>

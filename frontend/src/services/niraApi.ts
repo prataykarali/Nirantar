@@ -144,13 +144,14 @@ export async function streamNiraChat(
   onToken: (token: string) => void,
   onComplete: () => void,
   onError: (err: any) => void,
-  history: { role: string; content: string }[] = []
+  history: { role: string; content: string }[] = [],
+  context = ''
 ): Promise<void> {
   try {
     const response = await fetch(`${API_BASE}/nira/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, language, history }),
+      body: JSON.stringify({ query, language, history, context }),
     });
 
     if (!response.ok || !response.body) {
@@ -190,6 +191,21 @@ export async function streamNiraChat(
     onComplete();
   } catch (err) {
     onError(err);
+  }
+}
+
+export async function transcribeAudio(audioBase64: string, language = 'en'): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE}/voice/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio_base64: audioBase64, language }),
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    return String(data.transcript || '').trim();
+  } catch {
+    return '';
   }
 }
 

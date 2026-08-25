@@ -13,6 +13,9 @@ export const POPULAR_STATIONS: Station[] = rawData.stations as Station[];
 export function findStation(query: string): Station | null {
   if (!query || typeof query !== 'string') return null;
   const clean = query.trim().toUpperCase();
+  if (clean.length < 3) {
+    return POPULAR_STATIONS.find((s) => s.code === clean) || null;
+  }
 
   // 1. Direct code match
   const direct = POPULAR_STATIONS.find((s) => s.code === clean);

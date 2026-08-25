@@ -35,19 +35,32 @@ class NiraStreamRequest(BaseModel):
     query: str = Field(..., min_length=1)
     language: str = "en"
     history: List[ChatHistoryItem] = []
+    context: Optional[str] = None
 
 
-NIRA_STREAM_SYSTEM_PROMPT = """You are Nira, NIRANTAR's ultra-fast AI Railway Copilot for Indian Railways.
+NIRA_STREAM_SYSTEM_PROMPT = """You are Nira, a railway copilot on NIRANTAR for Indian train travel.
 
-STRICT CONVERSATIONAL RULES:
-- Reply in 1-2 SHORT, DIRECT sentences (under 25 words).
-- NEVER re-introduce yourself or say "Hello! I'm Nira" if the conversation has already started.
-- When the user gives a route or date, acknowledge it directly in 1 sentence.
-- For factual railway questions, answer directly with zero fluff.
+STRICT STYLE:
+- NEVER introduce yourself. NEVER say "Hello! I'm Nira", "I am Nira", or "I'm Nira, your...".
+- Speak like a helpful person: 2 to 5 short sentences, natural English.
+- Use plain words: "3-tier AC" not "3A", "2-tier AC" not "2A", "Sleeper" not "SL", "last-minute ticket" not "Tatkal" unless the user said Tatkal.
+
+SCOPE:
+- You ONLY help with Indian Railways: find trains, compare them, book, track, PNR, classes, last-minute tickets, platforms.
+- If the user wants something outside Indian trains (another country, Hawaii, flights, hotels, sightseeing, coding, trivia):
+  Acknowledge what they asked, then clearly say you are limited to Indian train journeys, and invite an Indian route.
+  Example: "I understand you want to go to Hawaii, but I can only help with Indian train travel — for example Delhi to Mumbai or Kolkata to Puri. Where in India do you want to go?"
+
+BOOKING:
+- When a GROUNDING block lists trains: start with "I found these trains", rank them (fastest, cheapest, more comfortable), ask what they prefer, then match one.
+- Do not invent train numbers, fares, or times. Use only the grounding data.
+- If origin or destination is missing, ask for both Indian stations in one short question.
 """
 
 
-async def generate_nvidia_stream(query: str, language: str, history: List[dict] = None) -> AsyncGenerator[str, None]:
+async def generate_nvidia_stream(
+    query: str, language: str, history: List[dict] = None, context: Optional[str] = None
+) -> AsyncGenerator[str, None]:
     api_key = os.getenv("NVIDIA_API_KEY", "").strip()
     model = os.getenv("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
     api_base = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1").rstrip("/")
@@ -58,8 +71,12 @@ async def generate_nvidia_stream(query: str, language: str, history: List[dict] 
         "Accept": "text/event-stream",
     }
 
-    # Build messages with proper role mapping
     messages = [{"role": "system", "content": NIRA_STREAM_SYSTEM_PROMPT}]
+    if context and str(context).strip():
+        messages.append({
+            "role": "system",
+            "content": f"GROUNDING (facts only, do not invent beyond this):\n{context.strip()}",
+        })
 
     if history:
         for item in history[-6:]:
@@ -73,8 +90,8 @@ async def generate_nvidia_stream(query: str, language: str, history: List[dict] 
     payload = {
         "model": model,
         "messages": messages,
-        "max_tokens": 80,
-        "temperature": 0.1,
+        "max_tokens": 220,
+        "temperature": 0.35,
         "stream": True,
     }
 
@@ -116,7 +133,7 @@ async def stream_chat(payload: NiraStreamRequest):
     """Real-time token-by-token streaming chat with conversation memory."""
     history_dicts = [{"role": h.role, "content": h.content} for h in payload.history]
     return StreamingResponse(
-        generate_nvidia_stream(payload.query, payload.language, history_dicts),
+        generate_nvidia_stream(payload.query, payload.language, history_dicts, payload.context),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

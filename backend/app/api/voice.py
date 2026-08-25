@@ -116,7 +116,7 @@ async def speech_to_text(req: TranscribeRequest):
 
     return {
         "status": 200,
-        "transcript": "Find trains from Delhi to Mumbai tomorrow",
-        "confidence": 0.85,
+        "transcript": "",
+        "confidence": 0,
         "source": "fallback",
     }

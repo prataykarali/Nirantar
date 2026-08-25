@@ -35,6 +35,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     authState,
     setShowImStuck,
     setShowVisualDiagram,
+    notifications,
+    markNotificationsRead,
   } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -77,7 +79,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
-  const dynamicNotifCount = notificationCount + (issuedTicket ? 1 : 0);
+  const unreadFromFeed = notifications.filter((n) => !n.read).length;
+  const dynamicNotifCount = notificationCount + unreadFromFeed + (issuedTicket && unreadFromFeed === 0 ? 1 : 0);
 
   return (
     <header
@@ -186,6 +189,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               setShowNotifications(!showNotifications);
               setShowRewards(false);
               setShowDropdown(false);
+              if (!showNotifications) markNotificationsRead();
             }}
             className="relative w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-purple-800 hover:text-purple-950 transition-all hover:scale-105 cursor-pointer"
             aria-label="Notifications"
@@ -210,7 +214,19 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </span>
               </div>
 
-              {issuedTicket ? (
+              {notifications.length > 0 ? (
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {notifications.slice(0, 8).map((n) => (
+                    <div key={n.id} className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
+                      <div className="flex items-center justify-between text-xs font-bold text-purple-950">
+                        <span>{n.title}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold">{n.time}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600">{n.body}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : issuedTicket ? (
                 <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
                   <div className="flex items-center justify-between text-xs font-bold text-purple-950">
                     <span>Ticket Confirmed 🎉</span>

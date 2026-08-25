@@ -621,7 +621,7 @@ Tell me what matters most to you and I will highlight the best match:
       default:
         return {
           intent: 'GENERAL_HELP',
-          message: "I'm Nira, your state-aware journey copilot. I can search trains, auto-fill passengers, explain food & halts, or track live running status.",
+          message: 'Where in India do you want to go? I can find trains, rank them by speed or fare, or track a live train number.',
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };

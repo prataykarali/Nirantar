@@ -2,7 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "outputDirectory": "dist",
+  "functions": {
+    "api/[[...path]].js": {
+      "maxDuration": 30
+    }
+  },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "handle": "filesystem" },
     {
       "src": "/assets/(.*)",
       "headers": {
@@ -10,9 +17,6 @@
       },
       "dest": "/assets/$1"
     },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

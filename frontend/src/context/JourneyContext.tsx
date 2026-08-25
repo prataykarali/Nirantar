@@ -195,6 +195,22 @@ export interface JourneyContextType {
 
   // Reset & Recovery
   resetJourney: () => void;
+
+  // Popup + bell notifications
+  notifications: AppNotification[];
+  addNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => void;
+  dismissNotification: (id: string) => void;
+  markNotificationsRead: () => void;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: 'track' | 'ticket' | 'info';
+  time: string;
+  read: boolean;
+  dismissed: boolean;
 }
 
 const defaultFrom = POPULAR_STATIONS[0]; // NDLS (New Delhi)
@@ -287,6 +303,26 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showImStuck, setShowImStuck] = useState(false);
   const [showVisualDiagram, setShowVisualDiagram] = useState(false);
   const [niraPendingQuery, setNiraPendingQuery] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  const addNotification = useCallback((n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => {
+    const item: AppNotification = {
+      ...n,
+      id: `ntf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: false,
+      dismissed: false,
+    };
+    setNotifications((prev) => [item, ...prev].slice(0, 20));
+  }, []);
+
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, dismissed: true, read: true } : n)));
+  }, []);
+
+  const markNotificationsRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
 
   const sendNiraQuery = useCallback((query: string) => {
     setShowChatDrawer(true);
@@ -1012,6 +1048,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         niraPendingQuery,
         setNiraPendingQuery,
         sendNiraQuery,
+        notifications,
+        addNotification,
+        dismissNotification,
+        markNotificationsRead,
       }}
     >
       {children}
