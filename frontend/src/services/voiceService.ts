@@ -6,8 +6,19 @@
  */
 
 let currentAudio: HTMLAudioElement | null = null;
+let isGlobalMuted = false;
+
+export const setNiraMuted = (muted: boolean): void => {
+  isGlobalMuted = muted;
+  if (muted) {
+    stopNiraSpeech();
+  }
+};
+
+export const getIsNiraMuted = (): boolean => isGlobalMuted;
 
 export const speakNiraResponse = async (text: string): Promise<void> => {
+  if (isGlobalMuted) return;
   if (!text || text.trim() === '') return;
 
   // Stop any currently playing speech

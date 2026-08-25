@@ -30,7 +30,7 @@ import { useJourney, PassengerProfile } from '../context/JourneyContext';
 import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
-import { speakNiraResponse, stopNiraSpeech } from '../services/voiceService';
+import { speakNiraResponse, stopNiraSpeech, setNiraMuted } from '../services/voiceService';
 import { streamNiraChat, transcribeAudio } from '../services/niraApi';
 import { getTrainStoppages } from '../data/trainStoppages';
 import { formatTrainGrounding, rankTrains, plainClass } from '../utils/rankTrains';
@@ -1309,18 +1309,35 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Auto Voice TTS Toggle */}
+          {/* Auto Voice TTS Toggle with Instant Audio Cutoff */}
           <button
             type="button"
-            onClick={() => setAutoVoice(!autoVoice)}
-            className={`p-2 rounded-xl text-[10px] font-bold flex items-center justify-center transition-all cursor-pointer ${
+            onClick={() => {
+              const nextState = !autoVoice;
+              setAutoVoice(nextState);
+              setNiraMuted(!nextState);
+              if (!nextState) {
+                stopNiraSpeech();
+              }
+            }}
+            className={`p-1.5 px-2.5 rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
               autoVoice
                 ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
-                : 'bg-slate-100 text-slate-400 hover:text-slate-700'
+                : 'bg-red-50 text-red-700 border border-red-200'
             }`}
-            title={autoVoice ? 'Voice TTS Active (Click to mute)' : 'Voice TTS Muted (Click to enable)'}
+            title={autoVoice ? 'Voice TTS Active (Click to Mute)' : 'Voice TTS Muted (Click to Unmute)'}
           >
-            {autoVoice ? <Volume2 className="w-4 h-4 text-[#7C3AED]" /> : <VolumeX className="w-4 h-4" />}
+            {autoVoice ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span className="text-[10px] font-bold text-purple-900 hidden sm:inline">Voice ON</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-red-600" />
+                <span className="text-[10px] font-bold text-red-600 hidden sm:inline">Muted</span>
+              </>
+            )}
           </button>
 
           {/* 25 Examples Drawer Toggle */}
