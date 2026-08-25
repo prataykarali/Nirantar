@@ -37,6 +37,7 @@ COPY m0_digital_twin/ ./m0_digital_twin/
 COPY modules/ ./modules/
 COPY contracts/ ./contracts/
 COPY pyproject.toml ./
+COPY alembic.ini ./
 
 # Create alias symlinks for cross-module and legacy imports inside container
 RUN ln -sf /app/modules/m06_prayog /app/simulation && \

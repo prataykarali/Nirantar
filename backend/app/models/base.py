@@ -10,20 +10,32 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from contextlib import contextmanager
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./nirantar_journey.db"  # Fallback for local dev without Docker
+
+def normalize_database_url(url: str | None) -> str:
+    """Convert async / Heroku-style URLs into a sync SQLAlchemy URL."""
+    if not url:
+        return "sqlite:///./nirantar_journey.db"
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql+asyncpg://"):
+        url = "postgresql://" + url[len("postgresql+asyncpg://") :]
+    if url.startswith("sqlite+aiosqlite://"):
+        url = "sqlite://" + url[len("sqlite+aiosqlite://") :]
+    return url
+
+
+DATABASE_URL = normalize_database_url(
+    os.getenv("DATABASE_URL", "sqlite:///./nirantar_journey.db")
 )
 
-# Handle async postgresql URLs
-if DATABASE_URL.startswith("postgresql://"):
-    connect_args = {}
-elif DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
-else:
-    connect_args = {}
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args, echo=False)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    echo=False,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -56,4 +68,6 @@ def get_db_session():
 
 def init_db():
     """Create all tables. Call this on startup."""
+    import backend.app.models.journey_models  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
