@@ -38,6 +38,7 @@ COPY modules/ ./modules/
 COPY contracts/ ./contracts/
 COPY pyproject.toml ./
 COPY alembic.ini ./
+COPY alembic ./alembic
 
 # Create alias symlinks for cross-module and legacy imports inside container
 RUN ln -sf /app/modules/m06_prayog /app/simulation && \
@@ -62,5 +63,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Start Uvicorn
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Cloud Run sets PORT (often 8080); honor it so the health check can reach the app.
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

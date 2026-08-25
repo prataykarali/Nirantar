@@ -1,29 +1,9 @@
-"""Fallback Alembic env if script_location is still backend/migrations."""
+"""Resolve a sync SQLAlchemy URL for local SQLite and Cloud SQL PostgreSQL."""
 
 from __future__ import annotations
 
 import os
-import sys
-from logging.config import fileConfig
-from pathlib import Path
 from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse
-
-from alembic import context
-from sqlalchemy import create_engine, pool
-
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-config = context.config
-
-try:
-    if config.config_file_name is not None:
-        fileConfig(config.config_file_name, disable_existing_loggers=False)
-except Exception:
-    pass
-
-target_metadata = None
 
 
 def _first_env(*names: str) -> str | None:
@@ -34,12 +14,15 @@ def _first_env(*names: str) -> str | None:
     return None
 
 
-def _normalize(url: str | None) -> str:
+def normalize_database_url(url: str | None) -> str:
+    """Convert async / Heroku / pg8000 URLs into a sync psycopg2 or SQLite URL."""
     if not url:
         return "sqlite:////tmp/nirantar_journey.db"
+
     url = url.strip().strip('"').strip("'")
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://") :]
+
     for src, dst in (
         ("postgresql+asyncpg://", "postgresql://"),
         ("postgresql+pg8000://", "postgresql://"),
@@ -49,6 +32,7 @@ def _normalize(url: str | None) -> str:
         if url.startswith(src):
             url = dst + url[len(src) :]
             break
+
     if "unix_sock=" in url:
         parsed = urlparse(url)
         query = dict(parse_qsl(parsed.query, keep_blank_values=True))
@@ -58,10 +42,12 @@ def _normalize(url: str | None) -> str:
         if sock and "host" not in query:
             query["host"] = sock
         url = urlunparse(parsed._replace(query=urlencode(query)))
+
     return url
 
 
-def get_database_url() -> str:
+def resolve_database_url() -> str:
+    """Prefer DATABASE_URL, then Cloud SQL socket parts, then local SQLite."""
     direct = _first_env(
         "DATABASE_URL",
         "CLOUDSQL_URL",
@@ -70,7 +56,7 @@ def get_database_url() -> str:
         "SQLALCHEMY_DATABASE_URI",
     )
     if direct:
-        return _normalize(direct)
+        return normalize_database_url(direct)
 
     user = _first_env("DB_USER", "POSTGRES_USER", "DATABASE_USER") or "postgres"
     password = _first_env(
@@ -87,6 +73,7 @@ def get_database_url() -> str:
         "CLOUDSQL_CONNECTION_NAME",
         "INSTANCE_UNIX_SOCKET",
     )
+
     if instance or host:
         auth = f"{quote_plus(user)}:{quote_plus(password)}"
         dbname = quote_plus(name)
@@ -101,35 +88,4 @@ def get_database_url() -> str:
             return f"postgresql://{auth}@/{dbname}?host={host_q}"
         return f"postgresql://{auth}@{host}:{port}/{dbname}"
 
-    ini_url = config.get_main_option("sqlalchemy.url")
-    return _normalize(ini_url)
-
-
-def run_migrations_offline() -> None:
-    url = get_database_url()
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-def run_migrations_online() -> None:
-    url = get_database_url()
-    connect_args = (
-        {"check_same_thread": False} if url.startswith("sqlite") else {"connect_timeout": 30}
-    )
-    connectable = create_engine(
-        url,
-        poolclass=pool.NullPool,
-        pool_pre_ping=True,
-        connect_args=connect_args,
-    )
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-        with context.begin_transaction():
-            context.run_migrations()
-
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+    return "sqlite:////tmp/nirantar_journey.db"

@@ -1,4 +1,4 @@
-"""Fallback Alembic env if script_location is still backend/migrations."""
+"""Alembic env — no app imports, so `alembic upgrade head` works in Cloud Run."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 

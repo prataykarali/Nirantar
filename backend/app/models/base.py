@@ -5,28 +5,13 @@ SQLAlchemy declarative base + database engine configuration.
 Uses PostgreSQL via docker-compose, with SQLite fallback for local dev.
 """
 
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from contextlib import contextmanager
 
+from backend.app.models.db_url import resolve_database_url
 
-def normalize_database_url(url: str | None) -> str:
-    """Convert async / Heroku-style URLs into a sync SQLAlchemy URL."""
-    if not url:
-        return "sqlite:///./nirantar_journey.db"
-    if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://") :]
-    if url.startswith("postgresql+asyncpg://"):
-        url = "postgresql://" + url[len("postgresql+asyncpg://") :]
-    if url.startswith("sqlite+aiosqlite://"):
-        url = "sqlite://" + url[len("sqlite+aiosqlite://") :]
-    return url
-
-
-DATABASE_URL = normalize_database_url(
-    os.getenv("DATABASE_URL", "sqlite:///./nirantar_journey.db")
-)
+DATABASE_URL = resolve_database_url()
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
