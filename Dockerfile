@@ -31,17 +31,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy application code, digital twin, and modules
+# Copy application code, digital twin, modules, contracts, and project config
 COPY backend/ ./backend/
 COPY m0_digital_twin/ ./m0_digital_twin/
 COPY modules/ ./modules/
-COPY simulation ./simulation
-COPY cairo ./cairo
-COPY ml ./ml
-COPY orchestrator ./orchestrator
-COPY security ./security
-COPY loadtest ./loadtest
+COPY contracts/ ./contracts/
 COPY pyproject.toml ./
+
+# Create alias symlinks for cross-module and legacy imports inside container
+RUN ln -sf /app/modules/m06_prayog /app/simulation && \
+    ln -sf /app/modules/m06_prayog /app/m6_prayog && \
+    ln -sf /app/modules/m03_portalpulse/ml /app/ml && \
+    ln -sf /app/modules/m05_dhara /app/orchestrator && \
+    ln -sf /app/modules/m04_kavach /app/security && \
+    ln -sf /app/modules/m08_cairo_trust /app/cairo && \
+    ln -sf /app/modules/m06_prayog/loadtest /app/loadtest && \
+    ln -sf /app/modules/m01_citizen_ux/python /app/backend/app/services/citizen && \
+    ln -sf /app/modules/m07_command_center/python /app/backend/app/services/command_center && \
+    ln -sf /app/modules/m03_portalpulse/python /app/backend/app/services/prediction && \
+    ln -sf /app/modules/m02_workflow_engine/python /app/backend/app/services/workflow
 
 # Copy built frontend assets for serving via FastAPI static mounts
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
