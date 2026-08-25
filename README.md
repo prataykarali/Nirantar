@@ -1,3 +1,16 @@
+---
+title: NIRANTAR - State-Aware AI Assistant & Resilience Layer
+emoji: 🇮🇳
+colorFrom: indigo
+colorTo: blue
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+license: mit
+short_description: Zero-PII State-Aware AI Assistant & Resilience Layer for Public Journeys
+---
+
 # 🇮🇳 NIRANTAR (निरंतर)
 ### State-Aware AI Assistant & Resilience Layer for Indian Public-Service Journeys
 
