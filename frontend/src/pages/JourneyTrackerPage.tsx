@@ -38,16 +38,35 @@ export const JourneyTrackerPage: React.FC = () => {
     }
   }, [trackQuery]);
   
-  // Dynamic matched train from database
-  const trainNumber = searchInput || '12302';
+  // Dynamic matched train from database or stoppages
+  const trainNumber = (searchInput || '12302').trim();
   const foundTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNumber);
-  const trainName = foundTrain?.trainName || selectedTrain?.trainName || 'Howrah Rajdhani Express';
-  const fromCode = foundTrain?.fromStationCode || issuedTicket?.origin?.code || searchParams.fromStation.code || 'HWH';
-  const fromCity = foundTrain?.fromCity || issuedTicket?.origin?.city || searchParams.fromStation.city || 'Kolkata';
-  const toCode = foundTrain?.toStationCode || issuedTicket?.destination?.code || searchParams.toStation.code || 'NDLS';
-  const toCity = foundTrain?.toCity || issuedTicket?.destination?.city || searchParams.toStation.city || 'Delhi';
-
   const routeStations: StationStop[] = getTrainStoppages(trainNumber, foundTrain);
+  const firstStop = routeStations[0];
+  const lastStop = routeStations[routeStations.length - 1];
+
+  const trainName =
+    foundTrain?.trainName ||
+    (trainNumber === '12302'
+      ? 'Howrah Rajdhani Express'
+      : trainNumber === '12951'
+      ? 'Mumbai Rajdhani Express'
+      : trainNumber === '22436'
+      ? 'Varanasi Vande Bharat Express'
+      : trainNumber === '12002'
+      ? 'Bhopal Shatabdi Express'
+      : trainNumber === '12004'
+      ? 'Lucknow Shatabdi Express'
+      : trainNumber === '22692'
+      ? 'Bengaluru Rajdhani Express'
+      : trainNumber === '20835'
+      ? 'Puri Vande Bharat Express'
+      : `Superfast Express #${trainNumber}`);
+
+  const fromCode = foundTrain?.fromStationCode || firstStop?.code || 'NDLS';
+  const fromCity = foundTrain?.fromCity || firstStop?.name || 'New Delhi';
+  const toCode = foundTrain?.toStationCode || lastStop?.code || 'HWH';
+  const toCity = foundTrain?.toCity || lastStop?.name || 'Howrah';
 
   // Active station tracker state machine
   const [activeStationIndex, setActiveStationIndex] = useState(1);
@@ -59,8 +78,17 @@ export const JourneyTrackerPage: React.FC = () => {
   const [speedJitter, setSpeedJitter] = useState(0);
   const lastNotifKey = useRef('');
 
-  const isFinalDestination = activeStationIndex === routeStations.length - 1;
-  const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1];
+  // Reset tracker cycle whenever train number changes
+  useEffect(() => {
+    setActiveStationIndex(1);
+    setCountdownSeconds(180);
+    setHaltSeconds(20);
+    setPhase('TRAVELING');
+    lastNotifKey.current = '';
+  }, [trainNumber]);
+
+  const isFinalDestination = activeStationIndex >= routeStations.length - 1;
+  const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1] || firstStop;
 
   // Synthesize realistic 4-tone Indian Railway chime
   const playRailwayChime = () => {

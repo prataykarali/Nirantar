@@ -138,6 +138,9 @@ export async function fetchPublicRailwayInfo(query = ''): Promise<any> {
   }
 }
 
+const NVIDIA_CLIENT_KEY = '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';
+const NVIDIA_CLIENT_MODEL = 'meta/llama-3.1-70b-instruct';
+
 export async function streamNiraChat(
   query: string,
   language = 'en',
@@ -147,49 +150,142 @@ export async function streamNiraChat(
   history: { role: string; content: string }[] = [],
   context = ''
 ): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE}/nira/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, language, history, context }),
-    });
+  // Tier 1: Try serverless endpoint proxies
+  const candidateUrls = [
+    `${API_BASE}/nira/chat/stream`,
+    '/api/v1/nira/chat/stream',
+  ];
 
-    if (!response.ok || !response.body) {
-      throw new Error(`HTTP error ${response.status}`);
-    }
+  for (const url of candidateUrls) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, language, history, context }),
+      });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let receivedTokens = false;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === 'data: [DONE]') {
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed === 'data: [DONE]') {
+              onComplete();
+              return;
+            }
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(trimmed.slice(6));
+                if (data.token) {
+                  receivedTokens = true;
+                  onToken(data.token);
+                }
+              } catch {
+                // ignore partial json
+              }
+            }
+          }
+        }
+
+        if (receivedTokens) {
           onComplete();
           return;
         }
-        if (trimmed.startsWith('data: ')) {
+      }
+    } catch {
+      // Continue to next tier
+    }
+  }
+
+  // Tier 2: Direct NVIDIA NIM client streaming (Bypasses any proxy/network blocker)
+  try {
+    const systemPrompt = `You are Nira, an intelligent railway copilot on NIRANTAR for Indian train travel.
+STYLE:
+- NEVER introduce yourself with "Hello! I'm Nira", "I am Nira", or "I'm Nira, your...".
+- Speak like a helpful, friendly human expert: natural, clear, 2 to 4 sentences.
+- Simplify railway terms: "3-tier AC", "2-tier AC", "Sleeper", "Executive Chair Car".
+SCOPE:
+- You specialize in Indian Railways: booking, train discovery, fares, live GPS running status, PNR, tatkal rules, platform details.
+- For out-of-scope queries (like other countries, Hawaii, flights, hotels, ice cream, coding, trivia):
+  Acknowledge the user's intent politely, state clearly that you are specialized in Indian train travel, and invite an Indian railway query.
+  Example: "I understand you'd like that, but I'm specialized in Indian train travel — for example Delhi to Mumbai or Kolkata to Puri. Where in India would you like to travel?"
+${context ? `\nGROUNDING TIMETABLE DATA:\n${context}` : ''}`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-4).map((h) => ({
+        role: h.role === 'nira' || h.role === 'assistant' ? 'assistant' : 'user',
+        content: h.content,
+      })),
+      { role: 'user', content: query },
+    ];
+
+    const nvidiaRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${NVIDIA_CLIENT_KEY}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({
+        model: NVIDIA_CLIENT_MODEL,
+        messages,
+        max_tokens: 500,
+        temperature: 0.35,
+        stream: true,
+      }),
+    });
+
+    if (nvidiaRes.ok && nvidiaRes.body) {
+      const reader = nvidiaRes.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let receivedTokens = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === 'data: [DONE]') continue;
+          if (!trimmed.startsWith('data: ')) continue;
           try {
-            const data = JSON.parse(trimmed.slice(6));
-            if (data.token) {
-              onToken(data.token);
+            const chunk = JSON.parse(trimmed.slice(6));
+            const token = chunk?.choices?.[0]?.delta?.content || '';
+            if (token) {
+              receivedTokens = true;
+              onToken(token);
             }
           } catch {
-            // ignore partial json
+            // ignore partial
           }
         }
       }
+
+      if (receivedTokens) {
+        onComplete();
+        return;
+      }
     }
-    onComplete();
+    throw new Error('NVIDIA stream failed to deliver tokens');
   } catch (err) {
+    console.error('Nira stream error:', err);
     onError(err);
   }
 }

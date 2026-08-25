@@ -887,33 +887,53 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     setRouteCtx(nextRouteCtx);
 
     if (intentData.isTrack || (intentData.trainNumber && !intentData.isAutoBook)) {
-      const trainNo = intentData.trainNumber || '12302';
+      const trainNo = (intentData.trainNumber || '12302').trim();
 
       // If user is mid-booking, save progress to task stack before switching
       if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
         pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
       }
 
-      const matchedTrain =
-        MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNo) || {
-          trainNumber: trainNo,
-          trainName: trainNo === '12951' ? 'Mumbai Rajdhani Express' : trainNo === '22436' ? 'Vande Bharat Express' : 'Howrah Rajdhani Express',
-          fromCity: 'Delhi',
-          toCity: 'Kolkata',
-        };
+      const dynamicTrainName =
+        trainNo === '12302'
+          ? 'Howrah Rajdhani Express'
+          : trainNo === '12951'
+          ? 'Mumbai Rajdhani Express'
+          : trainNo === '22436'
+          ? 'Varanasi Vande Bharat Express'
+          : trainNo === '12002'
+          ? 'Bhopal Shatabdi Express'
+          : trainNo === '12004'
+          ? 'Lucknow Shatabdi Express'
+          : trainNo === '22692'
+          ? 'Bengaluru Rajdhani Express'
+          : trainNo === '20835'
+          ? 'Puri Vande Bharat Express'
+          : `Superfast Express #${trainNo}`;
+
+      const foundDbTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNo) || null;
+      const matchedTrain = foundDbTrain || {
+        trainNumber: trainNo,
+        trainName: dynamicTrainName,
+        fromCity: 'Origin',
+        toCity: 'Destination',
+      };
+
+      const stops = getTrainStoppages(trainNo, foundDbTrain);
+      const nextStop = stops[1] || stops[0] || { name: 'Prayagraj Junction', code: 'PRYJ', platform: 'Platform 4', doorSide: 'RIGHT SIDE' };
 
       const trackCardData: TrackData = {
         trainNumber: trainNo,
         trainName: matchedTrain.trainName,
         currentSpeed: 118,
-        statusText: 'Right on Time (GPS High-Speed Electric Corridor)',
-        nextStation: 'Prayagraj Junction (PRYJ)',
-        platform: 'Platform 4',
-        doorSide: 'RIGHT SIDE',
+        statusText: 'Right on Time (GPS Satellite Telemetry)',
+        nextStation: `${nextStop.name} (${nextStop.code})`,
+        platform: nextStop.platform,
+        doorSide: nextStop.doorSide,
         delayMins: 0,
       };
 
-      const trackGrounding = `LIVE TRACKING DATA:\nTrain: #${trainNo} ${matchedTrain.trainName}\nSpeed: 118 km/h\nStatus: Right on time\nApproaching: Prayagraj Junction (Platform 4, Doors open on Right Side)\nDistance remaining to destination: 816 km`;
+      const trackGrounding = `LIVE TRACKING DATA:\nTrain: #${trainNo} ${matchedTrain.trainName}\nSpeed: 118 km/h\nStatus: Right on time\nNext Stoppage: ${nextStop.name} (${nextStop.code}) on ${nextStop.platform} (Doors open on ${nextStop.doorSide})\nTotal Stops: ${stops.length} stations`;
 
       let accumulated = '';
       streamNiraChat(
@@ -936,7 +956,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
           }
         },
         (err) => {
-          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching Prayagraj Jn (Platform 4 • Doors opening on RIGHT SIDE).`;
+          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching ${nextStop.name} (${nextStop.platform} • Doors opening on ${nextStop.doorSide}). Tap 'Open Live GPS Radar' below to view full platform alignment.`;
           setIsLoading(false);
           setMessages((prev) =>
             prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackTrack, isStreaming: false, trackCard: trackCardData } : m))
