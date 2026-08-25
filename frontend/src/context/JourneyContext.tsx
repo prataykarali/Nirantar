@@ -155,6 +155,7 @@ export interface JourneyContextType {
   walletBalance: number;
   setWalletBalance: React.Dispatch<React.SetStateAction<number>>;
   payWithWallet: (amount: number) => Promise<PaymentAttempt | null>;
+  cancelTicket: (pnr: string, refundAmount?: number) => void;
 
   // Formal State Machine & Event Bus
   bookingState: BookingState;
@@ -466,6 +467,18 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     return null;
   };
+
+  const cancelTicket = useCallback((pnr: string, refundAmount: number = 0) => {
+    setIssuedTicket((prev) => (prev && prev.pnrNumber === pnr ? { ...prev, status: 'CANCELLED' as any } : prev));
+    if (refundAmount > 0) {
+      setWalletBalance((prev) => prev + refundAmount);
+    }
+    addNotification({
+      type: 'ticket',
+      title: `Ticket #${pnr} Cancelled & Refunded`,
+      body: `Statutory refund of ₹${refundAmount.toLocaleString('en-IN')} has been instantly credited back to your Citizen Travel Wallet.`,
+    });
+  }, [addNotification]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -1013,6 +1026,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         walletBalance,
         setWalletBalance,
         payWithWallet,
+        cancelTicket,
         showChatDrawer,
         setShowChatDrawer,
         guidanceActive,

@@ -38,17 +38,15 @@ export interface TrainDetail {
 export const MOCK_TRAINS_DATABASE: TrainDetail[] = rawData.trains as TrainDetail[];
 
 const MAJOR_CORRIDORS: string[][] = [
-  ['NDLS', 'CNB', 'PRYJ', 'DDU', 'GAYA', 'DHN', 'HWH', 'SDAH'],
-  ['NDLS', 'KOTA', 'RTM', 'BRC', 'ST', 'BVI', 'CSMT', 'MMCT'],
-  ['NDLS', 'AGC', 'GWL', 'VGLJ', 'BPL', 'NGP', 'BPQ', 'KZJ', 'SC', 'RC', 'SBC'],
-  ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'LKO'],
-  ['NDLS', 'CNB', 'PRYJ', 'BSB'],
-  ['NDLS', 'MTJ', 'AGC', 'DHO', 'MRA', 'GWL', 'VGLJ', 'LAR', 'BINA', 'BPL'],
-  ['HWH', 'KGP', 'BLS', 'BHC', 'JKR', 'CTC', 'BBS', 'KUR', 'PURI'],
-  ['CSMT', 'DR', 'KYN', 'KJT', 'LNL', 'SVJR', 'PUNE'],
-  ['CSMT', 'ST', 'BRC', 'ADI'],
-  ['NDLS', 'CDG', 'JAT', 'SVDK'],
-  ['NDLS', 'HW', 'DDN'],
+  ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'FTP', 'PRYJ', 'MZP', 'DDU', 'SSM', 'DOS', 'GAYA', 'KQR', 'GMO', 'DHN', 'ASN', 'DGR', 'BWN', 'HWH', 'SDAH'],
+  ['NDLS', 'MTJ', 'BTE', 'SWM', 'KOTA', 'RMA', 'BWM', 'NAD', 'RTM', 'DHD', 'GDA', 'BRC', 'BH', 'ST', 'NVS', 'BL', 'VAPI', 'BVI', 'CSMT', 'MMCT'],
+  ['NDLS', 'MTJ', 'AGC', 'GWL', 'VGLJ', 'BINA', 'BPL', 'ET', 'NGP', 'SEGM', 'CD', 'BPQ', 'SKZR', 'RDM', 'KZJ', 'SC', 'VKB', 'WADI', 'RC', 'MALM', 'GTL', 'ATP', 'DMM', 'HUP', 'YNK', 'SBC'],
+  ['NDLS', 'GZB', 'MB', 'BE', 'SPN', 'BLP', 'LKO', 'BBK', 'AY', 'AYC', 'BSB'],
+  ['HWH', 'SRC', 'KGP', 'BLS', 'BHC', 'JKR', 'CTC', 'BBS', 'KUR', 'PURI'],
+  ['CSMT', 'DR', 'TNA', 'KYN', 'KJT', 'LNL', 'SVJR', 'PUNE', 'DD', 'SUR', 'KLBG', 'WADI'],
+  ['CSMT', 'BVI', 'VAPI', 'BL', 'ST', 'BH', 'BRC', 'ANND', 'ND', 'ADI', 'MSH', 'PNU', 'ABR', 'FA', 'MJ', 'AII', 'JP'],
+  ['NDLS', 'UMB', 'CDG', 'LDH', 'JUC', 'ASR', 'PTKC', 'KTHU', 'JAT', 'UHP', 'SVDK'],
+  ['NDLS', 'GZB', 'MTC', 'MOZ', 'TPZ', 'RK', 'HW', 'DDN'],
 ];
 
 /**

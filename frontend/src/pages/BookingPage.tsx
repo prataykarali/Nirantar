@@ -42,6 +42,20 @@ export const BookingPage: React.FC = () => {
   const [irctcUserId, setIrctcUserId] = useState('ananya_irctc_24');
   const [isAiAutofilled, setIsAiAutofilled] = useState(false);
   const [autofillNotice, setAutofillNotice] = useState<string | null>(null);
+  const [lockSeconds, setLockSeconds] = useState(585); // 09:45 min
+
+  React.useEffect(() => {
+    const t = setInterval(() => {
+      setLockSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const formatLockTimer = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Train fallback if directly loaded
   const train = selectedTrain || {
@@ -243,6 +257,18 @@ export const BookingPage: React.FC = () => {
               <span className="text-[10px] text-purple-200 font-semibold block">{train.toStationName} ({train.toStationCode})</span>
               <span className="text-sm sm:text-base font-bold text-white block">{train.arrivalTime}</span>
             </div>
+          </div>
+
+          {/* Temporary Seat Lock Banner */}
+          <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/20 border border-amber-400/40 text-xs text-amber-200 mt-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <strong className="text-white">10-Min Seat Lock Active:</strong>
+              <span className="hidden sm:inline">Your berths are temporarily reserved.</span>
+            </div>
+            <span className="font-mono font-black text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-400/30">
+              ⏱️ {formatLockTimer(lockSeconds)} remaining
+            </span>
           </div>
         </div>
       </section>

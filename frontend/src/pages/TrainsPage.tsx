@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { TrainDetail } from '../data/mockTrains';
+import { findLocalTrains, LocalTrainRoute } from '../data/localTrainsData';
 
 type FilterType = 'recommended' | 'fastest' | 'cheapest' | 'earliest' | 'availability';
 
@@ -31,6 +32,10 @@ export const TrainsPage: React.FC = () => {
     setActiveSort,
     activeHighlightTarget,
   } = useJourney();
+
+  const localTrains = useMemo(() => {
+    return findLocalTrains(searchParams.fromStation.code, searchParams.toStation.code);
+  }, [searchParams.fromStation.code, searchParams.toStation.code]);
 
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedClassMap, setSelectedClassMap] = useState<Record<string, string>>({});
@@ -217,6 +222,54 @@ export const TrainsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: TRAIN CARDS (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-2.5">
+          {/* ─── Suburban & Local EMU Train Discovery Section ─── */}
+          {localTrains && localTrains.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white rounded-2xl p-4 shadow-md border border-purple-400/40 space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600/60 border border-purple-400/50 flex items-center justify-center font-black text-sm">
+                    🚆
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-xs sm:text-sm font-black text-white">
+                        Suburban & Local EMU Trains
+                      </h4>
+                      <span className="text-[9px] font-black bg-emerald-400 text-slate-950 px-2 py-0.2 rounded-full uppercase">
+                        Unreserved • High Frequency
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-purple-200 font-medium">
+                      No advance reservation needed. Instant unreserved travel available.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {localTrains.map((lt) => (
+                  <div
+                    key={lt.id}
+                    className="p-2.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs text-xs space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="font-bold text-white text-xs">{lt.name}</span>
+                      <span className="font-mono font-black text-emerald-300">₹{lt.unreservedFare}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-purple-200">
+                      <span>⏱️ {lt.frequencyText}</span>
+                      <span>📍 {lt.platform}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-purple-300">
+                      <span>Next departures:</span>
+                      <strong className="text-white">{lt.nextDepartures.slice(0, 3).join(', ')}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {filteredTrains.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 border border-purple-100 shadow-sm text-center space-y-4 animate-in fade-in">
               <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-3xl mx-auto border border-amber-200">
@@ -389,6 +442,17 @@ export const TrainsPage: React.FC = () => {
                       25 May, Sun
                     </span>
                   </div>
+                </div>
+
+                {/* HIGH DEMAND CONCURRENCY & SEAT COUNTDOWN INDICATOR */}
+                <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 bg-amber-50/90 border border-amber-200/80 px-2.5 py-1 rounded-xl">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>🔥 High Demand: Only {train.classes[0]?.availableSeats || 4} seats left in {currentSelectedClass}!</span>
+                  </div>
+                  <span className="text-amber-800 font-semibold hidden sm:inline">
+                    👥 3 other citizens viewing right now
+                  </span>
                 </div>
 
                 {/* BOTTOM ROW: CLASS AVAILABILITY PILLS & VIEW SEATS */}

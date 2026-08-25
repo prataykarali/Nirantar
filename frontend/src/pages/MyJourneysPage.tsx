@@ -78,11 +78,13 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery } = useJourney();
+  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [cancellingJourney, setCancellingJourney] = useState<JourneyRecord | null>(null);
+  const [cancelledPnrList, setCancelledPnrList] = useState<string[]>([]);
 
   // Dynamic ticket generated from active session
   const dynamicUpcoming: JourneyRecord[] = issuedTicket ? [
@@ -552,17 +554,28 @@ export const MyJourneysPage: React.FC = () => {
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row md:flex-col gap-1.5 justify-end">
                   {j.status === 'CONFIRMED' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTrackQuery(j.trainNumber);
-                        navigateTo('track');
-                      }}
-                      className="w-full py-1.5 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Train className="w-3.5 h-3.5" />
-                      <span>Track Train</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTrackQuery(j.trainNumber);
+                          navigateTo('track');
+                        }}
+                        className="w-full py-1.5 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Train className="w-3.5 h-3.5" />
+                        <span>Track Train</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCancellingJourney(j)}
+                        className="w-full py-1.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                      >
+                        <XCircle className="w-3.5 h-3.5 text-red-600" />
+                        <span>Cancel Ticket & Refund</span>
+                      </button>
+                    </>
                   )}
 
                   <button
@@ -752,6 +765,100 @@ export const MyJourneysPage: React.FC = () => {
         onClose={() => setIsTicketModalOpen(false)}
         ticket={selectedTicketForModal}
       />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          6. TICKET CANCELLATION & INSTANT REFUND MODAL
+          ═══════════════════════════════════════════════════════════════════ */}
+      {cancellingJourney && (() => {
+        const clerkage = 60 * cancellingJourney.passengers.length;
+        const refundAmount = Math.max(0, cancellingJourney.fare - clerkage);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
+              <div className="flex items-start justify-between border-b border-red-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center font-bold">
+                    <XCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Cancel Train Booking?
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      PNR #{cancellingJourney.pnr}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCancellingJourney(null)}
+                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-700">
+                  <span>Train:</span>
+                  <strong className="text-slate-900">#{cancellingJourney.trainNumber} • {cancellingJourney.trainName}</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Journey:</span>
+                  <span>{cancellingJourney.fromCity} ➔ {cancellingJourney.toCity} ({cancellingJourney.date})</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Passengers:</span>
+                  <span>{cancellingJourney.passengers.length} Citizen(s)</span>
+                </div>
+                <div className="border-t border-slate-200 pt-2 space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Original Fare Paid:</span>
+                    <span className="font-mono font-bold">₹{cancellingJourney.fare.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>IRCTC Statutory Clerkage Fee:</span>
+                    <span className="font-mono font-bold">-₹{clerkage.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-700 font-black text-sm pt-1 border-t border-slate-200">
+                    <span>Instant Wallet Refund:</span>
+                    <span className="font-mono text-base">₹{refundAmount.toLocaleString('en-IN')}.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>
+                  Refund of <strong>₹{refundAmount.toLocaleString('en-IN')}</strong> will be credited instantly to your <strong>Citizen Travel Wallet</strong> with 0 bank delay.
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelTicket(cancellingJourney.pnr, refundAmount);
+                    setCancelledPnrList((prev) => [...prev, cancellingJourney.pnr]);
+                    setCancellingJourney(null);
+                    setActiveTab('cancelled');
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
+                >
+                  Confirm Cancellation & Instant Refund
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancellingJourney(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Keep Ticket
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
