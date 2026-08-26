@@ -95,6 +95,12 @@ interface ChatMessage {
   autoBookCard?: AutoBookData;
   trackCard?: TrackData;
   trainList?: TrainDetail[];
+  bookingConfirmPrompt?: {
+    train: TrainDetail;
+    classCode: string;
+    fare: number;
+    paxCount: number;
+  };
   feedbackGiven?: 'up' | 'down';
   timestamp: string;
 }
@@ -354,75 +360,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       setMessages([greetMsg]);
     }
   }, [isOpen]);
-
-  // ─── Listen for PAGE_CHANGED events to add contextual messages ───
-  useEffect(() => {
-    const unsub = UiEventBus.subscribe('PAGE_CHANGED', (event) => {
-      if (!isOpen) return;
-      const targetPage = event.payload?.to || event.sourcePage;
-      const fromPage = event.payload?.from || '';
-      const ctx = getSanitizedContext();
-
-      let msgText = '';
-      let actionCard: ChatMessage['actionCard'] | undefined = undefined;
-
-      if (targetPage === 'completion' || targetPage === 'ticket' || targetPage === 'myjourneys') {
-        const trainName = ctx.journey.selectedTrainName || selectedTrain?.trainName || 'Howrah Rajdhani Express';
-        const trainNo = ctx.journey.selectedTrainNumber || selectedTrain?.trainNumber || '12302';
-        msgText = `🎉 **Congrats! Your train seat is confirmed!**\n\nPNR: **#2847 5896 1234** • Seat: **S5 - 36 (Confirmed)**\nTrain: **#${trainNo} ${trainName}**\n\nYour DigiLocker-verified e-Ticket is ready for download! You can also track your train via Live GPS Radar anytime.`;
-        actionCard = {
-          title: 'Ticket Confirmed & Issued',
-          subtitle: `PNR: #2847 5896 1234 • Seat S5-36`,
-          buttonLabel: '🛰️ Open Live GPS Radar Tracking ➔',
-          route: 'track',
-        };
-      } else if (targetPage === 'workspace' || targetPage === 'booking') {
-        const trainName = selectedTrain?.trainName || ctx.journey.selectedTrainName || 'Express Train';
-        const trainNo = selectedTrain?.trainNumber || ctx.journey.selectedTrainNumber || '12302';
-        const classCode = selectedClassCode || ctx.journey.selectedClassCode || '3A';
-        const fare = selectedTrain?.classes?.find((c) => c.classCode === classCode)?.fare || 1958;
-
-        msgText = `You selected **#${trainNo} ${trainName}** (${plainClass(classCode)} • ₹${fare.toLocaleString('en-IN')})!\n\nYou are now on **Step 2 (Passenger & Booking Workspace)**. Please enter your passenger details in the format: **[Name], [Age], [Gender], [Berth], [Mobile], [Email]** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay.karali2005@gmail.com*) to proceed to payment.`;
-        actionCard = undefined;
-      } else if (targetPage === 'trains' || targetPage === 'results') {
-        const origin = searchParams.fromStation?.city || ctx.journey.origin || 'Delhi';
-        const dest = searchParams.toStation?.city || ctx.journey.destination || 'Kolkata';
-        msgText = `Navigated back to train results for **${origin} → ${dest}**.\n\nWould you like to pick a different train, compare departure times, or sort by fastest/cheapest?`;
-      } else if (targetPage === 'home' || targetPage === 'discover') {
-        msgText = `Back on the search screen. Where in India would you like to travel next?`;
-      } else if (targetPage === 'payment') {
-        const fare = ctx.payment.amount || selectedTrain?.classes[0]?.fare || 1958;
-        msgText = `You are now at the **Payment Step**! Total debit amount is **₹${fare.toLocaleString('en-IN')}**.\n\nPlease select your payment method: UPI, Net Banking, Card, or your **₹10,000 Nirantar Citizen Travel Wallet** below.`;
-        actionCard = {
-          title: 'Payment Authorization Ready',
-          subtitle: `Select a payment method (Debiting ₹${fare.toLocaleString('en-IN')})`,
-          buttonLabel: `💳 Pay ₹${fare.toLocaleString('en-IN')} with Citizen Wallet ➔`,
-          route: 'payment',
-        };
-      } else if (targetPage === 'track') {
-        const trainNo = ctx.tracking.activeTrainNumber || trackQuery || '12302';
-        msgText = `🛰️ Live GPS Radar is active for **#${trainNo}**. Cruising at 118 km/h right on time.`;
-      } else {
-        const contextMsg = NiraPlanner.generateStateAwareGreeting(ctx);
-        msgText = contextMsg.message;
-      }
-
-      if (msgText) {
-        const pageMsg: ChatMessage = {
-          id: `nira-page-${Date.now()}`,
-          sender: 'nira',
-          text: msgText,
-          actionCard,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages((prev) => [...prev, pageMsg]);
-        if (autoVoice) {
-          speakNiraResponse(msgText);
-        }
-      }
-    });
-    return unsub;
-  }, [isOpen, autoVoice, selectedTrain, selectedClassCode, searchParams, trackQuery]);
 
   /**
    * Comprehensive Local Natural Language Extractor for Train/Route/Auto-Book/Track/Tatkal intents
@@ -890,37 +827,9 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         const trainNo = intentData.trainNumber!.trim();
         const matchedTrain = resolveTrainDetail(trainNo, classCode);
         selectTrain(matchedTrain, classCode);
+        const fare = (matchedTrain.classes.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes[0]?.fare || 1870) * paxCount;
 
-        const fromStationObj: Station = findStation(matchedTrain.fromStationCode) || {
-          name: matchedTrain.fromStationName,
-          code: matchedTrain.fromStationCode,
-          city: matchedTrain.fromCity,
-          state: 'India',
-          aliases: [],
-        };
-        const toStationObj: Station = findStation(matchedTrain.toStationCode) || {
-          name: matchedTrain.toStationName,
-          code: matchedTrain.toStationCode,
-          city: matchedTrain.toCity,
-          state: 'India',
-          aliases: [],
-        };
-
-        const understoodCard = {
-          from: `${matchedTrain.fromStationName} (${matchedTrain.fromStationCode})`,
-          to: `${matchedTrain.toStationName} (${matchedTrain.toStationCode})`,
-          date: travelDate,
-          time: `${matchedTrain.departureTime} → ${matchedTrain.arrivalTime}`,
-          passengers: paxCount,
-          classCode,
-          fare: (matchedTrain.classes.find(c => c.classCode === classCode)?.fare || matchedTrain.classes[0]?.fare || 1870) * paxCount,
-          trainName: matchedTrain.trainName,
-          trainNumber: matchedTrain.trainNumber,
-          fromStation: fromStationObj,
-          toStation: toStationObj,
-        };
-
-        const bookingText = `I found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}).\n\n- Departure: **${matchedTrain.departureTime}** from ${matchedTrain.fromStationName}\n- Class: **${classCode}** (${matchedTrain.classes.find(c => c.classCode === classCode)?.className || 'AC 3 Tier'})\n- Fare: **₹${(matchedTrain.classes.find(c => c.classCode === classCode)?.fare || 1870) * paxCount}**\n\nTap **'Book #${matchedTrain.trainNumber}'** below to review passenger details and complete your booking.`;
+        const bookingText = `Found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}) in **${classCode}** (₹${fare.toLocaleString('en-IN')}).`;
 
         setIsLoading(false);
         setMessages((prev) =>
@@ -930,20 +839,17 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                   ...m,
                   text: bookingText,
                   isStreaming: false,
-                  trainList: [matchedTrain],
-                  understoodCard,
-                  actionCard: {
-                    title: `#${matchedTrain.trainNumber} • ${matchedTrain.trainName}`,
-                    subtitle: `${matchedTrain.fromCity} → ${matchedTrain.toCity} • ${classCode}`,
-                    buttonLabel: `Book #${matchedTrain.trainNumber} Now ➔`,
-                    route: '/workspace',
-                    trainNumber: matchedTrain.trainNumber,
+                  bookingConfirmPrompt: {
+                    train: matchedTrain,
+                    classCode,
+                    fare,
+                    paxCount,
                   },
                 }
               : m
           )
         );
-        if (autoVoice) speakNiraResponse(`I found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Tap Book This Train to continue.`);
+        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Would you like to proceed to booking?`);
         return;
       }
 
@@ -1546,6 +1452,70 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                       )}
                     </div>
                   </div>
+
+                  {/* ─────────────────────────────────────────────────────────────
+                      INTERACTIVE YES/NO BOOKING CONFIRMATION PROMPT (Clean, Zero Spam)
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.bookingConfirmPrompt && (
+                    <div className="ml-8 p-3.5 rounded-2xl bg-white border-2 border-purple-300 shadow-md space-y-3 animate-in zoom-in-95 duration-200 select-none">
+                      <div className="flex items-start justify-between gap-2 border-b border-purple-100 pb-2">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 inline-block mb-1">
+                            Train Selected
+                          </span>
+                          <h4 className="font-black text-xs text-slate-950 truncate">
+                            #{m.bookingConfirmPrompt.train.trainNumber} • {m.bookingConfirmPrompt.train.trainName}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
+                            {m.bookingConfirmPrompt.train.fromCity} → {m.bookingConfirmPrompt.train.toCity} • {m.bookingConfirmPrompt.classCode}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black text-emerald-700 block font-mono">
+                            ₹{m.bookingConfirmPrompt.fare.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold">
+                            {m.bookingConfirmPrompt.paxCount} Adult
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs font-bold text-slate-800">
+                        Proceed to Step 2 (Passenger & Booking Workspace)?
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMessages((prev) => [
+                              ...prev,
+                              {
+                                id: `nira-cancel-${Date.now()}`,
+                                sender: 'nira',
+                                text: 'Booking cancelled. Let me know if you would like to search for another route or train number.',
+                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              },
+                            ]);
+                          }}
+                          className="py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center active:scale-95"
+                        >
+                          ❌ No, Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            selectTrain(m.bookingConfirmPrompt!.train, m.bookingConfirmPrompt!.classCode);
+                            navigateTo('workspace');
+                          }}
+                          className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 text-center"
+                        >
+                          <span>✅ Yes, Book Now</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ─────────────────────────────────────────────────────────────
                       "NIRA UNDERSTOOD YOU" CONFIRMATION CARD (Item 1 & 4)
