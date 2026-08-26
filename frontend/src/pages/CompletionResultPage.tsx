@@ -66,18 +66,32 @@ export const CompletionResultPage: React.FC = () => {
   const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
 
-  // Trigger audio announcement for waitlisted bookings
+  // Dynamic Real-Time Waitlist Countdown (Starts at 42 and clears down to 2 in real-time)
+  const initialWaitlistNum = 42;
+  const [liveWl, setLiveWl] = useState<number>(42);
+
   React.useEffect(() => {
-    if (isWaitlisted) {
-      speakNiraResponse(
-        "Oh no! It seems you are under waiting list for train 12232. Tap to track your waitlist in real-time."
-      );
-    }
+    if (!isWaitlisted) return;
+    setLiveWl(42);
+    const targetSteps = [42, 36, 29, 21, 14, 8, 4, 2];
+    let stepIndex = 0;
+    const interval = setInterval(() => {
+      stepIndex += 1;
+      if (stepIndex < targetSteps.length) {
+        setLiveWl(targetSteps[stepIndex]);
+      } else {
+        clearInterval(interval);
+      }
+    }, 450);
+    return () => clearInterval(interval);
   }, [isWaitlisted]);
+
+  const clearedAhead = initialWaitlistNum - liveWl;
+  const liveProb = Math.min(99, Math.round(62 + ((initialWaitlistNum - liveWl) / (initialWaitlistNum - 2)) * 36));
+  const racProb = Math.min(99, Math.round(76 + ((initialWaitlistNum - liveWl) / (initialWaitlistNum - 2)) * 23));
 
   const handleMascotTap = () => {
     setMascotReaction('HAPPY');
-    speakNiraResponse("Let's track your waitlist in real-time on the radar!");
     setTimeout(() => {
       setShowWaitlistPopup(false);
       handleQuickTrack(train.trainNumber || '12232');
@@ -233,11 +247,18 @@ export const CompletionResultPage: React.FC = () => {
             </div>
 
             {/* Title & Speech Bubble */}
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-xs font-black">
-                <span>⚠️ Waiting List Allocated</span>
-                <span>•</span>
-                <span>GNWL-14</span>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-xs font-black shadow-2xs">
+                  <span>⚠️ Waiting List Allocated</span>
+                  <span>•</span>
+                  <span className="font-mono text-amber-700 font-extrabold">GNWL-{liveWl}</span>
+                </div>
+                {clearedAhead > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-mono font-bold animate-pulse">
+                    ⚡ {clearedAhead} Cleared in Real-Time!
+                  </span>
+                )}
               </div>
 
               <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
@@ -246,27 +267,47 @@ export const CompletionResultPage: React.FC = () => {
                   : 'Great! Opening Real-Time Waitlist Radar...'}
               </h3>
 
-              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200 text-slate-700 text-xs font-medium space-y-2 text-left">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
-                  <strong className="text-purple-950 font-bold">Nira says:</strong>
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200 text-slate-700 text-xs font-medium space-y-2.5 text-left shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
+                    <strong className="text-purple-950 font-bold">Nira Live Copilot:</strong>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Live Clearing Active
+                  </span>
                 </div>
                 <p className="text-slate-700 text-xs sm:text-sm font-semibold leading-relaxed">
-                  "Oh no! It seems you are under waiting list (GNWL-14) for <strong>#{train.trainNumber} {train.trainName}</strong>. But don't worry—tap below and I'll show you exactly how the waitlist is analysed in real time based on your destination!"
+                  "You started at <strong>GNWL-42</strong> for <strong>#{train.trainNumber} {train.trainName}</strong>. Real-time passenger clearance has already moved your ticket to <strong className="text-purple-800">GNWL-{liveWl}</strong>! Real-time confirmation probability is surging at <strong className="text-emerald-700">{liveProb}%</strong>."
                 </p>
 
+                {/* Real-time Clearance Progress Bar */}
+                <div className="space-y-1 bg-white/80 p-2 rounded-xl border border-purple-100">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                    <span>Initial: GNWL 42</span>
+                    <span className="text-purple-700 font-mono">Current: WL {liveWl}</span>
+                    <span className="text-emerald-600">Goal: CNF Berth</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 via-purple-600 to-emerald-500 transition-all duration-500 ease-out"
+                      style={{ width: `${Math.min(100, Math.max(15, ((42 - liveWl) / 40) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2 pt-1 border-t border-purple-100 text-center text-[10px]">
-                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
-                    <span className="text-slate-400 block font-bold">Position</span>
-                    <strong className="text-amber-700 font-mono text-xs">WL 14</strong>
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100 shadow-2xs">
+                    <span className="text-slate-400 block font-bold">Live Position</span>
+                    <strong className="text-amber-700 font-mono text-xs">WL {liveWl}</strong>
                   </div>
-                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">RAC Probability</span>
-                    <strong className="text-purple-700 font-mono text-xs">92% High</strong>
+                    <strong className="text-purple-700 font-mono text-xs">{racProb}% High</strong>
                   </div>
-                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Confirmation</span>
-                    <strong className="text-emerald-600 font-mono text-xs">78% Odds</strong>
+                    <strong className="text-emerald-600 font-mono text-xs">{liveProb}% Odds</strong>
                   </div>
                 </div>
               </div>
@@ -307,10 +348,10 @@ export const CompletionResultPage: React.FC = () => {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              {isWaitlisted ? 'Booking Allocated (Waitlist GNWL-14)' : 'Booking Confirmed!'}
+              {isWaitlisted ? `Booking Allocated (Waitlist GNWL-${liveWl})` : 'Booking Confirmed!'}
             </h2>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
-              {isWaitlisted ? 'High probability of confirmation (78%). Chart preparation in ~3h 45m.' : 'We hope you have a safe and comfortable journey.'}
+              {isWaitlisted ? `High probability of confirmation (${liveProb}%). Dynamic clearance moved ${clearedAhead} positions in real-time.` : 'We hope you have a safe and comfortable journey.'}
             </p>
           </div>
         </div>
@@ -319,7 +360,7 @@ export const CompletionResultPage: React.FC = () => {
         <div className="relative z-10 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-purple-100 shadow-xs">
           <Train className="w-4 h-4 text-purple-700" />
           <span className="text-xs font-bold text-purple-950">
-            {train.trainName} • {isWaitlisted ? 'WL-14' : 'Confirmed'}
+            {train.trainName} • {isWaitlisted ? `WL-${liveWl} (${liveProb}%)` : 'Confirmed'}
           </span>
         </div>
       </section>

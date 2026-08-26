@@ -574,7 +574,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const bookingRef = `NR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     const isWaitlistTrain = resolvedTrain.trainNumber === '12232' || selectedTrain?.trainNumber === '12232';
     const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
-    const baseSeat = isWaitlistTrain ? 14 : Math.floor(12 + Math.random() * 50);
+    const baseSeat = isWaitlistTrain ? 42 : Math.floor(12 + Math.random() * 50);
 
     const newTicket: TicketRecord = {
       ticketId: `tkt_${Date.now()}`,
@@ -586,8 +586,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       passengers: passengers.length > 0 ? passengers : [defaultSavedPassengers[0]],
       seatAllotments: (passengers.length > 0 ? passengers : [defaultSavedPassengers[0]]).map((_, idx) => ({
         coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: isWaitlistTrain ? 14 + idx : baseSeat + idx,
-        berthType: isWaitlistTrain ? `Waitlist Queue #${14 + idx}` : (idx % 2 === 0 ? 'Lower' : 'Middle'),
+        seatNumber: isWaitlistTrain ? 42 + idx : baseSeat + idx,
+        berthType: isWaitlistTrain ? `Waitlist Queue #${42 + idx}` : (idx % 2 === 0 ? 'Lower' : 'Middle'),
       })),
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
@@ -607,8 +607,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       status: isWaitlistTrain ? ('WAITLIST' as any) : 'CONFIRMED',
       seatAllotment: {
         coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: isWaitlistTrain ? 14 : baseSeat,
-        berthType: isWaitlistTrain ? 'Waitlist Queue #14 (78% CNF Odds)' : 'Lower',
+        seatNumber: isWaitlistTrain ? 42 : baseSeat,
+        berthType: isWaitlistTrain ? 'Waitlist Queue #42 (Real-Time Clearance)' : 'Lower',
       },
       createdAt: new Date().toISOString(),
     };

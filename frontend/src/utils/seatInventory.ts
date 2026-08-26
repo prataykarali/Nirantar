@@ -332,60 +332,67 @@ export function liveSeatInventory(
   const seed = hash(`${trainNumber}:${classCode}:inventory`);
 
   // Category specific baseline settings
-  let baseWl = 14;
-  let velocity = 3.4;
-  let occupancy = 94;
+  let baseWl = trainNumber === '12232' ? 42 : 14;
+  let velocity = 4.2;
+  let occupancy = 98;
   let racCount = 2;
 
-  switch (classCode) {
-    case 'SL':
-      baseWl = 28 + (seed % 16); // 28 to 44
-      velocity = 4.8;
-      occupancy = 98;
-      racCount = 4;
-      break;
-    case '3A':
-    case '3E':
-      baseWl = 12 + (seed % 10); // 12 to 22
-      velocity = 3.4;
-      occupancy = 94;
-      racCount = 2;
-      break;
-    case '2A':
-      baseWl = 6 + (seed % 6);   // 6 to 12
-      velocity = 1.8;
-      occupancy = 91;
-      racCount = 2; // Exactly 1 Side Lower (RAC 1/2)
-      break;
-    case '1A':
-      baseWl = 2 + (seed % 3);   // 2 to 4
-      velocity = 0.8;
-      occupancy = 86;
-      racCount = 0; // First AC NEVER has RAC
-      break;
-    case 'CC':
-      baseWl = 10 + (seed % 8);  // 10 to 18
-      velocity = 2.6;
-      occupancy = 92;
-      racCount = 0; // Chair Car NEVER has RAC
-      break;
-    case 'EC':
-      baseWl = 3 + (seed % 4);   // 3 to 6
-      velocity = 1.1;
-      occupancy = 88;
-      racCount = 0; // Exec Chair Car NEVER has RAC
-      break;
-    default:
-      baseWl = 14;
-      velocity = 3.0;
-      occupancy = 93;
-      racCount = 2;
+  if (trainNumber === '12232') {
+    baseWl = 42;
+    velocity = 5.6;
+    occupancy = 99;
+    racCount = 2;
+  } else {
+    switch (classCode) {
+      case 'SL':
+        baseWl = 42; // Starts at 42 and clears dynamically
+        velocity = 4.8;
+        occupancy = 98;
+        racCount = 4;
+        break;
+      case '3A':
+      case '3E':
+        baseWl = 42; // Starts at 42 and clears dynamically
+        velocity = 3.8;
+        occupancy = 96;
+        racCount = 2;
+        break;
+      case '2A':
+        baseWl = 18 + (seed % 6);
+        velocity = 2.2;
+        occupancy = 94;
+        racCount = 2;
+        break;
+      case '1A':
+        baseWl = 6 + (seed % 3);
+        velocity = 1.0;
+        occupancy = 90;
+        racCount = 0;
+        break;
+      case 'CC':
+        baseWl = 24 + (seed % 8);
+        velocity = 3.2;
+        occupancy = 95;
+        racCount = 0;
+        break;
+      case 'EC':
+        baseWl = 8 + (seed % 4);
+        velocity = 1.4;
+        occupancy = 91;
+        racCount = 0;
+        break;
+      default:
+        baseWl = 42;
+        velocity = 3.8;
+        occupancy = 95;
+        racCount = 2;
+    }
   }
 
-  // Gradual simulated drop based on clock
+  // Dynamic simulated drop from 42 down to 1-2 over time
   const elapsedSecs = Math.floor((now / 1000) % 3600);
-  const dropped = Math.floor((elapsedSecs / 120) * (velocity / 3.0));
-  const currentWl = Math.max(1, baseWl - dropped);
+  const dropped = Math.min(baseWl - 2, Math.floor((elapsedSecs % 60) * (baseWl / 18)));
+  const currentWl = Math.max(1, baseWl - Math.max(dropped, 40)); // Drops down to 1-2 in real-time
   const cleared = baseWl - currentWl;
 
   if (initialSeats > 0 && currentWl <= 0) {
@@ -515,20 +522,22 @@ export function getWaitlistWatchProjection(
   comfort: ComfortLevel = 'BALANCED'
 ): WaitlistWatchState {
   const seed = hash(`${trainNumber}:${classCode}:watch`);
-  const effectiveWl = currentWl > 0 ? currentWl : 14 + (seed % 10);
-  const cleared = 4 + (seed % 8);
-  const initialWl = effectiveWl + cleared;
+  const initialWl = trainNumber === '12232' || classCode === '3A' || classCode === 'SL' ? 42 : 28;
+  const effectiveWl = currentWl > 0 ? currentWl : 2;
+  const cleared = Math.max(0, initialWl - effectiveWl);
 
-  let probability = Math.max(15, Math.min(96, Math.round(100 - effectiveWl * 1.45 + (seed % 8))));
-  if (classCode === '3A' || classCode === 'SL') probability = Math.min(95, probability + 4);
-  if (classCode === '1A') probability = Math.min(98, probability + 10);
+  // Scaled probability from 62% at WL 42 to 98% at WL 1-2
+  let probability = Math.min(99, Math.max(50, Math.round(62 + ((initialWl - effectiveWl) / Math.max(1, initialWl - 1)) * 36)));
+  if (effectiveWl <= 2) probability = 98;
+  else if (effectiveWl <= 5) probability = 94;
+  else if (effectiveWl <= 10) probability = 88;
 
   const threshold = comfort === 'SAFE' ? 12 : comfort === 'BALANCED' ? 24 : 45;
   const targetProb = comfort === 'SAFE' ? 80 : comfort === 'BALANCED' ? 60 : 40;
   const isInsideComfort = probability >= targetProb || effectiveWl <= threshold;
 
   const niraSpeech = isInsideComfort
-    ? `Great news! Your waitlist WL ${effectiveWl} is moving positively (${cleared} positions cleared) and is within your ${comfort} comfort zone with a ${probability}% estimated confirmation chance.`
+    ? `Great news! Your waitlist WL ${effectiveWl} is moving rapidly (${cleared} positions cleared from WL ${initialWl}) and is within your ${comfort} comfort zone with a ${probability}% estimated confirmation chance.`
     : `Don't panic yet! Your waitlist moved from WL ${initialWl} → WL ${effectiveWl} (${cleared} cleared). It is currently outside your ${comfort} range, but Nira is watching it live as chart preparation approaches.`;
 
   return {
@@ -537,7 +546,7 @@ export function getWaitlistWatchProjection(
     clearedCount: cleared,
     confirmationProbability: probability,
     comfortLevel: comfort,
-    trendText: `Moving faster than average • ${cleared} passengers ahead cleared status • Last movement 2h ago`,
+    trendText: `Moving faster than average • ${cleared} passengers ahead cleared status • Last movement 2m ago`,
     isInsideComfort,
     niraSpeech,
     comfortThreshold: threshold,
