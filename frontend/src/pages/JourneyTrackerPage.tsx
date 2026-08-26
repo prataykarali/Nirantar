@@ -38,6 +38,7 @@ import {
   getWaitlistWatchProjection,
   getTrainCoaches,
   getCoachBerthLayout,
+  allocatePassengerSeats,
   CoachInfo,
   ComfortLevel,
 } from '../utils/seatInventory';
@@ -221,24 +222,24 @@ export const JourneyTrackerPage: React.FC = () => {
     ];
   }, [issuedTicket, passengers]);
 
-  // Determine if this selected coach belongs to any user passenger
   const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
-  const passengersInThisCoach = useMemo(() => {
+
+  // User's allocated seats across specific coaches (e.g. Coach B4 for 3A, Coach S1 for SL)
+  const allocatedSeats = useMemo(() => {
     if (!isUserBookedTrain) return [];
-    return userPassengers.filter((p: any) => {
-      const pClass = p.assignedClassCode || userBookedClass || '3A';
-      return pClass === selectedCoachInfo.classCode;
-    });
-  }, [isUserBookedTrain, userPassengers, selectedCoachInfo.classCode, userBookedClass]);
+    return allocatePassengerSeats(userPassengers, userBookedClass);
+  }, [isUserBookedTrain, userPassengers, userBookedClass]);
 
-  const isUserCoach = Boolean(isUserBookedTrain && (passengersInThisCoach.length > 0 || selectedCoach === 'B4'));
+  // Passengers in this specific coach
+  const passengersInThisCoach = useMemo(() => {
+    return allocatedSeats.filter((s) => s.coachCode === selectedCoach);
+  }, [allocatedSeats, selectedCoach]);
 
-  // Generate seat numbers for all booked passengers in this coach
+  const isUserCoach = Boolean(isUserBookedTrain && passengersInThisCoach.length > 0);
+
   const userSeatNumbers = useMemo(() => {
-    if (!isUserCoach) return [];
-    const count = Math.max(1, passengersInThisCoach.length);
-    return Array.from({ length: count }, (_, idx) => 14 + idx * 8);
-  }, [isUserCoach, passengersInThisCoach.length]);
+    return passengersInThisCoach.map((s) => s.seatNumber);
+  }, [passengersInThisCoach]);
 
   const coachBerthLayout = useMemo(() => {
     return getCoachBerthLayout(
@@ -1323,9 +1324,8 @@ export const JourneyTrackerPage: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
                 {trainCoaches.map((c) => {
                   const isSelected = selectedCoach === c.code;
-                  const hasPassengerInCoach = isUserBookedTrain && userPassengers.some(
-                    (p: any) => (p.assignedClassCode || userBookedClass) === c.classCode
-                  );
+                  const seatsInThisCoach = isUserBookedTrain ? allocatedSeats.filter((s) => s.coachCode === c.code) : [];
+                  const hasPassengerInCoach = seatsInThisCoach.length > 0;
                   return (
                     <button
                       key={c.code}
@@ -1341,8 +1341,8 @@ export const JourneyTrackerPage: React.FC = () => {
                     >
                       <span>{c.label}</span>
                       {hasPassengerInCoach && (
-                        <span className="px-1 py-0.2 rounded-full bg-emerald-500 text-[9px] text-white font-black">
-                          Booked
+                        <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-[9px] text-white font-black">
+                          Booked ({seatsInThisCoach.length})
                         </span>
                       )}
                     </button>
@@ -1417,24 +1417,20 @@ export const JourneyTrackerPage: React.FC = () => {
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-purple-200">
-                            Your Booked {passengersInThisCoach.length > 1 ? `Berths (${passengersInThisCoach.length} Passengers)` : 'Berth'} in Coach {selectedCoach}:
+                            Your Booked {passengersInThisCoach.length > 1 ? `Berths (${passengersInThisCoach.length} Seats)` : 'Berth'} in Coach {selectedCoach}:
                           </span>
-                          {passengersInThisCoach.map((p: any, idx: number) => {
-                            const seatNum = 14 + idx * 8;
-                            const berthType = p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'Lower';
-                            return (
-                              <span
-                                key={p.id || idx}
-                                className="px-2 py-0.5 rounded-full bg-purple-400/30 text-amber-300 font-mono font-bold text-[11px] border border-purple-300/40"
-                              >
-                                {p.name || `Passenger ${idx + 1}`}: Seat {seatNum} ({berthType})
-                              </span>
-                            );
-                          })}
+                          {passengersInThisCoach.map((s, idx) => (
+                            <span
+                              key={s.passengerId || idx}
+                              className="px-2 py-0.5 rounded-full bg-purple-400/30 text-amber-300 font-mono font-bold text-[11px] border border-purple-300/40"
+                            >
+                              {s.passengerName}: Seat {s.seatNumber} ({s.berthType})
+                            </span>
+                          ))}
                         </div>
                       </div>
                       <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                        ⚡ {passengersInThisCoach.length > 0 ? `${passengersInThisCoach.length} Confirmed Berths` : 'Projected RAC at Chart 1'}
+                        ⚡ {passengersInThisCoach.length} Confirmed {passengersInThisCoach.length > 1 ? 'Berths' : 'Berth'}
                       </span>
                     </>
                   ) : (
@@ -1446,13 +1442,13 @@ export const JourneyTrackerPage: React.FC = () => {
                           <Explain term="GNWL" context={{ currentValue: coachInventory.waitlist, initialValue: coachInventory.initialWaitlist, probability: wlWatch.confirmationProbability }} />
                         </span>
                       </div>
-                      {isUserBookedTrain && (
+                      {isUserBookedTrain && allocatedSeats.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => setSelectedCoach(trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4')}
+                          onClick={() => setSelectedCoach(allocatedSeats[0].coachCode)}
                           className="text-[11px] font-bold text-purple-200 bg-purple-800/60 hover:bg-purple-700/60 px-2.5 py-1 rounded-full border border-purple-400/30 transition-all cursor-pointer"
                         >
-                          Jump to Your Booked Coach →
+                          Jump to Your Booked Coach ({allocatedSeats[0].coachCode}) →
                         </button>
                       )}
                     </>

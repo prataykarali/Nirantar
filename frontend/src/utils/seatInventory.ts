@@ -105,6 +105,70 @@ export interface SeatBerth {
   isUserSeat?: boolean;
 }
 
+export interface PassengerSeatAllocation {
+  passengerId: string;
+  passengerName: string;
+  classCode: string;
+  coachCode: string;
+  coachLabel: string;
+  seatNumber: number;
+  berthType: string;
+}
+
+/**
+ * Assigns realistic, distinct coaches and seat numbers to all booked passengers.
+ * If multiple passengers share a class, they share the primary coach with adjacent/distributed seats.
+ * If passengers have different classes (e.g. 1 3A + 1 SL), they are placed in their respective coaches.
+ */
+export function allocatePassengerSeats(
+  passengers: Array<{ id?: string; name?: string; assignedClassCode?: string; berthPreference?: string }>,
+  primaryClass = '3A'
+): PassengerSeatAllocation[] {
+  // Map class to default primary coach
+  const classCoachMap: Record<string, string> = {
+    '1A': 'H1',
+    '2A': 'A1',
+    '3A': 'B4',
+    '3E': 'M1',
+    'SL': 'S1',
+    'CC': 'C1',
+    'EC': 'E1',
+    '2S': 'D1',
+  };
+
+  const coachSeatCounters: Record<string, number> = {};
+
+  return passengers.map((p, idx) => {
+    const pClass = p.assignedClassCode || primaryClass || '3A';
+    const coachCode = classCoachMap[pClass] || 'B4';
+    
+    // Seed starting seat per coach (e.g. 14 for B4, 35 for S1, 7 for A1, 3 for H1)
+    const baseSeat = coachCode.startsWith('S') ? 35 : coachCode.startsWith('A') ? 7 : coachCode.startsWith('H') ? 3 : 14;
+    const currentOffset = coachSeatCounters[coachCode] || 0;
+    coachSeatCounters[coachCode] = currentOffset + 1;
+    const seatNumber = baseSeat + currentOffset;
+
+    // Berth type
+    let berthType = 'Lower';
+    if (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE') {
+      berthType = p.berthPreference.replace('_', ' ');
+    } else {
+      const defaultTypes = ['Upper', 'Middle', 'Lower', 'Side Lower', 'Side Upper'];
+      berthType = defaultTypes[idx % defaultTypes.length];
+    }
+
+    return {
+      passengerId: p.id || `p_${idx + 1}`,
+      passengerName: p.name || `Passenger ${idx + 1}`,
+      classCode: pClass,
+      coachCode,
+      coachLabel: `${coachCode} (${pClass})`,
+      seatNumber,
+      berthType,
+    };
+  });
+}
+
 /**
  * Generates the authentic berth/seat layout for a specific coach class and exact RAC count.
  * Exactly lights up only the required RAC berths (1 Side-Lower per 2 RAC passengers).
