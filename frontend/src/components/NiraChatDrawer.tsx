@@ -434,19 +434,22 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
     const rawNumberMatch = text.match(/\b(\d+)\b/);
+    let currentInvalidNum: string | undefined = undefined;
+    let currentMissingNum: boolean | undefined = undefined;
+
     if (rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         updated.trainNumber = num;
       } else {
-        (updated as any).invalidTrainNumber = num;
+        currentInvalidNum = num;
       }
     } else if (
       (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket') || (isTrack && lower.includes('train'))) &&
       !lower.includes('from') &&
       !lower.includes('to')
     ) {
-      (updated as any).missingTrainNumber = true;
+      currentMissingNum = true;
     }
 
     // 2. Station Extraction: explicit route regex or verified station names
@@ -483,16 +486,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     // Only update route stations if explicitly found in current text
     const updatedRoute: RouteContext = {
       ...current,
-      fromStation: extractedFrom,
-      toStation: extractedTo,
+      fromStation: extractedFrom || current.fromStation,
+      toStation: extractedTo || current.toStation,
       trainNumber: updated.trainNumber,
       travelDate: updated.travelDate,
       passengers: updated.passengers,
       classCode: updated.classCode,
       quota: updated.quota,
       passengerName: updated.passengerName,
-      invalidTrainNumber: (updated as any).invalidTrainNumber,
-      missingTrainNumber: (updated as any).missingTrainNumber,
+      invalidTrainNumber: currentInvalidNum,
+      missingTrainNumber: currentMissingNum,
     };
 
     // 3. Date expressions
