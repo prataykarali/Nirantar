@@ -410,8 +410,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
-    const rawNumberMatch = text.match(/(?:train|#)\s*(\d+)/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
-    if (rawNumberMatch) {
+    const rawNumberMatch = text.match(/(?:train|#)?\s*(\d+)/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
+    if (rawNumberMatch && rawNumberMatch[1] && text.toLowerCase().includes('train')) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         updated.trainNumber = num;
@@ -419,7 +419,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         (updated as any).invalidTrainNumber = num;
       }
     } else if (
-      (lower.includes('book train') || lower.includes('want to book train') || lower.includes('reserve train')) &&
+      (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket')) &&
       !lower.includes('from') &&
       !lower.includes('to')
     ) {
@@ -743,12 +743,12 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     }
 
     if ((intentData.route as any)?.missingTrainNumber) {
-      const askMsg = `Please enter a **5-digit train number** (e.g. **#12302**, **#12951**, **#12115**) or specify your origin and destination stations (e.g. *'Delhi to Mumbai'*).`;
+      const askMsg = `⚠️ **Not a Valid Train Number**: Indian Railways train numbers are strictly **5 digits long** (for example: **#12302** Howrah Rajdhani, **#12951** Mumbai Rajdhani, **#12115** Siddheshwar SF Express).\n\nPlease enter a valid 5-digit train number!`;
       setIsLoading(false);
       setMessages((prev) =>
         prev.map((m) => (m.id === botMsgId ? { ...m, text: askMsg, isStreaming: false } : m))
       );
-      if (autoVoice) speakNiraResponse('Please enter a 5-digit train number or specify your route.');
+      if (autoVoice) speakNiraResponse('That is not a valid train number. Please enter a 5 digit train number.');
       return;
     }
 

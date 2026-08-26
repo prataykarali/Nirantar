@@ -2,10 +2,11 @@
   "name": "nirantar-vercel",
   "private": true,
   "scripts": {
-    "build": "cd frontend && npm ci && npm run build",
-    "vercel-build": "cd frontend && npm ci && npm run build"
+    "install": "npm install --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "vercel-build": "npm run build --prefix frontend"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=18.0.0"
   }
 }
