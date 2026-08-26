@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Sparkles, ArrowRight, ArrowLeft, Volume2, X, Check, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Volume2, X } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
 import { speakNiraResponse } from '../../services/voiceService';
 
@@ -28,6 +28,11 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
 
   if (!guidanceActive || !currentStepData) return null;
 
+  const isLeft = currentStepData.cardPosition === 'left' || currentStepData.stepNumber === 1;
+  const positionClass = isLeft
+    ? 'bottom-6 left-4 sm:bottom-8 sm:left-64 md:left-72'
+    : 'bottom-6 right-4 sm:bottom-8 sm:right-8';
+
   return (
     <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none animate-in fade-in duration-300">
       {/* 1. Lighter backdrop overlay so underlying page is clearly visible */}
@@ -55,7 +60,7 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
       )}
 
       {/* 3. Floating Smart Guidance Overlay Card with 3D Mascot */}
-      <div className="pointer-events-auto fixed bottom-6 right-4 sm:bottom-8 sm:right-8 z-50 w-[94vw] sm:w-[420px] bg-white/98 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_24px_70px_rgba(88,28,135,0.28)] border-2 border-purple-200 ring-4 ring-purple-100/70 space-y-3.5 animate-in slide-in-from-bottom-6 duration-300">
+      <div className={`pointer-events-auto fixed ${positionClass} z-50 w-[94vw] sm:w-[420px] bg-white/98 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_24px_70px_rgba(88,28,135,0.28)] border-2 border-purple-200 ring-4 ring-purple-100/70 space-y-3.5 animate-in slide-in-from-bottom-6 duration-300 transition-all`}>
         {/* 3D Robot Mascot popping out separately on the top right */}
         <div className="absolute -top-16 right-6 w-24 h-24 pointer-events-none z-20 flex items-end justify-center filter drop-shadow-[0_10px_20px_rgba(124,58,237,0.35)] animate-bounce duration-1000">
           <img

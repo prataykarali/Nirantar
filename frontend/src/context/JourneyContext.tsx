@@ -69,6 +69,7 @@ export interface GuidanceStep {
     right?: string;
   };
   arrowLabel?: string;
+  cardPosition?: 'left' | 'right' | 'center';
   onAction?: () => void;
 }
 
@@ -1012,47 +1013,50 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const guidanceStepsList: GuidanceStep[] = [
     {
-      id: 'step-1-home-search',
+      id: 'step-1-nira-assistant',
       stepNumber: 1,
-      title: '1. Intelligent Train Discovery',
-      speech: 'Welcome to Nirantar! Search express trains by typing station names, choosing popular routes like Delhi to Mumbai, or speaking directly to Nira AI.',
-      actionCue: 'Type a destination or select a route to discover express trains.',
-      actionButtonText: 'View Express Trains ➔',
-      arrowPlacement: { top: '48%', left: '26%' },
-      arrowLabel: '🔍 Enter Destination or Select Route',
+      title: '1. Hands-Free Nira AI Assistant',
+      speech: 'Welcome to Nirantar! Meet Nira, your conversational AI travel assistant. You can chat or speak to search trains, autofill passenger forms, or check live policies hands-free anytime!',
+      actionCue: 'Tap Nira on the left sidebar to start a conversation or speak your request.',
+      actionButtonText: 'Explore Train Discovery ➔',
+      arrowPlacement: { bottom: '15%', left: '160px' },
+      arrowLabel: '🤖 Nira AI Chatbot & Voice Assistant',
+      cardPosition: 'left',
       onAction: () => {
-        setActivePage('trains');
+        setActivePage('home');
         setGuidanceStepIndex(1);
       },
     },
     {
-      id: 'step-2-train-results',
+      id: 'step-2-home-search',
       stepNumber: 2,
-      title: '2. Ranked Express Comparison',
+      title: '2. Intelligent Train Discovery',
+      speech: 'Search express trains by typing station names, choosing popular routes like Delhi to Mumbai, or speaking directly to Nira AI.',
+      actionCue: 'Type a destination or select a route to discover express trains.',
+      actionButtonText: 'View Express Trains ➔',
+      arrowPlacement: { top: '48%', left: '26%' },
+      arrowLabel: '🔍 Enter Destination or Select Route',
+      cardPosition: 'right',
+      onAction: () => {
+        setActivePage('trains');
+        setGuidanceStepIndex(2);
+      },
+    },
+    {
+      id: 'step-3-train-results',
+      stepNumber: 3,
+      title: '3. Ranked Express Comparison',
       speech: 'Compare direct trains ranked by fastest speed, cheapest fare, or departure timing. Filter by AC 3-Tier, 2A, Tatkal, or Senior Citizen quotas.',
       actionCue: 'Compare ranked trains, check fare & class, then tap Select Train.',
       actionButtonText: 'Select Recommended Train ➔',
       arrowPlacement: { top: '35%', left: '24%' },
       arrowLabel: '⚡ Ranked Trains: Fastest & Best Value',
+      cardPosition: 'right',
       onAction: () => {
         const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] || MOCK_TRAINS_DATABASE[0];
         if (topTrain) {
           selectTrain(topTrain, selectedClassCode || '3A');
         }
-        setActivePage('workspace');
-        setGuidanceStepIndex(2);
-      },
-    },
-    {
-      id: 'step-3-nira-assistant',
-      stepNumber: 3,
-      title: '3. Hands-Free Nira Assistant',
-      speech: 'Need help at any step? Tap Nira AI Assistant anytime to search trains, ask questions, fill passenger forms, or check policy details hands-free!',
-      actionCue: 'Use Nira chat to automate train searches or ask travel policy queries.',
-      actionButtonText: 'Proceed to Passenger Workspace ➔',
-      arrowPlacement: { bottom: '24%', right: '28%' },
-      arrowLabel: '🤖 Nira AI Chatbot & Assistant Drawer',
-      onAction: () => {
         setActivePage('workspace');
         setGuidanceStepIndex(3);
       },
@@ -1061,11 +1065,12 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: 'step-4-passenger-workspace',
       stepNumber: 4,
       title: '4. Passenger Workspace & Seat Lock',
-      speech: 'Here are your passenger names and berth preferences, safely autofilled with Zero-PII privacy protection. Review your names and proceed to payment.',
-      actionCue: 'Review passenger name, age, and berth preferences, then proceed.',
+      speech: 'Here are your passenger names, berth preferences, and one-tap Travel Class selector. Review your details with Zero-PII privacy protection and proceed.',
+      actionCue: 'Review passenger names and class selection, then proceed.',
       actionButtonText: 'Proceed to Step 5 (Payment) ➔',
       arrowPlacement: { top: '38%', left: '22%' },
       arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
+      cardPosition: 'right',
       onAction: () => {
         setActivePage('payment');
         setGuidanceStepIndex(4);
@@ -1080,6 +1085,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       actionButtonText: 'Authorize & Pay ➔',
       arrowPlacement: { top: '68%', left: '24%' },
       arrowLabel: '💳 Enter UPI ID or 1-Click Wallet Pay',
+      cardPosition: 'right',
       onAction: async () => {
         const trainToBook = selectedTrain || availableTrains[0] || MOCK_TRAINS_DATABASE[0];
         if (trainToBook) {
@@ -1099,6 +1105,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       actionButtonText: 'Open Live Train Radar ➔',
       arrowPlacement: { top: '27%', left: '24%' },
       arrowLabel: '🎟️ DigiLocker Verified e-Ticket & PNR',
+      cardPosition: 'right',
       onAction: () => {
         setActivePage('track');
         setGuidanceStepIndex(6);
@@ -1113,6 +1120,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       actionButtonText: 'Explore Zero Seat Features ➔',
       arrowPlacement: { top: '32%', left: '22%' },
       arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
+      cardPosition: 'right',
       onAction: () => {
         setActivePage('track');
         setGuidanceStepIndex(7);
@@ -1125,8 +1133,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       speech: 'Welcome to Live Radar! Our new Seat Feature shows live zero-seat platform alerts, station-by-station passenger boarding and vacancy projections, and Waitlist Watch with Comfort Windows.',
       actionCue: 'Explore live zero-seat alerts and station-by-station passenger vacancy forecasts.',
       actionButtonText: 'Finish Guided Tour 🎉',
-      arrowPlacement: { top: '48%', left: '22%' },
+      arrowPlacement: { top: '65%', left: '16%' },
       arrowLabel: '⚠️ Zero Seat Alert & Platform Vacancies',
+      cardPosition: 'right',
       onAction: () => {
         setGuidanceActive(false);
       },
