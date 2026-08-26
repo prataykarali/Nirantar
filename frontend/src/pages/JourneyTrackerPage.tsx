@@ -107,7 +107,7 @@ export const JourneyTrackerPage: React.FC = () => {
   const [showExplainTicketModal, setShowExplainTicketModal] = useState<boolean>(false);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
-  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'both'>('timeline');
+  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
   const [watchAlerts, setWatchAlerts] = useState({
     underTwenty: true,
     probSeventy: true,
@@ -260,13 +260,16 @@ export const JourneyTrackerPage: React.FC = () => {
     return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel);
   }, [trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel]);
 
-  // Auto-pop the Coach / Waitlist Quota view ONLY when user has booked a Waitlist ticket on this train
+  // Auto-pop the Waitlist Watch or Coach view when user has booked a ticket
   useEffect(() => {
     const hasWaitlistBooking = isUserBookedTrain && Boolean(
       (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
-      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.length === 0)
+      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some(s => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
+      trainNumber === '12232'
     );
     if (hasWaitlistBooking) {
+      setActiveTrackerTab('waitlist');
+    } else if (isUserBookedTrain) {
       setActiveTrackerTab('coach');
     } else {
       setActiveTrackerTab('timeline');
@@ -650,81 +653,6 @@ export const JourneyTrackerPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          NIRA FLOATING MASCOT SPEECH BANNER (HAPPY FACE + POOF OFF)
-          ═══════════════════════════════════════════════════════════════════ */}
-      {showNiraHappyBanner && (
-        <div
-          className={`relative rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border-2 border-purple-400/40 overflow-hidden transition-all duration-500 ${
-            isPoofingOff ? 'scale-90 opacity-0 blur-md pointer-events-none' : 'animate-in slide-in-from-top-4'
-          }`}
-        >
-          {/* Subtle radial sheen */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
-            {/* Mascot Image (Happy expression) */}
-            <div className="flex items-center gap-3.5 shrink-0">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
-                <img
-                  src="/assets/images/characters/nira_happy_mascot.png"
-                  alt="Nira Happy Mascot"
-                  className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(16,185,129,0.5)] animate-pulse"
-                />
-                <div className="absolute -top-1 -right-1 bg-emerald-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shadow">
-                  Active AI
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span className="font-extrabold text-sm text-amber-300">Nira Waitlist Copilot</span>
-                </div>
-                <span className="text-[10px] text-purple-200 block font-medium">Real-Time Destination Intelligence</span>
-              </div>
-            </div>
-
-            {/* Speech Bubble with the exact text requested */}
-            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-white/20 text-center sm:text-left space-y-1">
-              <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
-                "Keep an eye on the list it'll confirm once wait list is balanced! Based on your destination."
-              </p>
-              <span className="text-[10px] text-purple-200 block font-medium">
-                Destination quota for <strong>{toCity}</strong> has high clearance velocity (↑ 3.4 cancels/hr across corridor).
-              </span>
-            </div>
-
-            {/* Voice and Poof Off Buttons */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() =>
-                  speakNiraResponse(
-                    "Keep an eye on the list, it'll confirm once wait list is balanced! Based on your destination."
-                  )
-                }
-                className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                title="Play voice audio"
-              >
-                <Volume2 className="w-3.5 h-3.5 text-amber-300" />
-                <span>Play Voice</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePoofOff}
-                className="px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xs flex items-center gap-1 shadow-md transition-all cursor-pointer active:scale-95"
-                title="Dismiss with poof animation"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Poof Off 💨</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════
           2. LIVE SPEED & RUNNING STATUS HERO CARD
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-purple-800">
@@ -827,319 +755,77 @@ export const JourneyTrackerPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. ZERO-SEAT PLATFORM WARNING BANNER (Only when User Has Booked This Train / Active Waitlist)
+          3. CLEAN PRIMARY VIEW SWITCHER TABS (DE-CONGESTED 3-VIEW BAR)
           ═══════════════════════════════════════════════════════════════════ */}
-      {isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
-                  Zero Seat Alert
-                </span>
-                <span className="text-xs font-black text-rose-950">
-                  NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} ({primaryNoSeat?.fromPlatform || firstStop.platform}) to {primaryNoSeat?.toStation || toCity} ({primaryNoSeat?.toPlatform || lastStop.platform})
-                </span>
-              </div>
-              <p className="text-[11px] text-rose-800 font-medium mt-0.5">
-                Estimated occupancy is at 100% capacity on this corridor segment. Waitlist allocation active ({seatInventory.status} GNWL {seatInventory.waitlist} / initial 42).
-              </p>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 shadow-sm text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => setActiveTrackerTab('timeline')}
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeTrackerTab === 'timeline'
+              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+          }`}
+        >
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="truncate">🗺️ GPS Radar & Timeline</span>
+        </button>
 
-          <div className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold shrink-0 self-start sm:self-center">
-            Occupancy 100%
-          </div>
-        </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setActiveTrackerTab('coach')}
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeTrackerTab === 'coach'
+              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+          }`}
+        >
+          <Train className="w-4 h-4 shrink-0" />
+          <span className="truncate">💺 Coach & Seats {isUserCoach ? `(${selectedCoach})` : ''}</span>
+        </button>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          3B. REAL-TIME CONFIRMATION PROBABILITY & WAITLIST TELEMETRY (Below Zero-Seat Alert)
-          ═══════════════════════════════════════════════════════════════════ */}
-      {isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat || bookingRecord?.status === 'WAITLIST' || trainNumber === '12232') && (
-        <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/95 via-white to-indigo-50/95 p-4 text-slate-900 shadow-md space-y-3.5 animate-in fade-in slide-in-from-top-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-100 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping" />
-                    LIVE CONFIRMATION RADAR
-                  </span>
-                  <span className="text-xs font-black text-purple-950">
-                    Real-Time Waitlist Clearance & Confirmation Probability
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 font-medium mt-0.5">
-                  Dynamic queue clearance moved your ticket from <strong className="text-amber-800 font-mono">GNWL 42</strong> ➔ <strong className="text-emerald-700 font-mono">GNWL {seatInventory.waitlist}</strong> ({42 - seatInventory.waitlist} cleared ahead in real-time).
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-center shrink-0 bg-white px-3.5 py-1.5 rounded-xl border border-purple-200 shadow-2xs">
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Confirmation Odds</span>
-                <span className="text-base font-black text-emerald-600 font-mono">{wlWatch.confirmationProbability}%</span>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-300 shadow-2xs">
-                {wlWatch.confirmationProbability}%
-              </div>
-            </div>
-          </div>
-
-          {/* Real-time Clearance Meter Bar */}
-          <div className="space-y-1.5 bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-            <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-1">
-              <span className="text-amber-700 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Initial Queue: GNWL 42
-              </span>
-              <span className="text-purple-700 font-mono font-black">
-                Current Position: GNWL {seatInventory.waitlist}
-              </span>
-              <span className="text-emerald-700 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Confirmed Berth Forecast ({wlWatch.confirmationProbability}%)
-              </span>
-            </div>
-
-            <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-500 via-purple-600 to-emerald-500 transition-all duration-700 ease-out shadow-xs"
-                style={{ width: `${Math.min(100, Math.max(20, ((42 - seatInventory.waitlist) / 40) * 100))}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium flex-wrap gap-1">
-              <span>⚡ Movement velocity: 4.8 positions/min</span>
-              <span className="text-emerald-700 font-bold">✓ {42 - seatInventory.waitlist} cancellations & quota adjustments absorbed</span>
-              <span>Chart Prep in ~3h 45m</span>
-            </div>
-          </div>
-
-          {/* 3 Interactive Telemetry Tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-            <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5 shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Queue Position</span>
-              <div className="font-black text-slate-900 flex items-center gap-1.5">
-                <span className="font-mono text-purple-700 text-sm">GNWL {seatInventory.waitlist}</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">Fast Clearance</span>
-              </div>
-              <p className="text-[10px] text-slate-500">Started at GNWL 42 at booking time</p>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5 shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Berth Allocation Forecast</span>
-              <div className="font-black text-emerald-700 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Berth Assured (Lower/Side)</span>
-              </div>
-              <p className="text-[10px] text-slate-500">Auto-assigned upon chart preparation</p>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5 shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">AI Confidence Rating</span>
-              <div className="font-black text-indigo-700 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>99.4% Model Precision</span>
-              </div>
-              <p className="text-[10px] text-slate-500">Trained on 14,280 historic Northern Railway runs</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          4. REAL-TIME ARRIVAL / CELEBRATION / HALT BANNER
-          ═══════════════════════════════════════════════════════════════════ */}
-      {phase === 'DESTINATION_ARRIVED' ? (
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-2xl p-4 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in zoom-in-95 border border-emerald-300">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 text-2xl font-bold">
-              🏆
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-950 text-[10px] font-mono font-black shadow-xs">
-                  JOURNEY COMPLETED
-                </span>
-                <span className="text-xs font-bold text-emerald-100">
-                  Arrived at Final Stoppage {toCity} ({toCode}) on {currentTargetStation.platform}
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-black text-white mt-0.5">
-                Welcome to {toCity}! {routeStations[routeStations.length - 1]?.distanceKm || foundTrain?.distanceKm || 0} km traveled safely
-              </h3>
-              <p className="text-[11px] text-emerald-100 font-medium">
-                Deboarding on <strong>{currentTargetStation.doorSide}</strong>. Exit towards <strong>{currentTargetStation.pillarInfo}</strong>.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => announceArrival()}
-            disabled={isPlayingAnnouncement}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 shadow-sm transition-all cursor-pointer shrink-0"
-          >
-            <Volume2 className="w-4 h-4 text-emerald-800" />
-            <span>{isPlayingAnnouncement ? 'Announcing...' : 'Play arrival announcement'}</span>
-          </button>
-        </div>
-      ) : phase === 'HALTED' ? (
-        <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 rounded-2xl p-3.5 sm:p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in border border-emerald-400">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 text-xl font-bold">
-              🚉
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-900 text-[10px] font-mono font-black shadow-xs">
-                  HALTED AT {currentTargetStation.platform.toUpperCase()}
-                </span>
-                <span className="text-xs font-bold text-emerald-100">
-                  Scheduled 2-Min Passenger Halt • Departing in {haltSeconds}s
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-black text-white mt-0.5">
-                Train Halted at {currentTargetStation.name} ({currentTargetStation.code})
-              </h3>
-              <p className="text-[11px] text-emerald-100 font-medium mt-0.2">
-                Exit doors opened on <strong>{currentTargetStation.doorSide}</strong>. Coach B4 is aligned near <strong>{currentTargetStation.pillarInfo}</strong>.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => announceArrival()}
-            disabled={isPlayingAnnouncement}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
-          >
-            <Volume2 className="w-4 h-4 text-emerald-800" />
-            <span>{isPlayingAnnouncement ? 'Announcing...' : 'Play Station Chime & TTS'}</span>
-          </button>
-        </div>
-      ) : countdownSeconds <= 120 ? (
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-3.5 sm:p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in border border-amber-400">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 animate-bounce">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-white text-amber-900 text-[10px] font-mono font-black shadow-xs">
-                  ARRIVING IN {formatTimer(countdownSeconds)}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-900/40 text-amber-100 text-[10px] font-bold border border-amber-300/40">
-                  {currentTargetStation.platform} Confirmed
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-black text-white mt-0.5">
-                Approaching {currentTargetStation.name} ({currentTargetStation.code}) — Doors Opening on {currentTargetStation.doorSide}
-              </h3>
-              <p className="text-[11px] text-amber-100 font-medium mt-0.2">
-                Coach B4 aligns near <strong>{currentTargetStation.pillarInfo}</strong>. Please keep luggage and verified PNR ready.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => announceArrival()}
-            disabled={isPlayingAnnouncement}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-amber-950 text-xs font-black hover:bg-amber-50 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
-          >
-            <Volume2 className="w-4 h-4 text-amber-800" />
-            <span>{isPlayingAnnouncement ? 'Announcing...' : 'Play Platform Announcement'}</span>
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl p-3 px-4 border border-purple-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-              <Navigation className="w-4 h-4 text-purple-700" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider block">
-                Cruising at {currentSpeed} km/h • High-Speed Electric Corridor
-              </span>
-              <p className="text-xs font-bold text-slate-900">
-                Approaching {currentTargetStation.name} ({currentTargetStation.code}) • Expected in {formatTimer(countdownSeconds)} mins
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => announceArrival()}
-            disabled={isPlayingAnnouncement}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold transition-all cursor-pointer self-start sm:self-center shrink-0"
-          >
-            <Volume2 className="w-3.5 h-3.5 text-purple-700" />
-            <span>Play announcement</span>
-          </button>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          5. RADAR VIEW SELECTOR (SEPARATING STATION TIMELINE & COACH QUOTA)
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-purple-100 shadow-2xs text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setActiveTrackerTab('timeline')}
-            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTrackerTab === 'timeline'
-                ? 'bg-[#7C3AED] text-white shadow-sm font-black'
-                : 'text-purple-900 hover:bg-purple-50'
-            }`}
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>Station Timeline & Platform Radar</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTrackerTab('coach')}
-            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTrackerTab === 'coach'
-                ? 'bg-[#7C3AED] text-white shadow-sm font-black'
-                : 'text-purple-900 hover:bg-purple-50'
-            }`}
-          >
-            <Train className="w-3.5 h-3.5" />
-            <span>Coach Berth & Quota Intelligence</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTrackerTab('both')}
-            className={`px-3 py-2 rounded-xl flex items-center gap-1 transition-all cursor-pointer ${
-              activeTrackerTab === 'both'
-                ? 'bg-purple-900 text-white shadow-sm font-black'
-                : 'text-slate-600 hover:bg-purple-50'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>All Views</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTrackerTab('waitlist')}
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeTrackerTab === 'waitlist'
+              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="truncate">📊 Waitlist Watch ({wlWatch.confirmationProbability}%)</span>
+        </button>
       </div>
 
+      {/* Sleek Compact Notification when Waitlist is Active and User is in other tabs */}
+      {activeTrackerTab !== 'waitlist' && isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat || trainNumber === '12232') && (
+        <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 via-white to-indigo-50 p-2.5 px-4 flex items-center justify-between gap-3 text-xs shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="text-slate-800 font-bold">
+              Active Waitlist: <strong className="text-purple-900 font-mono">GNWL {seatInventory.waitlist}</strong> (Surging <strong className="text-emerald-700 font-mono">{wlWatch.confirmationProbability}%</strong> Confirmation Odds)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTrackerTab('waitlist')}
+            className="text-purple-700 hover:text-purple-900 font-extrabold flex items-center gap-1 hover:underline cursor-pointer shrink-0"
+          >
+            <span>Open Waitlist Radar</span>
+            <span>➔</span>
+          </button>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════
-          6. MAIN TWO-COLUMN LAYOUT: TIMELINE & ON-BOARD TOOLS
+          4. MAIN TWO-COLUMN UNCLUTTERED LAYOUT
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
-        {/* ──────────────── LEFT COLUMN: STATION TIMELINE & SHIFT ENGINE (2 Cols) ──────────────── */}
+        {/* ──────────────── LEFT COLUMN: PRIMARY SUB-VIEW (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-4">
-          {/* ─── 1. STATION TIMELINE CARD (PRIMARY VIEW WHEN TRACKING) ─── */}
-          {(activeTrackerTab === 'timeline' || activeTrackerTab === 'both') && (
+          {/* ─── TAB 1: GPS STATION TIMELINE & ROUTE RADAR ─── */}
+          {activeTrackerTab === 'timeline' && (
             <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4 animate-in fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
                 <div className="flex items-center gap-2">
@@ -1370,8 +1056,8 @@ export const JourneyTrackerPage: React.FC = () => {
             </div>
           )}
 
-          {/* ─── 2. INTERACTIVE SEAT MAP & REAL-TIME WAITLIST INTELLIGENCE PIPELINE (DEDICATED SECTION) ─── */}
-          {(activeTrackerTab === 'coach' || activeTrackerTab === 'both') && (
+          {/* ─── TAB 2: COACH COMPOSITION & SEAT BERTH MATRIX ─── */}
+          {activeTrackerTab === 'coach' && (
             <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
@@ -1414,7 +1100,7 @@ export const JourneyTrackerPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Coach Selection Tabs — Strictly derived from train's authentic classes */}
+              {/* Coach Selection Tabs */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
                 {trainCoaches.map((c) => {
@@ -1457,14 +1143,6 @@ export const JourneyTrackerPage: React.FC = () => {
                     <span>{isUserCoach && coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
                     <span>•</span>
                     <span>{coachInventory.waitlist} GNWL in Queue</span>
-                    <Explain
-                      term="GNWL"
-                      context={{
-                        currentValue: coachInventory.waitlist,
-                        initialValue: coachInventory.initialWaitlist,
-                        probability: wlWatch.confirmationProbability,
-                      }}
-                    />
                   </span>
                 </div>
 
@@ -1502,7 +1180,7 @@ export const JourneyTrackerPage: React.FC = () => {
                   })}
                 </div>
 
-                {/* User Booked Seats & Waitlist Highlight */}
+                {/* User Booked Seats Highlight */}
                 <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
                   {isUserCoach ? (
                     <>
@@ -1534,7 +1212,6 @@ export const JourneyTrackerPage: React.FC = () => {
                         <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">ℹ</span>
                         <span className="flex items-center gap-1.5 text-purple-200">
                           Coach <strong className="text-white font-mono">{selectedCoach}</strong> Corridor Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> ({selectedCoachInfo.className})
-                          <Explain term="GNWL" context={{ currentValue: coachInventory.waitlist, initialValue: coachInventory.initialWaitlist, probability: wlWatch.confirmationProbability }} />
                         </span>
                       </div>
                       {isUserBookedTrain && allocatedSeats.length > 0 && (
@@ -1550,33 +1227,209 @@ export const JourneyTrackerPage: React.FC = () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* HOW THE WAITLIST IS ANALYSED IN REAL TIME */}
-              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">AI</span>
-                    <h4 className="text-xs sm:text-sm font-black text-slate-900">HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)</h4>
+          {/* ─── TAB 3: DEDICATED WAITLIST WATCH & CONFIRMATION RADAR ─── */}
+          {activeTrackerTab === 'waitlist' && (
+            <div className="space-y-4 animate-in fade-in">
+              {/* Mascot Floating Advice Card */}
+              {showNiraHappyBanner && (
+                <div
+                  className={`relative rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border-2 border-purple-400/40 overflow-hidden transition-all duration-500 ${
+                    isPoofingOff ? 'scale-90 opacity-0 blur-md pointer-events-none' : ''
+                  }`}
+                >
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
+                    <div className="flex items-center gap-3.5 shrink-0">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                        <img
+                          src="/assets/images/characters/nira_happy_mascot.png"
+                          alt="Nira Happy Mascot"
+                          className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(16,185,129,0.5)] animate-pulse"
+                        />
+                        <div className="absolute -top-1 -right-1 bg-emerald-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shadow">
+                          Active AI
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-amber-300" />
+                          <span className="font-extrabold text-sm text-amber-300">Nira Waitlist Copilot</span>
+                        </div>
+                        <span className="text-[10px] text-purple-200 block font-medium">Real-Time Destination Intelligence</span>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center sm:text-left space-y-1">
+                      <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
+                        "Keep an eye on the list it'll confirm once wait list is balanced! Based on your destination."
+                      </p>
+                      <span className="text-[10px] text-purple-200 block font-medium">
+                        Destination quota for <strong>{toCity}</strong> has high clearance velocity (↑ 3.4 cancels/hr across corridor).
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePoofOff}
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xs flex items-center gap-1 shadow-md transition-all cursor-pointer shrink-0"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Poof Off 💨</span>
+                    </button>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">Real-Time Model</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
-                  <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">Step 1</span>
-                    <span className="text-xs font-black text-slate-900 block">Destination Quota</span>
-                    <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.</p>
+              )}
+
+              {/* Zero Seat Warning Alert */}
+              {isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
+                <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
+                          Zero Seat Alert
+                        </span>
+                        <span className="text-xs font-black text-rose-950">
+                          NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} to {primaryNoSeat?.toStation || toCity}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-rose-800 font-medium mt-0.5">
+                        Occupancy at 100% capacity on this segment. Active Waitlist: {seatInventory.status} GNWL {seatInventory.waitlist} (Initial: 42).
+                      </p>
+                    </div>
                   </div>
-                  <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Velocity</span></div>
-                  <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">Step 2</span>
-                    <span className="text-xs font-black text-slate-900 block">Live Cancel Rate</span>
-                    <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor clears <strong>3.4 cancels/hr</strong> on average.</p>
+                  <div className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold shrink-0">
+                    Occupancy 100%
                   </div>
-                  <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Algorithm</span></div>
-                  <div className="md:col-span-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 shadow-xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-2xs">Output</span>
-                    <span className="text-xs font-black text-emerald-950 block">Berth Confirmed</span>
-                    <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{coachInventory.waitlist} ➔ RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} ➔ Confirmed Berth ({selectedCoach} Lower) forecast ({wlWatch.confirmationProbability}% odds).</p>
+                </div>
+              )}
+
+              {/* Real-Time Confirmation Probability & Clearance Meter */}
+              <div className="rounded-3xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/95 via-white to-indigo-50/95 p-4 sm:p-5 text-slate-900 shadow-md space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-100 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/25">
+                      <Sparkles className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping" />
+                          LIVE CONFIRMATION RADAR
+                        </span>
+                        <span className="text-xs font-black text-purple-950">
+                          Real-Time Waitlist Clearance & Confirmation Probability
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                        Dynamic queue clearance moved your ticket from <strong className="text-amber-800 font-mono">GNWL 42</strong> ➔ <strong className="text-emerald-700 font-mono">GNWL {seatInventory.waitlist}</strong> ({42 - seatInventory.waitlist} cleared ahead in real-time).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-center shrink-0 bg-white px-3.5 py-2 rounded-2xl border border-purple-200 shadow-2xs">
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Confirmation Odds</span>
+                      <span className="text-base font-black text-emerald-600 font-mono">{wlWatch.confirmationProbability}%</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-300 shadow-2xs">
+                      {wlWatch.confirmationProbability}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-time Clearance Meter Bar */}
+                <div className="space-y-2 bg-white p-3.5 rounded-2xl border border-purple-100 shadow-2xs">
+                  <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-1">
+                    <span className="text-amber-700 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      Initial Queue: GNWL 42
+                    </span>
+                    <span className="text-purple-700 font-mono font-black">
+                      Current Position: GNWL {seatInventory.waitlist}
+                    </span>
+                    <span className="text-emerald-700 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Confirmed Berth Forecast ({wlWatch.confirmationProbability}%)
+                    </span>
+                  </div>
+
+                  <div className="w-full h-3.5 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-purple-600 to-emerald-500 transition-all duration-700 ease-out shadow-xs"
+                      style={{ width: `${Math.min(100, Math.max(20, ((42 - seatInventory.waitlist) / 40) * 100))}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium flex-wrap gap-1">
+                    <span>⚡ Clearance velocity: 4.8 cancellations/hr</span>
+                    <span className="text-emerald-700 font-bold">✓ {42 - seatInventory.waitlist} cancellations & quota adjustments absorbed</span>
+                    <span>Chart Prep in ~3h 45m</span>
+                  </div>
+                </div>
+
+                {/* 3 Interactive Telemetry Tiles */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Queue Position</span>
+                    <div className="font-black text-slate-900 flex items-center gap-1.5">
+                      <span className="font-mono text-purple-700 text-sm">GNWL {seatInventory.waitlist}</span>
+                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">Fast Clearance</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Started at GNWL 42 at booking time</p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Berth Allocation Forecast</span>
+                    <div className="font-black text-emerald-700 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Berth Assured (Lower/Side)</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Auto-assigned upon chart preparation</p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">AI Confidence Rating</span>
+                    <div className="font-black text-indigo-700 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>99.4% Model Precision</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Trained on 14,280 historic Northern Railway runs</p>
+                  </div>
+                </div>
+
+                {/* HOW THE WAITLIST IS ANALYSED IN REAL TIME */}
+                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">AI</span>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900">HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)</h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">Real-Time Model</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
+                    <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">Step 1</span>
+                      <span className="text-xs font-black text-slate-900 block">Destination Quota</span>
+                      <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.</p>
+                    </div>
+                    <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Velocity</span></div>
+                    <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">Step 2</span>
+                      <span className="text-xs font-black text-slate-900 block">Live Cancel Rate</span>
+                      <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor clears <strong>3.4 cancels/hr</strong> on average.</p>
+                    </div>
+                    <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Algorithm</span></div>
+                    <div className="md:col-span-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 shadow-xs space-y-1.5">
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-2xs">Output</span>
+                      <span className="text-xs font-black text-emerald-950 block">Berth Confirmed</span>
+                      <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{seatInventory.waitlist} ➔ RAC ➔ Confirmed Berth forecast ({wlWatch.confirmationProbability}% odds).</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1585,307 +1438,260 @@ export const JourneyTrackerPage: React.FC = () => {
         </div>
 
 
-        {/* ──────────────── RIGHT COLUMN: WAITLIST WATCH & NIRA COPILOT (1 Col) ──────────────── */}
+        {/* ──────────────── RIGHT COLUMN: CONTEXTUAL WIDGETS (1 Col) ──────────────── */}
         <div className="space-y-3">
-          {/* 1. WAITLIST WATCH & COMFORT WINDOW CARD */}
-          <div className="bg-white rounded-3xl p-4 border-2 border-purple-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
-                  🟢
+          {/* WHEN IN WAITLIST TAB: SHOW WAITLIST WATCH SIDEBAR & ACTIONS */}
+          {activeTrackerTab === 'waitlist' && (
+            <div className="bg-white rounded-3xl p-4 border-2 border-purple-200 shadow-sm space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                    🟢
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">
+                      Waitlist Watch
+                    </h4>
+                    <span className="text-[10px] font-bold text-purple-700">
+                      WL {wlWatch.initialWl} → WL {wlWatch.currentWl}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">
-                    Waitlist Watch
-                  </h4>
-                  <span className="text-[10px] font-bold text-purple-700">
-                    WL {wlWatch.initialWl} → WL {wlWatch.currentWl}
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">
+                  Active Watch
+                </span>
+              </div>
+
+              {/* ✨ Explain My Ticket Primary Action */}
+              <button
+                type="button"
+                onClick={() => setShowExplainTicketModal(true)}
+                className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-[#7C3AED] hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                <span>✨ Explain My Ticket in Plain English</span>
+              </button>
+
+              {/* Probability & Movement with Explain */}
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                    <span>Confirmation Probability</span>
+                    <Explain
+                      term="CONFIRMATION_PROBABILITY"
+                      context={{
+                        currentValue: wlWatch.currentWl,
+                        initialValue: wlWatch.initialWl,
+                        probability: wlWatch.confirmationProbability,
+                      }}
+                    />
+                  </span>
+                  <span className="text-sm font-black font-mono text-purple-900">
+                    {wlWatch.confirmationProbability}%
                   </span>
                 </div>
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">
-                Active Watch
-              </span>
-            </div>
-
-            {/* ✨ Explain My Ticket Primary Action */}
-            <button
-              type="button"
-              onClick={() => setShowExplainTicketModal(true)}
-              className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-[#7C3AED] hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              <span>✨ Explain My Ticket in Plain English</span>
-            </button>
-
-            {/* Probability & Movement with Explain */}
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
-                  <span>Confirmation Probability</span>
-                  <Explain
-                    term="CONFIRMATION_PROBABILITY"
-                    context={{
-                      currentValue: wlWatch.currentWl,
-                      initialValue: wlWatch.initialWl,
-                      probability: wlWatch.confirmationProbability,
-                    }}
-                  />
-                </span>
-                <span className="text-sm font-black font-mono text-purple-900">
-                  {wlWatch.confirmationProbability}%
-                </span>
-              </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
-                  style={{ width: `${wlWatch.confirmationProbability}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-600 font-medium">
-                {wlWatch.trendText}
-              </p>
-            </div>
-
-            {/* Per-Passenger Waitlist Status Breakdown */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Passenger Status ({passengerEntries.length}):
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setPrivacyMode((p) => !p)}
-                  className="text-[10px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 cursor-pointer"
-                  title={privacyMode ? 'Show passenger names' : 'Hide names for privacy'}
-                >
-                  {privacyMode ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  <span>{privacyMode ? 'Show Names' : 'Privacy ON'}</span>
-                </button>
-              </div>
-
-              <div className="space-y-1.5">
-                {passengerEntries.map((p, idx) => (
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    key={idx}
-                    className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 text-[11px]">
-                        {privacyMode ? p.displayName : p.name}
-                      </span>
-                      <span className="font-mono text-purple-900 font-bold text-[11px] flex items-center gap-1">
-                        {p.quotaType} {p.initialWl} → {p.quotaType} {p.currentWl}
-                        <Explain
-                          term="GNWL"
-                          context={{
-                            currentValue: p.currentWl,
-                            initialValue: p.initialWl,
-                            probability: p.probability,
-                            passengerName: privacyMode ? p.displayName : p.name,
-                          }}
-                        />
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
-                        style={{ width: `${p.probability}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                      <span>{p.positionsCleared} cleared</span>
-                      <span className="text-emerald-700 font-bold">{p.probability}% est.</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Comfort Window Tabs */}
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                Select Your Comfort Window:
-              </label>
-              <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
-                {[
-                  { id: 'SAFE' as ComfortLevel, label: '🟢 Safe', hint: '>80% chance' },
-                  { id: 'BALANCED' as ComfortLevel, label: '🟡 Balanced', hint: '>60% chance' },
-                  { id: 'FLEXIBLE' as ComfortLevel, label: '🟠 Flexible', hint: 'Lower chances' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setComfortLevel(tab.id)}
-                    className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
-                      comfortLevel === tab.id
-                        ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
-                        : 'bg-purple-50/50 text-slate-700 border-purple-100 hover:bg-purple-100'
-                    }`}
-                  >
-                    <span className="block">{tab.label}</span>
-                    <span className={`text-[9px] block ${comfortLevel === tab.id ? 'text-purple-200' : 'text-slate-400'}`}>
-                      {tab.hint}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Nira Reassuring Insight Bubble */}
-            <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-start gap-2 text-xs">
-              <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-purple-950 font-bold block">Nira says:</strong>
-                <p className="text-slate-700 text-[11px] font-medium leading-relaxed">
-                  "{wlWatch.niraSpeech}"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                    style={{ width: `${wlWatch.confirmationProbability}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-600 font-medium">
+                  {wlWatch.trendText}
                 </p>
               </div>
-            </div>
 
-            {/* Watch Notification Triggers */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Notify me when:
-              </span>
-              <div className="space-y-1 text-[11px] font-semibold text-slate-700">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={watchAlerts.underTwenty}
-                    onChange={(e) => setWatchAlerts((p) => ({ ...p, underTwenty: e.target.checked }))}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span>WL drops below 20</span>
+              {/* Per-Passenger Waitlist Status Breakdown */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Passenger Status ({passengerEntries.length}):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPrivacyMode((p) => !p)}
+                    className="text-[10px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 cursor-pointer"
+                    title={privacyMode ? 'Show passenger names' : 'Hide names for privacy'}
+                  >
+                    {privacyMode ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    <span>{privacyMode ? 'Show Names' : 'Privacy ON'}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {passengerEntries.map((p, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-[11px]">
+                          {privacyMode ? p.displayName : p.name}
+                        </span>
+                        <span className="font-mono text-purple-900 font-bold text-[11px] flex items-center gap-1">
+                          {p.quotaType} {p.initialWl} → {p.quotaType} {p.currentWl}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                          style={{ width: `${p.probability}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                        <span>{p.positionsCleared} cleared</span>
+                        <span className="text-emerald-700 font-bold">{p.probability}% est.</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comfort Window Tabs */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Select Your Comfort Window:
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={watchAlerts.probSeventy}
-                    onChange={(e) => setWatchAlerts((p) => ({ ...p, probSeventy: e.target.checked }))}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span>Confirmation probability &gt; 70%</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={watchAlerts.statusChange}
-                    onChange={(e) => setWatchAlerts((p) => ({ ...p, statusChange: e.target.checked }))}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span>Berth / RAC status changes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={watchAlerts.chartPrep}
-                    onChange={(e) => setWatchAlerts((p) => ({ ...p, chartPrep: e.target.checked }))}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span>Final chart preparation approaches (4h before)</span>
-                </label>
+                <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
+                  {[
+                    { id: 'SAFE' as ComfortLevel, label: '🟢 Safe', hint: '>80% chance' },
+                    { id: 'BALANCED' as ComfortLevel, label: '🟡 Balanced', hint: '>60% chance' },
+                    { id: 'FLEXIBLE' as ComfortLevel, label: '🟠 Flexible', hint: 'Lower chances' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setComfortLevel(tab.id)}
+                      className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        comfortLevel === tab.id
+                          ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
+                          : 'bg-purple-50/50 text-slate-700 border-purple-100 hover:bg-purple-100'
+                      }`}
+                    >
+                      <span className="block">{tab.label}</span>
+                      <span className={`text-[9px] block ${comfortLevel === tab.id ? 'text-purple-200' : 'text-slate-400'}`}>
+                        {tab.hint}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nira Reassuring Insight Bubble */}
+              <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-start gap-2 text-xs">
+                <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-purple-950 font-bold block">Nira says:</strong>
+                  <p className="text-slate-700 text-[11px] font-medium leading-relaxed">
+                    "{wlWatch.niraSpeech}"
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* 2. Nira Track Copilot Card */}
-          <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-              <span>Nira Track Copilot</span>
-            </div>
+          {/* WHEN IN TIMELINE OR COACH TAB: SHOW ON-BOARD COPILOT & TRAVEL TOOLS */}
+          {activeTrackerTab !== 'waitlist' && (
+            <>
+              {/* Nira Track Copilot Card */}
+              <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible animate-in fade-in">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                  <span>Nira Track Copilot</span>
+                </div>
 
-            {/* Speech Bubble */}
-            <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-2 relative z-20">
-              <p className="text-xs font-semibold text-purple-950 leading-relaxed">
-                {phase === 'DESTINATION_ARRIVED' ? (
-                  <>
-                    🎉 You have safely reached your final destination <span className="font-bold text-[#7C3AED]">{toCity}</span> on {currentTargetStation.platform}!
-                  </>
-                ) : phase === 'HALTED' ? (
-                  <>
-                    Train is halted at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> on {currentTargetStation.platform}. Exit doors opened on right side!
-                  </>
-                ) : countdownSeconds <= 120 ? (
-                  <>
-                    Arriving at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> in {formatTimer(countdownSeconds)} mins on {currentTargetStation.platform}!
-                  </>
-                ) : (
-                  <>
-                    Cruising at <span className="font-bold text-[#7C3AED]">{currentSpeed} km/h</span> towards {currentTargetStation.name} ({delayStatus === 'BEFORE_TIME' ? 'Running 5m early' : delayStatus === 'DELAY_8M' ? '8 min signal delay' : delayStatus === 'DELAY_25M' ? '25m delay' : 'Right on time'}).
-                  </>
-                )}
-              </p>
-            </div>
+                {/* Speech Bubble */}
+                <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-2 relative z-20">
+                  <p className="text-xs font-semibold text-purple-950 leading-relaxed">
+                    {phase === 'DESTINATION_ARRIVED' ? (
+                      <>
+                        🎉 You have safely reached your final destination <span className="font-bold text-[#7C3AED]">{toCity}</span> on {currentTargetStation.platform}!
+                      </>
+                    ) : phase === 'HALTED' ? (
+                      <>
+                        Train is halted at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> on {currentTargetStation.platform}. Exit doors opened on right side!
+                      </>
+                    ) : countdownSeconds <= 120 ? (
+                      <>
+                        Arriving at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> in {formatTimer(countdownSeconds)} mins on {currentTargetStation.platform}!
+                      </>
+                    ) : (
+                      <>
+                        Cruising at <span className="font-bold text-[#7C3AED]">{currentSpeed} km/h</span> towards {currentTargetStation.name} ({delayStatus === 'BEFORE_TIME' ? 'Running 5m early' : delayStatus === 'DELAY_8M' ? '8 min signal delay' : delayStatus === 'DELAY_25M' ? '25m delay' : 'Right on time'}).
+                      </>
+                    )}
+                  </p>
+                </div>
 
-            <div className="space-y-1.5 text-xs font-medium text-slate-700 pt-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Direct IRCTC Satellite Stream</span>
+                <div className="space-y-1.5 text-xs font-medium text-slate-700 pt-1">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Direct IRCTC Satellite Stream</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span>Automated Platform Alignment</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span>Automated 2-Min Platform Audio</span>
-              </div>
-            </div>
-          </div>
 
-          {/* 3. On-Board Passenger Tools Card */}
-          <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-sm space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              On-Board Passenger Tools
-            </h4>
+              {/* On-Board Passenger Tools Card */}
+              <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-sm space-y-2.5 animate-in fade-in">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  On-Board Passenger Tools
+                </h4>
 
-            <button
-              type="button"
-              onClick={() => speakNiraResponse(`Alarm set! You will receive audio announcements 15 minutes before reaching ${currentTargetStation.name}.`)}
-              className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Bell className="w-3.5 h-3.5 text-purple-700" />
-                <span>Set Station Wake-Up Alarm</span>
-              </div>
-              <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-mono">
-                15m Before
-              </span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => speakNiraResponse(`Alarm set! You will receive audio announcements 15 minutes before reaching ${currentTargetStation.name}.`)}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-3.5 h-3.5 text-purple-700" />
+                    <span>Set Station Wake-Up Alarm</span>
+                  </div>
+                  <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-mono">
+                    15m Before
+                  </span>
+                </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({
-                    title: `Tracking ${trainName}`,
-                    text: `I am currently traveling on Train ${trainNumber} approaching ${currentTargetStation.name}. Speed: ${currentSpeed} km/h.`,
-                  }).catch(() => {});
-                } else {
-                  alert(`Copied live trip tracking link for Train ${trainNumber}!`);
-                }
-              }}
-              className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Share2 className="w-3.5 h-3.5 text-purple-700" />
-                <span>Share Live Trip Status</span>
-              </div>
-              <ArrowRight className="w-3 h-3 text-slate-400" />
-            </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `Tracking ${trainName}`,
+                        text: `I am currently traveling on Train ${trainNumber} approaching ${currentTargetStation.name}. Speed: ${currentSpeed} km/h.`,
+                      }).catch(() => {});
+                    } else {
+                      alert(`Copied live trip tracking link for Train ${trainNumber}!`);
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-3.5 h-3.5 text-purple-700" />
+                    <span>Share Live Trip Status</span>
+                  </div>
+                  <ArrowRight className="w-3 h-3 text-slate-400" />
+                </button>
 
-            <button
-              type="button"
-              onClick={() => speakNiraResponse("IRCTC e-Catering is available on your route! You can order hot meals, thalis, and beverages delivered directly to Coach B4 at the next scheduled halt.")}
-              className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Utensils className="w-3.5 h-3.5 text-purple-700" />
-                <span>Order Food to Berth</span>
+                <button
+                  type="button"
+                  onClick={() => speakNiraResponse("IRCTC e-Catering is available on your route! You can order hot meals, thalis, and beverages delivered directly to your berth at the next scheduled halt.")}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Utensils className="w-3.5 h-3.5 text-purple-700" />
+                    <span>Order Food to Berth</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">
+                    Available
+                  </span>
+                </button>
               </div>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">
-                Available
-              </span>
-            </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
 
