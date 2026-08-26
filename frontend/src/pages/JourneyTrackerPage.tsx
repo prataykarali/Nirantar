@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Train,
   MapPin,
@@ -19,57 +19,60 @@ import {
   Sparkles,
   Trophy,
   Award,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Sliders,
+  Check,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { speakNiraResponse } from '../services/voiceService';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { getTrainStoppages, StationStop } from '../data/trainStoppages';
-import { liveSeatInventory, stationLoadProjection } from '../utils/seatInventory';
+import {
+  liveSeatInventory,
+  stationLoadProjection,
+  getNoSeatSegments,
+  getWaitlistWatchProjection,
+  ComfortLevel,
+} from '../utils/seatInventory';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
 
+const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12302': 'Howrah Rajdhani Express',
+  '12301': 'Howrah Rajdhani Express',
+  '12951': 'Mumbai Rajdhani Express',
+  '12952': 'New Delhi Rajdhani Express',
+  '22436': 'Varanasi Vande Bharat Express',
+  '22435': 'Varanasi Vande Bharat Express',
+  '12002': 'Bhopal Shatabdi Express',
+  '12004': 'Lucknow Shatabdi Express',
+  '22692': 'Bengaluru Rajdhani Express',
+  '20835': 'Puri Vande Bharat Express',
+  '12115': 'Siddheshwar SF Express',
+  '12116': 'Siddheshwar SF Express',
+  '12423': 'Dibrugarh Rajdhani Express',
+  '12626': 'Kerala SF Express',
+  '12801': 'Purushottam Express',
+  '12245': 'Howrah Duronto Express',
+  '12839': 'Chennai Mail Express',
+  '12618': 'Mangala Lakshadweep Express',
+  '12723': 'Telangana Superfast Express',
+  '12953': 'August Kranti Tejas Rajdhani',
+  '12123': 'Deccan Queen Superfast',
+  '12259': 'Sealdah AC Duronto',
+};
+
 export const JourneyTrackerPage: React.FC = () => {
-  const { searchParams, selectedTrain, issuedTicket, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
-  const [searchInput, setSearchInput] = useState(trackQuery || selectedTrain?.trainNumber || '12302');
+  const { searchParams, selectedTrain, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
+  const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || '12302';
 
-  useEffect(() => {
-    if (trackQuery && trackQuery.trim()) {
-      setSearchInput(trackQuery.trim());
-    }
-  }, [trackQuery]);
-  
-  // Dynamic matched train from database or stoppages
-  const trainNumber = (searchInput || '12302').trim();
-  const foundTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNumber);
-  const routeStations: StationStop[] = getTrainStoppages(trainNumber, foundTrain);
-  const firstStop = routeStations[0];
-  const lastStop = routeStations[routeStations.length - 1];
-
-  const trainName =
-    foundTrain?.trainName ||
-    (trainNumber === '12302'
-      ? 'Howrah Rajdhani Express'
-      : trainNumber === '12951'
-      ? 'Mumbai Rajdhani Express'
-      : trainNumber === '22436'
-      ? 'Varanasi Vande Bharat Express'
-      : trainNumber === '12002'
-      ? 'Bhopal Shatabdi Express'
-      : trainNumber === '12004'
-      ? 'Lucknow Shatabdi Express'
-      : trainNumber === '22692'
-      ? 'Bengaluru Rajdhani Express'
-      : trainNumber === '20835'
-      ? 'Puri Vande Bharat Express'
-      : `Superfast Express #${trainNumber}`);
-
-  const fromCode = foundTrain?.fromStationCode || firstStop?.code || 'NDLS';
-  const fromCity = foundTrain?.fromCity || firstStop?.name || 'New Delhi';
-  const toCode = foundTrain?.toStationCode || lastStop?.code || 'HWH';
-  const toCity = foundTrain?.toCity || lastStop?.name || 'Howrah';
-
-  // Active station tracker state machine
+  // ─── STATE HOOKS (Declared at Top) ───
+  const [searchInput, setSearchInput] = useState(initialTrainNumber);
+  const [activeTrainNumber, setActiveTrainNumber] = useState(initialTrainNumber);
+  const [inventoryClock, setInventoryClock] = useState(Date.now());
   const [activeStationIndex, setActiveStationIndex] = useState(1);
   const [countdownSeconds, setCountdownSeconds] = useState(180);
   const [haltSeconds, setHaltSeconds] = useState(20);
@@ -77,22 +80,62 @@ export const JourneyTrackerPage: React.FC = () => {
   const [delayStatus, setDelayStatus] = useState<DelayStatus>('ON_TIME');
   const [isPlayingAnnouncement, setIsPlayingAnnouncement] = useState(false);
   const [speedJitter, setSpeedJitter] = useState(0);
-  const [inventoryClock, setInventoryClock] = useState(Date.now());
+  const [showDetailedFlow, setShowDetailedFlow] = useState(false);
+  const [comfortLevel, setComfortLevel] = useState<ComfortLevel>('BALANCED');
+  const [watchAlerts, setWatchAlerts] = useState({
+    underTwenty: true,
+    probSeventy: true,
+    statusChange: true,
+    chartPrep: true,
+  });
   const lastNotifKey = useRef('');
 
-  // Reset tracker cycle whenever train number changes
   useEffect(() => {
-    setActiveStationIndex(1);
-    setCountdownSeconds(180);
-    setHaltSeconds(20);
-    setPhase('TRAVELING');
-    lastNotifKey.current = '';
-  }, [trainNumber]);
+    if (trackQuery && trackQuery.trim()) {
+      const nextTrainNumber = trackQuery.trim();
+      setSearchInput(nextTrainNumber);
+      setActiveTrainNumber(nextTrainNumber);
+    }
+  }, [trackQuery]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setInventoryClock(Date.now()), 6_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
+  const trainNumber = activeTrainNumber.trim() || '12302';
+  const foundTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNumber);
+  const routeStations: StationStop[] = useMemo(() => {
+    return getTrainStoppages(trainNumber, foundTrain);
+  }, [trainNumber, foundTrain]);
+
+  const firstStop = routeStations[0] || { code: 'NDLS', name: 'New Delhi', platform: 'Platform 1' };
+  const lastStop = routeStations[routeStations.length - 1] || { code: 'HWH', name: 'Howrah', platform: 'Platform 9' };
+
+  const trainName = useMemo(() => {
+    if (KNOWN_TRAIN_NAMES[trainNumber]) return KNOWN_TRAIN_NAMES[trainNumber];
+    if (foundTrain?.trainName) return foundTrain.trainName;
+    const num = Number.parseInt(trainNumber, 10) || trainNumber.length;
+    const type = num % 5 === 0 ? 'Vande Bharat' : num % 4 === 0 ? 'Rajdhani' : num % 3 === 0 ? 'Shatabdi' : num % 2 === 0 ? 'Duronto' : 'Superfast Express';
+    return `${firstStop.name} - ${lastStop.name} ${type} #${trainNumber}`;
+  }, [trainNumber, foundTrain, firstStop.name, lastStop.name]);
+
+  const fromCode = foundTrain?.fromStationCode || firstStop.code;
+  const fromCity = foundTrain?.fromCity || firstStop.name;
+  const toCode = foundTrain?.toStationCode || lastStop.code;
+  const toCity = foundTrain?.toCity || lastStop.name;
+
+  const seatClass = foundTrain?.classes?.[0];
+  const seatInventory = liveSeatInventory(trainNumber, seatClass?.classCode || '3A', seatClass?.availableSeats || 42, inventoryClock);
+  const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations), [trainNumber, routeStations]);
+  const primaryNoSeat = noSeatSegments[0];
+
+  const wlWatch = useMemo(() => {
+    return getWaitlistWatchProjection(trainNumber, seatClass?.classCode || '3A', seatInventory.waitlist, comfortLevel);
+  }, [trainNumber, seatClass?.classCode, seatInventory.waitlist, comfortLevel]);
+
+  const availabilityRoute = `${firstStop.name} (${firstStop.platform}) to ${lastStop.name} (${lastStop.platform})`;
 
   const isFinalDestination = activeStationIndex >= routeStations.length - 1;
   const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1] || firstStop;
@@ -224,7 +267,7 @@ export const JourneyTrackerPage: React.FC = () => {
   const currentSpeed = Math.max(0, baseSpeed === 0 ? 0 : baseSpeed + speedJitter);
 
   useEffect(() => {
-    const stops = getTrainStoppages(trainNumber, foundTrain);
+    const stops = routeStations;
     const mid = Math.max(1, Math.min(stops.length - 2, Math.floor(stops.length / 3)));
     setActiveStationIndex(mid);
     setPhase('TRAVELING');
@@ -233,7 +276,7 @@ export const JourneyTrackerPage: React.FC = () => {
     const delayPick: DelayStatus[] = ['ON_TIME', 'BEFORE_TIME', 'ON_TIME', 'DELAY_8M'];
     setDelayStatus(delayPick[seed % delayPick.length]);
     lastNotifKey.current = '';
-  }, [trainNumber]);
+  }, [trainNumber, routeStations]);
 
   useEffect(() => {
     const key = `${phase}-${activeStationIndex}`;
@@ -267,7 +310,15 @@ export const JourneyTrackerPage: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchInput.trim()) return;
-    setTrackQuery(searchInput.trim());
+    const nextTrainNumber = searchInput.trim();
+    setActiveTrainNumber(nextTrainNumber);
+    setTrackQuery(nextTrainNumber);
+  };
+
+  const selectTrainToTrack = (nextTrainNumber: string) => {
+    setSearchInput(nextTrainNumber);
+    setActiveTrainNumber(nextTrainNumber);
+    setTrackQuery(nextTrainNumber);
   };
 
   return (
@@ -335,7 +386,7 @@ export const JourneyTrackerPage: React.FC = () => {
         <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
         <button
           type="button"
-          onClick={() => setSearchInput('12302')}
+          onClick={() => selectTrainToTrack('12302')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12302'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -348,7 +399,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setSearchInput('12951')}
+          onClick={() => selectTrainToTrack('12951')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12951'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -361,7 +412,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setSearchInput('22436')}
+          onClick={() => selectTrainToTrack('22436')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '22436'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -374,7 +425,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setSearchInput('12002')}
+          onClick={() => selectTrainToTrack('12002')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12002'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -387,7 +438,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setSearchInput('20835')}
+          onClick={() => selectTrainToTrack('20835')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '20835'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -400,7 +451,20 @@ export const JourneyTrackerPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setSearchInput('22692')}
+          onClick={() => selectTrainToTrack('12115')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12115'
+              ? 'bg-[#7C3AED] text-white shadow-sm'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Train className="w-3.5 h-3.5 text-amber-500" />
+          <span>#12115 Siddheshwar SF</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => selectTrainToTrack('22692')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '22692'
               ? 'bg-[#7C3AED] text-white shadow-sm'
@@ -515,10 +579,43 @@ export const JourneyTrackerPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. REAL-TIME ARRIVAL / CELEBRATION / HALT BANNER WITH CHIME & TTS
+          3. ZERO-SEAT PLATFORM WARNING BANNER (When No Seat Available)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {(seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
+        <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
+                  Zero Seat Alert
+                </span>
+                <span className="text-xs font-black text-rose-950">
+                  NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} ({primaryNoSeat?.fromPlatform || firstStop.platform}) to {primaryNoSeat?.toStation || toCity} ({primaryNoSeat?.toPlatform || lastStop.platform})
+                </span>
+              </div>
+              <p className="text-[11px] text-rose-800 font-medium mt-0.5">
+                Estimated occupancy is at 100% capacity on this corridor segment. Waitlist allocation active ({seatInventory.status} {seatInventory.waitlist}/100).
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => speakNiraResponse(`Zero seat notice: Train ${trainNumber} has 0 vacant seats from ${primaryNoSeat?.fromStation} ${primaryNoSeat?.fromPlatform} to ${primaryNoSeat?.toStation} ${primaryNoSeat?.toPlatform}. Waitlist Watch is actively monitoring movement.`)}
+            className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold hover:bg-rose-100/80 transition-all cursor-pointer shrink-0 self-start sm:self-center"
+          >
+            Audio Briefing
+          </button>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          4. REAL-TIME ARRIVAL / CELEBRATION / HALT BANNER
           ═══════════════════════════════════════════════════════════════════ */}
       {phase === 'DESTINATION_ARRIVED' ? (
-        /* DESTINATION ARRIVED CELEBRATION BANNER */
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-2xl p-4 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in zoom-in-95 border border-emerald-300">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 text-2xl font-bold">
@@ -553,7 +650,6 @@ export const JourneyTrackerPage: React.FC = () => {
           </button>
         </div>
       ) : phase === 'HALTED' ? (
-        /* GREEN STATION HALT BANNER */
         <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 rounded-2xl p-3.5 sm:p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in border border-emerald-400">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 text-xl font-bold">
@@ -588,7 +684,6 @@ export const JourneyTrackerPage: React.FC = () => {
           </button>
         </div>
       ) : countdownSeconds <= 120 ? (
-        /* AMBER 2-MINUTE ARRIVAL ALERT BANNER */
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-3.5 sm:p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in border border-amber-400">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 animate-bounce">
@@ -623,7 +718,6 @@ export const JourneyTrackerPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        /* STANDARD EN-ROUTE TRAVELING BANNER */
         <div className="bg-white rounded-2xl p-3 px-4 border border-purple-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
@@ -652,7 +746,7 @@ export const JourneyTrackerPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          4. MAIN TWO-COLUMN LAYOUT: TIMELINE & ON-BOARD TOOLS
+          5. MAIN TWO-COLUMN LAYOUT: TIMELINE & ON-BOARD TOOLS
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: STATION TIMELINE & SHIFT ENGINE (2 Cols) ──────────────── */}
@@ -665,182 +759,368 @@ export const JourneyTrackerPage: React.FC = () => {
               </h3>
             </div>
 
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Live timetable • {routeStations.length} stoppages
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Live timetable • {routeStations.length} stoppages
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDetailedFlow((prev) => !prev)}
+                className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+              >
+                <Sliders className="w-3 h-3 text-purple-700" />
+                <span>{showDetailedFlow ? 'Simple Summary' : 'Detailed Flow'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Route Vacancy & Projected Flow Header Pill */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className={`font-bold ${seatInventory.status === 'AVAILABLE' ? 'text-emerald-900' : 'text-rose-900'}`}>
+              {seatInventory.status === 'AVAILABLE'
+                ? `Route availability (${seatClass?.classCode || '3A'}): ${seatInventory.seats} vacant seats`
+                : `No ${seatClass?.classCode || '3A'} seats available from ${availabilityRoute} — ${seatInventory.status} ${seatInventory.waitlist}/100`}
+            </span>
+            <span className="text-[11px] font-medium text-slate-600">
+              Projected passenger flow (modelled occupancy)
             </span>
           </div>
 
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-            {(() => {
-              const cls = foundTrain?.classes?.[0];
-              const inventory = liveSeatInventory(trainNumber, cls?.classCode || '3A', cls?.availableSeats || 42, inventoryClock);
-              return <><span className="font-bold text-emerald-900">Destination availability ({cls?.classCode || '3A'}): {inventory.status === 'AVAILABLE' ? `${inventory.seats} vacant seats` : `${inventory.status} ${inventory.waitlist}/100`}</span><span className="text-emerald-800">Station rows show passengers boarding, leaving, and projected vacancies.</span></>;
-            })()}
-          </div>
-
-          {/* Interactive Route Timeline */}
-          <div className="space-y-4 relative pl-3 before:absolute before:left-[21px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
-            {routeStations.map((st, idx) => {
-              const isPassed = idx < activeStationIndex;
-              const isCurrent = idx === activeStationIndex;
-              const isUpcoming = idx > activeStationIndex;
-              const load = stationLoadProjection(trainNumber, routeStations, idx);
-
-              return (
-                <div
-                  key={st.code}
-                  className={`flex items-start justify-between gap-3 relative transition-all ${
-                    isCurrent
-                      ? 'p-3 rounded-2xl bg-purple-50/70 border border-purple-200 shadow-xs'
-                      : isPassed
-                      ? 'opacity-85'
-                      : 'opacity-70'
-                  }`}
-                >
-                  {/* Timeline Indicator Dot */}
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 font-bold text-xs ${
-                        isPassed
-                          ? 'bg-emerald-500 border-white text-white shadow-xs'
-                          : isCurrent
-                          ? 'bg-[#7C3AED] border-white text-white shadow-md animate-pulse'
-                          : 'bg-white border-slate-300 text-slate-400'
-                      }`}
-                    >
-                      {isPassed ? (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      ) : (
-                        <span className="text-[10px]">{idx + 1}</span>
-                      )}
-                    </div>
-
-                    {/* Station Name & Meta */}
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-slate-900">
-                          {st.name}
-                        </span>
-                        <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-mono text-[9px] font-bold">
-                          {st.code}
-                        </span>
-                        <span
-                          className={`text-[9px] font-bold px-2 py-0.2 rounded-full border ${
-                            isCurrent
-                              ? 'bg-amber-100 border-amber-300 text-amber-900'
-                              : 'bg-slate-100 border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {st.platform}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
-                        {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
-                        {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
-                      </span>
-                      <div className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-bold">
-                        <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 text-indigo-800">↑ {load.boarding} board</span>
-                        <span className="rounded-full bg-orange-50 border border-orange-100 px-1.5 py-0.5 text-orange-800">↓ {load.alighting} leave</span>
-                        <span className="rounded-full bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-emerald-800">{load.vacantSeats} vacant after departure</span>
-                      </div>
-                      {isCurrent && (
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">
-                            <Train className="w-3.5 h-3.5" />
-                            <span>
-                              {phase === 'HALTED'
-                                ? `Halted on Platform • Departs in ${haltSeconds}s`
-                                : phase === 'DESTINATION_ARRIVED'
-                                ? 'Final Destination Reached 🏁'
-                                : `Train Moving (${currentSpeed} km/h) • Arriving in ${formatTimer(countdownSeconds)}`}
-                            </span>
-                          </div>
-                          <div className="h-1.5 w-24 bg-purple-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                              style={{
-                                width: `${Math.min(100, Math.max(5, (1 - countdownSeconds / 240) * 100))}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Timing & Status State */}
-                  <div className="text-right shrink-0">
-                    <span
-                      className={`font-mono text-xs sm:text-sm font-bold block ${
-                        isPassed
-                          ? 'text-emerald-700'
-                          : isCurrent
-                          ? phase === 'DESTINATION_ARRIVED'
-                            ? 'text-emerald-700 font-black'
-                            : 'text-purple-900 font-black'
-                          : 'text-slate-600'
-                      }`}
-                    >
-                      {isPassed
-                        ? st.scheduledDep
-                        : isCurrent
-                        ? phase === 'DESTINATION_ARRIVED'
-                          ? 'Arrived 09:55'
-                          : phase === 'HALTED'
-                          ? 'Halted at Platform'
-                          : `Arriving in ${formatTimer(countdownSeconds)}`
-                        : `Expected ${st.scheduledArr}`}
-                    </span>
-                    <span
-                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
-                        isPassed
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : isCurrent
-                          ? phase === 'DESTINATION_ARRIVED'
-                            ? 'bg-emerald-100 text-emerald-950 font-black'
-                            : phase === 'HALTED'
-                            ? 'bg-emerald-100 text-emerald-900 font-black animate-pulse'
-                            : 'bg-amber-100 text-amber-900 font-bold'
-                          : 'bg-slate-50 text-slate-500'
-                      }`}
-                    >
-                      {isPassed
-                        ? 'Departed'
-                        : isCurrent
-                        ? phase === 'DESTINATION_ARRIVED'
-                          ? 'Destination Arrived'
-                          : phase === 'HALTED'
-                          ? 'At Platform 4'
-                          : 'Approaching'
-                        : 'Upcoming'}
-                    </span>
-                  </div>
+          {/* ─── SIMPLE MODE SUMMARY VIEW ─── */}
+          {!showDetailedFlow && (
+            <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Current Location</span>
+                  <strong className="text-slate-900 text-sm block truncate">{currentTargetStation.name}</strong>
+                  <span className="text-[10px] text-purple-700 font-bold">{currentTargetStation.platform}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Estimated Occupancy</span>
+                  <strong className="text-slate-900 text-sm block">👥 Moderate (~76%)</strong>
+                  <span className="text-[10px] text-emerald-700 font-bold">Stable flow</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Waitlist Movement</span>
+                  <strong className="text-amber-700 text-sm block">WL {seatInventory.waitlist || 38}</strong>
+                  <span className="text-[10px] text-emerald-700 font-bold">📈 Positive velocity</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDetailedFlow(true)}
+                className="w-full py-2 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5 text-purple-700" />
+                <span>See detailed station-flow projections ({routeStations.length} stoppages) →</span>
+              </button>
+            </div>
+          )}
+
+          {/* ─── DETAILED STATION-WISE PASSENGER FLOW TIMELINE ─── */}
+          {showDetailedFlow && (
+            <div className="space-y-4 relative pl-3 before:absolute before:left-[21px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 animate-in fade-in">
+              {routeStations.map((st, idx) => {
+                const isPassed = idx < activeStationIndex;
+                const isCurrent = idx === activeStationIndex;
+                const nextSt = routeStations[idx + 1];
+                const load = stationLoadProjection(trainNumber, routeStations, idx);
+                const isNoSeat = load.vacantSeats === 0;
+
+                return (
+                  <div
+                    key={st.code}
+                    className={`flex items-start justify-between gap-3 relative transition-all ${
+                      isCurrent
+                        ? 'p-3 rounded-2xl bg-purple-50/70 border border-purple-200 shadow-xs'
+                        : isPassed
+                        ? 'opacity-85'
+                        : 'opacity-70'
+                    }`}
+                  >
+                    {/* Timeline Indicator Dot */}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 font-bold text-xs ${
+                          isPassed
+                            ? 'bg-emerald-500 border-white text-white shadow-xs'
+                            : isCurrent
+                            ? 'bg-[#7C3AED] border-white text-white shadow-md animate-pulse'
+                            : 'bg-white border-slate-300 text-slate-400'
+                        }`}
+                      >
+                        {isPassed ? (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <span className="text-[10px]">{idx + 1}</span>
+                        )}
+                      </div>
+
+                      {/* Station Name & Meta */}
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900">
+                            {st.name}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-mono text-[9px] font-bold">
+                            {st.code}
+                          </span>
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.2 rounded-full border ${
+                              isCurrent
+                                ? 'bg-amber-100 border-amber-300 text-amber-900'
+                                : 'bg-slate-100 border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {st.platform}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
+                          {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
+                          {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
+                        </span>
+                        
+                        {/* Projected Passenger Flow Badges */}
+                        <div className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-bold">
+                          <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 text-indigo-800">
+                            ↑ {load.boarding} board
+                          </span>
+                          <span className="rounded-full bg-orange-50 border border-orange-100 px-1.5 py-0.5 text-orange-800">
+                            ↓ {load.alighting} leave
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 border font-bold ${
+                              isNoSeat
+                                ? 'bg-rose-100 border-rose-300 text-rose-900'
+                                : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {isNoSeat
+                              ? `🚫 0 vacant seats (NO SEATS AVAILABLE to ${nextSt?.platform || 'next platform'})`
+                              : `${load.vacantSeats} vacant seats after departure`}
+                          </span>
+                        </div>
+
+                        {isCurrent && (
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">
+                              <Train className="w-3.5 h-3.5" />
+                              <span>
+                                {phase === 'HALTED'
+                                  ? `Halted on Platform • Departs in ${haltSeconds}s`
+                                  : phase === 'DESTINATION_ARRIVED'
+                                  ? 'Final Destination Reached 🏁'
+                                  : `Train Moving (${currentSpeed} km/h) • Arriving in ${formatTimer(countdownSeconds)}`}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-24 bg-purple-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                style={{
+                                  width: `${Math.min(100, Math.max(5, (1 - countdownSeconds / 240) * 100))}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timing & Status State */}
+                    <div className="text-right shrink-0">
+                      <span
+                        className={`font-mono text-xs sm:text-sm font-bold block ${
+                          isPassed
+                            ? 'text-emerald-700'
+                            : isCurrent
+                            ? phase === 'DESTINATION_ARRIVED'
+                              ? 'text-emerald-700 font-black'
+                              : 'text-purple-900 font-black'
+                            : 'text-slate-600'
+                        }`}
+                      >
+                        {isPassed
+                          ? st.scheduledDep
+                          : isCurrent
+                          ? phase === 'DESTINATION_ARRIVED'
+                            ? `Arrived ${st.scheduledArr}`
+                            : phase === 'HALTED'
+                            ? 'Halted at Platform'
+                            : `Arriving in ${formatTimer(countdownSeconds)}`
+                          : `Expected ${st.scheduledArr}`}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
+                          isPassed
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : isCurrent
+                            ? phase === 'DESTINATION_ARRIVED'
+                              ? 'bg-emerald-100 text-emerald-950 font-black'
+                              : phase === 'HALTED'
+                              ? 'bg-emerald-100 text-emerald-900 font-black animate-pulse'
+                              : 'bg-amber-100 text-amber-900 font-bold'
+                            : 'bg-slate-50 text-slate-500'
+                        }`}
+                      >
+                        {isPassed
+                          ? 'Departed'
+                          : isCurrent
+                          ? phase === 'DESTINATION_ARRIVED'
+                            ? 'Destination Arrived'
+                            : phase === 'HALTED'
+                              ? `At ${st.platform}`
+                            : 'Approaching'
+                          : 'Upcoming'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* ──────────────── RIGHT COLUMN: NIRA TRACK COPILOT & TOOLS (1 Col) ──────────────── */}
+        {/* ──────────────── RIGHT COLUMN: WAITLIST WATCH & NIRA COPILOT (1 Col) ──────────────── */}
         <div className="space-y-3">
-          {/* Nira Track Copilot Card */}
+          {/* 1. WAITLIST WATCH & COMFORT WINDOW CARD */}
+          <div className="bg-white rounded-3xl p-4 border-2 border-purple-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                  🟢
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">
+                    Waitlist Watch
+                  </h4>
+                  <span className="text-[10px] font-bold text-purple-700">
+                    WL {wlWatch.initialWl} → WL {wlWatch.currentWl}
+                  </span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">
+                Active Watch
+              </span>
+            </div>
+
+            {/* Probability & Movement */}
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900">
+                  Confirmation Probability
+                </span>
+                <span className="text-sm font-black font-mono text-purple-900">
+                  {wlWatch.confirmationProbability}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                  style={{ width: `${wlWatch.confirmationProbability}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-600 font-medium">
+                {wlWatch.trendText}
+              </p>
+            </div>
+
+            {/* Comfort Window Tabs */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Select Your Comfort Window:
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
+                {[
+                  { id: 'SAFE' as ComfortLevel, label: '🟢 Safe', hint: '>80% chance' },
+                  { id: 'BALANCED' as ComfortLevel, label: '🟡 Balanced', hint: '>60% chance' },
+                  { id: 'FLEXIBLE' as ComfortLevel, label: '🟠 Flexible', hint: 'Lower chances' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setComfortLevel(tab.id)}
+                    className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      comfortLevel === tab.id
+                        ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
+                        : 'bg-purple-50/50 text-slate-700 border-purple-100 hover:bg-purple-100'
+                    }`}
+                  >
+                    <span className="block">{tab.label}</span>
+                    <span className={`text-[9px] block ${comfortLevel === tab.id ? 'text-purple-200' : 'text-slate-400'}`}>
+                      {tab.hint}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Nira Reassuring Insight Bubble */}
+            <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-start gap-2 text-xs">
+              <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-purple-950 font-bold block">Nira says:</strong>
+                <p className="text-slate-700 text-[11px] font-medium leading-relaxed">
+                  "{wlWatch.niraSpeech}"
+                </p>
+              </div>
+            </div>
+
+            {/* Watch Notification Triggers */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Notify me when:
+              </span>
+              <div className="space-y-1 text-[11px] font-semibold text-slate-700">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchAlerts.underTwenty}
+                    onChange={(e) => setWatchAlerts((p) => ({ ...p, underTwenty: e.target.checked }))}
+                    className="rounded text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>WL drops below 20</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchAlerts.probSeventy}
+                    onChange={(e) => setWatchAlerts((p) => ({ ...p, probSeventy: e.target.checked }))}
+                    className="rounded text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>Confirmation probability &gt; 70%</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchAlerts.statusChange}
+                    onChange={(e) => setWatchAlerts((p) => ({ ...p, statusChange: e.target.checked }))}
+                    className="rounded text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>Berth / RAC status changes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchAlerts.chartPrep}
+                    onChange={(e) => setWatchAlerts((p) => ({ ...p, chartPrep: e.target.checked }))}
+                    className="rounded text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>Final chart preparation approaches (4h before)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Nira Track Copilot Card */}
           <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible">
             <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-purple-700" />
               <span>Nira Track Copilot</span>
             </div>
 
-            {/* Character Mascot */}
-            <div className="absolute right-2 -top-6 w-24 h-28 pointer-events-none z-10 flex items-end justify-end">
-              <img
-                src="/assets/images/characters/citizen_thinking.png"
-                alt="Nira Radar Copilot"
-                className="w-full h-full object-contain drop-shadow-sm"
-              />
-            </div>
-
             {/* Speech Bubble */}
-            <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mt-10 mb-2 relative z-20">
+            <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-2 relative z-20">
               <p className="text-xs font-semibold text-purple-950 leading-relaxed">
                 {phase === 'DESTINATION_ARRIVED' ? (
                   <>
@@ -874,7 +1154,7 @@ export const JourneyTrackerPage: React.FC = () => {
             </div>
           </div>
 
-          {/* On-Board Passenger Tools Card */}
+          {/* 3. On-Board Passenger Tools Card */}
           <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-sm space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
               On-Board Passenger Tools

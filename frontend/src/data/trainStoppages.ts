@@ -189,47 +189,92 @@ const FLAGSHIP_STOPS: Record<string, StationStop[]> = {
     { code: 'CNB', name: 'Kanpur Central', platform: 'Platform 1', scheduledArr: '05:30', scheduledDep: '05:35', distanceKm: 971, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #8 & Main Exit' },
     { code: 'NDLS', name: 'New Delhi', platform: 'Platform 13', scheduledArr: '11:00', scheduledDep: '--:--', distanceKm: 1411, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Pillar #4 & North Overbridge' },
   ],
-  '12123': [
-    { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', platform: 'Platform 8', scheduledArr: '--:--', scheduledDep: '17:10', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #18 & Heritage Gate' },
-    { code: 'DR', name: 'Dadar Central', platform: 'Platform 6', scheduledArr: '17:22', scheduledDep: '17:24', distanceKm: 9, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Exit' },
-    { code: 'KYN', name: 'Kalyan Junction', platform: 'Platform 5', scheduledArr: '18:08', scheduledDep: '18:10', distanceKm: 54, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #7 & FOB' },
-    { code: 'KJT', name: 'Karjat Junction', platform: 'Platform 1', scheduledArr: '18:48', scheduledDep: '18:50', distanceKm: 100, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Ghat Banker' },
-    { code: 'LNL', name: 'Lonavala', platform: 'Platform 1', scheduledArr: '19:33', scheduledDep: '19:35', distanceKm: 128, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Main Gate' },
-    { code: 'SVJR', name: 'Shivajinagar', platform: 'Platform 2', scheduledArr: '20:18', scheduledDep: '20:20', distanceKm: 190, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Exit' },
-    { code: 'PUNE', name: 'Pune Junction', platform: 'Platform 5', scheduledArr: '20:25', scheduledDep: '--:--', distanceKm: 192, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #8 & Main Portico' },
+  '12115': [
+    { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', platform: 'Platform 17', scheduledArr: '--:--', scheduledDep: '22:40', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #18 & Cabway' },
+    { code: 'DR', name: 'Dadar Central', platform: 'Platform 8', scheduledArr: '22:53', scheduledDep: '22:55', distanceKm: 9, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Main Exit' },
+    { code: 'TNA', name: 'Thane', platform: 'Platform 5', scheduledArr: '23:18', scheduledDep: '23:20', distanceKm: 33, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #6 & Ramp' },
+    { code: 'KYN', name: 'Kalyan Junction', platform: 'Platform 6', scheduledArr: '23:42', scheduledDep: '23:45', distanceKm: 54, doorSide: 'LEFT SIDE', haltMins: 3, pillarInfo: 'Pillar #7 & FOB' },
+    { code: 'KJT', name: 'Karjat Junction', platform: 'Platform 1', scheduledArr: '00:33', scheduledDep: '00:35', distanceKm: 100, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Ghat Banker' },
+    { code: 'LNL', name: 'Lonavala', platform: 'Platform 1', scheduledArr: '01:28', scheduledDep: '01:30', distanceKm: 128, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Main Gate' },
+    { code: 'PUNE', name: 'Pune Junction', platform: 'Platform 3', scheduledArr: '02:30', scheduledDep: '02:35', distanceKm: 192, doorSide: 'RIGHT SIDE', haltMins: 5, pillarInfo: 'Platform Pillar #8 & Main Portico' },
+    { code: 'DD', name: 'Daund Junction', platform: 'Platform 2', scheduledArr: '03:53', scheduledDep: '03:55', distanceKm: 268, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Footover Bridge' },
+    { code: 'KWV', name: 'Kurduvadi Junction', platform: 'Platform 3', scheduledArr: '05:23', scheduledDep: '05:25', distanceKm: 377, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Exit' },
+    { code: 'SUR', name: 'Solapur Junction', platform: 'Platform 1', scheduledArr: '06:45', scheduledDep: '--:--', distanceKm: 455, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #12 & Main Gate' },
+  ],
+  '12116': [
+    { code: 'SUR', name: 'Solapur Junction', platform: 'Platform 1', scheduledArr: '--:--', scheduledDep: '22:30', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #12 & Main Gate' },
+    { code: 'KWV', name: 'Kurduvadi Junction', platform: 'Platform 3', scheduledArr: '23:28', scheduledDep: '23:30', distanceKm: 78, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Exit' },
+    { code: 'DD', name: 'Daund Junction', platform: 'Platform 2', scheduledArr: '01:13', scheduledDep: '01:15', distanceKm: 187, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Footover Bridge' },
+    { code: 'PUNE', name: 'Pune Junction', platform: 'Platform 3', scheduledArr: '02:50', scheduledDep: '02:55', distanceKm: 263, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Platform Pillar #8 & Main Portico' },
+    { code: 'LNL', name: 'Lonavala', platform: 'Platform 1', scheduledArr: '03:58', scheduledDep: '04:00', distanceKm: 327, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Main Gate' },
+    { code: 'KJT', name: 'Karjat Junction', platform: 'Platform 1', scheduledArr: '04:48', scheduledDep: '04:50', distanceKm: 355, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Ghat Banker' },
+    { code: 'KYN', name: 'Kalyan Junction', platform: 'Platform 6', scheduledArr: '05:32', scheduledDep: '05:35', distanceKm: 401, doorSide: 'RIGHT SIDE', haltMins: 3, pillarInfo: 'Pillar #7 & FOB' },
+    { code: 'TNA', name: 'Thane', platform: 'Platform 5', scheduledArr: '05:58', scheduledDep: '06:00', distanceKm: 422, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #6 & Ramp' },
+    { code: 'DR', name: 'Dadar Central', platform: 'Platform 8', scheduledArr: '06:23', scheduledDep: '06:25', distanceKm: 446, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Main Exit' },
+    { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', platform: 'Platform 17', scheduledArr: '06:50', scheduledDep: '--:--', distanceKm: 455, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #18 & Cabway' },
+  ],
+  '12423': [
+    { code: 'NDLS', name: 'New Delhi', platform: 'Platform 16', scheduledArr: '--:--', scheduledDep: '16:20', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Pillar #4 & North Overbridge' },
+    { code: 'CNB', name: 'Kanpur Central', platform: 'Platform 1', scheduledArr: '20:52', scheduledDep: '20:57', distanceKm: 440, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #8 & Main Exit' },
+    { code: 'PRYJ', name: 'Prayagraj Junction', platform: 'Platform 4', scheduledArr: '22:58', scheduledDep: '23:00', distanceKm: 635, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #14 & Escalator' },
+    { code: 'DDU', name: 'Pt. Deen Dayal Upadhyaya', platform: 'Platform 2', scheduledArr: '00:45', scheduledDep: '00:55', distanceKm: 785, doorSide: 'LEFT SIDE', haltMins: 10, pillarInfo: 'Pillar #6 & Ramp' },
+    { code: 'DNR', name: 'Danapur', platform: 'Platform 1', scheduledArr: '02:50', scheduledDep: '02:52', distanceKm: 986, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Exit' },
+    { code: 'PNBE', name: 'Patna Junction', platform: 'Platform 1', scheduledArr: '03:10', scheduledDep: '03:20', distanceKm: 996, doorSide: 'LEFT SIDE', haltMins: 10, pillarInfo: 'Pillar #7 & Main Hall' },
+    { code: 'KIR', name: 'Katihar Junction', platform: 'Platform 2', scheduledArr: '07:45', scheduledDep: '07:55', distanceKm: 1285, doorSide: 'RIGHT SIDE', haltMins: 10, pillarInfo: 'Pillar #5 & FOB' },
+    { code: 'NJP', name: 'New Jalpaiguri', platform: 'Platform 1', scheduledArr: '10:50', scheduledDep: '11:00', distanceKm: 1471, doorSide: 'LEFT SIDE', haltMins: 10, pillarInfo: 'Pillar #6 & Exit' },
+    { code: 'GHY', name: 'Guwahati', platform: 'Platform 1', scheduledArr: '18:15', scheduledDep: '--:--', distanceKm: 1910, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #15 & Main Gate' },
   ],
 };
 
 const CORRIDORS: string[][] = [
-  ['NDLS', 'CNB', 'PRYJ', 'DDU', 'GAYA', 'DHN', 'HWH'],
-  ['NDLS', 'KOTA', 'RTM', 'BRC', 'ST', 'BVI', 'CSMT'],
-  ['NDLS', 'JHS', 'BPL', 'NGP', 'HYB', 'SBC'],
-  ['NDLS', 'BPL', 'NGP', 'BZA', 'MAS'],
-  ['NDLS', 'CNB', 'PRYJ', 'BSB'],
-  ['NDLS', 'CNB', 'LKO'],
-  ['NDLS', 'AGC', 'GWL', 'JHS', 'BPL'],
-  ['NDLS', 'CDG', 'JAT', 'SVDK'],
-  ['HWH', 'KGP', 'BBS', 'PURI'],
-  ['HWH', 'MLDT', 'NJP'],
-  ['HWH', 'PNBE'],
-  ['CSMT', 'PUNE'],
-  ['CSMT', 'ST', 'BRC', 'ADI'],
-  ['MAS', 'SBC'],
-  ['SBC', 'SA', 'ED', 'CBE'],
-  ['NDLS', 'JP', 'AII'],
-  ['NDLS', 'HW', 'DDN'],
+  ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'FTP', 'PRYJ', 'MZP', 'DDU', 'SSM', 'DOS', 'GAYA', 'KQR', 'GMO', 'DHN', 'ASN', 'DGR', 'BWN', 'HWH', 'SDAH'],
+  ['NDLS', 'MTJ', 'BTE', 'SWM', 'KOTA', 'RMA', 'BWM', 'NAD', 'RTM', 'DHD', 'GDA', 'BRC', 'BH', 'ST', 'NVS', 'BL', 'VAPI', 'BVI', 'CSMT', 'MMCT'],
+  ['NDLS', 'MTJ', 'AGC', 'GWL', 'VGLJ', 'BINA', 'BPL', 'ET', 'NGP', 'SEGM', 'CD', 'BPQ', 'SKZR', 'RDM', 'KZJ', 'SC', 'VKB', 'WADI', 'RC', 'MALM', 'GTL', 'ATP', 'DMM', 'HUP', 'YNK', 'SBC'],
+  ['NDLS', 'GZB', 'MB', 'BE', 'SPN', 'BLP', 'LKO', 'BBK', 'AY', 'AYC', 'BSB'],
+  ['HWH', 'SRC', 'KGP', 'BLS', 'BHC', 'JKR', 'CTC', 'BBS', 'KUR', 'PURI'],
+  ['CSMT', 'DR', 'TNA', 'KYN', 'KJT', 'LNL', 'SVJR', 'PUNE', 'DD', 'KWV', 'SUR', 'KLBG', 'WADI'],
+  ['CSMT', 'BVI', 'VAPI', 'BL', 'ST', 'BH', 'BRC', 'ANND', 'ND', 'ADI', 'MSH', 'PNU', 'ABR', 'FA', 'MJ', 'AII', 'JP'],
+  ['NDLS', 'UMB', 'CDG', 'LDH', 'JUC', 'ASR', 'PTKC', 'KTHU', 'JAT', 'UHP', 'SVDK'],
+  ['NDLS', 'GZB', 'MTC', 'MOZ', 'TPZ', 'RK', 'HW', 'DDN'],
+  ['HWH', 'BWN', 'RPH', 'MLDT', 'BOE', 'KNE', 'NJP'],
 ];
 
-function corridorBetween(from: string, to: string): string[] {
+function hashStr(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function corridorBetween(from: string, to: string, trainNum = ''): string[] {
   for (const stops of CORRIDORS) {
     const i = stops.indexOf(from);
     const j = stops.indexOf(to);
     if (i >= 0 && j >= 0 && i !== j) {
-      return i < j ? stops.slice(i, j + 1) : [...stops.slice(j, i + 1)].reverse();
+      const fullSlice = i < j ? stops.slice(i, j + 1) : [...stops.slice(j, i + 1)].reverse();
+      if (fullSlice.length <= 12) return fullSlice;
+      // If slice is very long (>12), sample key stops dynamically
+      const step = Math.max(1, Math.floor(fullSlice.length / 8));
+      const sampled = fullSlice.filter((_, idx) => idx === 0 || idx === fullSlice.length - 1 || idx % step === 0);
+      return sampled;
     }
   }
-  if (from && to && from !== to) return [from, to];
-  return from ? [from, to || from] : ['NDLS', 'HWH'];
+
+  // Generate dynamic, realistic intermediate stations if from & to don't share a single pre-baked corridor
+  const seed = hashStr(`${trainNum}:${from}:${to}`);
+  const targetCount = 6 + (seed % 6); // 6 to 11 stops
+  const intermediatePool = POPULAR_STATIONS.map((s) => s.code).filter((c) => c !== from && c !== to);
+  const pickedIntermediates: string[] = [];
+  for (let step = 0; step < targetCount - 2; step++) {
+    const pick = intermediatePool[(seed + step * 7) % intermediatePool.length];
+    if (pick && !pickedIntermediates.includes(pick)) {
+      pickedIntermediates.push(pick);
+    }
+  }
+
+  return [from || 'NDLS', ...pickedIntermediates, to || 'HWH'];
 }
 
 export function getTrainStoppages(
@@ -244,11 +289,12 @@ export function getTrainStoppages(
     MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === num) ||
     null;
 
-  const from = found?.fromStationCode || 'NDLS';
-  const to = found?.toStationCode || 'HWH';
-  const dep = found?.departureTime || '16:55';
-  const arr = found?.arrivalTime || '09:55';
-  const km = found?.distanceKm || 1000;
-  const codes = corridorBetween(from, to);
+  const seed = hashStr(num || '12302');
+  const from = found?.fromStationCode || (num === '12115' ? 'CSMT' : POPULAR_STATIONS[seed % POPULAR_STATIONS.length].code);
+  const to = found?.toStationCode || (num === '12115' ? 'SUR' : POPULAR_STATIONS[(seed + 7) % POPULAR_STATIONS.length].code);
+  const dep = found?.departureTime || `${String(6 + (seed % 14)).padStart(2, '0')}:${String((seed * 5) % 60).padStart(2, '0')}`;
+  const arr = found?.arrivalTime || `${String((12 + (seed % 10)) % 24).padStart(2, '0')}:${String((seed * 7) % 60).padStart(2, '0')}`;
+  const km = found?.distanceKm || 450 + (seed % 1200);
+  const codes = corridorBetween(from, to, num);
   return buildStops(codes, dep, arr, km);
 }

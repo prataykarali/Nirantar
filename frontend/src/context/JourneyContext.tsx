@@ -770,7 +770,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const nextGuidanceStep = useCallback(() => {
     setGuidanceStepIndex((prev) => {
-      if (prev >= 4) {
+      if (prev >= 5) {
         setGuidanceActive(false);
         return 0;
       }
@@ -817,7 +817,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: 'step-payment-auth',
       stepNumber: 3,
       title: 'Payment & 3D-Secure Verification',
-      speech: 'Your banking credentials are protected. Please enter your UPI PIN or OTP to authorize payment safely.',
+      speech: 'Your banking credentials are protected. Please enter your UPI PIN or Wallet payment to confirm booking safely.',
       actionCue: 'Enter UPI PIN/OTP interactively to complete payment.',
       actionButtonText: 'Proceed to Payment Authorization ➔',
       arrowPlacement: { top: '45%', left: '26%' },
@@ -827,31 +827,44 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       },
     },
     {
-      id: 'step-station-seat-forecast',
+      id: 'step-booking-confirmed',
       stepNumber: 4,
-      title: 'Find Vacant Seats at Upcoming Stations',
-      speech: 'Worried about a waitlist? Open the Live Train Radar to see each station’s passenger boarding and exit projection, plus seats expected to be vacant after departure.',
-      actionCue: 'Check the station timeline for board, leave, and vacant-seat estimates.',
-      actionButtonText: 'Open Station Seat Forecast ➔',
-      arrowPlacement: { top: '32%', right: '18%' },
-      arrowLabel: 'Station-wise vacant seats',
+      title: 'Instant Booking Confirmation',
+      speech: 'Success! Your IRCTC booking is confirmed with PNR and allocated berths. Let’s view your DigiLocker verified digital ticket.',
+      actionCue: 'View your official digital ticket with security QR code.',
+      actionButtonText: 'View Digital Ticket ➔',
+      arrowPlacement: { top: '35%', right: '24%' },
+      arrowLabel: 'Confirmed PNR & Coach Assigned',
       onAction: () => {
-        setActivePage('track');
+        setActivePage('ticket');
         setGuidanceStepIndex(4);
       },
     },
     {
-      id: 'step-ticket-companion',
+      id: 'step-digital-ticket',
       stepNumber: 5,
-      title: 'Journey Companion & Live Radar',
-      speech: 'Booking confirmed! Here is your confirmed digital ticket with live coach, platform, and GPS tracking.',
-      actionCue: 'View your digital ticket and track your train in real-time.',
-      actionButtonText: 'Open Live Train Radar ➔',
+      title: 'DigiLocker Verified e-Ticket',
+      speech: 'Here is your official digital travel pass! You can show this offline to the TTE. Now let’s open Live Train Radar with our new Seat Feature!',
+      actionCue: 'Review your confirmed digital ticket, then explore Live Train Radar.',
+      actionButtonText: 'Open Live Train Radar Tutorial ➔',
       arrowPlacement: { top: '30%', right: '20%' },
       arrowLabel: 'DigiLocker Verified e-Ticket',
       onAction: () => {
+        setActivePage('track');
+        setGuidanceStepIndex(5);
+      },
+    },
+    {
+      id: 'step-station-seat-radar',
+      stepNumber: 6,
+      title: 'Live Radar & New Seat Flow Feature',
+      speech: 'Welcome to Live Radar! Check the new Seat Feature: station-by-station boarding, leaving, and vacant seat projections, zero-seat route alerts, and Waitlist Watch with Comfort Windows.',
+      actionCue: 'Explore live satellite speed, platform alignment, and occupancy projections.',
+      actionButtonText: 'Finish Guided Tour 🎉',
+      arrowPlacement: { top: '32%', right: '18%' },
+      arrowLabel: 'Station-wise vacant seats & Waitlist Watch',
+      onAction: () => {
         setGuidanceActive(false);
-        setActivePage('ticket');
       },
     },
   ];

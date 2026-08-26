@@ -1230,13 +1230,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
             />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-bold text-sm text-slate-900 leading-tight">Nira</h3>
-              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200">
-                Journey Guide
-              </span>
-            </div>
-            <p className="text-[10px] font-semibold text-purple-700">Routes • Booking • Tracking • Help</p>
+            <h3 className="font-black text-base text-slate-950 tracking-tight">Nira</h3>
           </div>
         </div>
 

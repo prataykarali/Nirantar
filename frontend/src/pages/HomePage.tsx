@@ -166,13 +166,23 @@ export const HomePage: React.FC = () => {
     },
     {
       step: 5,
-      title: 'Live GPS Train Tracking',
-      boxLabel: 'Box 5: GPS Radar',
-      speech: 'Track your coach, berth, real-time speed, and upcoming station timeline directly from your phone.',
+      title: 'View Your Confirmed e-Ticket',
+      boxLabel: 'Box 5: Digital Ticket',
+      speech: 'Your confirmed ticket includes your PNR, coach, berth, boarding station, and platform details.',
+      mascot: '/assets/images/characters/nira_tablet.png',
+      route: 'ticket',
+      actionLabel: 'View e-Ticket →',
+      preview: 'PNR • Coach & berth • Boarding platform',
+    },
+    {
+      step: 6,
+      title: 'Track Your Train & Monitor Seats',
+      boxLabel: 'Box 6: Live Seat Tracker',
+      speech: 'Enter a train number to see its current route, changing station timeline, platform guidance, and live seat availability. When a class is full, I will tell you the exact boarding and destination platforms affected.',
       mascot: '/assets/images/characters/nira_tablet.png',
       route: 'track',
       actionLabel: 'Open Live Tracker →',
-      preview: 'Speed: 120 km/h • Next Stop: Bhusawal Jn in 38m',
+      preview: 'Route platforms • Live stoppages • Seat availability',
     },
   ];
 
@@ -801,14 +811,14 @@ export const HomePage: React.FC = () => {
               {/* Step 5 */}
               <button
                 type="button"
-                onClick={() => navigateTo('track')}
+                onClick={() => navigateTo('ticket')}
                 className="relative text-left block group w-full cursor-pointer"
               >
                 <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 rounded-full bg-purple-700 border-2 border-white shadow-2xs" />
                 <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
-                  Travel
+                  Ticket
                 </div>
-                <div className="text-[10px] text-slate-500 font-medium">Enjoy your journey</div>
+                <div className="text-[10px] text-slate-500 font-medium">View your confirmed e-ticket</div>
               </button>
             </div>
           </div>
