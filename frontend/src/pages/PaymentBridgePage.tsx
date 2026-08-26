@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   Lock,
   CreditCard,
@@ -11,7 +12,6 @@ import {
   Clock,
   Zap,
   Headphones,
-  Mic,
   Send,
   MoreVertical,
   HelpCircle,
@@ -790,7 +790,7 @@ export const PaymentBridgePage: React.FC = () => {
               }}
               className="absolute right-2 top-2.5 w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center cursor-pointer hover:bg-purple-800"
             >
-              <Mic className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>

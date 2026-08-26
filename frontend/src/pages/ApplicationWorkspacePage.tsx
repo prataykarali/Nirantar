@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, ArrowRight, Upload, HelpCircle, Shield, FileText, User } from 'lucide-react';
 import { CitizenInterface } from '../components/CitizenInterface';
 import { JourneyStepper, JourneyStepStage } from '../components/JourneyStepper';
-import { VoiceWidget } from '../components/VoiceWidget';
 import { SafeAutofillProfile, SafeProfileData } from '../components/SafeAutofillProfile';
 
 interface ApplicationWorkspacePageProps {
@@ -81,9 +80,8 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
         </div>
       </div>
 
-      {/* VOICE INTERFACE ASSISTANT & SAFE AUTOFILL PROFILE GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <VoiceWidget onIntentParsed={handleVoiceIntentParsed} />
+      {/* SAFE AUTOFILL PROFILE */}
+      <div className="grid grid-cols-1 gap-6">
         <SafeAutofillProfile onAutofill={handleAutofill} />
       </div>
 

@@ -1503,38 +1503,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* Auto Voice TTS Toggle with Instant Audio Cutoff */}
-          <button
-            type="button"
-            onClick={() => {
-              const nextState = !autoVoice;
-              setAutoVoice(nextState);
-              setNiraMuted(!nextState);
-              if (!nextState) {
-                stopNiraSpeech();
-              }
-            }}
-            className={`p-1.5 px-2.5 rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-              autoVoice
-                ? 'bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs'
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}
-            title={autoVoice ? 'Voice TTS Active (Click to Mute)' : 'Voice TTS Muted (Click to Unmute)'}
-          >
-            {autoVoice ? (
-              <>
-                <Volume2 className="w-3.5 h-3.5 text-[#7C3AED]" />
-                <span className="text-[10px] font-bold text-purple-900 hidden sm:inline">Voice ON</span>
-              </>
-            ) : (
-              <>
-                <VolumeX className="w-3.5 h-3.5 text-red-600" />
-                <span className="text-[10px] font-bold text-red-600 hidden sm:inline">Muted</span>
-              </>
-            )}
-          </button>
 
+        <div className="flex items-center gap-1.5">
           {/* 25 Examples Drawer Toggle */}
           <button
             type="button"
@@ -2476,19 +2446,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                     </div>
                   )}
 
-                  {/* Speaker & Feedback Thumbs */}
+                  {/* Feedback Thumbs */}
                   <div className="flex items-center gap-1.5 ml-8 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => speakNiraResponse(m.text)}
-                      className="px-2.5 py-1 rounded-full bg-purple-50 hover:bg-purple-100 text-[#7C3AED] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer border border-purple-100/50"
-                      title="Speak response"
-                    >
-                      <Volume2 className="w-3 h-3" />
-                      <span>Speak</span>
-                    </button>
-
-                    <div className="flex items-center gap-1 ml-1">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => handleFeedback(m.id, 'up')}
@@ -2565,17 +2525,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             placeholder="e.g. Auto book Delhi to Mumbai in 3A, Track 12302..."
             className="flex-1 bg-transparent border-none text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
           />
-
-          <button
-            type="button"
-            onClick={toggleSpeech}
-            className={`p-2 rounded-xl text-slate-400 hover:text-purple-700 transition-colors cursor-pointer ${
-              isListening ? 'bg-red-50 text-red-500 animate-pulse' : ''
-            }`}
-            title="Voice input"
-          >
-            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
 
           <button
             type="submit"

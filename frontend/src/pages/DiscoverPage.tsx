@@ -5,7 +5,6 @@ import {
   Search,
   ArrowRight,
   ArrowLeftRight,
-  Mic,
   Train,
   CheckCircle2,
   Edit3,
@@ -445,15 +444,6 @@ export const DiscoverPage: React.FC = () => {
             </div>
           </div>
 
-          {/* VOICE / MIC BUTTON */}
-          <button
-            type="button"
-            onClick={handleToggleVoice}
-            className="w-11 h-11 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 flex items-center justify-center shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
-            title="Speak your journey naturally"
-          >
-            <Mic className="w-5 h-5" />
-          </button>
 
           {/* SEARCH SUBMIT BUTTON */}
           <button

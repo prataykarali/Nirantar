@@ -4,7 +4,6 @@ import {
   Calendar,
   Users,
   ArrowRight,
-  Mic,
   Train,
   Sparkles,
 } from 'lucide-react';
@@ -355,15 +354,10 @@ export const HomePage: React.FC = () => {
             <div ref={searchContainerRef} className="relative max-w-md">
               <form onSubmit={handleNLSubmit} className="relative">
                 <div className="flex items-center bg-white rounded-full p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
-                  {/* Microphone Button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowVoiceModal(true)}
-                    className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 transition-colors shadow-sm cursor-pointer"
-                    title="Voice Search"
-                  >
-                    <Mic className="w-4 h-4" />
-                  </button>
+                  {/* Search Icon */}
+                  <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
 
                   {/* Input Text */}
                   <input
@@ -825,74 +819,6 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          VOICE SEARCH MODAL
-          ═══════════════════════════════════════════════════════════════════ */}
-      {showVoiceModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card variant="standard" padding="lg" className="max-w-lg w-full space-y-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <NiraRobot size="sm" expression="speaking" isFloating />
-                <div>
-                  <h3 className="font-display font-extrabold text-lg text-purple-950">
-                    Voice Journey Search
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Speak your route in natural English or Hindi
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowVoiceModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Listening Wave Box */}
-            <div className="p-6 rounded-3xl bg-purple-950 text-white text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-purple-800 mx-auto flex items-center justify-center border-2 border-purple-400 shadow-lg shadow-purple-900/50">
-                <Mic className="w-8 h-8 text-cyan-400 animate-pulse" />
-              </div>
-              <div>
-                <span className="text-[11px] font-mono uppercase text-cyan-300 font-bold block mb-1">
-                  Listening to Voice Input...
-                </span>
-                <div className="text-base font-semibold text-purple-100 font-mono">
-                  <TypewriterText speed={35}>
-                    "Find fastest train from Delhi to Kolkata tomorrow for 2 passengers"
-                  </TypewriterText>
-                </div>
-              </div>
-            </div>
-
-            {/* Demo Queries */}
-            <div className="space-y-2">
-              <span className="text-xs font-mono font-bold text-purple-900 uppercase">
-                Tap to try:
-              </span>
-              {[
-                { label: '🗣️ "Delhi to Kolkata tomorrow for 2 people"', from: 0, to: 1, pass: 2 },
-                { label: '🗣️ "Fastest train from Delhi to Mumbai"', from: 0, to: 2, pass: 1 },
-                { label: '🗣️ "Vande Bharat Chennai to Bangalore"', from: 4, to: 3, pass: 1 },
-              ].map((q, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleApplyVoiceQuery(POPULAR_STATIONS[q.from], POPULAR_STATIONS[q.to], tomorrowStr, q.pass)}
-                  className="w-full p-3 rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-left text-xs font-bold text-purple-950 flex items-center justify-between group cursor-pointer"
-                >
-                  <span>{q.label}</span>
-                  <span className="text-purple-700 font-mono text-[11px] group-hover:underline">Search →</span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           INTERACTIVE STEP-BY-STEP GUIDANCE TOUR OVERLAY (BOX 1 -> 2 -> 3...)

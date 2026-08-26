@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Mic,
   Send,
   Train,
   CheckCircle2,
@@ -344,9 +343,6 @@ export const CitizenInterface: React.FC = () => {
             </div>
 
             <div className="p-4 border-t border-white/10 flex gap-2">
-              <button onClick={() => setIsRecording(!isRecording)} className={`p-3 rounded-2xl border cursor-pointer ${isRecording ? 'bg-rose-500' : 'border-white/10'}`}>
-                <Mic className="w-4 h-4" />
-              </button>
               <input
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
