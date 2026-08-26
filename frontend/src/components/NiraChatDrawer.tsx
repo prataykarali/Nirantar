@@ -186,6 +186,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     bookingRecord,
     getWaitlistProbability,
     payWithWallet,
+    setShowVisualDiagram,
   } = useJourney();
 
   const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
@@ -356,6 +357,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         label: 'Senior citizen concessions & lower berth rules',
         query: 'What concessions and lower berth priorities are available for senior citizens?',
         tag: 'Concessions',
+      },
+      {
+        icon: Sparkles,
+        label: 'Underneath Nirantar (1-Min Dev Pitch)',
+        query: 'Now, let me quickly show what happens underneath Nirantar.',
+        tag: '1-Min Dev Pitch & Tech Stack',
       },
       {
         icon: ShieldCheck,
@@ -1338,6 +1345,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             subtitle: taskStack[0]?.subtitle || 'Your booking is preserved',
             buttonLabel: 'Resume Booking ➔',
             route: taskStack[0]?.page || 'workspace',
+          };
+        }
+        if (
+          plannerResponse.intent === 'SYSTEM_ARCHITECTURE_PITCH' ||
+          safeQuery.toLowerCase().includes('architecture') ||
+          safeQuery.toLowerCase().includes('dev pitch') ||
+          safeQuery.toLowerCase().includes('underneath nirantar') ||
+          safeQuery.toLowerCase().includes('tech stack')
+        ) {
+          actionCard = {
+            title: 'Nirantar 4-Layer System Architecture',
+            subtitle: 'Prediction • Real-Time Telemetry • Nira AI • Safe Automation',
+            buttonLabel: '📊 Open Architecture Diagram ➔',
+            route: 'open_architecture_diagram',
           };
         }
 
@@ -2417,6 +2438,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             if (autoVoice) {
                               speakNiraResponse(`I have filled the passenger details for ${pName}. Ready to proceed to payment.`);
                             }
+                            return;
+                          }
+
+                          if (m.actionCard?.route === 'open_architecture_diagram') {
+                            setShowVisualDiagram(true);
                             return;
                           }
 

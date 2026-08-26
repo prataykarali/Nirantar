@@ -186,6 +186,28 @@ export class NiraPlanner {
       };
     }
 
+    // ── 3D. 1-MINUTE DEV-SIDE PITCH & 4-LAYER SYSTEM ARCHITECTURE ──
+    if (
+      lower.includes('architecture') ||
+      lower.includes('dev pitch') ||
+      lower.includes('pitch') ||
+      lower.includes('underneath nirantar') ||
+      lower.includes('how it works') ||
+      lower.includes('tech stack') ||
+      lower.includes('4 layers') ||
+      lower.includes('four layers') ||
+      lower.includes('how you built') ||
+      lower.includes('how i built') ||
+      lower.includes('system design')
+    ) {
+      return {
+        intent: 'SYSTEM_ARCHITECTURE_PITCH',
+        message: deterministicNiraReply('Explain Nirantar 4-layer architecture and dev pitch'),
+        actionCue: { type: 'NONE', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
     // ── 4. CANCEL TRIP ──
     if (
       lower === 'cancel trip' ||

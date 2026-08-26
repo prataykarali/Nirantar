@@ -16,6 +16,7 @@ import { sendCitizenQuery } from '../services/api';
 import { apiSearchTrains } from '../services/journeyApi';
 import { searchTrains as localSearchTrains } from '../data/mockTrains';
 import { TrainCard } from './TrainCard';
+import { deterministicNiraReply } from '../services/niraRules';
 
 interface SideChatbotProps {
   isOpen: boolean;
@@ -64,6 +65,12 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
 
   // Quick Suggestion options matching user's design reference
   const QUICK_SUGGESTIONS = [
+    {
+      id: 'pitch',
+      icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+      text: 'Underneath Nirantar (1-Min Dev Pitch)',
+      action: 'Now, let me quickly show what happens underneath Nirantar.',
+    },
     {
       id: 'cert',
       icon: <FileText className="w-4 h-4 text-purple-600" />,
@@ -115,6 +122,32 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
     setLoading(true);
 
     try {
+      const qLower = userText.toLowerCase();
+
+      // Check deterministic railway knowledge & Dev Pitch first
+      if (
+        qLower.includes('architecture') ||
+        qLower.includes('dev pitch') ||
+        qLower.includes('underneath nirantar') ||
+        qLower.includes('tech stack') ||
+        qLower.includes('4 layers') ||
+        qLower.includes('four layers') ||
+        qLower.includes('how you built')
+      ) {
+        const pitchReply = deterministicNiraReply(userText);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'nira',
+            text: pitchReply,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        setLoading(false);
+        return;
+      }
+
       // Call backend query endpoint (using Scrapling + Snowflake Vector DB + NVIDIA NIM fallback)
       const res = await sendCitizenQuery(userText, 'en');
       let botMsg = res.message || 'I have processed your query.';
@@ -122,7 +155,6 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
       // Extract transport train options if returned by backend digital twin DB or query
       let trainCardsList: ChatMessage['trains'] = undefined;
 
-      const qLower = userText.toLowerCase();
       if (
         qLower.includes('transport') ||
         qLower.includes('train') ||
