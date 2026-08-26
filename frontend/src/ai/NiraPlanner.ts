@@ -244,7 +244,7 @@ export class NiraPlanner {
       case 'myjourneys':
         return {
           intent: 'BOOKING_CONFIRMED',
-          message: '🎉 Congrats! Your train seat is confirmed! PNR: #2847 5896 1234 • Seat: S5-36 (Confirmed). Your DigiLocker-verified e-Ticket is ready for download!',
+          message: '🎉 **Congratulations! Your ticket is successfully booked!**\n\nPNR: **#2847 5896 1234** • Coach/Seat: **S5-36 (Confirmed)**.\n\n👇 **Next Steps**:\n• Tap **Download Ticket PDF** on screen to save your official DigiLocker verified e-ticket.\n• Tap **Track Train Radar** to view live satellite GPS location, platform alignment, and delay updates for your train!',
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };

@@ -119,6 +119,8 @@ interface RouteContext {
   quota?: string;
   trainNumber?: string;
   passengerName?: string;
+  invalidTrainNumber?: string;
+  missingTrainNumber?: boolean;
 }
 
 type ExampleCategory = 'booking' | 'tatkal' | 'tracking' | 'services';
@@ -361,6 +363,27 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
   }, [isOpen]);
 
+  const prevPageRef = useRef<string>(activePage);
+
+  // Auto-announce page transitions (e.g. ticket completion congratulations)
+  useEffect(() => {
+    if (isOpen && prevPageRef.current !== activePage) {
+      prevPageRef.current = activePage;
+      const ctx = getSanitizedContext();
+      const greeting = NiraPlanner.generateStateAwareGreeting(ctx);
+      const pageChangeMsg: ChatMessage = {
+        id: `nira-page-${activePage}-${Date.now()}`,
+        sender: 'nira',
+        text: greeting.message,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, pageChangeMsg]);
+      if (autoVoice) {
+        speakNiraResponse(greeting.message);
+      }
+    }
+  }, [isOpen, activePage, autoVoice, getSanitizedContext]);
+
   /**
    * Comprehensive Local Natural Language Extractor for Train/Route/Auto-Book/Track/Tatkal intents
    */
@@ -468,6 +491,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       classCode: updated.classCode,
       quota: updated.quota,
       passengerName: updated.passengerName,
+      invalidTrainNumber: (updated as any).invalidTrainNumber,
+      missingTrainNumber: (updated as any).missingTrainNumber,
     };
 
     // 3. Date expressions
