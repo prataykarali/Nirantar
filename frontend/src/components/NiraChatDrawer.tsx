@@ -410,8 +410,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
-    const rawNumberMatch = text.match(/(?:train|#)?\s*(\d+)/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
-    if (rawNumberMatch && rawNumberMatch[1] && text.toLowerCase().includes('train')) {
+    const rawNumberMatch = text.match(/\b(\d+)\b/);
+    if (rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         updated.trainNumber = num;
@@ -419,7 +419,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         (updated as any).invalidTrainNumber = num;
       }
     } else if (
-      (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket')) &&
+      (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket') || (isTrack && lower.includes('train'))) &&
       !lower.includes('from') &&
       !lower.includes('to')
     ) {
@@ -523,23 +523,41 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     contact?: { phone?: string; email?: string };
   } | null => {
     const lower = text.toLowerCase();
+    
+    // Strict Guard: Never treat route search, train booking queries, or train tracking as passenger details!
+    if (
+      lower.includes('from') ||
+      lower.includes(' to ') ||
+      lower.includes('train') ||
+      lower.includes('track') ||
+      lower.includes('search') ||
+      lower.includes('find') ||
+      lower.includes('auto book') ||
+      lower.startsWith('book ') ||
+      lower.startsWith('reserve ') ||
+      /\d{5}/.test(text)
+    ) {
+      return null;
+    }
+
     const isWorkspaceStep = activePage === 'workspace' || activePage === 'booking';
+    const hasComma = text.includes(',');
 
     const hasGender = /\b(?:male|female|m|f|boy|girl|man|woman|gent|lady)\b/i.test(lower);
     const hasAge = /\b(?:age\s*\d{1,2}|\d{1,2}\s*(?:years?|yrs?|yr|yo|pax|passenger)|age\b|\b\d{2}\b)/i.test(lower);
     const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat)\b/i.test(lower);
     const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(text);
     const hasPhone = /\b[6-9]\d{9}\b/.test(text);
-    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|karali|sharma|kumar|singh)\b/i.test(lower);
-    const isLikelyNameInput = text.trim().length >= 2 && !text.includes('?') && !lower.startsWith('book') && !lower.startsWith('track') && !lower.startsWith('find') && !lower.startsWith('search') && !lower.startsWith('where') && !lower.startsWith('auto book');
+    const hasPassengerKeywords = /\b(?:passenger|name|fill|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|karali|sharma|kumar|singh)\b/i.test(lower);
 
+    // Require comma-separated format OR explicit details (Gender/Age/Phone/Email) OR workspace step active
     if (
       !(
-        isWorkspaceStep ||
+        hasComma ||
         (hasGender && (hasAge || hasBerth || hasPhone || hasEmail)) ||
         (hasPassengerKeywords && (hasAge || hasGender || hasBerth)) ||
         (hasEmail && hasPhone) ||
-        isLikelyNameInput
+        (isWorkspaceStep && text.trim().length >= 2 && !text.includes('?'))
       )
     ) {
       return null;
@@ -667,79 +685,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setInput('');
     setIsLoading(true);
 
-    // ─── 1A: Conversational Passenger Autofill ───
-    const parsedPaxResult = parsePassengerDetailsFromText(query);
-    if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
-      const extractedPassengers = parsedPaxResult.passengers;
-      setPassengers(extractedPassengers);
-      emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
-      const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
-      const singleFare = selectedTrain?.classes[0]?.fare || 645;
-      const totalAmount = singleFare * extractedPassengers.length;
-
-      const contactSnippet = parsedPaxResult.contact?.phone
-        ? ` • Mobile: ${parsedPaxResult.contact.phone}`
-        : '';
-
-      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!
-
-Please review the details above on the screen. Ready to proceed to payment?`;
-
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                  actionCard: {
-                    title: 'Passenger Details Prepared Live',
-                    subtitle: `Filled ${passengerNames} • Total Fare: ₹${totalAmount}`,
-                    buttonLabel: `Proceed to Payment (₹${totalAmount}) ➔`,
-                    route: 'payment',
-                  },
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Ready to proceed to payment.`);
-        }
-      }, 350);
-      return;
-    }
-
-    // ─── 1A.2: Generic Fill Form Request without details ───
-    const lowerQuery = query.toLowerCase();
-    if (
-      lowerQuery === 'fill form' ||
-      lowerQuery === 'fill details' ||
-      lowerQuery === 'autofill' ||
-      lowerQuery === 'enter passenger'
-    ) {
-      const promptText = 'Please provide your passenger details: **Name, Age, Gender, Berth preference, Mobile number, and Email** (e.g. *Pratay Karali, 20, Male, 8420773730, pratay@gmail.com*) to fill the form.';
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: promptText,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse('Please provide your name, age, gender, and contact details to fill the form.');
-        }
-      }, 300);
-      return;
-    }
-
     // ─── 1B: Validation for Train Numbers & Booking / Tracking ───
     const intentData = extractAdvancedIntent(safeQuery, routeCtx);
     const nextRouteCtx = intentData.route;
@@ -813,7 +758,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
           }
         },
         (_err: unknown) => {
-          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching ${nextStop.name} (${nextStop.platform} • Doors opening on ${nextStop.doorSide}). Tap 'Open Live GPS Radar' below to view full platform alignment.`;
+          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching ${nextStop.name} (${nextStop.platform} • Doors opening on ${nextStop.doorSide}). Live GPS Radar view active on screen.`;
           setIsLoading(false);
           setMessages((prev) =>
             prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackTrack, isStreaming: false, trackCard: trackCardData } : m))
@@ -843,7 +788,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         selectTrain(matchedTrain, classCode);
         const fare = (matchedTrain.classes.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes[0]?.fare || 1870) * paxCount;
 
-        const bookingText = `Found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}) in **${classCode}** (₹${fare.toLocaleString('en-IN')}).`;
+        const bookingText = `Found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}) in **${classCode}** (₹${fare.toLocaleString('en-IN')}).\n\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth, Mobile, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`;
 
         setIsLoading(false);
         setMessages((prev) =>
@@ -863,7 +808,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
               : m
           )
         );
-        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Would you like to proceed to booking?`);
+        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Please enter your passenger details.`);
         return;
       }
 
@@ -888,66 +833,23 @@ Please review the details above on the screen. Ready to proceed to payment?`;
           toStation: toSt,
         };
 
-        let accumulated = '';
-        streamNiraChat(
-          safeQuery,
-          'en',
-          (token) => {
-            accumulated += token;
-            setIsLoading(false);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === botMsgId
-                  ? {
-                      ...m,
-                      text: accumulated,
-                      isStreaming: true,
-                      trainList: topTrains,
-                      understoodCard,
-                    }
-                  : m
-              )
-            );
-          },
-          () => {
-            setIsLoading(false);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === botMsgId
-                  ? {
-                      ...m,
-                      isStreaming: false,
-                      trainList: topTrains,
-                      understoodCard,
-                    }
-                  : m
-              )
-            );
-            if (autoVoice && accumulated) {
-              speakNiraResponse(accumulated);
-            }
-          },
-          (_err: unknown) => {
-            const fallbackText = `I found **${trains.length} trains** between ${fromSt.city} and ${toSt.city}.\n\nRanked options:\n${topTrains.map((t, i) => `${i + 1}. #${t.trainNumber} ${t.trainName} — ${t.durationHours}, ${plainClass(t.classes[0]?.classCode || '3A')} from ₹${t.classes[0]?.fare}${t.isFastest ? ' (Fastest)' : t.isBestValue ? ' (Cheapest)' : ''}`).join('\n')}\n\nWhich do you prefer? Tap 'Book This Train' below when you are ready to proceed.`;
-            setIsLoading(false);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === botMsgId
-                  ? {
-                      ...m,
-                      text: fallbackText,
-                      isStreaming: false,
-                      trainList: topTrains,
-                      understoodCard,
-                    }
-                  : m
-              )
-            );
-            if (autoVoice) speakNiraResponse(fallbackText);
-          },
-          messages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
-          groundingContext
+        const promptText = `I found **${trains.length} trains** between **${fromSt.city}** and **${toSt.city}**.\n\nTop recommendation: **#${topTrains[0].trainNumber} ${topTrains[0].trainName}** (${topTrains[0].durationHours}).\n\nPlease select a train below or enter your passenger details in ',' separated format: **Name, Age, Gender, Berth, Mobile, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`;
+
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: promptText,
+                  isStreaming: false,
+                  trainList: topTrains,
+                  understoodCard,
+                }
+              : m
+          )
         );
+        if (autoVoice) speakNiraResponse(`Found trains from ${fromSt.city} to ${toSt.city}. Please enter your passenger details.`);
         return;
       } else {
         const noTrainText = `I couldn't find direct scheduled trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our database. Connecting trains via major junctions like New Delhi (NDLS), Howrah (HWH), or Mumbai Central (CSMT) are recommended. Would you like to try another route?`;
@@ -968,6 +870,77 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         }, 300);
         return;
       }
+    }
+
+    // ─── 1A: Conversational Passenger Autofill (Runs ONLY when not searching route/train) ───
+    const parsedPaxResult = parsePassengerDetailsFromText(query);
+    if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
+      const extractedPassengers = parsedPaxResult.passengers;
+      setPassengers(extractedPassengers);
+      emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
+      const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
+      const singleFare = selectedTrain?.classes[0]?.fare || 645;
+      const totalAmount = singleFare * extractedPassengers.length;
+
+      const contactSnippet = parsedPaxResult.contact?.phone
+        ? ` • Mobile: ${parsedPaxResult.contact.phone}`
+        : '';
+
+      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\nPlease review the details above on the screen. Ready to proceed to payment?`;
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: botResponseText,
+                  isStreaming: false,
+                  actionCard: {
+                    title: 'Passenger Details Prepared Live',
+                    subtitle: `Filled ${passengerNames} • Total Fare: ₹${totalAmount}`,
+                    buttonLabel: `Proceed to Payment (₹${totalAmount}) ➔`,
+                    route: 'payment',
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Ready to proceed to payment.`);
+        }
+      }, 350);
+      return;
+    }
+
+    // ─── 1A.2: Generic Fill Form Request without details ───
+    const lowerQuery = query.toLowerCase();
+    if (
+      lowerQuery === 'fill form' ||
+      lowerQuery === 'fill details' ||
+      lowerQuery === 'autofill' ||
+      lowerQuery === 'enter passenger'
+    ) {
+      const promptText = 'Please provide your passenger details: **Name, Age, Gender, Berth preference, Mobile number, and Email** (e.g. *Pratay Karali, 20, Male, 8420773730, pratay@gmail.com*) to fill the form.';
+      setTimeout(() => {
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: promptText,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+        if (autoVoice) {
+          speakNiraResponse('Please provide your name, age, gender, and contact details to fill the form.');
+        }
+      }, 300);
+      return;
     }
 
     // ═══════════════════════════════════════════════════════════
