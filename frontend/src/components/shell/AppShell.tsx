@@ -24,6 +24,7 @@ import { SpotlightGuidance } from '../journey/SpotlightGuidance';
 import { DemoModePanel } from '../DemoModePanel';
 import { ImStuckModal } from '../ImStuckModal';
 import { VisualDiagramModal } from '../VisualDiagramModal';
+import { NewUserWelcomeModal } from '../NewUserWelcomeModal';
 import { NotificationToasts } from '../NotificationToasts';
 
 export const AppShell: React.FC = () => {
@@ -161,6 +162,9 @@ export const AppShell: React.FC = () => {
         isOpen={showVisualDiagram}
         onClose={() => setShowVisualDiagram(false)}
       />
+
+      {/* 9. NEW CITIZEN WELCOME ROADMAP MODAL */}
+      <NewUserWelcomeModal />
 
       <NotificationToasts />
     </div>

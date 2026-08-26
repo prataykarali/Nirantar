@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Station, POPULAR_STATIONS, findStation } from '../data/stationData';
-import { TrainDetail, searchTrains as localSearchTrains } from '../data/mockTrains';
+import { TrainDetail, searchTrains as localSearchTrains, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import {
   JourneyState,
   JourneyStep,
@@ -770,7 +770,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const nextGuidanceStep = useCallback(() => {
     setGuidanceStepIndex((prev) => {
-      if (prev >= 5) {
+      if (prev >= 4) {
         setGuidanceActive(false);
         return 0;
       }
@@ -780,89 +780,79 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const guidanceStepsList: GuidanceStep[] = [
     {
-      id: 'step-train-select',
+      id: 'step-home-search',
       stepNumber: 1,
-      title: 'Find & Compare Trains',
-      speech: 'I have found the top direct trains for your route! This train is the fastest with confirmed seat availability.',
-      actionCue: 'Tap Book Now on the recommended train to continue.',
-      actionButtonText: 'Select Fastest Train ➔',
-      arrowPlacement: { top: '38%', left: '32%' },
-      arrowLabel: '⚡ Fastest Train with Confirmed Seats',
+      title: 'Where are you going?',
+      speech: 'Welcome to Nirantar! Type your destination, choose a popular route like Delhi to Mumbai, or speak your destination to find direct express trains.',
+      actionCue: 'Type a destination or tap Find Express Trains to compare routes.',
+      actionButtonText: 'Find Express Trains ➔',
+      arrowPlacement: { top: '48%', left: '26%' },
+      arrowLabel: '🔍 Enter Destination or Select Route',
       onAction: () => {
-        const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0];
+        const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] || MOCK_TRAINS_DATABASE[0];
         if (topTrain) {
           selectTrain(topTrain, selectedClassCode || '3A');
-          setGuidanceStepIndex(1);
-        } else {
-          setActivePage('trains');
-          setGuidanceStepIndex(1);
         }
+        setActivePage('workspace');
+        setGuidanceStepIndex(1);
       },
     },
     {
-      id: 'step-passenger-autofill',
+      id: 'step-passenger-details',
       stepNumber: 2,
-      title: 'Safe Autofill & Verification',
-      speech: "I've prepared the passenger details I can safely autofill. Please review everything before we proceed.",
-      actionCue: 'Review passenger names & berth preferences, then tap Continue.',
-      actionButtonText: 'Review & Continue to Payment ➔',
-      arrowPlacement: { bottom: '28%', right: '22%' },
-      arrowLabel: 'SafeAssist Zero-PII Protected',
+      title: 'Passenger Details & Verification',
+      speech: 'Here are your passenger names and berth preferences, safely autofilled with Zero-PII privacy protection. Review your names and proceed to payment.',
+      actionCue: 'Review passenger name, age, and seat preference, then proceed.',
+      actionButtonText: 'Proceed to Payment ➔',
+      arrowPlacement: { top: '38%', left: '22%' },
+      arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
       onAction: () => {
         setActivePage('payment');
         setGuidanceStepIndex(2);
       },
     },
     {
-      id: 'step-payment-auth',
+      id: 'step-payment-upi',
       stepNumber: 3,
-      title: 'Payment & 3D-Secure Verification',
-      speech: 'Your banking credentials are protected. Please enter your UPI PIN or Wallet payment to confirm booking safely.',
-      actionCue: 'Enter UPI PIN/OTP interactively to complete payment.',
-      actionButtonText: 'Proceed to Payment Authorization ➔',
-      arrowPlacement: { top: '45%', left: '26%' },
-      arrowLabel: 'NPCI & Bank 256-Bit Encrypted',
+      title: 'UPI & 3D-Secure Payment',
+      speech: 'Your financial credentials are safe. Enter your UPI ID, scan the dynamic QR, or use Virtual Wallet to authorize payment securely with 256-bit encryption.',
+      actionCue: 'Enter UPI ID or authorize payment to confirm booking.',
+      actionButtonText: 'Authorize & Pay ➔',
+      arrowPlacement: { top: '68%', left: '24%' },
+      arrowLabel: '💳 Enter UPI ID or Scan QR Code',
       onAction: async () => {
+        const trainToBook = selectedTrain || availableTrains[0] || MOCK_TRAINS_DATABASE[0];
+        if (trainToBook) {
+          selectTrain(trainToBook, selectedClassCode || '3A');
+        }
+        await payWithWallet(3120);
+        setActivePage('ticket');
         setGuidanceStepIndex(3);
       },
     },
     {
       id: 'step-booking-confirmed',
       stepNumber: 4,
-      title: 'Instant Booking Confirmation',
-      speech: 'Success! Your IRCTC booking is confirmed with PNR and allocated berths. Let’s view your DigiLocker verified digital ticket.',
-      actionCue: 'View your official digital ticket with security QR code.',
-      actionButtonText: 'View Digital Ticket ➔',
-      arrowPlacement: { top: '35%', right: '24%' },
-      arrowLabel: 'Confirmed PNR & Coach Assigned',
+      title: 'Booking Confirmed!',
+      speech: 'Booking confirmed! Your official DigiLocker verified e-ticket has been issued with confirmed coach and berth. Now let’s explore the Live Train Radar!',
+      actionCue: 'Review your confirmed ticket and explore real-time tracking.',
+      actionButtonText: 'Open Live Train Radar ➔',
+      arrowPlacement: { top: '27%', left: '24%' },
+      arrowLabel: '🎟️ DigiLocker Verified e-Ticket & PNR',
       onAction: () => {
-        setActivePage('ticket');
+        setActivePage('track');
         setGuidanceStepIndex(4);
       },
     },
     {
-      id: 'step-digital-ticket',
+      id: 'step-track-zero-seat',
       stepNumber: 5,
-      title: 'DigiLocker Verified e-Ticket',
-      speech: 'Here is your official digital travel pass! You can show this offline to the TTE. Now let’s open Live Train Radar with our new Seat Feature!',
-      actionCue: 'Review your confirmed digital ticket, then explore Live Train Radar.',
-      actionButtonText: 'Open Live Train Radar Tutorial ➔',
-      arrowPlacement: { top: '30%', right: '20%' },
-      arrowLabel: 'DigiLocker Verified e-Ticket',
-      onAction: () => {
-        setActivePage('track');
-        setGuidanceStepIndex(5);
-      },
-    },
-    {
-      id: 'step-station-seat-radar',
-      stepNumber: 6,
-      title: 'Live Radar & New Seat Flow Feature',
-      speech: 'Welcome to Live Radar! Check the new Seat Feature: station-by-station boarding, leaving, and vacant seat projections, zero-seat route alerts, and Waitlist Watch with Comfort Windows.',
+      title: 'Live Radar & Zero Seat Feature',
+      speech: 'Welcome to Live Radar! Our new Seat Feature shows live zero-seat platform alerts, station-by-station passenger boarding and vacancy projections, and Waitlist Watch with Comfort Windows.',
       actionCue: 'Explore live satellite speed, platform alignment, and occupancy projections.',
       actionButtonText: 'Finish Guided Tour 🎉',
-      arrowPlacement: { top: '32%', right: '18%' },
-      arrowLabel: 'Station-wise vacant seats & Waitlist Watch',
+      arrowPlacement: { top: '48%', left: '22%' },
+      arrowLabel: '⚠️ Zero Seat Alert & Platform Vacancies',
       onAction: () => {
         setGuidanceActive(false);
       },
