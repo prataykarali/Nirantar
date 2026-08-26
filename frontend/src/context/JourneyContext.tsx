@@ -137,6 +137,7 @@ export interface JourneyContextType {
   startGuidanceTour: (initialStep?: number) => void;
   stopGuidanceTour: () => void;
   nextGuidanceStep: () => void;
+  prevGuidanceStep: () => void;
 
   // Auto Booker Engine
   triggerAutoBookFlow: (params: {
@@ -768,9 +769,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setGuidanceActive(true);
   }, []);
 
+  const prevGuidanceStep = useCallback(() => {
+    setGuidanceStepIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
   const nextGuidanceStep = useCallback(() => {
     setGuidanceStepIndex((prev) => {
-      if (prev >= 4) {
+      if (prev >= 7) {
         setGuidanceActive(false);
         return 0;
       }
@@ -780,46 +785,74 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const guidanceStepsList: GuidanceStep[] = [
     {
-      id: 'step-home-search',
+      id: 'step-1-home-search',
       stepNumber: 1,
-      title: 'Where are you going?',
-      speech: 'Welcome to Nirantar! Type your destination, choose a popular route like Delhi to Mumbai, or speak your destination to find direct express trains.',
-      actionCue: 'Type a destination or tap Find Express Trains to compare routes.',
-      actionButtonText: 'Find Express Trains ➔',
+      title: '1. Intelligent Train Discovery',
+      speech: 'Welcome to Nirantar! Search express trains by typing station names, choosing popular routes like Delhi to Mumbai, or speaking directly to Nira AI.',
+      actionCue: 'Type a destination or select a route to discover express trains.',
+      actionButtonText: 'View Express Trains ➔',
       arrowPlacement: { top: '48%', left: '26%' },
       arrowLabel: '🔍 Enter Destination or Select Route',
+      onAction: () => {
+        setActivePage('trains');
+        setGuidanceStepIndex(1);
+      },
+    },
+    {
+      id: 'step-2-train-results',
+      stepNumber: 2,
+      title: '2. Ranked Express Comparison',
+      speech: 'Compare direct trains ranked by fastest speed, cheapest fare, or departure timing. Filter by AC 3-Tier, 2A, Tatkal, or Senior Citizen quotas.',
+      actionCue: 'Compare ranked trains, check fare & class, then tap Select Train.',
+      actionButtonText: 'Select Recommended Train ➔',
+      arrowPlacement: { top: '35%', left: '24%' },
+      arrowLabel: '⚡ Ranked Trains: Fastest & Best Value',
       onAction: () => {
         const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] || MOCK_TRAINS_DATABASE[0];
         if (topTrain) {
           selectTrain(topTrain, selectedClassCode || '3A');
         }
         setActivePage('workspace');
-        setGuidanceStepIndex(1);
-      },
-    },
-    {
-      id: 'step-passenger-details',
-      stepNumber: 2,
-      title: 'Passenger Details & Verification',
-      speech: 'Here are your passenger names and berth preferences, safely autofilled with Zero-PII privacy protection. Review your names and proceed to payment.',
-      actionCue: 'Review passenger name, age, and seat preference, then proceed.',
-      actionButtonText: 'Proceed to Payment ➔',
-      arrowPlacement: { top: '38%', left: '22%' },
-      arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
-      onAction: () => {
-        setActivePage('payment');
         setGuidanceStepIndex(2);
       },
     },
     {
-      id: 'step-payment-upi',
+      id: 'step-3-nira-assistant',
       stepNumber: 3,
-      title: 'UPI & 3D-Secure Payment',
-      speech: 'Your financial credentials are safe. Enter your UPI ID, scan the dynamic QR, or use Virtual Wallet to authorize payment securely with 256-bit encryption.',
-      actionCue: 'Enter UPI ID or authorize payment to confirm booking.',
+      title: '3. Hands-Free Nira Assistant',
+      speech: 'Need help at any step? Tap Nira AI Assistant anytime to search trains, ask questions, fill passenger forms, or check policy details hands-free!',
+      actionCue: 'Use Nira chat to automate train searches or ask travel policy queries.',
+      actionButtonText: 'Proceed to Passenger Workspace ➔',
+      arrowPlacement: { bottom: '24%', right: '28%' },
+      arrowLabel: '🤖 Nira AI Chatbot & Assistant Drawer',
+      onAction: () => {
+        setActivePage('workspace');
+        setGuidanceStepIndex(3);
+      },
+    },
+    {
+      id: 'step-4-passenger-workspace',
+      stepNumber: 4,
+      title: '4. Passenger Workspace & Seat Lock',
+      speech: 'Here are your passenger names and berth preferences, safely autofilled with Zero-PII privacy protection. Review your names and proceed to payment.',
+      actionCue: 'Review passenger name, age, and berth preferences, then proceed.',
+      actionButtonText: 'Proceed to Step 5 (Payment) ➔',
+      arrowPlacement: { top: '38%', left: '22%' },
+      arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
+      onAction: () => {
+        setActivePage('payment');
+        setGuidanceStepIndex(4);
+      },
+    },
+    {
+      id: 'step-5-citizen-wallet',
+      stepNumber: 5,
+      title: '5. Citizen Virtual Wallet & 1-Click Pay',
+      speech: 'Enjoy instant 1-click checkout with your ₹10,000 pre-loaded Nirantar Citizen Virtual Wallet or choose UPI/NetBanking with zero payment risk.',
+      actionCue: 'Use Citizen Wallet or UPI ID to authorize payment securely.',
       actionButtonText: 'Authorize & Pay ➔',
       arrowPlacement: { top: '68%', left: '24%' },
-      arrowLabel: '💳 Enter UPI ID or Scan QR Code',
+      arrowLabel: '💳 Enter UPI ID or 1-Click Wallet Pay',
       onAction: async () => {
         const trainToBook = selectedTrain || availableTrains[0] || MOCK_TRAINS_DATABASE[0];
         if (trainToBook) {
@@ -827,29 +860,43 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         await payWithWallet(3120);
         setActivePage('ticket');
-        setGuidanceStepIndex(3);
+        setGuidanceStepIndex(5);
       },
     },
     {
-      id: 'step-booking-confirmed',
-      stepNumber: 4,
-      title: 'Booking Confirmed!',
-      speech: 'Booking confirmed! Your official DigiLocker verified e-ticket has been issued with confirmed coach and berth. Now let’s explore the Live Train Radar!',
-      actionCue: 'Review your confirmed ticket and explore real-time tracking.',
+      id: 'step-6-digilocker-ticket',
+      stepNumber: 6,
+      title: '6. DigiLocker Verified e-Ticket',
+      speech: 'Booking confirmed! Your official DigiLocker verified e-ticket has been issued with confirmed coach and seat allocation.',
+      actionCue: 'Review your confirmed ticket PNR, download PDF, or check history.',
       actionButtonText: 'Open Live Train Radar ➔',
       arrowPlacement: { top: '27%', left: '24%' },
       arrowLabel: '🎟️ DigiLocker Verified e-Ticket & PNR',
       onAction: () => {
         setActivePage('track');
-        setGuidanceStepIndex(4);
+        setGuidanceStepIndex(6);
       },
     },
     {
-      id: 'step-track-zero-seat',
-      stepNumber: 5,
-      title: 'Live Radar & Zero Seat Feature',
+      id: 'step-7-live-radar-tracking',
+      stepNumber: 7,
+      title: '7. Live Radar & Satellite Telemetry',
+      speech: 'Track live train location, real-time speed, delay estimator, platform indicators, and deboarding door direction with satellite telemetry.',
+      actionCue: 'Monitor live GPS speed, next stoppage, and platform door alignment.',
+      actionButtonText: 'Explore Zero Seat Features ➔',
+      arrowPlacement: { top: '32%', left: '22%' },
+      arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
+      onAction: () => {
+        setActivePage('track');
+        setGuidanceStepIndex(7);
+      },
+    },
+    {
+      id: 'step-8-zero-seat-alerts',
+      stepNumber: 8,
+      title: '8. Zero Seat Alert & Vacancy Forecasts',
       speech: 'Welcome to Live Radar! Our new Seat Feature shows live zero-seat platform alerts, station-by-station passenger boarding and vacancy projections, and Waitlist Watch with Comfort Windows.',
-      actionCue: 'Explore live satellite speed, platform alignment, and occupancy projections.',
+      actionCue: 'Explore live zero-seat alerts and station-by-station passenger vacancy forecasts.',
       actionButtonText: 'Finish Guided Tour 🎉',
       arrowPlacement: { top: '48%', left: '22%' },
       arrowLabel: '⚠️ Zero Seat Alert & Platform Vacancies',
@@ -1052,6 +1099,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         startGuidanceTour,
         stopGuidanceTour,
         nextGuidanceStep,
+        prevGuidanceStep,
         triggerAutoBookFlow,
         // ─── State Machine & Event Bus ───
         bookingState,

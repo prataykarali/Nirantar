@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Sparkles, ArrowRight, Volume2, X, Check, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Volume2, X, Check, ShieldCheck } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
 import { speakNiraResponse } from '../../services/voiceService';
 
@@ -11,11 +11,10 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
   const {
     guidanceActive,
     guidanceStep,
+    guidanceStepIndex,
     stopGuidanceTour,
     nextGuidanceStep,
-    searchParams,
-    selectedTrain,
-    passengers,
+    prevGuidanceStep,
   } = useJourney();
 
   const currentStepData = guidanceStep;
@@ -74,7 +73,7 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
                 Nira Guided Journey
               </span>
               <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                Step {currentStepData.stepNumber} of 5
+                Step {currentStepData.stepNumber} of 8
               </span>
             </div>
             <span className="text-xs text-purple-700 font-bold block mt-0.5">
@@ -128,14 +127,24 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
           </div>
         </div>
 
-        {/* Action Button Strip */}
+        {/* Action Button Strip with ← Back Button */}
         <div className="flex items-center gap-2 pt-1">
+          {guidanceStepIndex > 0 && (
+            <button
+              type="button"
+              onClick={prevGuidanceStep}
+              className="px-3 py-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 shadow-2xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={stopGuidanceTour}
-            className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition-colors cursor-pointer"
+            className="px-3 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition-colors cursor-pointer shrink-0"
           >
-            I'll Explore Myself
+            Explore
           </button>
           <button
             type="button"
