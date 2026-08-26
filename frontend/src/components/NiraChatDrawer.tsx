@@ -637,10 +637,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
     const hasGender = /\b(?:male|female|m|f|boy|girl|man|woman|gent|lady)\b/i.test(lower);
     const hasAge = /\b(?:age\s*\d{1,2}|\d{1,2}\s*(?:years?|yrs?|yr|yo|pax|passenger)|age\b|\b\d{2}\b)/i.test(lower);
-    const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat)\b/i.test(lower);
+    const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat|sl|su|lb|mb|ub|3a|2a|1a)\b/i.test(lower);
     const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(text);
     const hasPhone = /\b[6-9]\d{9}\b/.test(text);
-    const hasPassengerKeywords = /\b(?:passenger|name|fill|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|karali|sharma|kumar|singh)\b/i.test(lower);
+    const hasPassengerKeywords = /\b(?:passenger|name|fill|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|anusuya|moupiya|karali|sharma|kumar|singh)\b/i.test(lower);
 
     // Require comma-separated format OR explicit details (Gender/Age/Phone/Email) OR workspace step active
     if (
@@ -663,34 +663,64 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       email: emailMatch ? emailMatch[1] : undefined,
     };
 
-    // Check if multiple emails are present to split passenger records by email delimiter
+    // ── Multi-Passenger Split Engine ──
+    // Step 1: Initial split on major multi-passenger boundaries (semicolons, newlines, pipes, words)
+    const majorDelimiter = /\s*(?:;|\n|\||\bsecond passenger\b|\bpassenger\s*\d+[:\-]?\b|\bpax\s*\d+[:\-]?\b|\bp\d+[:\-]\b|\b\d+\.\s+(?=[A-Za-z])|\band\b|&|\band also\b)\s*/i;
+    const initialSegments = text.split(majorDelimiter).map((s) => s.trim()).filter((s) => s.length > 2);
+
+    // Step 2: Sub-split comma-separated tuples containing multiple ages (e.g. "anusuya, 44, SL, Moupiya, 45, 3A")
     let rawSegments: string[] = [];
-    const allEmails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
-    if (allEmails && allEmails.length > 1) {
-      let remainingText = text;
-      allEmails.forEach((email) => {
-        const idx = remainingText.indexOf(email);
-        if (idx !== -1) {
-          const seg = remainingText.substring(0, idx + email.length);
-          rawSegments.push(seg);
-          remainingText = remainingText.substring(idx + email.length).trim();
+    initialSegments.forEach((seg) => {
+      const ageMatches = Array.from(seg.matchAll(/\b(\d{1,2})\b/g));
+      if (ageMatches.length > 1) {
+        const commaParts = seg.split(',').map((p) => p.trim()).filter(Boolean);
+        let currentPaxParts: string[] = [];
+        let currentHasAge = false;
+
+        commaParts.forEach((part, pIdx) => {
+          const isNum = /^\d{1,2}$/.test(part);
+          const isNextPartNum = pIdx + 1 < commaParts.length && /^\d{1,2}$/.test(commaParts[pIdx + 1]);
+
+          // When current passenger already has an age, and this part is a new name followed by an age:
+          if (currentHasAge && !isNum && isNextPartNum && currentPaxParts.length > 0) {
+            rawSegments.push(currentPaxParts.join(', '));
+            currentPaxParts = [part];
+            currentHasAge = false;
+          } else {
+            currentPaxParts.push(part);
+            if (isNum) {
+              currentHasAge = true;
+            }
+          }
+        });
+
+        if (currentPaxParts.length > 0) {
+          rawSegments.push(currentPaxParts.join(', '));
         }
-      });
-      if (remainingText.trim().length > 2) {
-        rawSegments.push(remainingText.trim());
+      } else {
+        rawSegments.push(seg);
       }
-    } else {
-      // Split ONLY on multi-passenger delimiters (NOT single commas!)
-      const multiPaxRegex = /\s*(?:\band\b|&|\band also\b|\bsecond passenger\b|\bpassenger 2\b|\bpassenger 3\b|\bpassenger 4\b|\n|;)\s*/i;
-      rawSegments = text.split(multiPaxRegex).map((s) => s.trim()).filter((s) => s.length > 2);
+    });
+
+    if (rawSegments.length === 0) {
+      rawSegments = [text];
     }
 
     const existingPassengers = currentPassengers || [];
     const parsed: PassengerProfile[] = [];
+    let extractedClassCode: string | undefined = undefined;
 
     for (let i = 0; i < rawSegments.length; i++) {
       const seg = rawSegments[i];
       const sLower = seg.toLowerCase();
+
+      // Check for class code in this segment or overall text
+      if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(sLower)) extractedClassCode = '3A';
+      else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(sLower)) extractedClassCode = '2A';
+      else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(sLower)) extractedClassCode = '1A';
+      else if (/\b(?:sl|sleeper|non ac)\b/i.test(sLower)) extractedClassCode = 'SL';
+      else if (/\b(?:cc|chair car)\b/i.test(sLower)) extractedClassCode = 'CC';
+      else if (/\b(?:ec|exec|executive)\b/i.test(sLower)) extractedClassCode = 'EC';
 
       // Strip email and 10-digit phone from segment for safe age and name parsing
       const cleanSegNoContact = seg
@@ -747,14 +777,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       });
     }
 
-    // Extract class preference from message if present
-    let extractedClassCode: string | undefined = undefined;
-    if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(lower)) extractedClassCode = '3A';
-    else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(lower)) extractedClassCode = '2A';
-    else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(lower)) extractedClassCode = '1A';
-    else if (/\b(?:sl|sleeper|non ac)\b/i.test(lower)) extractedClassCode = 'SL';
-    else if (/\b(?:cc|chair car)\b/i.test(lower)) extractedClassCode = 'CC';
-    else if (/\b(?:ec|exec|executive)\b/i.test(lower)) extractedClassCode = 'EC';
+    // Check overall text for class code fallback
+    if (!extractedClassCode) {
+      if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(lower)) extractedClassCode = '3A';
+      else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(lower)) extractedClassCode = '2A';
+      else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(lower)) extractedClassCode = '1A';
+      else if (/\b(?:sl|sleeper|non ac)\b/i.test(lower)) extractedClassCode = 'SL';
+      else if (/\b(?:cc|chair car)\b/i.test(lower)) extractedClassCode = 'CC';
+      else if (/\b(?:ec|exec|executive)\b/i.test(lower)) extractedClassCode = 'EC';
+    }
 
     return parsed.length > 0 ? { passengers: parsed, contact, classCode: extractedClassCode } : null;
   };
@@ -1809,7 +1840,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             const confirmStep2Msg: ChatMessage = {
                               id: `nira-step2-${Date.now()}`,
                               sender: 'nira',
-                              text: `Selected **#${pTrain.trainNumber} ${pTrain.trainName}** (${pTrain.fromCity} → ${pTrain.toCity}) in **${pClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
+                              text: `Selected **#${pTrain.trainNumber} ${pTrain.trainName}** (${pTrain.fromCity} → ${pTrain.toCity}) in **${pClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter passenger details using this schema:\n📋 **Format**: \`Name, Age, Gender, Berth\` (e.g. *Anusuya, 44, F, SL*)\n👥 **Multi-Passenger**: Separate each person with a semicolon \`;\` or comma (e.g. *Anusuya, 44, SL, Moupiya, 45, 3A* or *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
                               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             };
                             setMessages((prev) => [...prev, confirmStep2Msg]);
@@ -2108,7 +2139,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                                 const selectMsg: ChatMessage = {
                                   id: `nira-select-${Date.now()}`,
                                   sender: 'nira',
-                                  text: `Selected **#${topTrain.trainNumber} ${topTrain.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
+                                  text: `Selected **#${topTrain.trainNumber} ${topTrain.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter passenger details using this schema:\n📋 **Format**: \`Name, Age, Gender, Berth\` (e.g. *Anusuya, 44, F, SL*)\n👥 **Multi-Passenger**: Separate each person with a semicolon \`;\` or comma (e.g. *Anusuya, 44, SL, Moupiya, 45, 3A* or *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
                                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 };
                                 setMessages((prev) => [...prev, selectMsg]);
@@ -2200,7 +2231,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             const confirmStep2Msg: ChatMessage = {
                               id: `nira-step2-ab-${Date.now()}`,
                               sender: 'nira',
-                              text: `Selected **#${abTrain.trainNumber} ${abTrain.trainName}** (${abTrain.fromCity} → ${abTrain.toCity}) in **${abClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
+                              text: `Selected **#${abTrain.trainNumber} ${abTrain.trainName}** (${abTrain.fromCity} → ${abTrain.toCity}) in **${abClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter passenger details using this schema:\n📋 **Format**: \`Name, Age, Gender, Berth\` (e.g. *Anusuya, 44, F, SL*)\n👥 **Multi-Passenger**: Separate each person with a semicolon \`;\` or comma (e.g. *Anusuya, 44, SL, Moupiya, 45, 3A* or *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
                               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             };
                             setMessages((prev) => [...prev, confirmStep2Msg]);
