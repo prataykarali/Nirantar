@@ -3,9 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "install": "npm install --prefix frontend",
-    "build": "npm run build --prefix frontend",
-    "vercel-build": "npm run build --prefix frontend"
+    "install": "if [ -d \"frontend\" ]; then cd frontend && npm install; else cd ../frontend && npm install; fi",
+    "build": "if [ -d \"frontend\" ]; then cd frontend && npm run build; else cd ../frontend && npm run build; fi",
+    "vercel-build": "if [ -d \"frontend\" ]; then cd frontend && npm run build; else cd ../frontend && npm run build; fi"
   },
   "engines": {
     "node": ">=18.0.0"
