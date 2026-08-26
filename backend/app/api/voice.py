@@ -6,6 +6,7 @@ Gracefully falls back to deterministic/browser speech synthesis if network is of
 """
 
 import os
+import base64
 import httpx
 from typing import Optional
 from fastapi import APIRouter, HTTPException
@@ -37,34 +38,46 @@ async def text_to_speech(req: SpeakRequest):
     if not req.text.strip():
         raise HTTPException(400, "Text cannot be empty")
 
+    api_key = os.getenv("MURF_API_KEY", MURF_API_KEY).strip()
+
     # Try Murf API
-    if MURF_API_KEY:
+    if api_key:
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            headers = {
+                "api-key": api_key,
+                "token": api_key,
+                "Authorization": f"Bearer {api_key}" if not api_key.startswith("Bearer") else api_key,
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "text": req.text[:500],  # keep concise for real-time speech
+                "voiceId": req.voice_id or "en-IN-aarav",
+                "style": "Conversational",
+                "format": "MP3",
+                "sampleRate": 24000,
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.post(
                     "https://api.murf.ai/v1/speech/generate",
-                    headers={
-                        "api-key": MURF_API_KEY,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "text": req.text[:500],  # keep concise for real-time speech
-                        "voiceId": "en-IN-aarav",
-                        "style": "Conversational",
-                        "format": "MP3",
-                    },
+                    headers=headers,
+                    json=payload,
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    return {
-                        "status": 200,
-                        "audio_url": data.get("audioFile") or data.get("audio_url"),
-                        "source": "murf_api",
-                        "text": req.text,
-                    }
+                    audio_url = data.get("audioFile") or data.get("audio_url")
+                    if not audio_url and data.get("encodedAudio"):
+                        audio_url = f"data:audio/mp3;base64,{data.get('encodedAudio')}"
+
+                    if audio_url:
+                        return {
+                            "status": 200,
+                            "audio_url": audio_url,
+                            "source": "murf_api",
+                            "text": req.text,
+                        }
         except Exception as e:
             # Fall back to client-side speech synthesis
-            pass
+            print(f"Murf API call failed: {e}")
 
     return {
         "status": 200,
@@ -82,18 +95,30 @@ async def speech_to_text(req: TranscribeRequest):
     if not req.audio_base64.strip():
         raise HTTPException(400, "Audio cannot be empty")
 
-    if DEEPGRAM_API_KEY:
+    api_key = os.getenv("DEEPGRAM_API_KEY", DEEPGRAM_API_KEY).strip()
+
+    if api_key:
         try:
-            import base64
             clean_b64 = req.audio_base64.split(",", 1)[-1]
             audio_bytes = base64.b64decode(clean_b64)
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            # Determine audio format
+            content_type = "audio/webm"
+            if "audio/wav" in req.audio_base64:
+                content_type = "audio/wav"
+            elif "audio/mp4" in req.audio_base64:
+                content_type = "audio/mp4"
+            elif "audio/ogg" in req.audio_base64:
+                content_type = "audio/ogg"
+
+            lang = "hi" if req.language == "hi" else "ta" if req.language == "ta" else "bn" if req.language == "bn" else "en-IN"
+
+            async with httpx.AsyncClient(timeout=12.0) as client:
                 res = await client.post(
-                    "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en-IN",
+                    f"https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language={lang}",
                     headers={
-                        "Authorization": f"Token {DEEPGRAM_API_KEY}",
-                        "Content-Type": "audio/wav",
+                        "Authorization": f"Token {api_key}",
+                        "Content-Type": content_type,
                     },
                     content=audio_bytes,
                 )
@@ -105,14 +130,20 @@ async def speech_to_text(req: TranscribeRequest):
                         .get("alternatives", [{}])[0]
                         .get("transcript", "")
                     )
+                    confidence = (
+                        data.get("results", {})
+                        .get("channels", [{}])[0]
+                        .get("alternatives", [{}])[0]
+                        .get("confidence", 0.96)
+                    )
                     return {
                         "status": 200,
                         "transcript": transcript,
-                        "confidence": 0.96,
+                        "confidence": confidence,
                         "source": "deepgram_api",
                     }
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Deepgram STT call failed: {e}")
 
     return {
         "status": 200,
