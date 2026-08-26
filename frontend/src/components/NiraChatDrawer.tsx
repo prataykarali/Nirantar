@@ -480,10 +480,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const rawNumberMatch = text.match(/\b(\d+)\b/);
     let currentInvalidNum: string | undefined = undefined;
     let currentMissingNum: boolean | undefined = undefined;
+    let explicitTrainInCurrentQuery: string | undefined = undefined;
 
     if (!isQuestion && rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
+        explicitTrainInCurrentQuery = num;
         updated.trainNumber = num;
       } else {
         currentInvalidNum = num;
@@ -534,7 +536,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       ...current,
       fromStation: extractedFrom || current.fromStation,
       toStation: extractedTo || current.toStation,
-      trainNumber: updated.trainNumber,
+      trainNumber: explicitTrainInCurrentQuery || current.trainNumber,
       travelDate: updated.travelDate,
       passengers: updated.passengers,
       classCode: updated.classCode,
@@ -582,7 +584,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       isAutoBook,
       isTrack,
       isTatkal,
-      trainNumber: updated.trainNumber,
+      trainNumber: explicitTrainInCurrentQuery,
     };
   };
 
@@ -983,6 +985,53 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
+    // ─── 1A: Conversational Passenger Autofill (Evaluated First) ───
+    const parsedPaxResult = parsePassengerDetailsFromText(query);
+    if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
+      const extractedPassengers = parsedPaxResult.passengers;
+      setPassengers(extractedPassengers);
+      emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
+      const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
+      const targetTrain = selectedTrain || (nextRouteCtx.trainNumber ? resolveTrainDetail(nextRouteCtx.trainNumber) : null) || resolveTrainDetail('12232');
+      const targetClass = selectedClassCode || nextRouteCtx.classCode || '3A';
+      const singleFare = targetTrain.classes?.find((c) => c.classCode === targetClass)?.fare || targetTrain.classes?.[0]?.fare || 1040;
+      const totalAmount = singleFare * extractedPassengers.length;
+
+      const contactSnippet = parsedPaxResult.contact?.phone
+        ? ` • Mobile: ${parsedPaxResult.contact.phone}`
+        : '';
+
+      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
+
+      if (activePage !== 'workspace' && activePage !== 'booking') {
+        navigateTo('workspace');
+      }
+
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: confirmPromptText,
+                isStreaming: false,
+                passengerConfirmPrompt: {
+                  passengers: extractedPassengers,
+                  contact: parsedPaxResult.contact,
+                  train: targetTrain,
+                  classCode: targetClass,
+                  fare: totalAmount,
+                },
+              }
+            : m
+        )
+      );
+      if (autoVoice) {
+        speakNiraResponse(`I have entered the passenger details for ${passengerNames}. Please confirm if the passenger details are correct.`);
+      }
+      return;
+    }
+
     // ─── 1C: Route Search & Booking Intent with Specific Train Grounding ───
     const isQuestion = /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|tatkal|pnr|chart|cancel|refund|boarding|food|cater|concession)\b/i.test(safeQuery.trim()) || safeQuery.trim().endsWith('?');
     const queryHasRoute = !isQuestion && (safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from '));
@@ -1084,53 +1133,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           return;
         }
       }
-    }
-
-    // ─── 1A: Conversational Passenger Autofill (Runs ONLY when not searching route/train) ───
-    const parsedPaxResult = parsePassengerDetailsFromText(query);
-    if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
-      const extractedPassengers = parsedPaxResult.passengers;
-      setPassengers(extractedPassengers);
-      emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
-      const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
-      const targetTrain = selectedTrain || resolveTrainDetail('12951');
-      const targetClass = selectedClassCode || '3A';
-      const singleFare = targetTrain.classes?.find((c) => c.classCode === targetClass)?.fare || targetTrain.classes?.[0]?.fare || 645;
-      const totalAmount = singleFare * extractedPassengers.length;
-
-      const contactSnippet = parsedPaxResult.contact?.phone
-        ? ` • Mobile: ${parsedPaxResult.contact.phone}`
-        : '';
-
-      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
-
-      if (activePage !== 'workspace' && activePage !== 'booking') {
-        navigateTo('workspace');
-      }
-
-      setIsLoading(false);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === botMsgId
-            ? {
-                ...m,
-                text: confirmPromptText,
-                isStreaming: false,
-                passengerConfirmPrompt: {
-                  passengers: extractedPassengers,
-                  contact: parsedPaxResult.contact,
-                  train: targetTrain,
-                  classCode: targetClass,
-                  fare: totalAmount,
-                },
-              }
-            : m
-        )
-      );
-      if (autoVoice) {
-        speakNiraResponse(`I have entered the passenger details for ${passengerNames}. Please confirm if the passenger details are correct.`);
-      }
-      return;
     }
 
     // ─── 1A.2: Generic Fill Form Request without details ───
