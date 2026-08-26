@@ -55,9 +55,9 @@ export const TRAIN_12232: TrainDetail = {
       classCode: '3A',
       className: 'AC 3 Tier',
       fare: 1040,
-      status: 'WL-14',
+      status: 'GNWL-42',
       availableSeats: 0,
-      confirmationProbability: 78,
+      confirmationProbability: 62,
     },
     {
       classCode: '2A',
