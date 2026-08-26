@@ -837,6 +837,29 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           );
           if (autoVoice) speakNiraResponse(`Found trains from ${fromSt.city} to ${toSt.city}. Select a train to proceed.`);
           return;
+        } else {
+          // Route recognised, but no direct train in local database
+          const noTrainText = `I found your route from **${fromSt.city} (${fromSt.name})** to **${toSt.city} (${toSt.name})**!\n\nConnecting express trains via **New Delhi (NDLS)**, **Kalka (KLK)**, or **Howrah (HWH)** are available. Tap below to view available schedules on the trains page.`;
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === botMsgId
+                ? {
+                    ...m,
+                    text: noTrainText,
+                    isStreaming: false,
+                    actionCard: {
+                      title: `Search Route: ${fromSt.city} → ${toSt.city}`,
+                      subtitle: `Connecting trains available via major junctions`,
+                      buttonLabel: `Search Route on Trains Screen →`,
+                      route: 'trains',
+                    },
+                  }
+                : m
+            )
+          );
+          if (autoVoice) speakNiraResponse(`Found route from ${fromSt.city} to ${toSt.city}. Connecting trains available.`);
+          return;
         }
       }
     }
@@ -1464,8 +1487,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         <button
                           type="button"
                           onClick={() => {
-                            selectTrain(m.bookingConfirmPrompt!.train, m.bookingConfirmPrompt!.classCode);
+                            const pTrain = m.bookingConfirmPrompt!.train;
+                            const pClass = m.bookingConfirmPrompt!.classCode;
+                            selectTrain(pTrain, pClass);
                             navigateTo('workspace');
+                            const confirmStep2Msg: ChatMessage = {
+                              id: `nira-step2-${Date.now()}`,
+                              sender: 'nira',
+                              text: `Selected **#${pTrain.trainNumber} ${pTrain.trainName}** (${pTrain.fromCity} → ${pTrain.toCity}) in **${pClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
+                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            };
+                            setMessages((prev) => [...prev, confirmStep2Msg]);
+                            if (autoVoice) {
+                              speakNiraResponse(`Selected ${pTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
+                            }
                           }}
                           className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 text-center"
                         >
@@ -1578,15 +1613,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               type="button"
                               onClick={() => {
                                 selectTrain(topTrain, bestClass.classCode);
+                                navigateTo('workspace');
                                 const selectMsg: ChatMessage = {
                                   id: `nira-select-${Date.now()}`,
                                   sender: 'nira',
-                                  text: `Selected **#${topTrain.trainNumber} ${topTrain.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\nProceeding to Step 2 (Passenger Workspace). Please fill your passenger details!`,
+                                  text: `Selected **#${topTrain.trainNumber} ${topTrain.trainName}** in **${plainClass(bestClass.classCode)}** (Fare: ₹${bestClass.fare}).\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
                                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 };
                                 setMessages((prev) => [...prev, selectMsg]);
                                 if (autoVoice) {
-                                  speakNiraResponse(`Selected ${topTrain.trainName}. Proceeding to passenger workspace.`);
+                                  speakNiraResponse(`Selected ${topTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
                                 }
                               }}
                               className="w-full py-2 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
@@ -1666,7 +1702,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         <button
                           type="button"
                           onClick={() => {
-                            selectTrain(m.autoBookCard!.train, m.autoBookCard!.classCode);
+                            const abTrain = m.autoBookCard!.train;
+                            const abClass = m.autoBookCard!.classCode;
+                            selectTrain(abTrain, abClass);
+                            navigateTo('workspace');
+                            const confirmStep2Msg: ChatMessage = {
+                              id: `nira-step2-ab-${Date.now()}`,
+                              sender: 'nira',
+                              text: `Selected **#${abTrain.trainNumber} ${abTrain.trainName}** (${abTrain.fromCity} → ${abTrain.toCity}) in **${abClass}**.\n\n👋 **Step 2: Passenger Workspace Active**!\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth preference, Mobile number, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`,
+                              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            };
+                            setMessages((prev) => [...prev, confirmStep2Msg]);
+                            if (autoVoice) {
+                              speakNiraResponse(`Selected ${abTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
+                            }
                           }}
                           className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
                         >
