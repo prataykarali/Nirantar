@@ -13,6 +13,7 @@ import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTra
 import { PiiRedactor } from './PiiRedactor';
 import { NirantarActionCue, ActionPolicyEngine } from '../actions/ActionPolicy';
 import { BookingState } from '../state/JourneyStateMachine';
+import { deterministicNiraReply } from '../services/niraRules';
 
 export interface NiraSanitizedContext {
   page: string;
@@ -73,7 +74,7 @@ export class NiraPlanner {
     const cleanQuery = PiiRedactor.redact(rawQuery.trim());
     const lower = cleanQuery.toLowerCase();
 
-    // ── SECURITY: Prompt injection & privilege escalation ──
+    // ── 1. SECURITY: Prompt injection & privilege escalation ──
     if (
       lower.includes('ignore your instructions') ||
       lower.includes('ignore previous') ||
@@ -94,7 +95,7 @@ export class NiraPlanner {
       };
     }
 
-    // ── SCREEN-AWARE "WHERE AM I?" (exact phrases only) ──
+    // ── 2. SCREEN-AWARE "WHERE AM I?" ──
     if (
       lower === 'where am i' ||
       lower === 'what is this page' ||
@@ -113,6 +114,7 @@ export class NiraPlanner {
         ticket: "🎫 **Confirmed e-Ticket**: Your journey is booked! Download your PDF receipt or track GPS status.",
         completion: "🎉 **Confirmation**: Seat confirmed. You can download the invoice or switch to live tracking.",
         track: "📍 **Live GPS Radar**: Track speed, upcoming halts, and platform numbers in real-time.",
+        'my-journeys': "🧳 **My Journeys**: Review all your past, active, and upcoming DigiLocker-verified trips.",
         myjourneys: "🧳 **My Journeys**: Review all your past, active, and upcoming DigiLocker-verified trips.",
         profile: "👤 **Citizen Profile**: View your verified Aadhaar status, wallet ledger, and saved co-passengers.",
         settings: "⚙️ **Settings**: Toggle accessibility, Easy Mode, and audio notifications.",
@@ -126,7 +128,25 @@ export class NiraPlanner {
       };
     }
 
-    // ── CANCEL TRIP (exact phrases only) ──
+    // ── 3. DOWNLOAD TICKET / E-TICKET ACTIONS ──
+    if (
+      lower.includes('download ticket') ||
+      lower.includes('download my ticket') ||
+      lower.includes('show ticket') ||
+      lower.includes('view ticket') ||
+      lower.includes('download invoice') ||
+      lower.includes('ticket pdf') ||
+      lower.includes('e-ticket')
+    ) {
+      return {
+        intent: 'DOWNLOAD_TICKET',
+        message: "📄 **DigiLocker Verified e-Ticket**: Your confirmed electronic ticket with scannable QR code and passenger itinerary is available for instant download on the e-Ticket and My Journeys screens.",
+        actionCue: { type: 'NAVIGATE', target: 'my-journeys', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ── 4. CANCEL TRIP ──
     if (
       lower === 'cancel trip' ||
       lower === 'cancel booking' ||
@@ -144,7 +164,7 @@ export class NiraPlanner {
       };
     }
 
-    // ── RESET / START OVER (exact phrases only) ──
+    // ── 5. RESET / START OVER ──
     if (
       lower === 'reset' ||
       lower === 'clear' ||
@@ -162,7 +182,7 @@ export class NiraPlanner {
       };
     }
 
-    // ── GENERIC "BOOK A TICKET" with no route → ask for stations ──
+    // ── 6. GENERIC "BOOK A TICKET" with no route → ask for stations ──
     const isGenericBookingQuery =
       lower === 'i want to book a ticket' ||
       lower === 'i want to book a train' ||
@@ -186,7 +206,7 @@ export class NiraPlanner {
       };
     }
 
-    // ── GO BACK (exact phrases only) ──
+    // ── 7. GO BACK ──
     if (lower === 'go back' || lower === 'change something' || lower === 'modify booking') {
       return {
         intent: 'GO_BACK_STEP',
@@ -196,17 +216,17 @@ export class NiraPlanner {
       };
     }
 
-    // ── MY JOURNEYS (exact phrases only) ──
+    // ── 8. MY JOURNEYS ──
     if (lower === 'my journeys' || lower === 'my bookings' || lower === 'ticket history') {
       return {
         intent: 'NAVIGATE_MY_JOURNEYS',
         message: 'Opening your **My Journeys** dashboard with active bookings, past trips, and DigiLocker-verified e-Tickets ready for download.',
-        actionCue: { type: 'NAVIGATE', target: 'myjourneys', requiresConfirmation: false },
+        actionCue: { type: 'NAVIGATE', target: 'my-journeys', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
     }
 
-    // ── PAYMENT FAILURE RECOVERY (exact phrases only) ──
+    // ── 9. PAYMENT FAILURE RECOVERY ──
     if (lower === 'transaction failed' || lower === 'payment failed' || lower === 'retry payment') {
       return {
         intent: 'PAYMENT_FAILURE_RECOVERY',
@@ -217,7 +237,7 @@ export class NiraPlanner {
       };
     }
 
-    // ── RESUME INTERRUPTED TASK (exact phrases only) ──
+    // ── 10. RESUME INTERRUPTED TASK ──
     if (lower === 'resume' || lower === 'continue booking' || lower === 'go back to booking') {
       return {
         intent: 'RESUME_TASK',
@@ -227,13 +247,14 @@ export class NiraPlanner {
       };
     }
 
-    // ── EVERYTHING ELSE → stream to LLM with Scrapling grounding ──
+    // ── 11. DETERMINISTIC KNOWLEDGE BASE QUERY ANSWERING (Zero-LLM) ──
+    const deterministicReply = deterministicNiraReply(cleanQuery);
     return {
-      intent: 'PASS_THROUGH_TO_LLM',
-      message: '',
+      intent: 'GENERAL_HELP',
+      message: deterministicReply,
       actionCue: { type: 'NONE', requiresConfirmation: false },
-      shouldPassToLlm: true,
-      source: 'LLM_NVIDIA',
+      shouldPassToLlm: false,
+      source: 'SAFE_ASSIST_DETERMINISTIC',
     };
   }
 

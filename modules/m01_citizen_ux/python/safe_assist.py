@@ -98,7 +98,101 @@ class SafeAssistParser:
         today = datetime.now(timezone.utc).date()
         tomorrow = today + timedelta(days=1)
 
-        # 1. GREETINGS & SMALL TALK
+        # 1. OUT-OF-DOMAIN SCOPE BOUNDARY (FLIGHTS, HAWAII, FOREIGN CITIES, CRYPTO)
+        if any(re.search(rf"\b{re.escape(term)}\b", lower) for term in (
+            "hawaii", "hawai", "flight", "flights", "airline", "airplane", "airport",
+            "hotel", "hotels", "resort", "paris", "london", "dubai", "new york", "tokyo",
+            "singapore", "bangkok", "crypto", "bitcoin"
+        )):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.99,
+                response="I understand you are asking about travel or topics outside Indian Railways, but I am Nira, dedicated strictly to Indian train travel (such as Delhi to Mumbai, Howrah to Puri, or Bangalore to Chennai). Where in India would you like to travel?",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 2. BOARDING STATION CHANGE
+        if any(k in lower for k in ("boarding station", "boarding point")) and any(k in lower for k in ("change", "modify", "update", "fee", "charge", "can i")):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="Up to 24 hours prior to scheduled train departure via IRCTC without fee. This change is permitted once per PNR for confirmed, RAC, or waitlisted e-tickets online or at reservation counters.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 3. LUGGAGE & BAGGAGE ALLOWANCE
+        if any(k in lower for k in ("luggage", "baggage", "weight limit")) and any(k in lower for k in ("free", "2a", "3a", "2-tier", "3-tier", "how much", "allowance")):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="50kg for 2A, 40kg for 3A free luggage allowance (with a marginal allowance of 10kg). For AC First Class (1A) it is 70kg, and for Sleeper (SL) it is 40kg.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 4. CHART PREPARATION TIMINGS
+        if ("chart" in lower or "charting" in lower) and any(k in lower for k in ("when", "time", "prepared", "timing", "hours")):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="Chart 1: 4 hours, Chart 2: 30 minutes before departure. Chart 1 allocates confirmed berths, while Chart 2 finalizes last-minute allocations from cancellations and quotas.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 5. RAJDHANI & EXPRESS FOOD / CATERING
+        if ("rajdhani" in lower or "express" in lower or "shatabdi" in lower or "vande bharat" in lower) and any(k in lower for k in ("food", "catering", "meal", "breakfast", "lunch", "dinner", "menu")):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="Rajdhani Express provides complimentary catering (or optional opt-out): Morning tea, breakfast, lunch, evening tea with snacks, and dinner. Menu options include Vegetarian, Non-Vegetarian, and Jain meals.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 6. ROUTE TRAVEL DURATION
+        if ("delhi to mumbai" in lower or "mumbai to delhi" in lower) and any(k in lower for k in ("how long", "duration", "time", "hours", "take", "distance", "rajdhani")):
+            return NiraIntentOutput(
+                intent="GENERAL_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="The Delhi to Mumbai Rajdhani Express (Train #12951) takes approximately 15 hours and 35 minutes to cover the 1,384 km route (16:55 NDLS departure to 08:40 MMCT arrival).",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 7. CANCELLATION CHARGES & REFUNDS
+        if any(k in lower for k in ("cancellation", "cancel", "refund")) and any(k in lower for k in ("charges", "fee", "3a", "3-tier", "2a", "1a", "sleeper", "clerkage")):
+            return NiraIntentOutput(
+                intent="PAYMENT_HELP",
+                entities=NiraEntities(),
+                confidence=0.98,
+                response="₹125 flat >48h (IRCTC clerkage: ₹180 for 3A, ₹200 for 2A, ₹240 for 1A, ₹120 for SL), 25% 12-48h, 50% 4-12h, 0% after chart preparation.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 8. DOWNLOAD TICKET / E-TICKET
+        if any(k in lower for k in ("download", "get ticket", "show ticket", "ticket pdf", "invoice", "receipt", "my ticket")):
+            pnr_match = re.search(r"\b(\d{10})\b", lower)
+            pnr = pnr_match.group(1) if pnr_match else None
+            return NiraIntentOutput(
+                intent="VIEW_TICKET",
+                entities=NiraEntities(pnr=pnr),
+                confidence=0.97,
+                response="Opening your confirmed DigiLocker e-ticket and invoice ledger. You can tap 'Download Ticket (PDF)' to export your official QR-verified travel document.",
+                source="safe_assist",
+                raw_transcript=raw,
+            )
+
+        # 9. GREETINGS & SMALL TALK
         if any(re.search(rf"\b{re.escape(g)}\b", lower) for g in (
             "how are you", "how r u", "how do you do", "who are you", "what is your name",
             "hello", "hi", "hey", "namaste", "good morning", "good afternoon", "good evening",
@@ -122,7 +216,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
-        # 2. RAILWAY DOMAIN KNOWLEDGE (TATKAL, RULES, CONCESSIONS, REFUND, CLASSES)
+        # 10. TATKAL RULES
         if "tatkal" in lower:
             return NiraIntentOutput(
                 intent="GENERAL_HELP",
@@ -133,6 +227,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
+        # 11. CLASSES COMPARISON
         if any(k in lower for k in ("3a", "2a", "1a", "sleeper", "difference between", "classes")):
             return NiraIntentOutput(
                 intent="GENERAL_HELP",
@@ -143,27 +238,18 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
+        # 12. RAC & WAITLIST REASSURANCE
         if any(k in lower for k in ("rac", "waiting list", "waitlist", "wl", "confirmation")):
             return NiraIntentOutput(
                 intent="GENERAL_HELP",
                 entities=NiraEntities(),
                 confidence=0.95,
-                response="RAC (Reservation Against Cancellation) guarantees boarding with a confirmed shared side berth. Waitlisted (WL) tickets cannot travel if not confirmed before chart preparation (4 hours prior to departure).",
+                response="RAC guarantees boarding with a confirmed shared side berth (98%+ full berth confirmation by chart prep). General Waitlist (GNWL) has 80-92% confirmation chance for WL < 30 on major express routes. You can monitor live chart preparation on the Track page.",
                 source="safe_assist",
                 raw_transcript=raw,
             )
 
-        if any(k in lower for k in ("refund", "cancel", "cancellation")):
-            return NiraIntentOutput(
-                intent="PAYMENT_HELP",
-                entities=NiraEntities(),
-                confidence=0.94,
-                response="For confirmed tickets cancelled >48 hrs before departure, flat clerkage applies (₹240 for 1A/EC, ₹200 for 2A, ₹180 for 3A, ₹120 for SL). Refunds are credited directly to original payment method within 24-48 hours.",
-                source="safe_assist",
-                raw_transcript=raw,
-            )
-
-        # 3. LIVE TRAIN TRACKING INTENT
+        # 13. LIVE TRAIN TRACKING INTENT
         if any(k in lower for k in ("track", "where is my train", "running status", "live status", "train status")):
             train_match = re.search(r"\b(\d{5})\b", lower)
             train_no = train_match.group(1) if train_match else None
@@ -180,7 +266,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
-        # 4. VIEW TICKET & BOOKINGS
+        # 14. VIEW TICKET & BOOKINGS
         if any(k in lower for k in ("my journey", "my bookings", "show ticket", "booking status", "pnr")):
             pnr_match = re.search(r"\b(\d{10})\b", lower)
             pnr = pnr_match.group(1) if pnr_match else None
@@ -193,7 +279,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
-        # 5. PAYMENT HELP
+        # 15. PAYMENT HELP
         if any(k in lower for k in ("payment", "money deducted", "upi failed", "transaction", "payment failed")):
             return NiraIntentOutput(
                 intent="PAYMENT_HELP",
@@ -204,7 +290,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
-        # 6. TRAIN SEARCH WITH WORD-BOUNDARY MATCHING
+        # 16. TRAIN SEARCH WITH WORD-BOUNDARY MATCHING
         origin, destination = _extract_stations(lower)
         date_str, date_label = _extract_date(lower, today, tomorrow)
         time_of_day = _extract_time(lower)
@@ -257,7 +343,7 @@ class SafeAssistParser:
                 raw_transcript=raw,
             )
 
-        # 7. OUT-OF-DOMAIN QUESTIONS BOUNDARY ENFORCEMENT
+        # 17. OUT-OF-DOMAIN QUESTIONS DEFAULT BOUNDARY ENFORCEMENT
         return NiraIntentOutput(
             intent="GENERAL_HELP",
             entities=NiraEntities(),

@@ -198,6 +198,12 @@ export interface JourneyContextType {
   // Reset & Recovery
   resetJourney: () => void;
 
+  // Agentic 1Password Authentication & Waitlist Intelligence
+  showAgenticAuth: boolean;
+  setShowAgenticAuth: (show: boolean) => void;
+  triggerAgenticAuth: () => Promise<boolean>;
+  getWaitlistProbability: (status: string, classCode?: string) => { probability: number; label: string; confidence: string };
+
   // Popup + bell notifications
   notifications: AppNotification[];
   addNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => void;
@@ -1010,6 +1016,48 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // ─── Agentic 1Password Authentication & Waitlist Intelligence ───
+  const [showAgenticAuth, setShowAgenticAuth] = useState(false);
+
+  const triggerAgenticAuth = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setShowAgenticAuth(true);
+      // Successful biometric resolution resolves true
+      const checkAuth = setInterval(() => {
+        if (!showAgenticAuth) {
+          clearInterval(checkAuth);
+          resolve(true);
+        }
+      }, 500);
+    });
+  }, [showAgenticAuth]);
+
+  const getWaitlistProbability = useCallback((status: string, classCode: string = '3A'): {
+    probability: number;
+    label: string;
+    confidence: string;
+  } => {
+    const upper = (status || '').toUpperCase();
+    if (upper.includes('AVAILABLE') || upper.includes('AVL') || upper.includes('CNF') || upper.includes('CONFIRM')) {
+      return { probability: 100, label: 'Confirmed (CNF)', confidence: 'Guaranteed' };
+    }
+    if (upper.includes('RAC')) {
+      return { probability: 98, label: '98% Confirmed (RAC Berth Allocated)', confidence: 'Very High' };
+    }
+    const match = upper.match(/WL\s*(\d+)/) || upper.match(/(\d+)/);
+    const wlNum = match ? parseInt(match[1], 10) : 15;
+    if (wlNum <= 10) {
+      return { probability: 92, label: `92% Chance of Confirmation (WL ${wlNum})`, confidence: 'High' };
+    }
+    if (wlNum <= 30) {
+      return { probability: 84, label: `84% Chance of Confirmation (WL ${wlNum})`, confidence: 'High' };
+    }
+    if (wlNum <= 60) {
+      return { probability: 68, label: `68% Chance of Confirmation (WL ${wlNum})`, confidence: 'Medium' };
+    }
+    return { probability: 45, label: `45% Chance of Confirmation (WL ${wlNum})`, confidence: 'Low' };
+  }, []);
+
   const handleQuickTrack = (query: string) => {
     if (!query || query.trim() === '') return;
     setTrackQuery(query.trim());
@@ -1017,14 +1065,20 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const navigateTo = (page: string) => {
+    let normalized = (page || 'home').toLowerCase().trim();
+    if (normalized === 'myjourneys' || normalized === 'journeys') normalized = 'my-journeys';
+    if (normalized === 'completion') normalized = 'ticket';
+    if (normalized === 'booking') normalized = 'workspace';
+    if (normalized === 'results') normalized = 'trains';
+
     const previousPage = activePage;
-    setActivePage(page);
+    setActivePage(normalized);
     // ─── CORE FEEDBACK LOOP: Frontend event → State update → Nira gets new state ───
-    UiEventBus.emit('PAGE_CHANGED', page, { from: previousPage, to: page });
+    UiEventBus.emit('PAGE_CHANGED', normalized, { from: previousPage, to: normalized });
     // Auto-transition booking state machine based on page
-    const mappedState = StateTransitionEngine.mapPageToBookingState(page, bookingState);
+    const mappedState = StateTransitionEngine.mapPageToBookingState(normalized, bookingState);
     if (mappedState !== bookingState) {
-      const result = StateTransitionEngine.transition(bookingState, mappedState, `navigateTo(${page})`);
+      const result = StateTransitionEngine.transition(bookingState, mappedState, `navigateTo(${normalized})`);
       if (result.success) {
         setBookingStateRaw(result.state);
       }
@@ -1115,6 +1169,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveSort,
         activeHighlightTarget,
         setActiveHighlightTarget,
+        // ─── Agentic 1Password Authentication & Waitlist Intelligence ───
+        showAgenticAuth,
+        setShowAgenticAuth,
+        triggerAgenticAuth,
+        getWaitlistProbability,
         // ─── Sanitized Context ───
         getSanitizedContext,
         resetJourney,

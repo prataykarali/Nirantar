@@ -236,6 +236,71 @@ FLAGSHIP_TRAINS = [
 
 MAJOR_HUBS = ["NDLS", "HWH", "CSMT", "SBC", "MAS", "HYB", "ADI", "PUNE", "PNBE", "BSB", "LKO", "JP", "GHY", "CBE", "MDU", "BPL", "NJP", "PURI", "BBS", "RNC", "CNB", "PRYJ", "ASR", "CDG", "JAT", "HW", "AGC", "UJN", "INDB", "NGP", "ST", "BRC", "MAO", "VSKP", "BZA", "TPTY", "TVC", "ERS", "GKP", "TATA", "KGP", "JU", "UDZ", "KOTA"]
 
+def _get_train_name(suffix: str, src_city: str, dst_city: str) -> str:
+    if "Vande" in suffix:
+        return f"{src_city} – {dst_city} Vande Bharat"
+    if "Jan Shatabdi" in suffix:
+        return f"{src_city} – {dst_city} Jan Shatabdi"
+    if "Garib Rath" in suffix:
+        return f"{src_city} – {dst_city} Garib Rath"
+    if "Intercity" in suffix:
+        return f"{src_city} – {dst_city} Intercity SF"
+    return f"{src_city} – {dst_city} {suffix}"
+
+
+def _build_corridor_train(src: str, dst: str, i: int, j: int, train_types: list, train_no: str) -> dict | None:
+    src_st = STATION_MAP.get(src)
+    dst_st = STATION_MAP.get(dst)
+    if not src_st or not dst_st:
+        return None
+
+    dist = max(180, abs(i - j) * 85 + (hash(src + dst) % 400))
+    if dist > 3200:
+        dist = 2800
+
+    avg_speed = 70 + (hash(src + dst) % 25)
+    dur_mins = int((dist / avg_speed) * 60)
+    dur_str = f"{dur_mins // 60}h {dur_mins % 60:02d}m"
+
+    dep_h = (hash(src + dst + "dep") % 18) + 5
+    dep_m = (hash(src + dst + "min") % 4) * 15
+    dep_str = f"{dep_h:02d}:{dep_m:02d}"
+
+    arr_total_m = dep_h * 60 + dep_m + dur_mins
+    arr_str = f"{(arr_total_m // 60) % 24:02d}:{arr_total_m % 60:02d}"
+
+    type_idx = (i + j) % len(train_types)
+    ttype, suffix = train_types[type_idx]
+    train_name = _get_train_name(suffix, src_st["city"], dst_st["city"])
+    rating = round(4.2 + (hash(train_no) % 7) * 0.1, 1)
+    punc = 88 + (hash(train_no) % 11)
+
+    return {
+        "train_number": train_no,
+        "train_name": train_name,
+        "train_type": ttype,
+        "from_station_code": src,
+        "from_station_name": src_st["name"],
+        "from_city": src_st["city"],
+        "to_station_code": dst,
+        "to_station_name": dst_st["name"],
+        "to_city": dst_st["city"],
+        "departure_time": dep_str,
+        "arrival_time": arr_str,
+        "duration_hours": dur_str,
+        "distance_km": dist,
+        "running_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "rating": rating,
+        "punctuality_score": punc,
+        "pantry_available": dist > 400,
+        "cleanliness_score": min(99, int(rating * 20)),
+        "is_fastest": "Vande" in suffix or "Shatabdi" in suffix,
+        "is_best_value": "Garib" in suffix or "Mail" in suffix or "Express" in suffix,
+        "ai_recommendation_reason": f"Direct connection between {src_st['city']} and {dst_st['city']} with {punc}% on-time record.",
+        "classes": build_classes_for_type(ttype, dist),
+    }
+
+
 def generate_full_train_fleet():
     """Generates a comprehensive dataset of 500+ realistic trains across all Indian corridors."""
     all_trains = []
@@ -275,10 +340,8 @@ def generate_full_train_fleet():
             "classes": build_classes_for_type(ttype, dist),
         })
 
-    # Generate additional authentic route pairs to reach 500+ trains
     random.seed(42)  # Deterministic seed
 
-    # Corridors generator
     train_types = [
         ("SUPERFAST", "Superfast Express"),
         ("MAIL_EXPRESS", "Mail / Express"),
@@ -290,93 +353,23 @@ def generate_full_train_fleet():
     ]
 
     base_num = 31000
+    hub_pairs = [(i, j) for i in range(len(MAJOR_HUBS)) for j in range(len(MAJOR_HUBS)) if i != j]
 
-    for i in range(len(MAJOR_HUBS)):
-        for j in range(len(MAJOR_HUBS)):
-            if i == j:
-                continue
-            src = MAJOR_HUBS[i]
-            dst = MAJOR_HUBS[j]
-            src_st = STATION_MAP.get(src)
-            dst_st = STATION_MAP.get(dst)
-            if not src_st or not dst_st:
-                continue
-
-            # Estimate rough railway distance based on index difference + base
-            dist = max(180, abs(i - j) * 85 + (hash(src + dst) % 400))
-            if dist > 3200:
-                dist = 2800
-
-            # Calculate duration (approx 65-85 km/h avg speed)
-            avg_speed = 70 + (hash(src + dst) % 25)
-            dur_mins = int((dist / avg_speed) * 60)
-            h = dur_mins // 60
-            m = dur_mins % 60
-            dur_str = f"{h}h {m:02d}m"
-
-            # Realistic dep and arr
-            dep_h = (hash(src + dst + "dep") % 18) + 5
-            dep_m = (hash(src + dst + "min") % 4) * 15
-            dep_str = f"{dep_h:02d}:{dep_m:02d}"
-
-            arr_total_m = dep_h * 60 + dep_m + dur_mins
-            arr_h = (arr_total_m // 60) % 24
-            arr_m = arr_total_m % 60
-            arr_str = f"{arr_h:02d}:{arr_m:02d}"
-
-            # Pick train type
-            type_idx = (i + j) % len(train_types)
-            ttype, suffix = train_types[type_idx]
-
-            while str(base_num) in seen_numbers:
-                base_num += 1
-            train_no = str(base_num)
-            seen_numbers.add(train_no)
-
-            # Name formatting
-            if "Vande" in suffix:
-                train_name = f"{src_st['city']} – {dst_st['city']} Vande Bharat"
-            elif "Jan Shatabdi" in suffix:
-                train_name = f"{src_st['city']} – {dst_st['city']} Jan Shatabdi"
-            elif "Garib Rath" in suffix:
-                train_name = f"{src_st['city']} – {dst_st['city']} Garib Rath"
-            elif "Intercity" in suffix:
-                train_name = f"{src_st['city']} – {dst_st['city']} Intercity SF"
-            else:
-                train_name = f"{src_st['city']} – {dst_st['city']} {suffix}"
-
-            rating = round(4.2 + (hash(train_no) % 7) * 0.1, 1)
-            punc = 88 + (hash(train_no) % 11)
-
-            all_trains.append({
-                "train_number": train_no,
-                "train_name": train_name,
-                "train_type": ttype,
-                "from_station_code": src,
-                "from_station_name": src_st["name"],
-                "from_city": src_st["city"],
-                "to_station_code": dst,
-                "to_station_name": dst_st["name"],
-                "to_city": dst_st["city"],
-                "departure_time": dep_str,
-                "arrival_time": arr_str,
-                "duration_hours": dur_str,
-                "distance_km": dist,
-                "running_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                "rating": rating,
-                "punctuality_score": punc,
-                "pantry_available": dist > 400,
-                "cleanliness_score": min(99, int(rating * 20)),
-                "is_fastest": "Vande" in suffix or "Shatabdi" in suffix,
-                "is_best_value": "Garib" in suffix or "Mail" in suffix or "Express" in suffix,
-                "ai_recommendation_reason": f"Direct connection between {src_st['city']} and {dst_st['city']} with {punc}% on-time record.",
-                "classes": build_classes_for_type(ttype, dist),
-            })
-
-            if len(all_trains) >= 550:
-                break
+    for i, j in hub_pairs:
         if len(all_trains) >= 550:
             break
+
+        src = MAJOR_HUBS[i]
+        dst = MAJOR_HUBS[j]
+
+        while str(base_num) in seen_numbers:
+            base_num += 1
+        train_no = str(base_num)
+        seen_numbers.add(train_no)
+
+        train_item = _build_corridor_train(src, dst, i, j, train_types, train_no)
+        if train_item:
+            all_trains.append(train_item)
 
     return all_trains
 

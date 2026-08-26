@@ -13,6 +13,7 @@ Validates:
 import base64
 import json
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 import pytest
@@ -56,7 +57,11 @@ def voice_adapter(extractor: MultilingualIntentExtractor) -> VoiceInterfaceAdapt
 
 @pytest.fixture
 def journey_engine() -> ProgressiveJourneyEngine:
-    return ProgressiveJourneyEngine()
+    engine = ProgressiveJourneyEngine()
+    if hasattr(engine, "booking_svc") and hasattr(engine.booking_svc, "payment_service"):
+        engine.booking_svc.payment_service.failure_rate = 0.0
+        engine.booking_svc.payment_service.timeout_rate = 0.0
+    return engine
 
 
 @pytest.fixture
@@ -244,13 +249,14 @@ def test_voice_request_end_to_end_pipeline(voice_adapter: VoiceInterfaceAdapter)
 def test_stepper_state_transitions_flow(journey_engine: ProgressiveJourneyEngine) -> None:
     """Verify state transition machine through INTENT -> CONFIRM -> SEARCH -> SELECT -> PASSENGER -> REVIEW -> PAY -> DONE."""
     session = CitizenSession(preferred_language="en")
+    tomorrow = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
 
     # Step 1: Initial query -> CONFIRM / SEARCH stage (presents train choices at SELECT stage)
     intent = CitizenIntent(
         intent_type=IntentType.BOOK_TRAIN,
         source_station="HWH",
         destination_station="NDLS",
-        travel_date="2026-08-25",
+        travel_date=tomorrow,
         class_preference="3A",
     )
     res_confirm = journey_engine.advance_journey(intent, session, JourneyStage.CONFIRM, {"confirmed": True})
@@ -258,13 +264,14 @@ def test_stepper_state_transitions_flow(journey_engine: ProgressiveJourneyEngine
     assert len(res_confirm.payload.get("top_options", [])) > 0
 
     selected_train = res_confirm.payload["top_options"][0]
+    train_id = selected_train.get("train_no") or selected_train.get("train_id")
 
     # Step 2: Select train -> PASSENGER stage
     res_passenger = journey_engine.advance_journey(
         intent,
         session,
         JourneyStage.SELECT,
-        {"train_no": selected_train.get("train_no") or selected_train.get("train_id")},
+        {"train_no": train_id},
     )
     assert res_passenger.payload["stage"] == JourneyStage.PASSENGER.value
 
@@ -274,7 +281,7 @@ def test_stepper_state_transitions_flow(journey_engine: ProgressiveJourneyEngine
         intent,
         session,
         JourneyStage.PASSENGER,
-        {"passengers": passengers, "train_no": selected_train.get("train_no") or selected_train.get("train_id")},
+        {"passengers": passengers, "train_no": train_id},
     )
     assert res_review.payload["stage"] == JourneyStage.REVIEW.value
     assert "selected_train" in res_review.payload or "booking_summary" in res_review.payload
@@ -285,7 +292,7 @@ def test_stepper_state_transitions_flow(journey_engine: ProgressiveJourneyEngine
         intent,
         session,
         JourneyStage.REVIEW,
-        {"pay": True, "passengers": passengers, "train_no": selected_train.get("train_no")},
+        {"pay": True, "passengers": passengers, "train_no": train_id},
     )
     assert res_pay.payload["stage"] == JourneyStage.DONE.value
     assert "pnr" in res_pay.payload

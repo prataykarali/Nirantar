@@ -37,7 +37,7 @@ client = TestClient(app)
 @pytest.fixture(scope="module", autouse=True)
 def setup_environment():
     init_db()
-    seed_all()
+    seed_all(force=True)
 
 
 def test_complete_18_step_delhi_to_mumbai_citizen_journey():

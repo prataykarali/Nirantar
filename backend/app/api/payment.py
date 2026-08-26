@@ -178,20 +178,17 @@ def mock_payment_result(payment_id: str, req: MockResultRequest, db: Session = D
     payment.updated_at = datetime.utcnow()
 
     journey = db.query(JourneyModel).filter_by(id=payment.journey_id).first()
+    if journey:
+        step_map = {
+            "SUCCESS": "TICKET_ISSUED",
+            "FAILED": "PAYMENT_FAILED",
+            "UNKNOWN": "PAYMENT_UNKNOWN",
+        }
+        journey.current_step = step_map.get(result, journey.current_step)
+        journey.updated_at = datetime.utcnow()
 
     if result == "SUCCESS":
         _create_booking_on_success(payment, db)
-        if journey:
-            journey.current_step = "TICKET_ISSUED"
-    elif result == "FAILED":
-        if journey:
-            journey.current_step = "PAYMENT_FAILED"
-    elif result == "UNKNOWN":
-        if journey:
-            journey.current_step = "PAYMENT_UNKNOWN"
-
-    if journey:
-        journey.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(payment)

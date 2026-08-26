@@ -72,6 +72,14 @@ def normalize_database_url(url: str | None) -> str:
     return _ensure_postgres_ssl(url)
 
 
+def _format_instance_host(instance: str) -> str:
+    if instance.startswith("/cloudsql/"):
+        return instance
+    if ":" in instance and not instance.startswith("/"):
+        return f"/cloudsql/{instance}"
+    return instance
+
+
 def resolve_database_url() -> str:
     """Prefer DATABASE_URL, then discrete Postgres env vars, then local SQLite."""
     direct = _first_env(
@@ -100,20 +108,16 @@ def resolve_database_url() -> str:
         "INSTANCE_UNIX_SOCKET",
     )
 
-    if instance or host:
-        auth = f"{quote_plus(user)}:{quote_plus(password)}"
-        dbname = quote_plus(name)
-        if instance:
-            socket = instance
-            if socket.startswith("/cloudsql/"):
-                host_q = socket
-            elif ":" in socket and not socket.startswith("/"):
-                host_q = f"/cloudsql/{socket}"
-            else:
-                host_q = socket
-            return f"postgresql://{auth}@/{dbname}?host={host_q}"
-        return _ensure_postgres_ssl(
-            f"postgresql://{auth}@{host}:{port}/{dbname}"
-        )
+    if not instance and not host:
+        return "sqlite:////tmp/nirantar_journey.db"
 
-    return "sqlite:////tmp/nirantar_journey.db"
+    auth = f"{quote_plus(user)}:{quote_plus(password)}"
+    dbname = quote_plus(name)
+
+    if instance:
+        host_q = _format_instance_host(instance)
+        return f"postgresql://{auth}@/{dbname}?host={host_q}"
+
+    return _ensure_postgres_ssl(
+        f"postgresql://{auth}@{host}:{port}/{dbname}"
+    )

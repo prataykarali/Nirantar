@@ -150,47 +150,96 @@ USERS = [
 ]
 
 
-def seed_all():
+def seed_all(force: bool = False):
     """Seed all tables with deterministic synthetic data."""
-    init_db()
+    init_db(force=force)
 
     with get_db_session() as db:
-        # Check if already seeded
-        existing = db.query(StationModel).first()
-        if existing:
-            print("✅ Database already seeded. Skipping.")
-            return
+        if force:
+            db.query(TrainAvailabilityModel).delete()
+            db.query(TrainModel).delete()
+            db.query(StationModel).delete()
+            db.query(UserModel).delete()
+            db.commit()
 
         # 1. Seed Stations
-        for s in STATIONS:
-            db.add(StationModel(**s))
-        print(f"📍 Seeded {len(STATIONS)} stations")
+        if not db.query(StationModel).first():
+            for s in STATIONS:
+                db.add(StationModel(**s))
+            db.flush()
+            print(f"📍 Seeded {len(STATIONS)} stations")
 
         # 2. Seed Trains + Availability
-        for t in TRAINS:
-            classes = t.pop("classes")
-            train = TrainModel(**t)
-            db.add(train)
-            db.flush()  # Get the train.id
+        if not db.query(TrainModel).first():
+            for train_data in TRAINS:
+                classes = train_data.get("classes", [])
+                dur_str = train_data.get("duration_hours", "0h 00m")
+                dur_m = 0
+                if "h" in dur_str:
+                    parts = dur_str.split("h")
+                    dur_m += int(parts[0].strip()) * 60
+                    if len(parts) > 1 and "m" in parts[1]:
+                        dur_m += int(parts[1].replace("m", "").strip() or 0)
 
-            for cls in classes:
-                db.add(TrainAvailabilityModel(train_id=train.id, **cls))
+                train_dict = {
+                    "train_number": train_data["train_number"],
+                    "train_name": train_data["train_name"],
+                    "train_type": train_data.get("train_type", "SUPERFAST"),
+                    "from_station_code": train_data["from_station_code"],
+                    "from_station_name": train_data.get("from_station_name"),
+                    "from_city": train_data.get("from_city"),
+                    "to_station_code": train_data["to_station_code"],
+                    "to_station_name": train_data.get("to_station_name"),
+                    "to_city": train_data.get("to_city"),
+                    "departure_time": train_data["departure_time"],
+                    "arrival_time": train_data["arrival_time"],
+                    "duration_hours": train_data.get("duration_hours"),
+                    "duration_minutes": dur_m,
+                    "distance_km": train_data.get("distance_km", 0),
+                    "total_distance_km": train_data.get("distance_km", 0),
+                    "running_days": train_data.get("running_days", []),
+                    "rating": train_data.get("rating", 4.8),
+                    "punctuality_score": train_data.get("punctuality_score", 95),
+                    "pantry_available": train_data.get("pantry_available", True),
+                    "cleanliness_score": train_data.get("cleanliness_score", 95),
+                    "is_fastest": train_data.get("is_fastest", False),
+                    "is_best_value": train_data.get("is_best_value", False),
+                    "ai_recommendation_reason": train_data.get("ai_recommendation_reason"),
+                }
+                train = TrainModel(**train_dict)
+                db.add(train)
+                db.flush()
 
-        print(f"🚆 Seeded {len(TRAINS)} trains with availability")
+                for cls in classes:
+                    db.add(TrainAvailabilityModel(
+                        train_id=train.id,
+                        travel_date="2026-08-27",
+                        class_code=cls["class_code"],
+                        class_name=cls.get("class_name", cls["class_code"]),
+                        quota="General (GN)",
+                        fare=cls["fare"],
+                        available_seats=cls.get("available_seats", 50),
+                        status=cls.get("status", "AVAILABLE"),
+                        confirmation_probability=cls.get("confirmation_probability", 100),
+                        catering_included=cls.get("catering_included", False),
+                    ))
+
+            print(f"🚆 Seeded {len(TRAINS)} trains with availability")
 
         # 3. Seed Users with isolated wallet balance
-        for u in USERS:
-            user_model = UserModel(
-                display_name=u["display_name"],
-                username=u["username"],
-                email=f"{u['username']}@nirantar.gov.in",
-                phone="9876543210",
-                password_hash=hash_password(u["password"]),
-                wallet_balance=10000.00,
-                avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={u['username']}",
-            )
-            db.add(user_model)
-        print(f"👤 Seeded {len(USERS)} synthetic users")
+        if not db.query(UserModel).first():
+            for u in USERS:
+                user_model = UserModel(
+                    display_name=u["display_name"],
+                    username=u["username"],
+                    email=f"{u['username']}@nirantar.gov.in",
+                    phone="9876543210",
+                    password_hash=hash_password(u["password"]),
+                    wallet_balance=10000.00,
+                    avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={u['username']}",
+                )
+                db.add(user_model)
+            print(f"👤 Seeded {len(USERS)} synthetic users")
 
     print("✅ Database seeding complete!")
 

@@ -104,12 +104,25 @@ class TrainModel(Base):
     train_name = Column(String(100), nullable=False)
     train_type = Column(String(30), default="SUPERFAST")
     from_station_code = Column(String(10), nullable=False)
+    from_station_name = Column(String(100), nullable=True)
+    from_city = Column(String(50), nullable=True)
     to_station_code = Column(String(10), nullable=False)
+    to_station_name = Column(String(100), nullable=True)
+    to_city = Column(String(50), nullable=True)
     departure_time = Column(String(10), nullable=False)
     arrival_time = Column(String(10), nullable=False)
-    duration_minutes = Column(Integer, nullable=False)
-    running_days = Column(JSON, default=list)  # ["MON", "TUE", ...]
+    duration_hours = Column(String(20), nullable=True)
+    duration_minutes = Column(Integer, nullable=False, default=0)
+    distance_km = Column(Integer, default=0)
     total_distance_km = Column(Integer, default=0)
+    running_days = Column(JSON, default=list)  # ["Mon", "Tue", ...]
+    rating = Column(Float, default=4.8)
+    punctuality_score = Column(Integer, default=95)
+    pantry_available = Column(Boolean, default=True)
+    cleanliness_score = Column(Integer, default=95)
+    is_fastest = Column(Boolean, default=False)
+    is_best_value = Column(Boolean, default=False)
+    ai_recommendation_reason = Column(Text, nullable=True)
 
     # Relationships
     availabilities = relationship("TrainAvailabilityModel", back_populates="train", cascade="all, delete-orphan")
@@ -122,10 +135,13 @@ class TrainAvailabilityModel(Base):
     train_id = Column(String, ForeignKey("trains.id"), nullable=False)
     travel_date = Column(String(15), nullable=False)  # YYYY-MM-DD
     class_code = Column(String(5), nullable=False)    # 1A, 2A, 3A, SL, CC, EC
+    class_name = Column(String(50), nullable=True)
     quota = Column(String(30), default="General (GN)")
     fare = Column(Integer, nullable=False)
     available_seats = Column(Integer, default=0)
     status = Column(String(20), default="AVAILABLE")  # AVAILABLE, RAC, WL, REGRET
+    confirmation_probability = Column(Integer, default=100)
+    catering_included = Column(Boolean, default=False)
     rac_seats = Column(Integer, default=0)
     wl_number = Column(Integer, default=0)
 

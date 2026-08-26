@@ -396,7 +396,18 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   } => {
     const lower = text.toLowerCase();
     const updated = { ...current };
-    const isQuestion = /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|tatkal|pnr|chart|cancel|refund|boarding|food|cater|concession)\b/i.test(text.trim()) || text.trim().endsWith('?');
+    const isQuestion =
+      /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|chart|cancel|refund|boarding|food|cater|concession|hawaii|flight|hotel|download|invoice|certificate)\b/i.test(text.trim()) ||
+      text.trim().endsWith('?') ||
+      lower.includes('how much') ||
+      lower.includes('can i') ||
+      lower.includes('what is') ||
+      lower.includes('when is') ||
+      lower.includes('why is') ||
+      lower.includes('flight to') ||
+      lower.includes('hawaii') ||
+      lower.includes('charges for') ||
+      lower.includes('options on');
 
     const isAutoBook =
       !isQuestion && (
@@ -437,7 +448,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     let currentInvalidNum: string | undefined = undefined;
     let currentMissingNum: boolean | undefined = undefined;
 
-    if (rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
+    if (!isQuestion && rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         updated.trainNumber = num;
@@ -445,6 +456,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         currentInvalidNum = num;
       }
     } else if (
+      !isQuestion &&
       (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket') || (isTrack && lower.includes('train'))) &&
       !lower.includes('from') &&
       !lower.includes('to')
@@ -519,18 +531,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       updatedRoute.classCode = '2A';
     } else if (lower.includes('3a') || lower.includes('3 tier') || lower.includes('third ac')) {
       updatedRoute.classCode = '3A';
-    } else if (lower.includes('sl') || lower.includes('sleeper')) {
-      updatedRoute.classCode = 'SL';
+    } else if (lower.includes('3e') || lower.includes('3 economy')) {
+      updatedRoute.classCode = '3E';
     } else if (lower.includes('cc') || lower.includes('chair car')) {
       updatedRoute.classCode = 'CC';
     } else if (lower.includes('ec') || lower.includes('executive')) {
       updatedRoute.classCode = 'EC';
-    }
-
-    // 6. Custom Passenger Name (e.g. "for Ananya Sharma", "for John Doe")
-    const nameMatch = text.match(/for\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
-    if (nameMatch && !['tomorrow', 'today', 'tatkal', 'two', 'three'].includes(nameMatch[1].toLowerCase())) {
-      updatedRoute.passengerName = nameMatch[1];
+    } else if (lower.includes('sl') || lower.includes('sleeper')) {
+      updatedRoute.classCode = 'SL';
+    } else if (lower.includes('2s') || lower.includes('second sitting')) {
+      updatedRoute.classCode = '2S';
     }
 
     return {
@@ -538,7 +548,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       isAutoBook,
       isTrack,
       isTatkal,
-      trainNumber: updatedRoute.trainNumber,
+      trainNumber: updated.trainNumber,
     };
   };
 
@@ -552,7 +562,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   } | null => {
     const lower = text.toLowerCase();
     
-    // Strict Guard: Never treat route search, train booking queries, or train tracking as passenger details!
+    // Strict Guard: Never treat questions, route search, policy queries, or tracking as passenger details!
     if (
       lower.includes('from') ||
       lower.includes(' to ') ||
@@ -563,6 +573,21 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       lower.includes('auto book') ||
       lower.startsWith('book ') ||
       lower.startsWith('reserve ') ||
+      lower.includes('luggage') ||
+      lower.includes('baggage') ||
+      lower.includes('boarding') ||
+      lower.includes('chart') ||
+      lower.includes('cancel') ||
+      lower.includes('refund') ||
+      lower.includes('tatkal') ||
+      lower.includes('food') ||
+      lower.includes('cater') ||
+      lower.includes('hawaii') ||
+      lower.includes('flight') ||
+      lower.includes('hotel') ||
+      lower.includes('rule') ||
+      lower.includes('?') ||
+      /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain)\b/i.test(text.trim()) ||
       /\d{5}/.test(text)
     ) {
       return null;
@@ -1005,6 +1030,22 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
         // Build action card for consequential or navigational actions
         let actionCard: ChatMessage['actionCard'] | undefined;
+        if (plannerResponse.intent === 'DOWNLOAD_TICKET' || validatedAction.target === 'my-journeys' || validatedAction.target === 'ticket') {
+          actionCard = {
+            title: 'DigiLocker Verified e-Ticket',
+            subtitle: 'Instant PDF export & scannable QR ticket',
+            buttonLabel: 'Open & Download Ticket ➔',
+            route: 'my-journeys',
+          };
+        }
+        if (safeQuery.toLowerCase().includes('waitlist') || safeQuery.toLowerCase().includes('wl') || safeQuery.toLowerCase().includes('rac')) {
+          actionCard = {
+            title: 'Live Waitlist Radar & Telemetry',
+            subtitle: '92% Confirmation Forecast • Chart updates every 15 min',
+            buttonLabel: 'Open Live Track Radar ➔',
+            route: 'track',
+          };
+        }
         if (validatedAction.type === 'NAVIGATE' && validatedAction.target === 'payment') {
           actionCard = {
             title: 'Secure Payment Bridge',

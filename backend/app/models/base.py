@@ -51,8 +51,10 @@ def get_db_session():
         db.close()
 
 
-def init_db():
+def init_db(force: bool = False):
     """Create all tables. Call this on startup."""
     import backend.app.models.journey_models  # noqa: F401
 
+    if force:
+        Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

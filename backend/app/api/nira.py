@@ -7,6 +7,7 @@ with multi-turn conversation memory and structured entity extraction.
 
 import json
 import os
+import re
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
@@ -61,71 +62,15 @@ BOOKING:
 async def generate_nvidia_stream(
     query: str, language: str, history: List[dict] = None, context: Optional[str] = None
 ) -> AsyncGenerator[str, None]:
-    api_key = os.getenv("NVIDIA_API_KEY", "").strip()
-    model = os.getenv("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
-    api_base = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1").rstrip("/")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "text/event-stream",
-    }
-
-    messages = [{"role": "system", "content": NIRA_STREAM_SYSTEM_PROMPT}]
-    if context and str(context).strip():
-        messages.append({
-            "role": "system",
-            "content": f"GROUNDING (facts only, do not invent beyond this):\n{context.strip()}",
-        })
-
-    if history:
-        for item in history[-6:]:
-            role = "assistant" if item.get("role") in ("assistant", "nira") else "user"
-            content = (item.get("content") or "").strip()
-            if content:
-                messages.append({"role": role, "content": content})
-
-    messages.append({"role": "user", "content": query})
-
-    payload = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": 220,
-        "temperature": 0.35,
-        "stream": True,
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=25.0) as client:
-            async with client.stream("POST", f"{api_base}/chat/completions", headers=headers, json=payload) as response:
-                if response.status_code != 200:
-                    fallback_result = parse_nira_intent(query, language)
-                    msg = fallback_result.get("response", "I'm here to help with your railway journey!")
-                    yield f"data: {json.dumps({'token': msg})}\n\n"
-                    yield "data: [DONE]\n\n"
-                    return
-
-                async for line in response.aiter_lines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    if line == "data: [DONE]":
-                        yield "data: [DONE]\n\n"
-                        break
-                    if line.startswith("data: "):
-                        try:
-                            chunk_json = json.loads(line[6:])
-                            delta = chunk_json.get("choices", [{}])[0].get("delta", {})
-                            content_token = delta.get("content", "")
-                            if content_token:
-                                yield f"data: {json.dumps({'token': content_token})}\n\n"
-                        except Exception:
-                            continue
-    except Exception:
-        fallback_result = parse_nira_intent(query, language)
-        msg = fallback_result.get("response", "I'm here to help with your railway journey!")
-        yield f"data: {json.dumps({'token': msg})}\n\n"
-        yield "data: [DONE]\n\n"
+    """Deterministic token-by-token streaming response generator without LLM dependencies."""
+    parsed = parse_nira_intent(query, language)
+    msg = parsed.get("response", "I am here to help with your Indian Railways journey!")
+    
+    # Stream response token by token
+    tokens = re.findall(r"\S+\s*", msg) or [msg]
+    for token in tokens:
+        yield f"data: {json.dumps({'token': token})}\n\n"
+    yield "data: [DONE]\n\n"
 
 
 @router.post("/chat/stream")

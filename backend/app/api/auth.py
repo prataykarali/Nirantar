@@ -182,6 +182,45 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
+class MockLoginRequest(BaseModel):
+    username: str = "ananya"
+    password: str = "nirantar2026"
+
+
+@router.post("/mock-login")
+def mock_login(req: MockLoginRequest, db: Session = Depends(get_db)):
+    """Mock agentic / test login endpoint with credential isolation."""
+    return login(LoginRequest(username_or_email=req.username, password=req.password), db)
+
+
+@router.get("/session")
+def get_auth_session(user_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """Returns sanitized session context (Zero-PII, no passwords or tokens)."""
+    user = None
+    if user_id:
+        user = db.query(UserModel).filter_by(id=user_id).first()
+    if not user:
+        user = db.query(UserModel).first()
+
+    if not user:
+        return {
+            "isAuthenticated": False,
+            "status": "UNAUTHENTICATED",
+            "userId": None,
+        }
+
+    return {
+        "isAuthenticated": True,
+        "status": "AUTHENTICATED",
+        "userId": user.id,
+        "displayName": user.display_name,
+        "username": user.username,
+        "email": user.email,
+        "walletBalance": user.wallet_balance,
+        "avatarUrl": user.avatar_url,
+    }
+
+
 @router.post("/oauth/google")
 def google_oauth(req: GoogleOAuthRequest, db: Session = Depends(get_db)):
     """

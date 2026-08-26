@@ -26,6 +26,7 @@ import { ImStuckModal } from '../ImStuckModal';
 import { VisualDiagramModal } from '../VisualDiagramModal';
 import { NewUserWelcomeModal } from '../NewUserWelcomeModal';
 import { NotificationToasts } from '../NotificationToasts';
+import { AgenticAuthModal } from '../auth/AgenticAuthModal';
 
 export const AppShell: React.FC = () => {
   const {
@@ -39,6 +40,11 @@ export const AppShell: React.FC = () => {
     setShowImStuck,
     showVisualDiagram,
     setShowVisualDiagram,
+    showAgenticAuth,
+    setShowAgenticAuth,
+    selectedTrain,
+    passengers,
+    navigateTo,
   } = useJourney();
 
   // Page title mapping
@@ -165,6 +171,18 @@ export const AppShell: React.FC = () => {
 
       {/* 9. NEW CITIZEN WELCOME ROADMAP MODAL */}
       <NewUserWelcomeModal />
+
+      {/* 10. 1PASSWORD AGENTIC CREDENTIAL ISOLATION AUTH MODAL */}
+      <AgenticAuthModal
+        isOpen={showAgenticAuth}
+        onClose={() => setShowAgenticAuth(false)}
+        onSuccess={() => {
+          navigateTo('workspace');
+        }}
+        trainName={selectedTrain?.trainName}
+        trainNumber={selectedTrain?.trainNumber}
+        passengersCount={passengers.length}
+      />
 
       <NotificationToasts />
     </div>

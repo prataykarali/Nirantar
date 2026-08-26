@@ -24,7 +24,7 @@ client = TestClient(app)
 def setup_database():
     """Ensure database is seeded and ready."""
     init_db()
-    seed_all()
+    seed_all(force=True)
 
 
 def test_station_and_train_search():
