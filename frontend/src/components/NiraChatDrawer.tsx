@@ -873,7 +873,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
             speakNiraResponse(accumulated);
           }
         },
-        (err) => {
+        (_err: unknown) => {
           const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching ${nextStop.name} (${nextStop.platform} • Doors opening on ${nextStop.doorSide}). Tap 'Open Live GPS Radar' below to view full platform alignment.`;
           setIsLoading(false);
           setMessages((prev) =>
@@ -973,7 +973,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
               speakNiraResponse(accumulated);
             }
           },
-          (err) => {
+          (_err: unknown) => {
             const fallbackText = `I found **${trains.length} trains** between ${fromSt.city} and ${toSt.city}.\n\nRanked options:\n${topTrains.map((t, i) => `${i + 1}. #${t.trainNumber} ${t.trainName} — ${t.durationHours}, ${plainClass(t.classes[0]?.classCode || '3A')} from ₹${t.classes[0]?.fare}${t.isFastest ? ' (Fastest)' : t.isBestValue ? ' (Cheapest)' : ''}`).join('\n')}\n\nWhich do you prefer? Tap 'Book This Train' below when you are ready to proceed.`;
             setIsLoading(false);
             setMessages((prev) =>
@@ -1122,7 +1122,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     streamNiraChat(
       safeQuery,
       'en',
-      (token) => {
+      (token: string) => {
         accumulated += token;
         setIsLoading(false);
         setMessages((prev) =>
@@ -1141,11 +1141,11 @@ Please review the details above on the screen. Ready to proceed to payment?`;
           speakNiraResponse(accumulated);
         }
       },
-      async (err) => {
+      async (_err: unknown) => {
         if (streamResolved) return;
         streamResolved = true;
         clearTimeout(safetyTimer);
-        console.warn('Streaming fallback triggered:', err);
+        console.warn('Streaming fallback triggered:', _err);
         try {
           const lower = safeQuery.toLowerCase();
           const isForeign = /(hawaii|hawai|paris|london|dubai|new york|tokyo|flight|airplane|hotel|visa)/i.test(lower);
