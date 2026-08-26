@@ -106,6 +106,7 @@ export const JourneyTrackerPage: React.FC = () => {
   const [showExplainTicketModal, setShowExplainTicketModal] = useState<boolean>(false);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
+  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'both'>('timeline');
   const [watchAlerts, setWatchAlerts] = useState({
     underTwenty: true,
     probSeventy: true,
@@ -966,508 +967,481 @@ export const JourneyTrackerPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          5. MAIN TWO-COLUMN LAYOUT: TIMELINE & ON-BOARD TOOLS
+          5. RADAR VIEW SELECTOR (SEPARATING STATION TIMELINE & COACH QUOTA)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-purple-100 shadow-2xs text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveTrackerTab('timeline')}
+            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTrackerTab === 'timeline'
+                ? 'bg-[#7C3AED] text-white shadow-sm font-black'
+                : 'text-purple-900 hover:bg-purple-50'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Station Timeline & Platform Radar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTrackerTab('coach')}
+            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTrackerTab === 'coach'
+                ? 'bg-[#7C3AED] text-white shadow-sm font-black'
+                : 'text-purple-900 hover:bg-purple-50'
+            }`}
+          >
+            <Train className="w-3.5 h-3.5" />
+            <span>Coach Berth & Quota Intelligence</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTrackerTab('both')}
+            className={`px-3 py-2 rounded-xl flex items-center gap-1 transition-all cursor-pointer ${
+              activeTrackerTab === 'both'
+                ? 'bg-purple-900 text-white shadow-sm font-black'
+                : 'text-slate-600 hover:bg-purple-50'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>All Views</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          6. MAIN TWO-COLUMN LAYOUT: TIMELINE & ON-BOARD TOOLS
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: STATION TIMELINE & SHIFT ENGINE (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-4">
-          {/* ─── INTERACTIVE SEAT MAP & REAL-TIME WAITLIST INTELLIGENCE PIPELINE ─── */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
-              <div>
+          {/* ─── 1. STATION TIMELINE CARD (PRIMARY VIEW WHEN TRACKING) ─── */}
+          {(activeTrackerTab === 'timeline' || activeTrackerTab === 'both') && (
+            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-purple-100 text-purple-900">
-                    <Train className="w-4 h-4" />
-                  </span>
-                  <h3 className="text-sm sm:text-base font-black text-slate-900">
-                    Live Coach Composition & Seat Berth Feature
+                  <MapPin className="w-4 h-4 text-purple-700" />
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                    Station Timeline & Live Platform Alignment
                   </h3>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Interactive Coach Layout • Real-time quota balance based on destination ({toCity})
-                </p>
-              </div>
 
-              <div className="flex items-center gap-2 text-xs flex-wrap">
-                <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
-                  <Explain term="CNF" />
-                </span>
-                {coachInventory.racCount > 0 && (
-                  <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
-                    <Explain term="RAC" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Live timetable • {routeStations.length} stoppages
                   </span>
-                )}
-                <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} {isUserCoach ? '(You)' : '(Queue)'}
-                  <Explain
-                    term="GNWL"
-                    context={{
-                      currentValue: coachInventory.waitlist,
-                      initialValue: coachInventory.initialWaitlist,
-                      probability: wlWatch.confirmationProbability,
-                    }}
-                  />
-                </span>
-              </div>
-            </div>
-
-            {/* Coach Selection Tabs — Strictly derived from train's authentic classes */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
-              {trainCoaches.map((c) => {
-                const isSelected = selectedCoach === c.code;
-                return (
                   <button
-                    key={c.code}
                     type="button"
-                    onClick={() => setSelectedCoach(c.code)}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs ${
-                      isSelected
-                        ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
-                        : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
-                    }`}
+                    onClick={() => setShowDetailedFlow((prev) => !prev)}
+                    className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
                   >
-                    {c.label}
+                    <Sliders className="w-3 h-3 text-purple-700" />
+                    <span>{showDetailedFlow ? 'Simple Summary' : 'Detailed Flow'}</span>
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              </div>
 
-            {/* Coach Berth Grid Layout */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white space-y-3">
-              <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2 flex-wrap gap-2">
-                <span className="font-bold text-purple-200">
-                  Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoachInfo.className}) Layout:
+              {/* Route Vacancy & Projected Flow Header Pill */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className={`font-bold ${seatInventory.status === 'AVAILABLE' ? 'text-emerald-900' : 'text-rose-900'}`}>
+                  {seatInventory.status === 'AVAILABLE'
+                    ? `Route availability (${seatClass?.classCode || '3A'}): ${seatInventory.seats} vacant seats`
+                    : `No ${seatClass?.classCode || '3A'} seats available from ${availabilityRoute} — ${seatInventory.status} ${seatInventory.waitlist}/100`}
                 </span>
-                <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
-                  <span>Occupancy: {coachInventory.occupancyPercent}%</span>
-                  <span>•</span>
-                  <span>{coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
-                  <span>•</span>
-                  <span>{coachInventory.waitlist} GNWL in Queue</span>
-                  <Explain
-                    term="GNWL"
-                    context={{
-                      currentValue: coachInventory.waitlist,
-                      initialValue: coachInventory.initialWaitlist,
-                      probability: wlWatch.confirmationProbability,
-                    }}
-                  />
+                <span className="text-[11px] font-medium text-slate-600">
+                  Projected passenger flow (modelled occupancy)
                 </span>
               </div>
 
-              {/* Dynamic Seat Rows Grid */}
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
-                {coachBerthLayout.map((seat) => {
-                  const isRac = seat.status === 'RAC';
-                  const isUser = !!seat.isUserSeat;
-                  return (
-                    <div
-                      key={seat.num}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                        isUser
-                          ? 'bg-purple-600/40 border-purple-400 text-white ring-2 ring-purple-400 shadow-sm shadow-purple-500/50'
-                          : isRac
-                          ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
-                          : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                      }`}
-                    >
-                      <span className="font-bold text-sm leading-none">{seat.num}</span>
-                      <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
-                      <span
-                        className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 ${
-                          isUser
-                            ? 'bg-purple-400 text-slate-950 font-black'
-                            : isRac
-                            ? 'bg-amber-400 text-slate-950'
-                            : 'bg-emerald-400/20 text-emerald-300'
+              {/* ─── SIMPLE MODE SUMMARY VIEW ─── */}
+              {!showDetailedFlow && (
+                <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Current Location</span>
+                      <strong className="text-slate-900 text-sm block truncate">{currentTargetStation.name}</strong>
+                      <span className="text-[10px] text-purple-700 font-bold">{currentTargetStation.platform}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Estimated Occupancy</span>
+                      <strong className="text-slate-900 text-sm block">👥 Moderate (~76%)</strong>
+                      <span className="text-[10px] text-emerald-700 font-bold">Stable flow</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Waitlist Movement</span>
+                      <strong className="text-amber-700 text-sm block">WL {seatInventory.waitlist || 38}</strong>
+                      <span className="text-[10px] text-emerald-700 font-bold">📈 Positive velocity</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailedFlow(true)}
+                    className="w-full py-2 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-purple-700" />
+                    <span>See detailed station-flow projections ({routeStations.length} stoppages) →</span>
+                  </button>
+                </div>
+              )}
+
+              {/* ─── DETAILED STATION-WISE PASSENGER FLOW TIMELINE ─── */}
+              {showDetailedFlow && (
+                <div className="space-y-4 relative pl-3 before:absolute before:left-[21px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 animate-in fade-in">
+                  {routeStations.map((st, idx) => {
+                    const isPassed = idx < activeStationIndex;
+                    const isCurrent = idx === activeStationIndex;
+                    const nextSt = routeStations[idx + 1];
+                    const load = stationLoadProjection(trainNumber, routeStations, idx);
+                    const isNoSeat = load.vacantSeats === 0;
+
+                    return (
+                      <div
+                        key={st.code}
+                        className={`flex items-start justify-between gap-3 relative transition-all ${
+                          isCurrent
+                            ? 'p-3 rounded-2xl bg-purple-50/70 border border-purple-200 shadow-xs'
+                            : isPassed
+                            ? 'opacity-85'
+                            : 'opacity-70'
                         }`}
                       >
-                        {seat.label || 'CNF'}
-                      </span>
-                    </div>
+                        {/* Timeline Indicator Dot */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 font-bold text-xs ${
+                              isPassed
+                                ? 'bg-emerald-500 border-white text-white shadow-xs'
+                                : isCurrent
+                                ? 'bg-[#7C3AED] border-white text-white shadow-md animate-pulse'
+                                : 'bg-white border-slate-300 text-slate-400'
+                            }`}
+                          >
+                            {isPassed ? (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            ) : (
+                              <span>{idx + 1}</span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900">
+                                {st.name}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-mono text-[9px] font-bold">
+                                {st.code}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold px-2 py-0.2 rounded-full border ${
+                                  isCurrent
+                                    ? 'bg-amber-100 border-amber-300 text-amber-900'
+                                    : 'bg-slate-100 border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {st.platform}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
+                              {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
+                              {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
+                            </span>
+                            
+                            {/* Projected Passenger Flow Badges */}
+                            <div className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-bold">
+                              <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 text-indigo-800">
+                                ↑ {load.boarding} board
+                              </span>
+                              <span className="rounded-full bg-orange-50 border border-orange-100 px-1.5 py-0.5 text-orange-800">
+                                ↓ {load.alighting} leave
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 border font-bold ${
+                                  isNoSeat
+                                    ? 'bg-rose-100 border-rose-300 text-rose-900'
+                                    : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                                }`}
+                              >
+                                {isNoSeat
+                                  ? `🚫 0 vacant seats (NO SEATS AVAILABLE to ${nextSt?.platform || 'next platform'})`
+                                  : `${load.vacantSeats} vacant seats after departure`}
+                              </span>
+                            </div>
+
+                            {isCurrent && (
+                              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">
+                                  <Train className="w-3.5 h-3.5" />
+                                  <span>
+                                    {phase === 'HALTED'
+                                      ? `Halted on Platform • Departs in ${haltSeconds}s`
+                                      : phase === 'DESTINATION_ARRIVED'
+                                      ? 'Final Destination Reached 🏁'
+                                      : `Train Moving (${currentSpeed} km/h) • Arriving in ${formatTimer(countdownSeconds)}`}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-24 bg-purple-200 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                    style={{
+                                      width: `${Math.min(100, Math.max(5, (1 - countdownSeconds / 240) * 100))}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Timing & Status State */}
+                        <div className="text-right shrink-0">
+                          <span
+                            className={`font-mono text-xs sm:text-sm font-bold block ${
+                              isPassed
+                                ? 'text-emerald-700'
+                                : isCurrent
+                                ? phase === 'DESTINATION_ARRIVED'
+                                  ? 'text-emerald-700 font-black'
+                                  : 'text-purple-900 font-black'
+                                : 'text-slate-600'
+                            }`}
+                          >
+                            {isPassed
+                              ? st.scheduledDep
+                              : isCurrent
+                              ? phase === 'DESTINATION_ARRIVED'
+                                ? `Arrived ${st.scheduledArr}`
+                                : phase === 'HALTED'
+                                ? 'Halted at Platform'
+                                : `Arriving in ${formatTimer(countdownSeconds)}`
+                              : `Expected ${st.scheduledArr}`}
+                          </span>
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
+                              isPassed
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : isCurrent
+                                ? phase === 'DESTINATION_ARRIVED'
+                                  ? 'bg-emerald-100 text-emerald-950 font-black'
+                                  : phase === 'HALTED'
+                                  ? 'bg-emerald-100 text-emerald-900 font-black animate-pulse'
+                                  : 'bg-amber-100 text-amber-900 font-bold'
+                                : 'bg-slate-50 text-slate-500'
+                            }`}
+                          >
+                            {isPassed
+                              ? 'Departed'
+                              : isCurrent
+                              ? phase === 'DESTINATION_ARRIVED'
+                                ? 'Destination Arrived'
+                                : phase === 'HALTED'
+                                ? `At ${st.platform}`
+                                : 'Approaching'
+                              : 'Upcoming'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── 2. INTERACTIVE SEAT MAP & REAL-TIME WAITLIST INTELLIGENCE PIPELINE (DEDICATED SECTION) ─── */}
+          {(activeTrackerTab === 'coach' || activeTrackerTab === 'both') && (
+            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-purple-100 text-purple-900">
+                      <Train className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-sm sm:text-base font-black text-slate-900">
+                      Live Coach Composition & Seat Berth Feature
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Interactive Coach Layout • Real-time quota balance based on destination ({toCity})
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
+                    <Explain term="CNF" />
+                  </span>
+                  {coachInventory.racCount > 0 && isUserCoach && (
+                    <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
+                      <Explain term="RAC" />
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} {isUserCoach ? '(You)' : '(Queue)'}
+                    <Explain
+                      term="GNWL"
+                      context={{
+                        currentValue: coachInventory.waitlist,
+                        initialValue: coachInventory.initialWaitlist,
+                        probability: wlWatch.confirmationProbability,
+                      }}
+                    />
+                  </span>
+                </div>
+              </div>
+
+              {/* Coach Selection Tabs — Strictly derived from train's authentic classes */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
+                {trainCoaches.map((c) => {
+                  const isSelected = selectedCoach === c.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setSelectedCoach(c.code)}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs ${
+                        isSelected
+                          ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
+                          : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
                   );
                 })}
               </div>
 
-              {/* User's Waitlist Highlight Tile */}
-              <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
-                {isUserCoach ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">
-                        ★
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
-                        <Explain
-                          term="GNWL"
-                          context={{
-                            currentValue: coachInventory.waitlist,
-                            initialValue: coachInventory.initialWaitlist,
-                            probability: wlWatch.confirmationProbability,
-                          }}
-                        />
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                      ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">
-                        ℹ
-                      </span>
-                      <span className="flex items-center gap-1.5 text-purple-200">
-                        Coach <strong className="text-white font-mono">{selectedCoach}</strong> Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> • {coachInventory.racCount} RAC ({selectedCoachInfo.className})
-                        <Explain
-                          term="GNWL"
-                          context={{
-                            currentValue: coachInventory.waitlist,
-                            initialValue: coachInventory.initialWaitlist,
-                            probability: wlWatch.confirmationProbability,
-                          }}
-                        />
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCoach(trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4')}
-                      className="text-[11px] font-bold text-purple-200 bg-purple-800/60 hover:bg-purple-700/60 px-2.5 py-1 rounded-full border border-purple-400/30 transition-all cursor-pointer"
-                    >
-                      Jump to Your Booked Coach →
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* ═══════════════════════════════════════════════════════════════════
-                HOW THE WAITLIST IS ANALYSED IN REAL TIME (DIRECTIONAL ARROWS)
-                ═══════════════════════════════════════════════════════════════════ */}
-            <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">
-                    AI
+              {/* Coach Berth Grid Layout */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white space-y-3">
+                <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2 flex-wrap gap-2">
+                  <span className="font-bold text-purple-200">
+                    Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoachInfo.className}) Layout:
                   </span>
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)
-                  </h4>
-                </div>
-                <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">
-                  Real-Time Model
-                </span>
-              </div>
-
-              {/* 4 Connected Pipeline Cards with Animated Directional Arrows */}
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
-                {/* Step 1: Destination Quota Matrix */}
-                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5 relative">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">
-                      Step 1
-                    </span>
-                    <Explain term="GENERAL_QUOTA" />
-                  </div>
-                  <span className="text-xs font-black text-slate-900 block">
-                    Destination Quota
-                  </span>
-                  <p className="text-[10px] text-slate-600 font-medium leading-tight">
-                    Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.
-                  </p>
-                </div>
-
-                {/* Animated Directional Arrow 1 */}
-                <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse">
-                  <span>➔</span>
-                  <span className="text-[8px] font-bold text-slate-400">Velocity</span>
-                </div>
-
-                {/* Step 2: Cancellation Velocity */}
-                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5 relative">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">
-                      Step 2
-                    </span>
-                    <Explain term="POSITIONS_CLEARED" />
-                  </div>
-                  <span className="text-xs font-black text-slate-900 block">
-                    Live Cancel Rate
-                  </span>
-                  <p className="text-[10px] text-slate-600 font-medium leading-tight">
-                    <strong className="text-emerald-600">↑ {coachInventory.cancellationVelocity} cancels/hr</strong> telemetry detected on this route today.
-                  </p>
-                </div>
-
-                {/* Animated Directional Arrow 2 */}
-                <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse">
-                  <span>➔</span>
-                  <span className="text-[8px] font-bold text-slate-400">Release</span>
-                </div>
-
-                {/* Step 3: Final Berth Settlement */}
-                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-emerald-300 bg-emerald-50/40 shadow-xs space-y-1.5 relative">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900">
-                      Step 3
-                    </span>
+                  <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
+                    <span>Occupancy: {coachInventory.occupancyPercent}%</span>
+                    <span>•</span>
+                    <span>{isUserCoach && coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
+                    <span>•</span>
+                    <span>{coachInventory.waitlist} GNWL in Queue</span>
                     <Explain
-                      term="CONFIRMATION_PROBABILITY"
+                      term="GNWL"
                       context={{
                         currentValue: coachInventory.waitlist,
+                        initialValue: coachInventory.initialWaitlist,
                         probability: wlWatch.confirmationProbability,
                       }}
                     />
-                  </div>
-                  <span className="text-xs font-black text-emerald-950 block">
-                    Berth Confirmed
                   </span>
-                  <p className="text-[10px] text-emerald-800 font-bold leading-tight">
-                    WL-{coachInventory.waitlist} ➔ RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} ➔ Confirmed Berth ({selectedCoach} Lower) forecast ({wlWatch.confirmationProbability}% odds).
-                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* ─── STATION TIMELINE CARD ─── */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-purple-700" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900">
-                  Station Timeline & Live Platform Alignment
-                </h3>
-              </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Live timetable • {routeStations.length} stoppages
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowDetailedFlow((prev) => !prev)}
-                className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-              >
-                <Sliders className="w-3 h-3 text-purple-700" />
-                <span>{showDetailedFlow ? 'Simple Summary' : 'Detailed Flow'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Route Vacancy & Projected Flow Header Pill */}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className={`font-bold ${seatInventory.status === 'AVAILABLE' ? 'text-emerald-900' : 'text-rose-900'}`}>
-              {seatInventory.status === 'AVAILABLE'
-                ? `Route availability (${seatClass?.classCode || '3A'}): ${seatInventory.seats} vacant seats`
-                : `No ${seatClass?.classCode || '3A'} seats available from ${availabilityRoute} — ${seatInventory.status} ${seatInventory.waitlist}/100`}
-            </span>
-            <span className="text-[11px] font-medium text-slate-600">
-              Projected passenger flow (modelled occupancy)
-            </span>
-          </div>
-
-          {/* ─── SIMPLE MODE SUMMARY VIEW ─── */}
-          {!showDetailedFlow && (
-            <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Current Location</span>
-                  <strong className="text-slate-900 text-sm block truncate">{currentTargetStation.name}</strong>
-                  <span className="text-[10px] text-purple-700 font-bold">{currentTargetStation.platform}</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Estimated Occupancy</span>
-                  <strong className="text-slate-900 text-sm block">👥 Moderate (~76%)</strong>
-                  <span className="text-[10px] text-emerald-700 font-bold">Stable flow</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Waitlist Movement</span>
-                  <strong className="text-amber-700 text-sm block">WL {seatInventory.waitlist || 38}</strong>
-                  <span className="text-[10px] text-emerald-700 font-bold">📈 Positive velocity</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowDetailedFlow(true)}
-                className="w-full py-2 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5 text-purple-700" />
-                <span>See detailed station-flow projections ({routeStations.length} stoppages) →</span>
-              </button>
-            </div>
-          )}
-
-          {/* ─── DETAILED STATION-WISE PASSENGER FLOW TIMELINE ─── */}
-          {showDetailedFlow && (
-            <div className="space-y-4 relative pl-3 before:absolute before:left-[21px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 animate-in fade-in">
-              {routeStations.map((st, idx) => {
-                const isPassed = idx < activeStationIndex;
-                const isCurrent = idx === activeStationIndex;
-                const nextSt = routeStations[idx + 1];
-                const load = stationLoadProjection(trainNumber, routeStations, idx);
-                const isNoSeat = load.vacantSeats === 0;
-
-                return (
-                  <div
-                    key={st.code}
-                    className={`flex items-start justify-between gap-3 relative transition-all ${
-                      isCurrent
-                        ? 'p-3 rounded-2xl bg-purple-50/70 border border-purple-200 shadow-xs'
-                        : isPassed
-                        ? 'opacity-85'
-                        : 'opacity-70'
-                    }`}
-                  >
-                    {/* Timeline Indicator Dot */}
-                    <div className="flex items-center gap-3">
+                {/* Dynamic Seat Rows Grid */}
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
+                  {coachBerthLayout.map((seat) => {
+                    const isRac = seat.status === 'RAC';
+                    const isUser = !!seat.isUserSeat;
+                    return (
                       <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 font-bold text-xs ${
-                          isPassed
-                            ? 'bg-emerald-500 border-white text-white shadow-xs'
-                            : isCurrent
-                            ? 'bg-[#7C3AED] border-white text-white shadow-md animate-pulse'
-                            : 'bg-white border-slate-300 text-slate-400'
+                        key={seat.num}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                          isUser
+                            ? 'bg-purple-600/40 border-purple-400 text-white ring-2 ring-purple-400 shadow-sm shadow-purple-500/50'
+                            : isRac
+                            ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
+                            : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                         }`}
                       >
-                        {isPassed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        ) : (
-                          <span className="text-[10px]">{idx + 1}</span>
-                        )}
-                      </div>
-
-                      {/* Station Name & Meta */}
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-xs sm:text-sm text-slate-900">
-                            {st.name}
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-mono text-[9px] font-bold">
-                            {st.code}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold px-2 py-0.2 rounded-full border ${
-                              isCurrent
-                                ? 'bg-amber-100 border-amber-300 text-amber-900'
-                                : 'bg-slate-100 border-slate-200 text-slate-600'
-                            }`}
-                          >
-                            {st.platform}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-500 font-medium block mt-0.2">
-                          {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
-                          {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
+                        <span className="font-bold text-sm leading-none">{seat.num}</span>
+                        <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
+                        <span
+                          className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 ${
+                            isUser
+                              ? 'bg-purple-400 text-slate-950 font-black'
+                              : isRac
+                              ? 'bg-amber-400 text-slate-950'
+                              : 'bg-emerald-400/20 text-emerald-300'
+                          }`}
+                        >
+                          {seat.label || 'CNF'}
                         </span>
-                        
-                        {/* Projected Passenger Flow Badges */}
-                        <div className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-bold">
-                          <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 text-indigo-800">
-                            ↑ {load.boarding} board
-                          </span>
-                          <span className="rounded-full bg-orange-50 border border-orange-100 px-1.5 py-0.5 text-orange-800">
-                            ↓ {load.alighting} leave
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 border font-bold ${
-                              isNoSeat
-                                ? 'bg-rose-100 border-rose-300 text-rose-900'
-                                : 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                            }`}
-                          >
-                            {isNoSeat
-                              ? `🚫 0 vacant seats (NO SEATS AVAILABLE to ${nextSt?.platform || 'next platform'})`
-                              : `${load.vacantSeats} vacant seats after departure`}
-                          </span>
-                        </div>
-
-                        {isCurrent && (
-                          <div className="mt-2 flex items-center gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">
-                              <Train className="w-3.5 h-3.5" />
-                              <span>
-                                {phase === 'HALTED'
-                                  ? `Halted on Platform • Departs in ${haltSeconds}s`
-                                  : phase === 'DESTINATION_ARRIVED'
-                                  ? 'Final Destination Reached 🏁'
-                                  : `Train Moving (${currentSpeed} km/h) • Arriving in ${formatTimer(countdownSeconds)}`}
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-24 bg-purple-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                                style={{
-                                  width: `${Math.min(100, Math.max(5, (1 - countdownSeconds / 240) * 100))}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
 
-                    {/* Timing & Status State */}
-                    <div className="text-right shrink-0">
-                      <span
-                        className={`font-mono text-xs sm:text-sm font-bold block ${
-                          isPassed
-                            ? 'text-emerald-700'
-                            : isCurrent
-                            ? phase === 'DESTINATION_ARRIVED'
-                              ? 'text-emerald-700 font-black'
-                              : 'text-purple-900 font-black'
-                            : 'text-slate-600'
-                        }`}
-                      >
-                        {isPassed
-                          ? st.scheduledDep
-                          : isCurrent
-                          ? phase === 'DESTINATION_ARRIVED'
-                            ? `Arrived ${st.scheduledArr}`
-                            : phase === 'HALTED'
-                            ? 'Halted at Platform'
-                            : `Arriving in ${formatTimer(countdownSeconds)}`
-                          : `Expected ${st.scheduledArr}`}
+                {/* User Waitlist Highlight */}
+                <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  {isUserCoach ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">★</span>
+                        <span className="flex items-center gap-1.5">
+                          Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
+                          <Explain term="GNWL" context={{ currentValue: coachInventory.waitlist, initialValue: coachInventory.initialWaitlist, probability: wlWatch.confirmationProbability }} />
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                        ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
                       </span>
-                      <span
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
-                          isPassed
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : isCurrent
-                            ? phase === 'DESTINATION_ARRIVED'
-                              ? 'bg-emerald-100 text-emerald-950 font-black'
-                              : phase === 'HALTED'
-                              ? 'bg-emerald-100 text-emerald-900 font-black animate-pulse'
-                              : 'bg-amber-100 text-amber-900 font-bold'
-                            : 'bg-slate-50 text-slate-500'
-                        }`}
-                      >
-                        {isPassed
-                          ? 'Departed'
-                          : isCurrent
-                          ? phase === 'DESTINATION_ARRIVED'
-                            ? 'Destination Arrived'
-                            : phase === 'HALTED'
-                              ? `At ${st.platform}`
-                            : 'Approaching'
-                          : 'Upcoming'}
-                      </span>
-                    </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">ℹ</span>
+                        <span className="flex items-center gap-1.5 text-purple-200">
+                          Coach <strong className="text-white font-mono">{selectedCoach}</strong> Corridor Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> ({selectedCoachInfo.className})
+                          <Explain term="GNWL" context={{ currentValue: coachInventory.waitlist, initialValue: coachInventory.initialWaitlist, probability: wlWatch.confirmationProbability }} />
+                        </span>
+                      </div>
+                      {isUserBookedTrain && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCoach(trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4')}
+                          className="text-[11px] font-bold text-purple-200 bg-purple-800/60 hover:bg-purple-700/60 px-2.5 py-1 rounded-full border border-purple-400/30 transition-all cursor-pointer"
+                        >
+                          Jump to Your Booked Coach →
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* HOW THE WAITLIST IS ANALYSED IN REAL TIME */}
+              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">AI</span>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900">HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)</h4>
                   </div>
-                );
-              })}
+                  <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">Real-Time Model</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
+                  <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">Step 1</span>
+                    <span className="text-xs font-black text-slate-900 block">Destination Quota</span>
+                    <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.</p>
+                  </div>
+                  <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Velocity</span></div>
+                  <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">Step 2</span>
+                    <span className="text-xs font-black text-slate-900 block">Live Cancel Rate</span>
+                    <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor clears <strong>3.4 cancels/hr</strong> on average.</p>
+                  </div>
+                  <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Algorithm</span></div>
+                  <div className="md:col-span-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 shadow-xs space-y-1.5">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-2xs">Output</span>
+                    <span className="text-xs font-black text-emerald-950 block">Berth Confirmed</span>
+                    <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{coachInventory.waitlist} ➔ RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} ➔ Confirmed Berth ({selectedCoach} Lower) forecast ({wlWatch.confirmationProbability}% odds).</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
-      </div>
+
 
         {/* ──────────────── RIGHT COLUMN: WAITLIST WATCH & NIRA COPILOT (1 Col) ──────────────── */}
         <div className="space-y-3">

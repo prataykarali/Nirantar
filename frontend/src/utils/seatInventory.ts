@@ -154,8 +154,8 @@ export function getCoachBerthLayout(
     return seats;
   }
 
-  // Number of Side Lower berths needed to accommodate racCount (2 RAC passengers per Side Lower berth)
-  const activeRacBerthSlots = Math.min(3, Math.ceil(racCount / 2));
+  // Number of Side Lower berths needed to accommodate racCount (only if this is user's coach)
+  const activeRacBerthSlots = isUserCoach ? Math.min(3, Math.ceil(racCount / 2)) : 0;
 
   // 2-Tier AC layout: A1, A2 (6 berths per bay: LB, UB, LB, UB, SL, SU)
   if (classCode === '2A') {
@@ -181,7 +181,7 @@ export function getCoachBerthLayout(
     ];
 
     raw2ABay.forEach((s) => {
-      const isRac = !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+      const isRac = isUserCoach && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
       const isUser = isUserCoach && userSeatNumber === s.num;
       let label = 'CNF';
       if (isUser) label = 'YOU';
@@ -229,7 +229,7 @@ export function getCoachBerthLayout(
   ];
 
   raw3ABay.forEach((s) => {
-    const isRac = !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+    const isRac = isUserCoach && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
     const isUser = isUserCoach && userSeatNumber === s.num;
     let label = 'CNF';
     if (isUser) label = 'YOU';

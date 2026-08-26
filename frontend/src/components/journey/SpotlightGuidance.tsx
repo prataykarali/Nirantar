@@ -15,9 +15,17 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
     stopGuidanceTour,
     nextGuidanceStep,
     prevGuidanceStep,
+    setShowChatDrawer,
   } = useJourney();
 
   const currentStepData = guidanceStep;
+
+  // Auto-open Nira Chat drawer on Step 1 of tutorial
+  useEffect(() => {
+    if (guidanceActive && guidanceStepIndex === 0) {
+      setShowChatDrawer(true);
+    }
+  }, [guidanceActive, guidanceStepIndex, setShowChatDrawer]);
 
   // Auto-speak Nira guidance message when step changes if guidance is active
   useEffect(() => {

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
+import { OAuthLoginModal } from '../auth/OAuthLoginModal';
 
 export interface TopBarProps {
   pageTitle?: string;
@@ -41,6 +42,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
+  const [showOAuthModal, setShowOAuthModal] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -343,6 +345,18 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <span>Linked Accounts</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDropdown(false);
+                  setShowOAuthModal(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-black transition-colors text-left cursor-pointer border border-purple-200 shadow-2xs"
+              >
+                <span className="text-sm">🔑</span>
+                <span>Login with Google / OAuth</span>
+              </button>
+
               <hr className="border-purple-50 my-1" />
 
               <button
@@ -358,6 +372,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
         </div>
       </div>
+
+      {/* OAuth Login Modal */}
+      <OAuthLoginModal
+        isOpen={showOAuthModal}
+        onClose={() => setShowOAuthModal(false)}
+      />
     </header>
   );
 };
