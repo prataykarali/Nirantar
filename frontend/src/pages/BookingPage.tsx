@@ -36,13 +36,13 @@ export const BookingPage: React.FC = () => {
     navigateTo,
   } = useJourney();
 
-  // Contact details state
   const [mobileNumber, setMobileNumber] = useState('9876543210');
   const [emailAddress, setEmailAddress] = useState('ananya.sharma@example.com');
   const [irctcUserId, setIrctcUserId] = useState('ananya_irctc_24');
   const [isAiAutofilled, setIsAiAutofilled] = useState(false);
   const [autofillNotice, setAutofillNotice] = useState<string | null>(null);
   const [lockSeconds, setLockSeconds] = useState(585); // 09:45 min
+  const [showPassengerConfirmModal, setShowPassengerConfirmModal] = useState(false);
 
   React.useEffect(() => {
     const t = setInterval(() => {
@@ -161,7 +161,7 @@ export const BookingPage: React.FC = () => {
       console.log('Please enter a valid 10-digit mobile number for SMS ticket delivery.');
       return;
     }
-    navigateTo('payment');
+    setShowPassengerConfirmModal(true);
   };
 
   return (
@@ -562,6 +562,114 @@ export const BookingPage: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* PASSENGER DETAILS VERIFICATION & CONFIRMATION MODAL */}
+      {showPassengerConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-purple-200 space-y-3.5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                  <User className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    Confirm Passenger Details
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Please verify details match Government photo ID
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassengerConfirmModal(false)}
+                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Journey Summary */}
+            <div className="bg-purple-50/80 p-2.5 rounded-xl border border-purple-100 space-y-1 text-xs">
+              <div className="flex items-center justify-between font-bold text-purple-950">
+                <span>#{train.trainNumber} • {train.trainName}</span>
+                <span className="bg-purple-200/80 text-purple-900 px-2 py-0.5 rounded text-[10px] font-mono font-bold">
+                  {selectedClass.classCode} (₹{totalFare.toLocaleString('en-IN')})
+                </span>
+              </div>
+              <p className="text-slate-600 font-medium text-[11px]">
+                {train.fromStationName} ({train.fromStationCode}) → {train.toStationName} ({train.toStationCode}) • {searchParams.travelDate}
+              </p>
+            </div>
+
+            {/* Passengers List */}
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              <span className="text-[11px] font-bold text-slate-700 block">
+                Passengers ({passengers.length}):
+              </span>
+              {passengers.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className="bg-slate-50 p-2 rounded-xl border border-slate-200 flex items-center justify-between text-xs"
+                >
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-900 block text-xs">
+                      {idx + 1}. {p.name || 'Passenger'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Age: {p.age} • Gender: {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : 'Transgender'} • Preference: {p.berthPreference || 'No Preference'}
+                    </span>
+                  </div>
+                  {p.seniorCitizenConcession && (
+                    <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                      Senior
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Contact Details */}
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 text-[11px] space-y-0.5">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Mobile (SMS Updates):</span>
+                <strong className="text-slate-900 font-mono">{mobileNumber}</strong>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Email (e-Ticket PDF):</span>
+                <strong className="text-slate-900 truncate max-w-[180px]">{emailAddress}</strong>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>IRCTC User ID:</span>
+                <strong className="text-slate-900">{irctcUserId}</strong>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowPassengerConfirmModal(false)}
+                className="py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center"
+              >
+                ✏️ Edit Details
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPassengerConfirmModal(false);
+                  navigateTo('payment');
+                }}
+                className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#581C87] text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-purple-600/25 transition-all cursor-pointer text-center"
+              >
+                <span>✅ Confirm & Pay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

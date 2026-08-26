@@ -101,6 +101,31 @@ interface ChatMessage {
     fare: number;
     paxCount: number;
   };
+  passengerConfirmPrompt?: {
+    passengers: PassengerProfile[];
+    contact?: { phone?: string; email?: string; irctcId?: string };
+    train: TrainDetail;
+    classCode: string;
+    fare: number;
+  };
+  bookedTrainStatusCard?: {
+    trainNumber: string;
+    trainName: string;
+    fromCity: string;
+    fromCode: string;
+    toCity: string;
+    toCode: string;
+    travelDate: string;
+    pnrNumber: string;
+    status: string;
+    statusType: 'CONFIRMED' | 'RAC' | 'WAITLIST';
+    seatInfo: string;
+    probabilityLabel?: string;
+    currentSpeed: number;
+    nextStation: string;
+    platform: string;
+    doorSide: string;
+  };
   feedbackGiven?: 'up' | 'down';
   timestamp: string;
 }
@@ -154,6 +179,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     niraPendingQuery,
     setNiraPendingQuery,
     trackQuery,
+    issuedTicket,
+    bookingRecord,
+    getWaitlistProbability,
   } = useJourney();
 
   const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
@@ -409,8 +437,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       lower.includes('charges for') ||
       lower.includes('options on');
 
+    const isTrack =
+      lower.includes('track') ||
+      lower.includes('running status') ||
+      lower.includes('live status') ||
+      lower.includes('train status') ||
+      lower.includes('where is') ||
+      lower.includes('live train') ||
+      lower.includes('gps radar') ||
+      lower.includes('check status') ||
+      (/^\d{5}$/.test(text.trim()));
+
     const isAutoBook =
-      !isQuestion && (
+      !isQuestion &&
+      !isTrack && (
         lower.startsWith('auto book') ||
         lower.startsWith('autobook') ||
         lower.startsWith('book ') ||
@@ -423,14 +463,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         lower.includes('book train') ||
         /(?:book|reserve)\b.*(?:train|#)\s*\d+/i.test(text)
       );
-
-    const isTrack =
-      lower.startsWith('track') ||
-      lower.startsWith('where is train') ||
-      lower.startsWith('running status') ||
-      lower.startsWith('live status') ||
-      lower.includes('gps radar') ||
-      (/^\d{5}$/.test(text.trim()));
 
     const isTatkal =
       !isQuestion && (
@@ -457,7 +489,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       }
     } else if (
       !isQuestion &&
-      (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket') || (isTrack && lower.includes('train'))) &&
+      !isTrack &&
+      (lower.includes('book train') || lower.includes('want to book') || lower.includes('reserve train') || lower.includes('book ticket')) &&
       !lower.includes('from') &&
       !lower.includes('to')
     ) {
@@ -754,8 +787,113 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
+    // ─── 1B.1: Booked Train & Live Status / Confirmation Odds Feature ───
+    const isBookedTrainQuery =
+      safeQuery.toLowerCase().includes('booked train') ||
+      safeQuery.toLowerCase().includes('my booked train') ||
+      safeQuery.toLowerCase().includes('booked ticket') ||
+      safeQuery.toLowerCase().includes('my booking') ||
+      safeQuery.toLowerCase().includes('check my booking') ||
+      safeQuery.toLowerCase().includes('check my booked train') ||
+      safeQuery.toLowerCase().includes('check booking status') ||
+      safeQuery.toLowerCase().includes('my ticket status') ||
+      safeQuery.toLowerCase().includes('ticket status') ||
+      safeQuery.toLowerCase().includes('is my ticket confirmed') ||
+      safeQuery.toLowerCase().includes('am i in waitlist') ||
+      safeQuery.toLowerCase().includes('am i confirmed') ||
+      safeQuery.toLowerCase().includes('wait list or confirmed') ||
+      safeQuery.toLowerCase().includes('waitlist or confirmed') ||
+      safeQuery.toLowerCase().includes('status of my booked train') ||
+      safeQuery.toLowerCase().includes('status of booked train') ||
+      safeQuery.toLowerCase().includes('where is my booked train') ||
+      safeQuery.toLowerCase().includes('show my booked train') ||
+      safeQuery.toLowerCase().includes('tell me about my booked train');
+
+    if (isBookedTrainQuery) {
+      const activeTicket = issuedTicket;
+      const activeRecord = bookingRecord;
+      const activeTrain = selectedTrain;
+      const hasAnyBooking = !!(activeTicket || activeRecord || (activeTrain && (bookingState === 'CONFIRMED' || bookingState === 'TICKET_VIEW')));
+
+      const trainNo = activeTicket?.train?.trainNumber || activeRecord?.trainNumber || activeTrain?.trainNumber || '12302';
+      const matchedTrain = resolveTrainDetail(trainNo);
+      const trainName = activeTicket?.train?.trainName || activeRecord?.trainName || activeTrain?.trainName || matchedTrain.trainName;
+      const pnrNumber = activeTicket?.pnrNumber || activeRecord?.pnrNumber || '8429 1048 21';
+      const travelDate = activeTicket?.travelDate || searchParams.travelDate || '27 Aug 2026';
+      const fromCity = activeTicket?.train?.fromCity || matchedTrain.fromCity;
+      const fromCode = activeTicket?.train?.fromStationCode || matchedTrain.fromStationCode;
+      const toCity = activeTicket?.train?.toCity || matchedTrain.toCity;
+      const toCode = activeTicket?.train?.toStationCode || matchedTrain.toStationCode;
+      const rawStatus = activeRecord?.status || (activeTicket ? 'CONFIRMED' : '') || (activeTrain?.classes?.[0]?.status) || 'CONFIRMED';
+
+      let statusType: 'CONFIRMED' | 'RAC' | 'WAITLIST' = 'CONFIRMED';
+      let seatInfo = 'Coach B4, Berth 32 (Lower Berth)';
+      let probLabel = '100% Guaranteed Berth';
+
+      if (activeTicket?.seatAllotments?.[0]) {
+        const sa = activeTicket.seatAllotments[0];
+        seatInfo = `Coach ${sa.coach}, Berth ${sa.seatNumber} (${sa.berthType})`;
+      } else if (activeRecord?.seatAllotment) {
+        const sa = activeRecord.seatAllotment;
+        seatInfo = `Coach ${sa.coach}, Berth ${sa.seatNumber} (${sa.berthType})`;
+      }
+
+      if (rawStatus.toUpperCase().includes('WL') || rawStatus.toUpperCase().includes('WAIT')) {
+        statusType = 'WAITLIST';
+        seatInfo = 'Waitlist (WL 12)';
+        probLabel = '84% Chance of Confirmation before Chart Preparation';
+      } else if (rawStatus.toUpperCase().includes('RAC')) {
+        statusType = 'RAC';
+        seatInfo = 'RAC 4 (Reservation Against Cancellation)';
+        probLabel = '98% Probability of Full Berth Allocation';
+      }
+
+      const stops = getTrainStoppages(trainNo, matchedTrain);
+      const nextStop = stops[1] || stops[0] || { name: 'Kanpur Central', code: 'CNB', platform: 'Platform 4', doorSide: 'RIGHT SIDE' };
+
+      const bookedTrainCard = {
+        trainNumber: trainNo,
+        trainName,
+        fromCity,
+        fromCode,
+        toCity,
+        toCode,
+        travelDate,
+        pnrNumber,
+        status: rawStatus,
+        statusType,
+        seatInfo,
+        probabilityLabel: probLabel,
+        currentSpeed: 118,
+        nextStation: `${nextStop.name} (${nextStop.code})`,
+        platform: nextStop.platform,
+        doorSide: nextStop.doorSide,
+      };
+
+      const statusMsg = `🎫 **Booked Train Status & Live Radar Telemetry**:\n\n🚆 **Train**: **#${trainNo} ${trainName}**\n📍 **Route**: **${fromCity} (${fromCode})** ➔ **${toCity} (${toCode})**\n📅 **Travel Date**: ${travelDate} | Departure: ${matchedTrain.departureTime} hrs\n🔢 **PNR Number**: \`${pnrNumber}\`\n\n---\n### 📋 Booking & Confirmation Status:\n${statusType === 'CONFIRMED' ? `✅ **Status**: **CONFIRMED** (${seatInfo})` : statusType === 'RAC' ? `🟡 **Status**: **RAC** (${seatInfo}) — **${probLabel}** at Chart Preparation (4h prior).` : `🟠 **Status**: **WAITLISTED** (${seatInfo}) — **${probLabel}**.`}\n\n---\n### 🛰️ Live Train Running Status:\n⚡ **Speed**: **118 km/h** | ⏱️ **Punctuality**: Running **Right on Time**\n🚉 **Next Stoppage**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}**\n🚪 **Deboarding Doors**: **${nextStop.doorSide}**\n\nTap **'🛰️ Track Live on Radar'** below to open the real-time satellite GPS tracking map!`;
+
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: statusMsg,
+                isStreaming: false,
+                bookedTrainStatusCard: bookedTrainCard,
+              }
+            : m
+        )
+      );
+      if (autoVoice) {
+        speakNiraResponse(`Your booked train is number ${trainNo} ${trainName}. Booking status is ${statusType}. Running right on time.`);
+      }
+      return;
+    }
+
+    // ─── 1B.2: Live Train Tracking (Radar Redirection) ───
     if (intentData.isTrack && !intentData.isAutoBook) {
-      const trainNo = (intentData.trainNumber || '12302').trim();
+      const trainNo = (intentData.trainNumber || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || bookingRecord?.trainNumber || '12302').trim();
       handleQuickTrack(trainNo);
 
       // Only save booking to task stack if user entered passenger details or between transactions
@@ -778,39 +916,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         delayMins: 0,
       };
 
-      const trackGrounding = `LIVE TRACKING DATA:\nTrain: #${trainNo} ${matchedTrain.trainName}\nSpeed: 118 km/h\nStatus: Right on time\nNext Stoppage: ${nextStop.name} (${nextStop.code}) on ${nextStop.platform} (Doors open on ${nextStop.doorSide})\nTotal Stops: ${stops.length} stations`;
+      const trackReply = `🚆 **Live GPS Satellite Radar for #${trainNo} (${matchedTrain.trainName})**:\n\n• **Current Speed**: **118 km/h** • Running **Right on Time**.\n• **Approaching**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}** (Doors open on **${nextStop.doorSide}**).\n• **Total Route Halts**: ${stops.length} stations.\n\nI have redirected your main screen to the **Live Radar Map**!`;
 
-      let accumulated = '';
-      streamNiraChat(
-        safeQuery,
-        'en',
-        (token) => {
-          accumulated += token;
-          setIsLoading(false);
-          setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, text: accumulated, isStreaming: true, trackCard: trackCardData } : m))
-          );
-        },
-        () => {
-          setIsLoading(false);
-          setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, isStreaming: false, trackCard: trackCardData } : m))
-          );
-          if (autoVoice && accumulated) {
-            speakNiraResponse(accumulated);
-          }
-        },
-        (_err: unknown) => {
-          const fallbackTrack = `🚆 Live Radar for #${trainNo} (${matchedTrain.trainName}): Cruising at 118 km/h right on time. Approaching ${nextStop.name} (${nextStop.platform} • Doors opening on ${nextStop.doorSide}). Live GPS Radar view active on screen.`;
-          setIsLoading(false);
-          setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackTrack, isStreaming: false, trackCard: trackCardData } : m))
-          );
-          if (autoVoice) speakNiraResponse(fallbackTrack);
-        },
-        messages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
-        trackGrounding
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: trackReply, isStreaming: false, trackCard: trackCardData } : m))
       );
+      if (autoVoice) speakNiraResponse(`Live Radar active for train ${trainNo} ${matchedTrain.trainName}. Cruising at 118 kilometers per hour right on time.`);
       return;
     }
 
@@ -924,41 +1036,43 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       setPassengers(extractedPassengers);
       emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
       const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
-      const singleFare = selectedTrain?.classes[0]?.fare || 645;
+      const targetTrain = selectedTrain || resolveTrainDetail('12951');
+      const targetClass = selectedClassCode || '3A';
+      const singleFare = targetTrain.classes?.find((c) => c.classCode === targetClass)?.fare || targetTrain.classes?.[0]?.fare || 645;
       const totalAmount = singleFare * extractedPassengers.length;
 
       const contactSnippet = parsedPaxResult.contact?.phone
         ? ` • Mobile: ${parsedPaxResult.contact.phone}`
         : '';
 
-      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\nMoving to Step 3 (Payment)...`;
+      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
 
-      // AUTOMATICALLY NAVIGATE TO STEP 3 (PAYMENT)!
-      navigateTo('payment');
+      if (activePage !== 'workspace' && activePage !== 'booking') {
+        navigateTo('workspace');
+      }
 
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: botResponseText,
-                  isStreaming: false,
-                  actionCard: {
-                    title: 'Passenger Details Prepared Live',
-                    subtitle: `Filled ${passengerNames} • Total Fare: ₹${totalAmount}`,
-                    buttonLabel: `Proceed to Payment (₹${totalAmount}) ➔`,
-                    route: 'payment',
-                  },
-                }
-              : m
-          )
-        );
-        if (autoVoice) {
-          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Moving to Step 3 Payment.`);
-        }
-      }, 350);
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: confirmPromptText,
+                isStreaming: false,
+                passengerConfirmPrompt: {
+                  passengers: extractedPassengers,
+                  contact: parsedPaxResult.contact,
+                  train: targetTrain,
+                  classCode: targetClass,
+                  fare: totalAmount,
+                },
+              }
+            : m
+        )
+      );
+      if (autoVoice) {
+        speakNiraResponse(`I have entered the passenger details for ${passengerNames}. Please confirm if the passenger details are correct.`);
+      }
       return;
     }
 
@@ -1576,6 +1690,182 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                           <span>✅ Yes, Book Now</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─────────────────────────────────────────────────────────────
+                      PASSENGER CONFIRMATION PROMPT (Step 2 Review)
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.passengerConfirmPrompt && (
+                    <div className="ml-8 p-3.5 rounded-2xl bg-white border-2 border-purple-300 shadow-md space-y-3 animate-in zoom-in-95 duration-200 select-none">
+                      <div className="flex items-start justify-between gap-2 border-b border-purple-100 pb-2">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 inline-block mb-1">
+                            Passenger Details Review
+                          </span>
+                          <h4 className="font-black text-xs text-slate-950 truncate">
+                            #{m.passengerConfirmPrompt.train.trainNumber} • {m.passengerConfirmPrompt.train.trainName}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
+                            {m.passengerConfirmPrompt.passengers.length} Passenger{m.passengerConfirmPrompt.passengers.length > 1 ? 's' : ''} • Class {m.passengerConfirmPrompt.classCode}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black text-emerald-700 block font-mono">
+                            ₹{m.passengerConfirmPrompt.fare.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold">
+                            Total Fare
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Passenger entries preview */}
+                      <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                        {m.passengerConfirmPrompt.passengers.map((p, idx) => (
+                          <div key={p.id || idx} className="flex items-center justify-between text-slate-700 text-[11px]">
+                            <span className="font-bold text-slate-900">{idx + 1}. {p.name} ({p.age}y, {p.gender})</span>
+                            <span className="text-purple-900 font-semibold">{p.berthPreference || 'Lower'}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="text-xs font-bold text-slate-800">
+                        Are these passenger details correct?
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigateTo('workspace');
+                            setMessages((prev) => [
+                              ...prev,
+                              {
+                                id: `nira-edit-${Date.now()}`,
+                                sender: 'nira',
+                                text: 'You can edit the passenger details directly on the Passenger Workspace screen.',
+                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              },
+                            ]);
+                          }}
+                          className="py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center active:scale-95"
+                        >
+                          ✏️ Edit Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigateTo('payment');
+                            setMessages((prev) => [
+                              ...prev,
+                              {
+                                id: `nira-to-pay-${Date.now()}`,
+                                sender: 'nira',
+                                text: 'Passenger details confirmed! Proceeding to Step 3 (Payment Bridge).',
+                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              },
+                            ]);
+                          }}
+                          className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-center"
+                        >
+                          <span>✅ Confirm & Pay</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─────────────────────────────────────────────────────────────
+                      INTERACTIVE BOOKED TRAIN & LIVE STATUS CARD
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.bookedTrainStatusCard && (
+                    <div className="ml-8 p-3.5 rounded-2xl bg-white border-2 border-purple-300 shadow-md space-y-3 animate-in zoom-in-95 duration-200">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 inline-block">
+                              Booked Train
+                            </span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border inline-block ${
+                              m.bookedTrainStatusCard.statusType === 'CONFIRMED'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : m.bookedTrainStatusCard.statusType === 'RAC'
+                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : 'bg-orange-100 text-orange-800 border-orange-300'
+                            }`}>
+                              {m.bookedTrainStatusCard.statusType}
+                            </span>
+                          </div>
+                          <h4 className="font-black text-xs text-slate-950 truncate">
+                            #{m.bookedTrainStatusCard.trainNumber} • {m.bookedTrainStatusCard.trainName}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
+                            {m.bookedTrainStatusCard.fromCity} ({m.bookedTrainStatusCard.fromCode}) → {m.bookedTrainStatusCard.toCity} ({m.bookedTrainStatusCard.toCode})
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-mono font-bold text-purple-950 block">
+                            PNR: {m.bookedTrainStatusCard.pnrNumber}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold">
+                            {m.bookedTrainStatusCard.travelDate}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status & Telemetry details */}
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>Seat Allocation:</span>
+                          <strong className="text-purple-950 font-bold">{m.bookedTrainStatusCard.seatInfo}</strong>
+                        </div>
+                        {m.bookedTrainStatusCard.probabilityLabel && (
+                          <div className="flex items-center justify-between text-slate-700">
+                            <span>Berth Probability:</span>
+                            <strong className="text-emerald-700 font-bold text-[11px]">{m.bookedTrainStatusCard.probabilityLabel}</strong>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-slate-700 pt-1 border-t border-slate-200/60">
+                          <span>Live Telemetry:</span>
+                          <strong className="text-emerald-700 font-bold font-mono">{m.bookedTrainStatusCard.currentSpeed} km/h • On Time</strong>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>Next Stoppage:</span>
+                          <strong className="text-slate-900 font-bold">{m.bookedTrainStatusCard.nextStation} ({m.bookedTrainStatusCard.platform})</strong>
+                        </div>
+                      </div>
+
+                      {/* 3 Action Buttons */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleQuickTrack(m.bookedTrainStatusCard!.trainNumber);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>🛰️ Track Live on Radar Map</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => navigateTo('ticket')}
+                            className="py-2 px-2.5 rounded-xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-purple-900 font-bold text-[11px] transition-all cursor-pointer text-center"
+                          >
+                            🎫 View e-Ticket
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigateTo('my-journeys')}
+                            className="py-2 px-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-[11px] transition-all cursor-pointer text-center"
+                          >
+                            📋 My Journeys
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

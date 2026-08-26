@@ -146,6 +146,46 @@ export class NiraPlanner {
       };
     }
 
+    // ── 3B. TRACK TRAIN & RADAR ACTIONS ──
+    if (
+      lower.includes('track') ||
+      lower.includes('running status') ||
+      lower.includes('live status') ||
+      lower.includes('gps radar') ||
+      lower.includes('where is train')
+    ) {
+      const trainNum = context.journey.selectedTrainNumber || context.tracking.activeTrainNumber || '12302';
+      return {
+        intent: 'TRACK_TRAIN',
+        message: `🛰️ **Live GPS Satellite Telemetry Active**: Navigating to the Live Radar Map for train **#${trainNum}** with real-time speed, delay, and platform arrival details.`,
+        actionCue: { type: 'NAVIGATE', target: 'track', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ── 3C. BOOKED TRAIN & WAITLIST / CONFIRMATION STATUS ──
+    if (
+      lower.includes('booked train') ||
+      lower.includes('my booked train') ||
+      lower.includes('my booking') ||
+      lower.includes('check my booking') ||
+      lower.includes('is my ticket confirmed') ||
+      lower.includes('wait list or confirmed') ||
+      lower.includes('waitlist or confirmed') ||
+      lower.includes('status of my booked train')
+    ) {
+      const trainNum = context.journey.selectedTrainNumber || '12302';
+      const isConfirmed = context.bookingState === 'CONFIRMED' || context.bookingState === 'TICKET_VIEW';
+      return {
+        intent: 'BOOKED_TRAIN_STATUS',
+        message: isConfirmed
+          ? `🎫 **Booked Train Status**: Train **#${trainNum}** is **CONFIRMED** (Coach B4, Berth 32). Running on time on the Live GPS Radar!`
+          : `🎫 **Active Journey Status**: Train **#${trainNum}** (${context.journey.origin || 'NDLS'} → ${context.journey.destination || 'HWH'}). Tap Track Live to view GPS status.`,
+        actionCue: { type: 'NAVIGATE', target: 'track', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
     // ── 4. CANCEL TRIP ──
     if (
       lower === 'cancel trip' ||

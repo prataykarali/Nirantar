@@ -29,6 +29,7 @@ export const CompletionResultPage: React.FC = () => {
     selectedClassCode,
     passengers,
     navigateTo,
+    handleQuickTrack,
     issuedTicket,
     bookingRecord,
     journeyState,
@@ -395,10 +396,20 @@ export const CompletionResultPage: React.FC = () => {
               />
             </div>
 
-            {/* Clean Speech Bubble */}
-            <div className="bg-white rounded-xl p-2 shadow-xs border border-purple-100">
+            {/* Clean Speech Bubble with Direct Radar Button */}
+            <div className="bg-white rounded-xl p-2.5 shadow-xs border border-purple-100 space-y-2">
               <span className="text-xs font-bold text-purple-950 block">Yay! We're all set! 🎉</span>
-              <p className="text-[10px] text-slate-600 font-semibold mt-0.2">Have a safe and amazing journey!</p>
+              <p className="text-[10px] text-slate-600 font-semibold leading-relaxed">
+                Your booking is confirmed. You can now track train #{train.trainNumber} live on the GPS Radar!
+              </p>
+              <button
+                type="button"
+                onClick={() => handleQuickTrack(train.trainNumber)}
+                className="w-full py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>🛰️ Open Live GPS Radar</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
@@ -408,11 +419,11 @@ export const CompletionResultPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-1.5 text-center">
               <button
                 type="button"
-                onClick={() => navigateTo('track')}
-                className="p-2 rounded-xl bg-purple-50/50 hover:bg-purple-100 text-purple-900 flex flex-col items-center justify-center transition-all cursor-pointer"
+                onClick={() => handleQuickTrack(train.trainNumber)}
+                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 flex flex-col items-center justify-center transition-all cursor-pointer border border-emerald-200/60"
               >
-                <MapPin className="w-4 h-4 text-purple-700 mb-0.5" />
-                <span className="text-[10px] font-bold leading-tight">Track Journey</span>
+                <MapPin className="w-4 h-4 text-emerald-700 mb-0.5" />
+                <span className="text-[10px] font-bold leading-tight">Track Live</span>
               </button>
               <button
                 type="button"
