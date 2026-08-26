@@ -56,7 +56,7 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
       )}
 
       {/* 3. Floating Smart Guidance Overlay Card with 3D Mascot */}
-      <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-8 sm:translate-x-0 w-[94vw] sm:w-[430px] bg-white/98 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_24px_70px_rgba(88,28,135,0.25)] border-2 border-purple-200 ring-4 ring-purple-100/70 space-y-3.5 animate-in slide-in-from-bottom-6 duration-300 relative">
+      <div className="pointer-events-auto fixed bottom-6 right-4 sm:bottom-8 sm:right-8 z-50 w-[94vw] sm:w-[420px] bg-white/98 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_24px_70px_rgba(88,28,135,0.28)] border-2 border-purple-200 ring-4 ring-purple-100/70 space-y-3.5 animate-in slide-in-from-bottom-6 duration-300">
         {/* 3D Robot Mascot popping out separately on the top right */}
         <div className="absolute -top-16 right-6 w-24 h-24 pointer-events-none z-20 flex items-end justify-center filter drop-shadow-[0_10px_20px_rgba(124,58,237,0.35)] animate-bounce duration-1000">
           <img
