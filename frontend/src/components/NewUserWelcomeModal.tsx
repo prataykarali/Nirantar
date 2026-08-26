@@ -94,7 +94,7 @@ export const NewUserWelcomeModal: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-white border border-purple-100 shadow-2xs sm:col-span-2">
               <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold text-[10px]">5</span>
-              <span>Live Radar, Zero-Seat Alert & Waitlist Watch</span>
+              <span>Live Radar, Waitlist Watch & Plain English Explain (GNWL/RAC)</span>
             </div>
           </div>
         </div>

@@ -135,6 +135,7 @@ export interface JourneyContextType {
   guidanceActive: boolean;
   guidanceStep: GuidanceStep | null;
   guidanceStepIndex: number;
+  totalGuidanceSteps: number;
   startGuidanceTour: (initialStep?: number) => void;
   stopGuidanceTour: () => void;
   nextGuidanceStep: () => void;
@@ -1117,7 +1118,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       title: '7. Live Radar & Satellite Telemetry',
       speech: 'Track live train location, real-time speed, delay estimator, platform indicators, and deboarding door direction with satellite telemetry.',
       actionCue: 'Monitor live GPS speed, next stoppage, and platform door alignment.',
-      actionButtonText: 'Explore Zero Seat Features ➔',
+      actionButtonText: 'Explore Coach & Seats ➔',
       arrowPlacement: { top: '32%', left: '22%' },
       arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
       cardPosition: 'right',
@@ -1127,15 +1128,30 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       },
     },
     {
-      id: 'step-8-zero-seat-alerts',
+      id: 'step-8-coach-seat-matrix',
       stepNumber: 8,
-      title: '8. Zero Seat Alert & Vacancy Forecasts',
-      speech: 'Welcome to Live Radar! Our new Seat Feature shows live zero-seat platform alerts, station-by-station passenger boarding and vacancy projections, and Waitlist Watch with Comfort Windows.',
-      actionCue: 'Explore live zero-seat alerts and station-by-station passenger vacancy forecasts.',
-      actionButtonText: 'Finish Guided Tour 🎉',
-      arrowPlacement: { top: '65%', left: '16%' },
-      arrowLabel: '⚠️ Zero Seat Alert & Platform Vacancies',
+      title: '8. Live Coach Layout & Berth Matrix',
+      speech: 'Explore interactive coach layouts across S1, B4, A1, and H1 with live 24-berth matrix, booked seat indicators, and corridor occupancy balance.',
+      actionCue: 'Switch coaches and view your confirmed booked berths with real-time occupancy.',
+      actionButtonText: 'View Nirantar Explain & Waitlist ➔',
+      arrowPlacement: { top: '55%', left: '20%' },
+      arrowLabel: '💺 Interactive Coach Layout & 24-Berth Grid',
       cardPosition: 'right',
+      onAction: () => {
+        setActivePage('track');
+        setGuidanceStepIndex(8);
+      },
+    },
+    {
+      id: 'step-9-nirantar-explain',
+      stepNumber: 9,
+      title: '9. Nirantar Explain • Plain English Ticket Intelligence',
+      speech: 'Welcome to Nirantar Explain! Tap any railway code like GNWL or RAC, or tap "Explain My Ticket in Plain English" to get progressive 3-level definitions (Quick Definition, For You, and Deep Dive) with personalized confirmation odds and AI recommendations.',
+      actionCue: 'Tap "✨ Explain My Ticket in Plain English" or any ⓘ symbol to view full breakdown.',
+      actionButtonText: 'Finish Guided Tour 🎉',
+      arrowPlacement: { top: '38%', right: '18%' },
+      arrowLabel: '✨ Nirantar Explain • Plain English Ticket Intelligence',
+      cardPosition: 'left',
       onAction: () => {
         setGuidanceActive(false);
       },
@@ -1381,6 +1397,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         guidanceActive,
         guidanceStep: currentGuidanceStep,
         guidanceStepIndex,
+        totalGuidanceSteps: guidanceStepsList.length,
         startGuidanceTour,
         stopGuidanceTour,
         nextGuidanceStep,
