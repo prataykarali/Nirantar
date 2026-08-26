@@ -22,8 +22,10 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  EyeOff,
   Sliders,
   Check,
+  X,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { speakNiraResponse } from '../services/voiceService';
@@ -34,8 +36,13 @@ import {
   stationLoadProjection,
   getNoSeatSegments,
   getWaitlistWatchProjection,
+  getTrainCoaches,
+  getCoachBerthLayout,
+  CoachInfo,
   ComfortLevel,
 } from '../utils/seatInventory';
+import { Explain } from '../components/Explain';
+import { explainMyTicket, PassengerExplainEntry, TicketExplanation } from '../utils/explainContext';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
@@ -84,6 +91,8 @@ export const JourneyTrackerPage: React.FC = () => {
   const [showDetailedFlow, setShowDetailedFlow] = useState(false);
   const [comfortLevel, setComfortLevel] = useState<ComfortLevel>('BALANCED');
   const [selectedCoach, setSelectedCoach] = useState<string>('B4');
+  const [privacyMode, setPrivacyMode] = useState<boolean>(false);
+  const [showExplainTicketModal, setShowExplainTicketModal] = useState<boolean>(false);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [watchAlerts, setWatchAlerts] = useState({
@@ -148,14 +157,77 @@ export const JourneyTrackerPage: React.FC = () => {
   const toCode = foundTrain?.toStationCode || lastStop.code;
   const toCity = foundTrain?.toCity || lastStop.name;
 
-  const seatClass = foundTrain?.classes?.[0];
-  const seatInventory = liveSeatInventory(trainNumber, seatClass?.classCode || '3A', seatClass?.availableSeats || 42, inventoryClock);
+  // Dynamic Coach List based strictly on train's authentic classes
+  const trainCoaches: CoachInfo[] = useMemo(() => {
+    return getTrainCoaches(trainNumber, foundTrain?.classes || [{ classCode: '3A', className: 'AC 3 Tier' }]);
+  }, [trainNumber, foundTrain]);
+
+  // Ensure selectedCoach is always valid
+  useEffect(() => {
+    if (trainCoaches.length > 0 && !trainCoaches.some((c) => c.code === selectedCoach)) {
+      setSelectedCoach(trainCoaches[0].code);
+    }
+  }, [trainCoaches, selectedCoach]);
+
+  const selectedCoachInfo = useMemo(() => {
+    return trainCoaches.find((c) => c.code === selectedCoach) || trainCoaches[0] || {
+      code: 'B4',
+      classCode: '3A',
+      className: 'AC 3 Tier',
+      label: 'B4 (3A)',
+      capacity: 64,
+    };
+  }, [trainCoaches, selectedCoach]);
+
+  const coachInventory = useMemo(() => {
+    return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
+  }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
+
+  const coachBerthLayout = useMemo(() => {
+    return getCoachBerthLayout(selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.waitlist);
+  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.waitlist]);
+
+  const seatClass = foundTrain?.classes?.find((c) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
+  const seatInventory = coachInventory;
   const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations), [trainNumber, routeStations]);
   const primaryNoSeat = noSeatSegments[0];
 
   const wlWatch = useMemo(() => {
-    return getWaitlistWatchProjection(trainNumber, seatClass?.classCode || '3A', seatInventory.waitlist, comfortLevel);
-  }, [trainNumber, seatClass?.classCode, seatInventory.waitlist, comfortLevel]);
+    return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel);
+  }, [trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel]);
+
+  // Dynamic Passenger List for Waitlist Watch Sidebar
+  const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
+    const p1Wl = coachInventory.waitlist;
+    const p1Init = coachInventory.initialWaitlist;
+    const p1Prob = wlWatch.confirmationProbability;
+    const p1Moved = coachInventory.positionsCleared;
+
+    return [
+      {
+        name: 'Anusuya Nita',
+        displayName: 'Passenger 1',
+        quotaType: 'GNWL',
+        initialWl: p1Init,
+        currentWl: p1Wl,
+        probability: p1Prob,
+        positionsCleared: p1Moved,
+      },
+      {
+        name: 'Rohan Sharma',
+        displayName: 'Passenger 2',
+        quotaType: 'GNWL',
+        initialWl: p1Init + 2,
+        currentWl: Math.max(1, p1Wl + 2),
+        probability: Math.max(10, p1Prob - 4),
+        positionsCleared: p1Moved,
+      },
+    ];
+  }, [coachInventory, wlWatch.confirmationProbability]);
+
+  const ticketExplanation = useMemo(() => {
+    return explainMyTicket(passengerEntries, 4, privacyMode);
+  }, [passengerEntries, privacyMode]);
 
   const availabilityRoute = `${firstStop.name} (${firstStop.platform}) to ${lastStop.name} (${lastStop.platform})`;
 
@@ -879,37 +951,46 @@ export const JourneyTrackerPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
+                  <Explain term="CNF" />
                 </span>
                 <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
+                  <Explain term="RAC" />
                 </span>
                 <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-14 (You)
+                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} (You)
+                  <Explain
+                    term="GNWL"
+                    context={{
+                      currentValue: coachInventory.waitlist,
+                      initialValue: coachInventory.initialWaitlist,
+                      probability: wlWatch.confirmationProbability,
+                    }}
+                  />
                 </span>
               </div>
             </div>
 
-            {/* Coach Selection Tabs */}
+            {/* Coach Selection Tabs — Strictly derived from train's authentic classes */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
-              {['S1 (SL)', 'S2 (SL)', 'B1 (3A)', 'B2 (3A)', 'B3 (3A)', 'B4 (3A)', 'A1 (2A)', 'H1 (1A)'].map((c) => {
-                const code = c.split(' ')[0];
-                const isSelected = selectedCoach === code;
+              {trainCoaches.map((c) => {
+                const isSelected = selectedCoach === c.code;
                 return (
                   <button
-                    key={c}
+                    key={c.code}
                     type="button"
-                    onClick={() => setSelectedCoach(code)}
+                    onClick={() => setSelectedCoach(c.code)}
                     className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs ${
                       isSelected
                         ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
                         : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
                     }`}
                   >
-                    {c}
+                    {c.label}
                   </button>
                 );
               })}
@@ -917,43 +998,30 @@ export const JourneyTrackerPage: React.FC = () => {
 
             {/* Coach Berth Grid Layout */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white space-y-3">
-              <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
+              <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2 flex-wrap gap-2">
                 <span className="font-bold text-purple-200">
-                  Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoach.startsWith('B') ? 'AC 3 Tier' : selectedCoach.startsWith('A') ? 'AC 2 Tier' : selectedCoach.startsWith('H') ? 'AC 1st Class' : 'Sleeper'}) Layout:
+                  Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoachInfo.className}) Layout:
                 </span>
-                <span className="text-[11px] font-mono text-emerald-300 font-bold">
-                  Occupancy: 94% • 4 RAC • 14 GNWL in Queue
+                <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
+                  <span>Occupancy: {coachInventory.occupancyPercent}%</span>
+                  <span>•</span>
+                  <span>4 RAC</span>
+                  <span>•</span>
+                  <span>{coachInventory.waitlist} GNWL in Queue</span>
+                  <Explain
+                    term="GNWL"
+                    context={{
+                      currentValue: coachInventory.waitlist,
+                      initialValue: coachInventory.initialWaitlist,
+                      probability: wlWatch.confirmationProbability,
+                    }}
+                  />
                 </span>
               </div>
 
-              {/* Seat Rows Grid */}
+              {/* Dynamic Seat Rows Grid */}
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
-                {[
-                  { num: 1, type: 'LB', status: 'CNF' },
-                  { num: 2, type: 'MB', status: 'CNF' },
-                  { num: 3, type: 'UB', status: 'CNF' },
-                  { num: 4, type: 'LB', status: 'CNF' },
-                  { num: 5, type: 'MB', status: 'CNF' },
-                  { num: 6, type: 'UB', status: 'CNF' },
-                  { num: 7, type: 'SL', status: 'RAC', label: 'RAC 1/2' },
-                  { num: 8, type: 'SU', status: 'CNF' },
-                  { num: 9, type: 'LB', status: 'CNF' },
-                  { num: 10, type: 'MB', status: 'CNF' },
-                  { num: 11, type: 'UB', status: 'CNF' },
-                  { num: 12, type: 'LB', status: 'CNF' },
-                  { num: 13, type: 'MB', status: 'CNF' },
-                  { num: 14, type: 'UB', status: 'CNF' },
-                  { num: 15, type: 'SL', status: 'RAC', label: 'RAC 3/4' },
-                  { num: 16, type: 'SU', status: 'CNF' },
-                  { num: 17, type: 'LB', status: 'CNF' },
-                  { num: 18, type: 'MB', status: 'CNF' },
-                  { num: 19, type: 'UB', status: 'CNF' },
-                  { num: 20, type: 'LB', status: 'CNF' },
-                  { num: 21, type: 'MB', status: 'CNF' },
-                  { num: 22, type: 'UB', status: 'CNF' },
-                  { num: 23, type: 'SL', status: 'RAC', label: 'RAC 5/6' },
-                  { num: 24, type: 'SU', status: 'CNF' },
-                ].map((seat) => {
+                {coachBerthLayout.map((seat) => {
                   const isRac = seat.status === 'RAC';
                   return (
                     <div
@@ -984,12 +1052,20 @@ export const JourneyTrackerPage: React.FC = () => {
                   <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">
                     ★
                   </span>
-                  <span>
-                    Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-14</strong> (Coach {selectedCoach} Promotion Path)
+                  <span className="flex items-center gap-1.5">
+                    Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
+                    <Explain
+                      term="GNWL"
+                      context={{
+                        currentValue: coachInventory.waitlist,
+                        initialValue: coachInventory.initialWaitlist,
+                        probability: wlWatch.confirmationProbability,
+                      }}
+                    />
                   </span>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                  ⚡ Projected RAC 6 at Chart 1
+                  ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
                 </span>
               </div>
             </div>
@@ -1020,7 +1096,7 @@ export const JourneyTrackerPage: React.FC = () => {
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">
                       Step 1
                     </span>
-                    <span className="text-xs">🎯</span>
+                    <Explain term="GENERAL_QUOTA" />
                   </div>
                   <span className="text-xs font-black text-slate-900 block">
                     Destination Quota
@@ -1042,13 +1118,13 @@ export const JourneyTrackerPage: React.FC = () => {
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">
                       Step 2
                     </span>
-                    <span className="text-xs">📈</span>
+                    <Explain term="POSITIONS_CLEARED" />
                   </div>
                   <span className="text-xs font-black text-slate-900 block">
                     Live Cancel Rate
                   </span>
                   <p className="text-[10px] text-slate-600 font-medium leading-tight">
-                    <strong className="text-emerald-600">↑ 3.4 cancels/hr</strong> telemetry detected on this route today.
+                    <strong className="text-emerald-600">↑ {coachInventory.cancellationVelocity} cancels/hr</strong> telemetry detected on this route today.
                   </p>
                 </div>
 
@@ -1064,13 +1140,19 @@ export const JourneyTrackerPage: React.FC = () => {
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900">
                       Step 3
                     </span>
-                    <span className="text-xs">✅</span>
+                    <Explain
+                      term="CONFIRMATION_PROBABILITY"
+                      context={{
+                        currentValue: coachInventory.waitlist,
+                        probability: wlWatch.confirmationProbability,
+                      }}
+                    />
                   </div>
                   <span className="text-xs font-black text-emerald-950 block">
                     Berth Confirmed
                   </span>
                   <p className="text-[10px] text-emerald-800 font-bold leading-tight">
-                    WL-14 ➔ RAC 6 ➔ Confirmed Berth (B4 Lower) forecast (78% odds).
+                    WL-{coachInventory.waitlist} ➔ RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} ➔ Confirmed Berth ({selectedCoach} Lower) forecast ({wlWatch.confirmationProbability}% odds).
                   </p>
                 </div>
               </div>
@@ -1333,11 +1415,29 @@ export const JourneyTrackerPage: React.FC = () => {
               </span>
             </div>
 
-            {/* Probability & Movement */}
+            {/* ✨ Explain My Ticket Primary Action */}
+            <button
+              type="button"
+              onClick={() => setShowExplainTicketModal(true)}
+              className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-[#7C3AED] hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              <span>✨ Explain My Ticket in Plain English</span>
+            </button>
+
+            {/* Probability & Movement with Explain */}
             <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900">
-                  Confirmation Probability
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                  <span>Confirmation Probability</span>
+                  <Explain
+                    term="CONFIRMATION_PROBABILITY"
+                    context={{
+                      currentValue: wlWatch.currentWl,
+                      initialValue: wlWatch.initialWl,
+                      probability: wlWatch.confirmationProbability,
+                    }}
+                  />
                 </span>
                 <span className="text-sm font-black font-mono text-purple-900">
                   {wlWatch.confirmationProbability}%
@@ -1352,6 +1452,61 @@ export const JourneyTrackerPage: React.FC = () => {
               <p className="text-[10px] text-slate-600 font-medium">
                 {wlWatch.trendText}
               </p>
+            </div>
+
+            {/* Per-Passenger Waitlist Status Breakdown */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Passenger Status ({passengerEntries.length}):
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setPrivacyMode((p) => !p)}
+                  className="text-[10px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 cursor-pointer"
+                  title={privacyMode ? 'Show passenger names' : 'Hide names for privacy'}
+                >
+                  {privacyMode ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  <span>{privacyMode ? 'Show Names' : 'Privacy ON'}</span>
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {passengerEntries.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 text-[11px]">
+                        {privacyMode ? p.displayName : p.name}
+                      </span>
+                      <span className="font-mono text-purple-900 font-bold text-[11px] flex items-center gap-1">
+                        {p.quotaType} {p.initialWl} → {p.quotaType} {p.currentWl}
+                        <Explain
+                          term="GNWL"
+                          context={{
+                            currentValue: p.currentWl,
+                            initialValue: p.initialWl,
+                            probability: p.probability,
+                            passengerName: privacyMode ? p.displayName : p.name,
+                          }}
+                        />
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                        style={{ width: `${p.probability}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                      <span>{p.positionsCleared} cleared</span>
+                      <span className="text-emerald-700 font-bold">{p.probability}% est.</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Comfort Window Tabs */}
@@ -1540,6 +1695,141 @@ export const JourneyTrackerPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          6. EXPLAIN MY TICKET COMPREHENSIVE NIRA MODAL POPUP
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showExplainTicketModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200 p-0 sm:p-4 select-none"
+          onClick={() => setShowExplainTicketModal(false)}
+        >
+          <div
+            className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-purple-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white relative shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white backdrop-blur-xs shadow-xs">
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-200 block">
+                      Nirantar Explain • Ticket Intelligence
+                    </span>
+                    <h3 className="text-base font-black text-white leading-tight">
+                      Your Journey at a Glance
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowExplainTicketModal(false)}
+                  className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Headline Badge */}
+              <div className="mt-3 p-2.5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-white">
+                  {ticketExplanation.headline}
+                </span>
+                <span className="text-[10px] font-bold bg-emerald-400/30 text-emerald-200 px-2 py-0.5 rounded-full border border-emerald-400/40">
+                  {wlWatch.confirmationProbability}% Odds
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700 font-sans">
+              {/* Passenger Queue Breakdown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                    Waitlist Queue Movement
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPrivacyMode((p) => !p)}
+                    className="text-[10px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 cursor-pointer"
+                  >
+                    {privacyMode ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    <span>{privacyMode ? 'Show Real Names' : 'Privacy ON'}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {passengerEntries.map((p, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">
+                          {privacyMode ? p.displayName : p.name}
+                        </span>
+                        <span className="font-mono text-purple-950 font-black text-xs">
+                          {p.quotaType} {p.initialWl} ➔ {p.quotaType} {p.currentWl}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-purple-200/60 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          style={{ width: `${p.probability}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 font-semibold">
+                        <span>{p.positionsCleared} positions cleared</span>
+                        <span className="text-emerald-700 font-bold">{p.probability}% confirmation odds</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommendation Card */}
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
+                <div className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-800 tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Nira Recommendation</span>
+                </div>
+                <p className="text-xs sm:text-sm font-bold leading-normal">
+                  {ticketExplanation.recommendation}
+                </p>
+              </div>
+
+              {/* Prediction Disclaimer */}
+              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Prediction Disclaimer</strong>: {ticketExplanation.disclaimer}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 shrink-0">
+              <span className="flex items-center gap-1 font-semibold text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Deterministic Live Telemetry</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowExplainTicketModal(false)}
+                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-purple-800 to-indigo-800 text-white font-bold text-xs shadow-xs transition-all cursor-pointer hover:opacity-95"
+              >
+                Got It, Thanks!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

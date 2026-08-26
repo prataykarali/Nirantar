@@ -38,6 +38,7 @@ import { NiraPlanner, NiraSanitizedContext } from '../ai/NiraPlanner';
 import { PiiRedactor } from '../ai/PiiRedactor';
 import { ActionPolicyEngine } from '../actions/ActionPolicy';
 import { UiEventBus } from '../events/UiEventBus';
+import { Explain } from './Explain';
 
 interface AutoBookData {
   train: TrainDetail;
@@ -1703,6 +1704,64 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                           </span>
                         </div>
                       </div>
+
+                      {/* Travel Class Selection Options for this Train */}
+                      {m.bookingConfirmPrompt.train.classes && m.bookingConfirmPrompt.train.classes.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                              Choose Travel Class:
+                            </span>
+                            <span className="text-[10px] text-purple-700 font-bold">
+                              {m.bookingConfirmPrompt.train.classes.length} Available
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                            {m.bookingConfirmPrompt.train.classes.map((c) => {
+                              const isSelected = m.bookingConfirmPrompt!.classCode === c.classCode;
+                              const singleFare = c.fare || 1040;
+                              const totalClassFare = singleFare * (m.bookingConfirmPrompt!.paxCount || 1);
+                              return (
+                                <button
+                                  key={c.classCode}
+                                  type="button"
+                                  onClick={() => {
+                                    setMessages((prev) =>
+                                      prev.map((msg) =>
+                                        msg.id === m.id
+                                          ? {
+                                              ...msg,
+                                              bookingConfirmPrompt: {
+                                                ...msg.bookingConfirmPrompt!,
+                                                classCode: c.classCode,
+                                                fare: totalClassFare,
+                                              },
+                                            }
+                                          : msg
+                                      )
+                                    );
+                                  }}
+                                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-purple-900 text-white border-purple-900 shadow-xs ring-1 ring-purple-300'
+                                      : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <strong className="font-mono font-black">{c.classCode}</strong>
+                                    <span className={`text-[10px] font-mono font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                                      ₹{c.fare}
+                                    </span>
+                                  </div>
+                                  <span className={`text-[9px] block truncate mt-0.5 ${isSelected ? 'text-purple-200' : 'text-slate-500 font-medium'}`}>
+                                    {c.className || c.status}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       <p className="text-xs font-bold text-slate-800">
                         Proceed to Step 2 (Passenger & Booking Workspace)?
