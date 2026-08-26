@@ -152,10 +152,11 @@ export interface JourneyContextType {
     startWithGuidance?: boolean;
   }) => Promise<boolean>;
 
-  // Virtual Citizen Wallet (₹10,000 New User Credit)
+  // Virtual Citizen Wallet (₹10,000 Predefined User Credit) & Payment History
   walletBalance: number;
   setWalletBalance: React.Dispatch<React.SetStateAction<number>>;
   payWithWallet: (amount: number) => Promise<PaymentAttempt | null>;
+  paymentHistory: PaymentAttempt[];
   cancelTicket: (pnr: string, refundAmount?: number) => void;
 
   // Formal State Machine & Event Bus
@@ -255,10 +256,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedClassCode, setSelectedClassCode] = useState<string>('3A');
   const [passengers, setPassengers] = useState<PassengerProfile[]>([defaultSavedPassengers[0]]);
   const [savedPassengers] = useState<PassengerProfile[]>(defaultSavedPassengers);
-  const [recentJourneys, setRecentJourneys] = useState<RecentJourney[]>(defaultRecentJourneys);
+  const [recentJourneys, setRecentJourneys] = useState<RecentJourney[]>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_recent_journeys');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultRecentJourneys;
+  });
   const [trackQuery, setTrackQuery] = useState<string>('');
-  const [walletBalance, setWalletBalance] = useState<number>(10000.00); // ₹10,000 New Citizen Travel Credit
+  const [walletBalance, setWalletBalance] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_wallet_balance');
+      if (saved && !isNaN(Number(saved))) return Number(saved);
+    } catch {}
+    return 10000.00; // Predefined ₹10,000 New Citizen Virtual Wallet
+  });
   const [showChatDrawer, setShowChatDrawer] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_wallet_balance', String(walletBalance));
+    } catch {}
+  }, [walletBalance]);
 
   // Central Journey State
   const [journeyState, setJourneyState] = useState<JourneyState>(createInitialJourneyState());
@@ -289,11 +308,77 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
   }, [authState]);
 
-  // Payment & Ticket Records
+  // Payment & Ticket Records with LocalStorage Sync
   const [paymentAttempt, setPaymentAttempt] = useState<PaymentAttempt | null>(null);
   const [paymentState, setPaymentState] = useState<PaymentState>('READY');
-  const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(null);
-  const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentAttempt[]>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_payment_history');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: 'tx-1',
+        journeyId: 'j1',
+        amount: 3040,
+        method: 'UPI',
+        state: 'BOOKING_CONFIRMED',
+        idempotencyKey: 'idemp_seed_1',
+        transactionRef: 'TXN-84920194821',
+        createdAt: '2026-05-23T14:20:00.000Z',
+        updatedAt: '2026-05-23T14:20:05.000Z',
+      },
+      {
+        id: 'tx-4',
+        journeyId: 'j4',
+        amount: 1750,
+        method: 'CARD',
+        state: 'BOOKING_CONFIRMED',
+        idempotencyKey: 'idemp_seed_4',
+        transactionRef: 'TXN-58291048291',
+        createdAt: '2026-04-02T09:15:00.000Z',
+        updatedAt: '2026-04-02T09:15:03.000Z',
+      },
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_payment_history', JSON.stringify(paymentHistory));
+    } catch {}
+  }, [paymentHistory]);
+
+  const [issuedTicket, setIssuedTicket] = useState<TicketRecord | null>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_issued_ticket');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  const [bookingRecord, setBookingRecord] = useState<BookingRecord | null>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_booking_record');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    if (issuedTicket) {
+      try {
+        localStorage.setItem('nirantar_issued_ticket', JSON.stringify(issuedTicket));
+      } catch {}
+    }
+  }, [issuedTicket]);
+
+  useEffect(() => {
+    if (bookingRecord) {
+      try {
+        localStorage.setItem('nirantar_booking_record', JSON.stringify(bookingRecord));
+      } catch {}
+    }
+  }, [bookingRecord]);
 
   const [bookingState, setBookingStateRaw] = useState<BookingState>('IDLE');
   const [taskStack, setTaskStack] = useState<TaskStackItem[]>([]);
@@ -461,18 +546,141 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [activePage, bookingState, searchParams, passengers, selectedTrain, selectedClassCode, paymentState, walletBalance, trackQuery, taskStack]);
 
+  const syncConfirmedBookingAndPayment = useCallback((attempt: PaymentAttempt) => {
+    const trainCandidate = selectedTrain || availableTrains[0] || (searchParams.fromStation?.code ? localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] : null) || MOCK_TRAINS_DATABASE[0];
+    const resolvedTrain: TrainDetail = trainCandidate || {
+      trainNumber: '12302',
+      trainName: 'Howrah Rajdhani Express',
+      trainType: 'Rajdhani',
+      fromStationName: searchParams.fromStation.name,
+      fromStationCode: searchParams.fromStation.code,
+      toStationName: searchParams.toStation.name,
+      toStationCode: searchParams.toStation.code,
+      fromCity: searchParams.fromStation.city,
+      toCity: searchParams.toStation.city,
+      departureTime: '16:55',
+      arrivalTime: '09:55',
+      durationHours: '17h 00m',
+      distanceKm: 1451,
+      runningDays: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+      departureDayOffset: 0,
+      classes: [{ classCode: selectedClassCode, className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 42 }],
+      score: 98,
+      tags: ['Superfast', 'Punctual'],
+    };
+
+    const pnr = `${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(10 + Math.random() * 90)}`;
+    const bookingRef = `NR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    const coach = `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
+    const baseSeat = Math.floor(12 + Math.random() * 50);
+
+    const newTicket: TicketRecord = {
+      ticketId: `tkt_${Date.now()}`,
+      journeyId: attempt.journeyId || `j_${Date.now()}`,
+      bookingReference: bookingRef,
+      pnrNumber: pnr,
+      train: resolvedTrain,
+      classCode: selectedClassCode || '3A',
+      passengers: passengers.length > 0 ? passengers : [defaultSavedPassengers[0]],
+      seatAllotments: (passengers.length > 0 ? passengers : [defaultSavedPassengers[0]]).map((_, idx) => ({
+        coach,
+        seatNumber: baseSeat + idx,
+        berthType: idx % 2 === 0 ? 'Lower' : 'Middle',
+      })),
+      travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
+      origin: searchParams.fromStation,
+      destination: searchParams.toStation,
+      status: 'ACTIVE',
+      issuedAt: new Date().toISOString(),
+    };
+
+    const newBooking: BookingRecord = {
+      bookingId: `bk_${Date.now()}`,
+      journeyId: attempt.journeyId || `j_${Date.now()}`,
+      bookingReference: bookingRef,
+      pnrNumber: pnr,
+      trainNumber: resolvedTrain.trainNumber,
+      trainName: resolvedTrain.trainName,
+      classCode: selectedClassCode || '3A',
+      status: 'CONFIRMED',
+      seatAllotment: {
+        coach,
+        seatNumber: baseSeat,
+        berthType: 'Lower',
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    const newRecentJourney: RecentJourney = {
+      id: `rj_${Date.now()}`,
+      from: searchParams.fromStation,
+      to: searchParams.toStation,
+      date: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
+      passengersCount: Math.max(1, passengers.length),
+    };
+
+    setIssuedTicket(newTicket);
+    setBookingRecord(newBooking);
+    setBookingStateRaw('CONFIRMED');
+    setRecentJourneys((prev) => [newRecentJourney, ...prev]);
+
+    setPaymentHistory((prev) => {
+      const updated = [attempt, ...prev.filter((p) => p.id !== attempt.id)];
+      try {
+        localStorage.setItem('nirantar_payment_history', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      localStorage.setItem('nirantar_issued_ticket', JSON.stringify(newTicket));
+      localStorage.setItem('nirantar_booking_record', JSON.stringify(newBooking));
+      localStorage.setItem('nirantar_recent_journeys', JSON.stringify([newRecentJourney, ...recentJourneys]));
+    } catch {}
+
+    return { ticket: newTicket, booking: newBooking };
+  }, [selectedTrain, availableTrains, searchParams, selectedClassCode, passengers, recentJourneys]);
+
   const payWithWallet = async (amount: number): Promise<PaymentAttempt | null> => {
     if (walletBalance < amount) {
-      setNamedError('PAYMENT_FAILED', 'Insufficient balance in Nirantar Citizen Wallet.');
+      setNamedError('PAYMENT_FAILED', `Insufficient balance in Nirantar Citizen Virtual Wallet. (Active: ₹${walletBalance.toLocaleString('en-IN')}, Required: ₹${amount.toLocaleString('en-IN')}).`);
       return null;
     }
-    setWalletBalance((prev) => Math.max(0, prev - amount));
-    const attempt = await initiatePayment('WALLET', amount);
-    if (attempt) {
-      const res = await triggerMockPaymentResult('SUCCESS');
-      return res;
-    }
-    return null;
+    const newBal = Math.max(0, walletBalance - amount);
+    setWalletBalance(newBal);
+    try {
+      localStorage.setItem('nirantar_wallet_balance', String(newBal));
+    } catch {}
+
+    const jId = journeyState.journeyId || `mock_journey_${Date.now()}`;
+    const txnRef = `TXN-WLT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+    const walletAttempt: PaymentAttempt = {
+      id: `pay_wlt_${Date.now()}`,
+      journeyId: jId,
+      amount,
+      method: 'WALLET',
+      state: 'BOOKING_CONFIRMED',
+      idempotencyKey: `idemp_wlt_${Date.now()}`,
+      transactionRef: txnRef,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setPaymentAttempt(walletAttempt);
+    setPaymentState('BOOKING_CONFIRMED');
+
+    syncConfirmedBookingAndPayment(walletAttempt);
+
+    addNotification({
+      type: 'ticket',
+      title: '💳 Citizen Wallet Payment Confirmed',
+      body: `₹${amount.toLocaleString('en-IN')} debited from Virtual Wallet (Txn: ${txnRef}). Remaining balance: ₹${newBal.toLocaleString('en-IN')}.00`,
+    });
+
+    apiCreatePayment(jId, amount, 'WALLET').catch(() => {});
+
+    return walletAttempt;
   };
 
   const cancelTicket = useCallback((pnr: string, refundAmount: number = 0) => {
@@ -721,7 +929,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (res.state === 'SUCCESS' || res.state === 'BOOKING_CONFIRMED') {
         const ticket = await apiGetTicket(res.journeyId).catch(() => null);
-        if (ticket) setIssuedTicket(ticket);
+        if (ticket) {
+          setIssuedTicket(ticket);
+        } else {
+          syncConfirmedBookingAndPayment(res);
+        }
       }
       return res;
     } catch {
@@ -733,6 +945,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       setPaymentAttempt(resolved);
       setPaymentState('SUCCESS');
+      syncConfirmedBookingAndPayment(resolved);
       return resolved;
     }
   };
@@ -747,7 +960,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (result === 'SUCCESS') {
         const ticket = await apiGetTicket(res.journeyId).catch(() => null);
-        if (ticket) setIssuedTicket(ticket);
+        if (ticket) {
+          setIssuedTicket(ticket);
+        } else {
+          syncConfirmedBookingAndPayment(res);
+        }
       }
       return res;
     } catch {
@@ -758,6 +975,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       setPaymentAttempt(updated);
       setPaymentState(result === 'SUCCESS' ? 'BOOKING_CONFIRMED' : result);
+      if (result === 'SUCCESS') {
+        syncConfirmedBookingAndPayment(updated);
+      }
       return updated;
     }
   };
@@ -1144,6 +1364,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         walletBalance,
         setWalletBalance,
         payWithWallet,
+        paymentHistory,
         cancelTicket,
         showChatDrawer,
         setShowChatDrawer,

@@ -35,7 +35,25 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   selectedMethod,
   onPaymentSuccess,
 }) => {
-  const { triggerMockPaymentResult, verifyPaymentStatus, walletBalance, setWalletBalance } = useJourney();
+  const { triggerMockPaymentResult, verifyPaymentStatus, walletBalance, setWalletBalance, payWithWallet } = useJourney();
+
+  const handleQuickPayWithCitizenWallet = async () => {
+    setCurrentStep('PROCESSING');
+    setProcessingStatus('Debiting from Nirantar Citizen Virtual Wallet...');
+    setProcessingStage(2);
+    setTimeout(async () => {
+      const res = await payWithWallet(amount);
+      if (res && (res.state === 'BOOKING_CONFIRMED' || res.state === 'SUCCESS')) {
+        setCurrentStep('SUCCESS');
+        setTimeout(() => {
+          onClose();
+          onPaymentSuccess();
+        }, 1200);
+      } else {
+        setCurrentStep('FAILED');
+      }
+    }, 600);
+  };
 
   const [currentStep, setCurrentStep] = useState<GatewayStep>('METHOD_SELECT');
   const [activeTab, setActiveTab] = useState<'upi' | 'cards' | 'netbanking' | 'wallets'>(
@@ -421,10 +439,10 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               {/* Tab 4: WALLETS */}
               {activeTab === 'wallets' && (
                 <div className="space-y-2.5 animate-in fade-in duration-200">
-                  <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white border border-purple-400/30 space-y-1.5 shadow-sm">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white border border-purple-400/30 space-y-2 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs">Nirantar Citizen Virtual Wallet</span>
-                      <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                      <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
                         ₹10,000 Credit
                       </span>
                     </div>
@@ -432,6 +450,15 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                       <span className="text-purple-200">Active Balance:</span>
                       <strong className="text-emerald-300 font-mono text-sm">₹{walletBalance.toLocaleString('en-IN')}.00</strong>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleQuickPayWithCitizenWallet}
+                      disabled={walletBalance < amount}
+                      className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>1-Click Pay ₹{amount.toLocaleString('en-IN')} from Wallet</span>
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -439,6 +466,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                       <button
                         key={w}
                         type="button"
+                        onClick={handleProceedToAuth}
                         className="p-2.5 rounded-xl border border-slate-200 text-slate-700 text-left font-semibold transition-all hover:bg-slate-50 cursor-pointer"
                       >
                         {w}

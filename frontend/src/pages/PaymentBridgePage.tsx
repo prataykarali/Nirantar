@@ -83,8 +83,12 @@ export const PaymentBridgePage: React.FC = () => {
   };
 
   const handlePayWithWallet = async () => {
-    await initiatePayment('WALLET', totalAmount);
-    setShowGatewayModal(true);
+    setIsProcessing(true);
+    const res = await payWithWallet(totalAmount);
+    setIsProcessing(false);
+    if (res && (res.state === 'BOOKING_CONFIRMED' || res.state === 'SUCCESS')) {
+      navigateTo('ticket');
+    }
   };
 
   const handleSimulateState = async (state: 'SUCCESS' | 'FAILED' | 'UNKNOWN') => {
@@ -393,88 +397,232 @@ export const PaymentBridgePage: React.FC = () => {
             </button>
           </div>
 
-          {/* UPI Scan & Pay Area */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1">
-            {/* Left QR Box */}
-            <div className="flex flex-col items-center text-center space-y-1.5 p-2 rounded-2xl bg-purple-50/30 border border-purple-100">
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900">Scan & pay</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Scan any UPI QR to pay securely</p>
+          {/* 1. UPI TAB */}
+          {activeTab === 'upi' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1 animate-in fade-in duration-200">
+              {/* Left QR Box */}
+              <div className="flex flex-col items-center text-center space-y-1.5 p-2 rounded-2xl bg-purple-50/30 border border-purple-100">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">Scan & pay</h3>
+                  <p className="text-[10px] text-slate-500 font-medium">Scan any UPI QR to pay securely</p>
+                </div>
+
+                {/* QR Code Container with interactive hover */}
+                <div
+                  onClick={handlePay}
+                  className="w-36 h-36 bg-white rounded-2xl p-2.5 border border-purple-200 shadow-sm relative flex items-center justify-center cursor-pointer group hover:border-purple-600 transition-all"
+                  title="Click QR to simulate instant mobile scan"
+                >
+                  <div className="w-full h-full relative flex items-center justify-center">
+                    <QrCode className="w-full h-full text-slate-900 group-hover:scale-105 transition-transform" />
+                    <div className="absolute inset-0 m-auto w-7 h-7 bg-white rounded-lg p-0.5 shadow-md flex items-center justify-center border border-purple-100">
+                      <div className="w-5 h-4 bg-gradient-to-r from-orange-500 via-white to-emerald-500 rounded-sm" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Supported apps */}
+                <div className="space-y-0.5 pt-1">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Accepted on</span>
+                  <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-600">
+                    <span className="text-blue-600">G Pay</span>
+                    <span>•</span>
+                    <span className="text-purple-700">PhonePe</span>
+                    <span>•</span>
+                    <span className="text-sky-600">Paytm</span>
+                    <span>•</span>
+                    <span className="text-orange-600">BHIM</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400">& more</span>
+                </div>
               </div>
 
-              {/* QR Code Container with interactive hover */}
-              <div
-                onClick={handlePay}
-                className="w-36 h-36 bg-white rounded-2xl p-2.5 border border-purple-200 shadow-sm relative flex items-center justify-center cursor-pointer group hover:border-purple-600 transition-all"
-                title="Click QR to simulate instant mobile scan"
-              >
-                <div className="w-full h-full relative flex items-center justify-center">
-                  <QrCode className="w-full h-full text-slate-900 group-hover:scale-105 transition-transform" />
-                  <div className="absolute inset-0 m-auto w-7 h-7 bg-white rounded-lg p-0.5 shadow-md flex items-center justify-center border border-purple-100">
-                    <div className="w-5 h-4 bg-gradient-to-r from-orange-500 via-white to-emerald-500 rounded-sm" />
+              {/* Right OR & Enter UPI ID */}
+              <div className="space-y-3">
+                <div className="text-center">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
+                </div>
+
+                <form onSubmit={handlePay} className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Enter UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="name@upi"
+                    className="w-full bg-purple-50/40 border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
+                    required
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>{isProcessing ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                  </button>
+                </form>
+
+                {/* 100% Secure badge */}
+                <div className="bg-emerald-50/80 rounded-xl p-2 px-2.5 border border-emerald-200 flex items-center gap-2 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="space-y-0.2">
+                    <span className="font-bold text-emerald-950 block text-[11px]">
+                      100% secure payments
+                    </span>
+                    <span className="text-[10px] text-emerald-800 font-medium">
+                      Your data is safe with us
+                    </span>
                   </div>
                 </div>
               </div>
-
-              {/* Supported apps */}
-              <div className="space-y-0.5 pt-1">
-                <span className="text-[9px] uppercase font-bold text-slate-400 block">Accepted on</span>
-                <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-600">
-                  <span className="text-blue-600">G Pay</span>
-                  <span>•</span>
-                  <span className="text-purple-700">PhonePe</span>
-                  <span>•</span>
-                  <span className="text-sky-600">Paytm</span>
-                  <span>•</span>
-                  <span className="text-orange-600">BHIM</span>
-                </div>
-                <span className="text-[9px] text-slate-400">& more</span>
-              </div>
             </div>
+          )}
 
-            {/* Right OR & Enter UPI ID */}
-            <div className="space-y-3">
-              <div className="text-center">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
+          {/* 2. CARDS TAB */}
+          {activeTab === 'cards' && (
+            <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+              <div className="p-3 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Card Number</label>
+                  <input
+                    type="text"
+                    placeholder="4532 •••• •••• 8492"
+                    defaultValue="4532 9402 1849 8492"
+                    className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Expiry Date</label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      defaultValue="08/29"
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">CVV</label>
+                    <input
+                      type="password"
+                      placeholder="•••"
+                      defaultValue="892"
+                      maxLength={4}
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Cardholder Name</label>
+                  <input
+                    type="text"
+                    defaultValue="Pratay Karali"
+                    className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handlePay} className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Enter UPI ID
-                </label>
-                <input
-                  type="text"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  placeholder="name@upi"
-                  className="w-full bg-purple-50/40 border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
-                  required
-                />
+              <button
+                type="button"
+                onClick={handlePay}
+                disabled={isProcessing}
+                className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{isProcessing ? 'Authorizing Card...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+              </button>
+            </div>
+          )}
+
+          {/* 3. NETBANKING TAB */}
+          {activeTab === 'netbanking' && (
+            <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+              <label className="block text-xs font-bold text-slate-700">Select Bank</label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Kotak Mahindra'].map((b, i) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={handlePay}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs ${
+                      i === 0
+                        ? 'bg-purple-50 border-purple-600 text-purple-950 ring-1 ring-purple-600'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePay}
+                disabled={isProcessing}
+                className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{isProcessing ? 'Redirecting to NetBanking...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+              </button>
+            </div>
+          )}
+
+          {/* 4. WALLETS TAB (WITH PREDEFINED ₹10,000 CITIZEN WALLET) */}
+          {activeTab === 'wallets' && (
+            <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+              {/* Highlighted Predefined Citizen Wallet */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white shadow-md border border-purple-400/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-amber-300">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs block">Nirantar Citizen Virtual Wallet</span>
+                      <span className="text-[10px] text-purple-200">Pre-loaded Travel Credit</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                    ₹{walletBalance.toLocaleString('en-IN')}.00
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/10">
+                  <span className="text-purple-200">
+                    Debit: <strong className="text-white font-mono">₹{totalAmount.toLocaleString('en-IN')}</strong> • Remaining: <strong className="text-emerald-300 font-mono">₹{Math.max(0, walletBalance - totalAmount).toLocaleString('en-IN')}</strong>
+                  </span>
+                </div>
 
                 <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  type="button"
+                  onClick={handlePayWithWallet}
+                  disabled={isProcessing || walletBalance < totalAmount}
+                  className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>{isProcessing ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{isProcessing ? 'Processing Wallet Payment...' : `1-Click Pay ₹${totalAmount.toLocaleString('en-IN')} from Wallet ➔`}</span>
                 </button>
-              </form>
+              </div>
 
-              {/* 100% Secure badge */}
-              <div className="bg-emerald-50/80 rounded-xl p-2 px-2.5 border border-emerald-200 flex items-center gap-2 text-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="space-y-0.2">
-                  <span className="font-bold text-emerald-950 block text-[11px]">
-                    100% secure payments
-                  </span>
-                  <span className="text-[10px] text-emerald-800 font-medium">
-                    Your data is safe with us
-                  </span>
-                </div>
+              {/* Other Wallets */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {['Amazon Pay (₹4,200)', 'Paytm Wallet', 'PhonePe Wallet', 'MobiKwik'].map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={handlePay}
+                    className="p-2.5 rounded-xl border border-slate-200 text-slate-700 text-left font-semibold transition-all hover:bg-slate-50 cursor-pointer"
+                  >
+                    {w}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ──────────────── COLUMN 2: TRIP SUMMARY (4 Cols) ──────────────── */}

@@ -182,6 +182,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     issuedTicket,
     bookingRecord,
     getWaitlistProbability,
+    payWithWallet,
   } = useJourney();
 
   const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
@@ -889,6 +890,62 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         speakNiraResponse(`Your booked train is number ${trainNo} ${trainName}. Booking status is ${statusType}. Running right on time.`);
       }
       return;
+    }
+
+    // ─── 1B.1B: Pay with Predefined Citizen Wallet ───
+    const isWalletPayQuery =
+      safeQuery.toLowerCase().includes('pay with wallet') ||
+      safeQuery.toLowerCase().includes('pay from wallet') ||
+      safeQuery.toLowerCase().includes('pay using wallet') ||
+      safeQuery.toLowerCase().includes('use wallet to pay') ||
+      safeQuery.toLowerCase().includes('pay via wallet') ||
+      safeQuery.toLowerCase().includes('pay from predefined wallet') ||
+      safeQuery.toLowerCase().includes('wallet payment') ||
+      safeQuery.toLowerCase().includes('pay using citizen wallet');
+
+    if (isWalletPayQuery) {
+      const train = selectedTrain || (searchParams.fromStation?.code ? searchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] : null) || resolveTrainDetail('12302');
+      const fare = ((train?.classes?.find((c) => c.classCode === selectedClassCode)?.fare || train?.classes?.[0]?.fare || 2990) * Math.max(1, currentPassengers.length)) + 130;
+
+      if (walletBalance < fare) {
+        const errorMsg = `⚠️ **Insufficient Citizen Wallet Balance**: Your current wallet balance is **₹${walletBalance.toLocaleString('en-IN')}.00**, but the total required fare is **₹${fare.toLocaleString('en-IN')}**.\n\nPlease top up your wallet or use UPI / NetBanking to pay.`;
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: errorMsg, isStreaming: false } : m))
+        );
+        if (autoVoice) speakNiraResponse('Insufficient wallet balance to complete this booking.');
+        return;
+      }
+
+      const attempt = await payWithWallet(fare);
+      if (attempt) {
+        const remBal = Math.max(0, walletBalance - fare);
+        const trainNo = train.trainNumber;
+        const trainName = train.trainName;
+        const successMsg = `🎉 **Booking Confirmed via Citizen Virtual Wallet!**\n\n💳 **₹${fare.toLocaleString('en-IN')}** was debited from your pre-loaded Virtual Wallet.\n• **Remaining Balance**: **₹${remBal.toLocaleString('en-IN')}.00**\n• **Train**: **#${trainNo} ${trainName}** (${train.fromCity} ➔ ${train.toCity})\n• **Booking Reference**: \`${attempt.transactionRef}\`\n• **Status**: **CONFIRMED (Coach B4, Berth 32)**\n\nYour official DigiLocker verified e-ticket has been generated and saved to your **Travels & Payments** database!`;
+
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: successMsg,
+                  isStreaming: false,
+                  actionCard: {
+                    title: `DigiLocker Verified e-Ticket • #${trainNo}`,
+                    subtitle: `Confirmed • Remaining Wallet: ₹${remBal.toLocaleString('en-IN')}`,
+                    buttonLabel: `Open Ticket & Live GPS Radar ➔`,
+                    route: 'ticket',
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) speakNiraResponse(`Booking confirmed for train number ${trainNo} ${trainName}. Fare of rupees ${fare} debited from your virtual wallet.`);
+        navigateTo('ticket');
+        return;
+      }
     }
 
     // ─── 1B.2: Live Train Tracking (Radar Redirection) ───

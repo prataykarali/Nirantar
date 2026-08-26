@@ -32,32 +32,24 @@ interface PaymentItem {
 }
 
 export const PaymentsPage: React.FC = () => {
-  const { navigateTo, paymentAttempt, issuedTicket, searchParams } = useJourney();
+  const { navigateTo, paymentAttempt, paymentHistory, issuedTicket, searchParams } = useJourney();
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
 
+  const dynamicHistoryPayments: PaymentItem[] = (paymentHistory || []).map((p) => ({
+    id: p.id,
+    txnId: p.transactionRef || `TXN-${p.id.slice(0, 8).toUpperCase()}`,
+    service: `Ticket: ${issuedTicket?.train?.trainName || 'Rajdhani Express'} (${issuedTicket?.train?.trainNumber || '12302'})`,
+    date: p.createdAt ? new Date(p.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Today, Just now',
+    amount: p.amount || 2990,
+    mode: p.method === 'WALLET' ? 'Nirantar Citizen Virtual Wallet' : `${p.method} (Nirantar Bridge)`,
+    status: p.state === 'BOOKING_CONFIRMED' || p.state === 'SUCCESS' ? 'Paid' : 'Processing',
+    pnr: issuedTicket?.pnrNumber || '2847 5896 1234',
+  }));
+
   const defaultPayments: PaymentItem[] = [
-    ...(paymentAttempt ? [{
-      id: paymentAttempt.id,
-      txnId: paymentAttempt.transactionRef || `TXN-${paymentAttempt.id.slice(0, 8).toUpperCase()}`,
-      service: `Ticket: ${issuedTicket?.train?.trainName || 'Rajdhani Express'} (${issuedTicket?.train?.trainNumber || '12302'})`,
-      date: 'Today, Just now',
-      amount: paymentAttempt.amount || 2990,
-      mode: `${paymentAttempt.method} (Nirantar Bridge)`,
-      status: paymentAttempt.state === 'BOOKING_CONFIRMED' || paymentAttempt.state === 'SUCCESS' ? 'Paid' : 'Processing' as any,
-      pnr: issuedTicket?.pnrNumber || '2847 5896 1234',
-    }] : []),
-    {
-      id: 'tx-1',
-      txnId: 'TXN-84920194821',
-      service: 'Ticket: Mumbai Rajdhani Express (12951)',
-      date: '23 May 2026, 14:20 IST',
-      amount: 3040,
-      mode: 'UPI • Google Pay',
-      status: 'Paid',
-      pnr: '2847 5896 1234',
-    },
+    ...dynamicHistoryPayments,
     {
       id: 'tx-2',
       txnId: 'TXN-91028491022',
@@ -76,16 +68,6 @@ export const PaymentsPage: React.FC = () => {
       amount: 280,
       mode: 'UPI • PhonePe',
       status: 'Paid',
-    },
-    {
-      id: 'tx-4',
-      txnId: 'TXN-58291048291',
-      service: 'Ticket: Vande Bharat Express (22436)',
-      date: '02 Apr 2026, 09:15 IST',
-      amount: 1750,
-      mode: 'Visa Card (••4821)',
-      status: 'Paid',
-      pnr: '9102 4810 5592',
     },
   ];
 
