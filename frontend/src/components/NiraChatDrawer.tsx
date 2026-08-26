@@ -701,16 +701,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
-    if ((intentData.route as any)?.missingTrainNumber) {
-      const askMsg = `⚠️ **Not a Valid Train Number**: Indian Railways train numbers are strictly **5 digits long** (for example: **#12302** Howrah Rajdhani, **#12951** Mumbai Rajdhani, **#12115** Siddheshwar SF Express).\n\nPlease enter a valid 5-digit train number!`;
-      setIsLoading(false);
-      setMessages((prev) =>
-        prev.map((m) => (m.id === botMsgId ? { ...m, text: askMsg, isStreaming: false } : m))
-      );
-      if (autoVoice) speakNiraResponse('That is not a valid train number. Please enter a 5 digit train number.');
-      return;
-    }
-
     if (intentData.isTrack && !intentData.isAutoBook) {
       const trainNo = (intentData.trainNumber || '12302').trim();
       handleQuickTrack(trainNo);
@@ -778,6 +768,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const hasExplicitTrain = !isQuestion && !!intentData.trainNumber;
 
     if (hasExplicitTrain || hasExplicitRoute || intentData.isAutoBook) {
+      // If user typed "i want to book a train" without station details and without 5-digit train number
+      if (!hasExplicitTrain && !hasExplicitRoute) {
+        const askWhereMsg = `Where would you like to travel? Please tell me your origin and destination (e.g. **'Howrah to Agra'** or **'Delhi to Mumbai'**) or enter a valid 5-digit train number (e.g. **#12951**)!`;
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: askWhereMsg, isStreaming: false } : m))
+        );
+        if (autoVoice) speakNiraResponse('Where would you like to travel? Please tell me your origin and destination station or enter a 5 digit train number.');
+        return;
+      }
+
       const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
       const paxCount = nextRouteCtx.passengers || 1;
       const classCode = nextRouteCtx.classCode || '3A';
@@ -788,7 +789,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         selectTrain(matchedTrain, classCode);
         const fare = (matchedTrain.classes.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes[0]?.fare || 1870) * paxCount;
 
-        const bookingText = `Found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}) in **${classCode}** (₹${fare.toLocaleString('en-IN')}).\n\nPlease enter your passenger details in ',' separated format: **Name, Age, Gender, Berth, Mobile, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`;
+        const bookingText = `Found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}) in **${classCode}** (₹${fare.toLocaleString('en-IN')}).`;
 
         setIsLoading(false);
         setMessages((prev) =>
@@ -808,67 +809,35 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               : m
           )
         );
-        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Please enter your passenger details.`);
+        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Tap Yes Book Now to proceed.`);
         return;
       }
 
-      const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
-      const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
-      const trains = searchTrains(fromSt.code, toSt.code);
+      const fromSt = nextRouteCtx.fromStation;
+      const toSt = nextRouteCtx.toStation;
 
-      if (trains && trains.length > 0) {
-        const groundingContext = formatTrainGrounding(trains, fromSt.city, toSt.city);
-        const topTrains = rankTrains(trains).slice(0, 3);
-        const understoodCard = {
-          from: `${fromSt.name} (${fromSt.code})`,
-          to: `${toSt.name} (${toSt.code})`,
-          date: travelDate,
-          time: 'Available Schedules',
-          passengers: paxCount,
-          classCode,
-          fare: (topTrains[0]?.classes[0]?.fare || 1500) * paxCount,
-          trainName: topTrains[0]?.trainName,
-          trainNumber: topTrains[0]?.trainNumber,
-          fromStation: fromSt,
-          toStation: toSt,
-        };
+      if (fromSt && toSt) {
+        const trains = searchTrains(fromSt.code, toSt.code);
+        if (trains && trains.length > 0) {
+          const topTrains = rankTrains(trains).slice(0, 3);
+          const promptText = `I found **${trains.length} trains** between **${fromSt.city}** and **${toSt.city}**.\n\nTop recommendation: **#${topTrains[0].trainNumber} ${topTrains[0].trainName}** (${topTrains[0].durationHours}).`;
 
-        const promptText = `I found **${trains.length} trains** between **${fromSt.city}** and **${toSt.city}**.\n\nTop recommendation: **#${topTrains[0].trainNumber} ${topTrains[0].trainName}** (${topTrains[0].durationHours}).\n\nPlease select a train below or enter your passenger details in ',' separated format: **Name, Age, Gender, Berth, Mobile, Email** (e.g. *Pratay Karali, 20, Male, Lower, 8420773730, pratay@gmail.com*)!`;
-
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: promptText,
-                  isStreaming: false,
-                  trainList: topTrains,
-                  understoodCard,
-                }
-              : m
-          )
-        );
-        if (autoVoice) speakNiraResponse(`Found trains from ${fromSt.city} to ${toSt.city}. Please enter your passenger details.`);
-        return;
-      } else {
-        const noTrainText = `I couldn't find direct scheduled trains between ${fromSt.city} (${fromSt.code}) and ${toSt.city} (${toSt.code}) in our database. Connecting trains via major junctions like New Delhi (NDLS), Howrah (HWH), or Mumbai Central (CSMT) are recommended. Would you like to try another route?`;
-        setTimeout(() => {
           setIsLoading(false);
           setMessages((prev) =>
             prev.map((m) =>
               m.id === botMsgId
                 ? {
                     ...m,
-                    text: noTrainText,
+                    text: promptText,
                     isStreaming: false,
+                    trainList: topTrains,
                   }
                 : m
             )
           );
-          if (autoVoice) speakNiraResponse(noTrainText);
-        }, 300);
-        return;
+          if (autoVoice) speakNiraResponse(`Found trains from ${fromSt.city} to ${toSt.city}. Select a train to proceed.`);
+          return;
+        }
       }
     }
 
@@ -886,7 +855,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         ? ` • Mobile: ${parsedPaxResult.contact.phone}`
         : '';
 
-      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\nPlease review the details above on the screen. Ready to proceed to payment?`;
+      const botResponseText = `I have filled the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\nMoving to Step 3 (Payment)...`;
+
+      // AUTOMATICALLY NAVIGATE TO STEP 3 (PAYMENT)!
+      navigateTo('payment');
 
       setTimeout(() => {
         setIsLoading(false);
@@ -908,7 +880,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           )
         );
         if (autoVoice) {
-          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Ready to proceed to payment.`);
+          speakNiraResponse(`I have filled the passenger details for ${passengerNames}. Moving to Step 3 Payment.`);
         }
       }, 350);
       return;
