@@ -30,7 +30,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 import { speakNiraResponse } from '../services/voiceService';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
-import { getTrainStoppages, StationStop } from '../data/trainStoppages';
+import { getTrainStoppages, resolveTrainDetail, StationStop } from '../data/trainStoppages';
 import {
   liveSeatInventory,
   stationLoadProjection,
@@ -74,8 +74,19 @@ const KNOWN_TRAIN_NAMES: Record<string, string> = {
 };
 
 export const JourneyTrackerPage: React.FC = () => {
-  const { searchParams, selectedTrain, selectedClassCode, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
-  const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || '12302';
+  const {
+    searchParams,
+    selectedTrain,
+    selectedClassCode,
+    issuedTicket,
+    bookingRecord,
+    passengers,
+    trackQuery,
+    setTrackQuery,
+    navigateTo,
+    addNotification,
+  } = useJourney();
+  const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12302';
 
   // ─── STATE HOOKS (Declared at Top) ───
   const [searchInput, setSearchInput] = useState(initialTrainNumber);
@@ -126,6 +137,10 @@ export const JourneyTrackerPage: React.FC = () => {
       const nextTrainNumber = trackQuery.trim();
       setSearchInput(nextTrainNumber);
       setActiveTrainNumber(nextTrainNumber);
+      setActiveStationIndex(1);
+      setCountdownSeconds(180);
+      setHaltSeconds(20);
+      setPhase('TRAVELING');
     }
   }, [trackQuery]);
 
@@ -136,7 +151,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
   const trainNumber = activeTrainNumber.trim() || '12302';
-  const foundTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNumber);
+  const foundTrain = useMemo(() => resolveTrainDetail(trainNumber), [trainNumber]);
   const routeStations: StationStop[] = useMemo(() => {
     return getTrainStoppages(trainNumber, foundTrain);
   }, [trainNumber, foundTrain]);
@@ -183,10 +198,19 @@ export const JourneyTrackerPage: React.FC = () => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
 
+  // Check if current tracked train is really booked by this citizen
+  const isUserBookedTrain = useMemo(() => {
+    return Boolean(
+      (issuedTicket && issuedTicket.train?.trainNumber === trainNumber) ||
+      (bookingRecord && bookingRecord.trainNumber === trainNumber) ||
+      (selectedTrain && selectedTrain.trainNumber === trainNumber)
+    );
+  }, [issuedTicket, bookingRecord, selectedTrain, trainNumber]);
+
   // Determine if this selected coach is the user's booked coach/class
   const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
-  const isUserClass = selectedCoachInfo.classCode === userBookedClass;
-  const isUserCoach = selectedCoach === 'B4' || (isUserClass && selectedCoach === (trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4'));
+  const isUserClass = isUserBookedTrain && selectedCoachInfo.classCode === userBookedClass;
+  const isUserCoach = Boolean(isUserBookedTrain && (selectedCoach === 'B4' || (isUserClass && selectedCoach === (trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4'))));
 
   const coachBerthLayout = useMemo(() => {
     return getCoachBerthLayout(
@@ -198,7 +222,7 @@ export const JourneyTrackerPage: React.FC = () => {
     );
   }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach]);
 
-  const seatClass = foundTrain?.classes?.find((c) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
+  const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
   const seatInventory = coachInventory;
   const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations), [trainNumber, routeStations]);
   const primaryNoSeat = noSeatSegments[0];
@@ -207,6 +231,20 @@ export const JourneyTrackerPage: React.FC = () => {
     return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel);
   }, [trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel]);
 
+  // Real booked passengers from Citizen profile / ticket database
+  const userPassengers = useMemo(() => {
+    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
+      return issuedTicket.passengers;
+    }
+    if (passengers && passengers.length > 0) {
+      return passengers;
+    }
+    return [
+      { id: 'p1', name: 'Anusuya Nita', age: 44, gender: 'F' as const, berthPreference: 'SIDE_LOWER' as const },
+      { id: 'p2', name: 'Moupiya Sharma', age: 45, gender: 'F' as const, berthPreference: 'UPPER' as const },
+    ];
+  }, [issuedTicket, passengers]);
+
   // Dynamic Passenger List for Waitlist Watch Sidebar
   const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
     const p1Wl = coachInventory.waitlist;
@@ -214,27 +252,16 @@ export const JourneyTrackerPage: React.FC = () => {
     const p1Prob = wlWatch.confirmationProbability;
     const p1Moved = coachInventory.positionsCleared;
 
-    return [
-      {
-        name: 'Anusuya Nita',
-        displayName: 'Passenger 1',
-        quotaType: 'GNWL',
-        initialWl: p1Init,
-        currentWl: p1Wl,
-        probability: p1Prob,
-        positionsCleared: p1Moved,
-      },
-      {
-        name: 'Rohan Sharma',
-        displayName: 'Passenger 2',
-        quotaType: 'GNWL',
-        initialWl: p1Init + 2,
-        currentWl: Math.max(1, p1Wl + 2),
-        probability: Math.max(10, p1Prob - 4),
-        positionsCleared: p1Moved,
-      },
-    ];
-  }, [coachInventory, wlWatch.confirmationProbability]);
+    return userPassengers.map((p: any, idx: number) => ({
+      name: p.name || `Passenger ${idx + 1}`,
+      displayName: `Passenger ${idx + 1}`,
+      quotaType: 'GNWL',
+      initialWl: p1Init + idx * 2,
+      currentWl: Math.max(1, p1Wl + idx * 2),
+      probability: Math.max(10, p1Prob - idx * 4),
+      positionsCleared: p1Moved,
+    }));
+  }, [userPassengers, coachInventory, wlWatch.confirmationProbability]);
 
   const ticketExplanation = useMemo(() => {
     return explainMyTicket(passengerEntries, 4, privacyMode);
@@ -772,9 +799,9 @@ export const JourneyTrackerPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. ZERO-SEAT PLATFORM WARNING BANNER (When No Seat Available)
+          3. ZERO-SEAT PLATFORM WARNING BANNER (Only when User Has Booked This Train / Active Waitlist)
           ═══════════════════════════════════════════════════════════════════ */}
-      {(seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
+      {isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
         <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">

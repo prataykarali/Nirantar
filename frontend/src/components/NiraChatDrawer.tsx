@@ -859,9 +859,25 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       const activeTicket = issuedTicket;
       const activeRecord = bookingRecord;
       const activeTrain = selectedTrain;
-      const hasAnyBooking = !!(activeTicket || activeRecord || (activeTrain && (bookingState === 'CONFIRMED' || bookingState === 'TICKET_VIEW')));
+      const userBookedTrainNo = activeTicket?.train?.trainNumber || activeRecord?.trainNumber || (activeTrain?.trainNumber && (bookingState === 'CONFIRMED' || bookingState === 'TICKET_VIEW') ? activeTrain.trainNumber : null);
 
-      const trainNo = activeTicket?.train?.trainNumber || activeRecord?.trainNumber || activeTrain?.trainNumber || '12302';
+      // Check if user specifically requested a different unbooked train number
+      if (intentData.trainNumber && userBookedTrainNo && intentData.trainNumber !== userBookedTrainNo) {
+        const unbookedTrain = resolveTrainDetail(intentData.trainNumber);
+        const bookedName = activeTicket?.train?.trainName || activeRecord?.trainName || activeTrain?.trainName || 'Express';
+        const pnrNumber = activeTicket?.pnrNumber || activeRecord?.pnrNumber || '8429 1048 21';
+        const notBookedMsg = `ℹ️ **Citizen Profile Booking Match Check**:\n\n❌ Train **#${intentData.trainNumber} (${unbookedTrain.trainName})** is **not** in your active booked bookings database.\n\n🎫 Your active booked journey is for train **#${userBookedTrainNo} (${bookedName})** (PNR: \`${pnrNumber}\`).\n\nI have opened **Live GPS Satellite Radar** for train **#${intentData.trainNumber}** on your screen!`;
+        
+        handleQuickTrack(intentData.trainNumber);
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === botMsgId ? { ...m, text: notBookedMsg, isStreaming: false } : m))
+        );
+        if (autoVoice) speakNiraResponse(`Train ${intentData.trainNumber} is not your booked train. Your booked train is ${userBookedTrainNo}.`);
+        return;
+      }
+
+      const trainNo = userBookedTrainNo || '12302';
       const matchedTrain = resolveTrainDetail(trainNo);
       const trainName = activeTicket?.train?.trainName || activeRecord?.trainName || activeTrain?.trainName || matchedTrain.trainName;
       const pnrNumber = activeTicket?.pnrNumber || activeRecord?.pnrNumber || '8429 1048 21';
@@ -918,6 +934,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
       const statusMsg = `🎫 **Booked Train Status & Live Radar Telemetry**:\n\n🚆 **Train**: **#${trainNo} ${trainName}**\n📍 **Route**: **${fromCity} (${fromCode})** ➔ **${toCity} (${toCode})**\n📅 **Travel Date**: ${travelDate} | Departure: ${matchedTrain.departureTime} hrs\n🔢 **PNR Number**: \`${pnrNumber}\`\n\n---\n### 📋 Booking & Confirmation Status:\n${statusType === 'CONFIRMED' ? `✅ **Status**: **CONFIRMED** (${seatInfo})` : statusType === 'RAC' ? `🟡 **Status**: **RAC** (${seatInfo}) — **${probLabel}** at Chart Preparation (4h prior).` : `🟠 **Status**: **WAITLISTED** (${seatInfo}) — **${probLabel}**.`}\n\n---\n### 🛰️ Live Train Running Status:\n⚡ **Speed**: **118 km/h** | ⏱️ **Punctuality**: Running **Right on Time**\n🚉 **Next Stoppage**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}**\n🚪 **Deboarding Doors**: **${nextStop.doorSide}**\n\nTap **'🛰️ Track Live on Radar'** below to open the real-time satellite GPS tracking map!`;
 
+      handleQuickTrack(trainNo);
       setIsLoading(false);
       setMessages((prev) =>
         prev.map((m) =>
@@ -1003,6 +1020,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
       }
 
+      const userBookedTrainNo = issuedTicket?.train?.trainNumber || bookingRecord?.trainNumber;
+      const isBookedByCitizen = userBookedTrainNo === trainNo;
+
       const matchedTrain = resolveTrainDetail(trainNo);
       const stops = getTrainStoppages(trainNo, matchedTrain);
       const nextStop = stops[1] || stops[0] || { name: 'Prayagraj Junction', code: 'PRYJ', platform: 'Platform 4', doorSide: 'RIGHT SIDE' };
@@ -1018,7 +1038,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         delayMins: 0,
       };
 
-      const trackReply = `🚆 **Live GPS Satellite Radar for #${trainNo} (${matchedTrain.trainName})**:\n\n• **Current Speed**: **118 km/h** • Running **Right on Time**.\n• **Approaching**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}** (Doors open on **${nextStop.doorSide}**).\n• **Total Route Halts**: ${stops.length} stations.\n\nI have redirected your main screen to the **Live Radar Map**!`;
+      const bookingMatchNotice = isBookedByCitizen
+        ? `\n\n🎫 **Citizen Booking Linked**: Matched with your booked journey (PNR \`${issuedTicket?.pnrNumber || bookingRecord?.pnrNumber}\`)!`
+        : (userBookedTrainNo ? `\n\nℹ️ **Notice**: Train **#${trainNo}** is not your currently booked journey (Your active booking is **#${userBookedTrainNo}**). Showing general GPS corridor telemetry.` : '');
+
+      const trackReply = `🚆 **Live GPS Satellite Radar for #${trainNo} (${matchedTrain.trainName})**:\n\n• **Current Speed**: **118 km/h** • Running **Right on Time**.\n• **Approaching**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}** (Doors open on **${nextStop.doorSide}**).\n• **Total Route Halts**: ${stops.length} stations.${bookingMatchNotice}\n\nI have redirected your main screen to the **Live Radar Map**!`;
 
       setIsLoading(false);
       setMessages((prev) =>
