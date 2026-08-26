@@ -107,6 +107,7 @@ interface ChatMessage {
     contact?: { phone?: string; email?: string; irctcId?: string };
     train: TrainDetail;
     classCode: string;
+    classBreakdown?: string;
     fare: number;
   };
   bookedTrainStatusCard?: {
@@ -598,6 +599,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     passengers: PassengerProfile[];
     contact?: { phone?: string; email?: string };
     classCode?: string;
+    classBreakdown?: string;
   } | null => {
     const lower = text.toLowerCase();
     
@@ -714,13 +716,18 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       const seg = rawSegments[i];
       const sLower = seg.toLowerCase();
 
-      // Check for class code in this segment or overall text
-      if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(sLower)) extractedClassCode = '3A';
-      else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(sLower)) extractedClassCode = '2A';
-      else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(sLower)) extractedClassCode = '1A';
-      else if (/\b(?:sl|sleeper|non ac)\b/i.test(sLower)) extractedClassCode = 'SL';
-      else if (/\b(?:cc|chair car)\b/i.test(sLower)) extractedClassCode = 'CC';
-      else if (/\b(?:ec|exec|executive)\b/i.test(sLower)) extractedClassCode = 'EC';
+      // Extract class code specific to THIS passenger segment
+      let segClass: string | undefined = undefined;
+      if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(sLower)) segClass = '3A';
+      else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(sLower)) segClass = '2A';
+      else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(sLower)) segClass = '1A';
+      else if (/\b(?:sleeper|non ac)\b/i.test(sLower) || (/\bsl\b/i.test(sLower) && !sLower.includes('side lower'))) segClass = 'SL';
+      else if (/\b(?:cc|chair car)\b/i.test(sLower)) segClass = 'CC';
+      else if (/\b(?:ec|exec|executive)\b/i.test(sLower)) segClass = 'EC';
+
+      if (segClass && !extractedClassCode) {
+        extractedClassCode = segClass;
+      }
 
       // Strip email and 10-digit phone from segment for safe age and name parsing
       const cleanSegNoContact = seg
@@ -743,11 +750,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       }
 
       let berthPreference: PassengerProfile['berthPreference'] = existingPassengers[i]?.berthPreference || 'NO_PREFERENCE';
-      if (sLower.includes('side lower') || sLower.includes('sl')) berthPreference = 'SIDE_LOWER';
-      else if (sLower.includes('side upper') || sLower.includes('su')) berthPreference = 'SIDE_UPPER';
-      else if (sLower.includes('upper') || sLower.includes('ub')) berthPreference = 'UPPER';
-      else if (sLower.includes('middle') || sLower.includes('mb')) berthPreference = 'MIDDLE';
-      else if (sLower.includes('lower') || sLower.includes('lb')) berthPreference = 'LOWER';
+      if (sLower.includes('side lower') || (/\b(?:berth\s*:\s*sl|sl\s*berth)\b/i.test(sLower))) berthPreference = 'SIDE_LOWER';
+      else if (sLower.includes('side upper') || (/\b(?:berth\s*:\s*su|su\s*berth)\b/i.test(sLower))) berthPreference = 'SIDE_UPPER';
+      else if (sLower.includes('upper') || (/\b(?:berth\s*:\s*ub|ub\s*berth)\b/i.test(sLower))) berthPreference = 'UPPER';
+      else if (sLower.includes('middle') || (/\b(?:berth\s*:\s*mb|mb\s*berth)\b/i.test(sLower))) berthPreference = 'MIDDLE';
+      else if (sLower.includes('lower') || (/\b(?:berth\s*:\s*lb|lb\s*berth)\b/i.test(sLower))) berthPreference = 'LOWER';
 
       // Clean name
       let cleanName = cleanSegNoContact
@@ -773,6 +780,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         age,
         gender,
         berthPreference,
+        assignedClassCode: segClass,
         seniorCitizenConcession: age >= 60 || sLower.includes('senior'),
       });
     }
@@ -787,7 +795,28 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       else if (/\b(?:ec|exec|executive)\b/i.test(lower)) extractedClassCode = 'EC';
     }
 
-    return parsed.length > 0 ? { passengers: parsed, contact, classCode: extractedClassCode } : null;
+    // Assign fallback class code to any passenger that didn't have one explicitly
+    parsed.forEach((p) => {
+      if (!p.assignedClassCode) {
+        p.assignedClassCode = extractedClassCode || selectedClassCode || '3A';
+      }
+    });
+
+    // Compute Class Breakdown string (e.g. "1x 3A, 1x SL" or "2x 3A")
+    const classCounts: Record<string, number> = {};
+    parsed.forEach((p) => {
+      const code = p.assignedClassCode || extractedClassCode || '3A';
+      classCounts[code] = (classCounts[code] || 0) + 1;
+    });
+    const classBreakdown = Object.entries(classCounts)
+      .map(([cls, count]) => `${count}x ${cls}`)
+      .join(', ');
+
+    const primaryClass = parsed[0]?.assignedClassCode || extractedClassCode || '3A';
+
+    return parsed.length > 0
+      ? { passengers: parsed, contact, classCode: primaryClass, classBreakdown }
+      : null;
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -1065,13 +1094,18 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         setSelectedClassCode(parsedPaxResult.classCode);
       }
       const singleFare = targetTrain.classes?.find((c) => c.classCode === targetClass)?.fare || targetTrain.classes?.[0]?.fare || 1040;
-      const totalAmount = singleFare * extractedPassengers.length;
+      const totalAmount = extractedPassengers.reduce((sum, p) => {
+        const pClass = p.assignedClassCode || targetClass || '3A';
+        const clsFare = targetTrain.classes?.find((c) => c.classCode === pClass)?.fare || singleFare;
+        return sum + clsFare;
+      }, 0);
 
       const contactSnippet = parsedPaxResult.contact?.phone
         ? ` • Mobile: ${parsedPaxResult.contact.phone}`
         : '';
+      const breakdownSnippet = parsedPaxResult.classBreakdown ? ` • ${parsedPaxResult.classBreakdown}` : ` • Class ${targetClass}`;
 
-      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
+      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${breakdownSnippet}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
 
       if (activePage !== 'workspace' && activePage !== 'booking') {
         navigateTo('workspace');
@@ -1090,6 +1124,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                   contact: parsedPaxResult.contact,
                   train: targetTrain,
                   classCode: targetClass,
+                  classBreakdown: parsedPaxResult.classBreakdown,
                   fare: totalAmount,
                 },
               }
@@ -1895,7 +1930,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             #{m.passengerConfirmPrompt.train.trainNumber} • {m.passengerConfirmPrompt.train.trainName}
                           </h4>
                           <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
-                            {m.passengerConfirmPrompt.passengers.length} Passenger{m.passengerConfirmPrompt.passengers.length > 1 ? 's' : ''} • Class {m.passengerConfirmPrompt.classCode}
+                            {m.passengerConfirmPrompt.passengers.length} Passenger{m.passengerConfirmPrompt.passengers.length > 1 ? 's' : ''} • Class {m.passengerConfirmPrompt.classBreakdown || m.passengerConfirmPrompt.classCode}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
@@ -1910,12 +1945,22 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
                       {/* Passenger entries preview */}
                       <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
-                        {m.passengerConfirmPrompt.passengers.map((p, idx) => (
-                          <div key={p.id || idx} className="flex items-center justify-between text-slate-700 text-[11px]">
-                            <span className="font-bold text-slate-900">{idx + 1}. {p.name} ({p.age}y, {p.gender})</span>
-                            <span className="text-purple-900 font-semibold">{p.berthPreference || 'Lower'}</span>
-                          </div>
-                        ))}
+                        {m.passengerConfirmPrompt.passengers.map((p, idx) => {
+                          const pClass = p.assignedClassCode || m.passengerConfirmPrompt?.classCode || '3A';
+                          return (
+                            <div key={p.id || idx} className="flex items-center justify-between text-slate-700 text-[11px]">
+                              <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>{idx + 1}. {p.name} ({p.age}y, {p.gender})</span>
+                                <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-mono font-black text-[9px] border border-purple-200">
+                                  Class {pClass}
+                                </span>
+                              </span>
+                              <span className="text-purple-900 font-semibold">
+                                {p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'No Preference'}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <p className="text-xs font-bold text-slate-800">

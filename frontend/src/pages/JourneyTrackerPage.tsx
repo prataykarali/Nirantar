@@ -232,6 +232,19 @@ export const JourneyTrackerPage: React.FC = () => {
     return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel);
   }, [trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel]);
 
+  // Auto-pop the Coach / Waitlist Quota view ONLY when user has booked a Waitlist ticket on this train
+  useEffect(() => {
+    const hasWaitlistBooking = isUserBookedTrain && Boolean(
+      (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
+      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.length === 0)
+    );
+    if (hasWaitlistBooking) {
+      setActiveTrackerTab('coach');
+    } else {
+      setActiveTrackerTab('timeline');
+    }
+  }, [trainNumber, isUserBookedTrain, bookingRecord?.status, issuedTicket?.seatAllotments]);
+
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
     if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {

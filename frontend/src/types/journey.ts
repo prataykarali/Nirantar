@@ -107,6 +107,7 @@ export interface PassengerProfile {
   age: number;
   gender: 'M' | 'F' | 'O';
   berthPreference: 'LOWER' | 'MIDDLE' | 'UPPER' | 'SIDE_LOWER' | 'SIDE_UPPER' | 'NO_PREFERENCE';
+  assignedClassCode?: string;
   seniorCitizenConcession?: boolean;
   idProofType?: string;
   nationality?: string;

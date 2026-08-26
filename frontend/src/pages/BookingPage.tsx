@@ -78,7 +78,21 @@ export const BookingPage: React.FC = () => {
     fare: 2150,
   };
 
-  const totalFare = selectedClass.fare * Math.max(1, passengers.length);
+  // Compute Class Breakdown string (e.g. 1x 3A, 1x SL) & dynamic per-passenger fare sum
+  const classCounts: Record<string, number> = {};
+  passengers.forEach((p) => {
+    const code = p.assignedClassCode || selectedClassCode || train.classes[0]?.classCode || '3A';
+    classCounts[code] = (classCounts[code] || 0) + 1;
+  });
+  const classBreakdown = Object.entries(classCounts)
+    .map(([cls, count]) => `${count}x ${cls}`)
+    .join(', ');
+
+  const totalFare = passengers.reduce((sum, p) => {
+    const pCode = p.assignedClassCode || selectedClassCode || train.classes[0]?.classCode || '3A';
+    const cls = train.classes?.find((c) => c.classCode === pCode);
+    return sum + (cls ? cls.fare : (selectedClass?.fare || 1870));
+  }, 0);
 
   // AI-Assisted Safe Autofill Engine with Strict Allowed-Field Filter
   const handleAiAutofill = () => {
@@ -283,10 +297,15 @@ export const BookingPage: React.FC = () => {
           {/* TRAVEL CLASS SELECTION SECTION */}
           {train.classes && train.classes.length > 0 && (
             <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1.5">
                 <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                   <Train className="w-3.5 h-3.5 text-purple-700" />
-                  <span>Travel Class: <strong className="text-purple-900 font-mono">{selectedClass.classCode} ({selectedClass.className})</strong></span>
+                  <span>
+                    Travel Class:{' '}
+                    <strong className="text-purple-900 font-mono">
+                      {classBreakdown ? `${classBreakdown}` : `${selectedClass.classCode} (${selectedClass.className})`}
+                    </strong>
+                  </span>
                 </span>
                 <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                   {train.classes.length} Classes Available
@@ -300,7 +319,10 @@ export const BookingPage: React.FC = () => {
                     <button
                       key={c.classCode}
                       type="button"
-                      onClick={() => setSelectedClassCode(c.classCode)}
+                      onClick={() => {
+                        setSelectedClassCode(c.classCode);
+                        setPassengers(passengers.map((p) => ({ ...p, assignedClassCode: c.classCode })));
+                      }}
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-purple-900 text-white border-purple-900 shadow-md ring-2 ring-purple-300'
@@ -358,6 +380,11 @@ export const BookingPage: React.FC = () => {
                     <span className="text-xs sm:text-sm font-bold text-slate-900">
                       Passenger #{index + 1}
                     </span>
+                    {passenger.assignedClassCode && (
+                      <span className="text-[10px] font-mono font-black bg-purple-100 text-purple-900 px-2 py-0.2 rounded-full border border-purple-200">
+                        Class {passenger.assignedClassCode}
+                      </span>
+                    )}
                     {isAiAutofilled && (
                       <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded border border-purple-200">
                         Prepared by Nira
@@ -427,8 +454,8 @@ export const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Berth Preference */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                {/* Berth Preference & Coach/Class Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
                   <div className="space-y-0.5">
                     <label className="block text-xs font-bold text-slate-700">
                       Berth / Seat Preference
@@ -447,6 +474,25 @@ export const BookingPage: React.FC = () => {
                     </select>
                   </div>
 
+                  {train.classes && train.classes.length > 0 && (
+                    <div className="space-y-0.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Assigned Coach / Class
+                      </label>
+                      <select
+                        value={passenger.assignedClassCode || selectedClassCode || train.classes[0]?.classCode || '3A'}
+                        onChange={(e) => handleUpdatePassenger(passenger.id, 'assignedClassCode', e.target.value)}
+                        className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all cursor-pointer font-mono font-bold"
+                      >
+                        {train.classes.map((cls) => (
+                          <option key={cls.classCode} value={cls.classCode}>
+                            {cls.classCode} ({cls.className}) — ₹{cls.fare}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-1.5 pt-3.5">
                     <input
                       type="checkbox"
@@ -456,7 +502,7 @@ export const BookingPage: React.FC = () => {
                       className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 border-purple-300 cursor-pointer"
                     />
                     <label htmlFor={`concession_${passenger.id}`} className="text-xs font-semibold text-slate-700 cursor-pointer">
-                      Senior citizen concession (if eligible)
+                      Senior citizen concession
                     </label>
                   </div>
                 </div>

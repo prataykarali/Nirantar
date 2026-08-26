@@ -13,6 +13,7 @@ import {
   User,
   Ticket,
   Train,
+  Navigation,
   ArrowRight,
   ShieldCheck,
   Zap,
@@ -459,14 +460,54 @@ export const CompletionResultPage: React.FC = () => {
             </div>
           </div>
 
-          {/* WHAT WOULD YOU LIKE TO DO NEXT? (2 ACTION CARDS) */}
+          {/* WHAT WOULD YOU LIKE TO DO NEXT? (3 ACTION CARDS) */}
           <div className="space-y-1.5 pt-0.5">
             <h4 className="text-xs font-bold text-slate-900 px-1">
               What would you like to do next?
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {/* Action 1: Book Another Ticket */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Action 1: Track Train Live GPS Radar */}
+              <button
+                type="button"
+                onClick={() => handleQuickTrack(train.trainNumber)}
+                className="p-2.5 px-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-300 flex items-center justify-between text-left transition-all group cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <Train className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-emerald-950 group-hover:text-emerald-900 block">
+                      Track Train #{train.trainNumber}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">Live GPS Platform Radar</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Action 2: Go to My Journeys */}
+              <button
+                type="button"
+                onClick={() => navigateTo('my-journeys')}
+                className="p-2.5 px-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-left transition-all group cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                    <Navigation className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-purple-900 block">
+                      Go to My Journeys
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">View upcoming trips</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Action 3: Book Another Ticket */}
               <button
                 type="button"
                 onClick={() => navigateTo('discover')}
@@ -481,26 +522,6 @@ export const CompletionResultPage: React.FC = () => {
                       Book Another Ticket
                     </span>
                     <span className="text-[10px] text-slate-500 font-medium">Plan a new journey</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-
-              {/* Action 2: Go to My Journeys */}
-              <button
-                type="button"
-                onClick={() => navigateTo('my-journeys')}
-                className="p-2.5 px-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-left transition-all group cursor-pointer shadow-xs"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                    <Train className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 group-hover:text-purple-900 block">
-                      Go to My Journeys
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium">View your upcoming trips</span>
                   </div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />

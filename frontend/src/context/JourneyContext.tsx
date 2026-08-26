@@ -1017,9 +1017,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       stepNumber: 1,
       title: '1. Hands-Free Nira AI Assistant',
       speech: 'Welcome to Nirantar! Meet Nira, your conversational AI travel assistant. You can chat or speak to search trains, autofill passenger forms, or check live policies hands-free anytime!',
-      actionCue: 'Tap Nira on the left sidebar to start a conversation or speak your request.',
+      actionCue: 'Tap Nira on the left sidebar or chat directly in the open drawer to start.',
       actionButtonText: 'Explore Train Discovery ➔',
-      arrowPlacement: { bottom: '15%', left: '160px' },
+      arrowPlacement: { bottom: '260px', right: '440px' },
       arrowLabel: '🤖 Nira AI Chatbot & Voice Assistant',
       cardPosition: 'left',
       onAction: () => {
