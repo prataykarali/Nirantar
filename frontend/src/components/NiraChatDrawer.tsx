@@ -166,6 +166,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     paymentState,
     selectedTrain,
     selectedClassCode,
+    setSelectedClassCode,
     selectTrain,
     // ─── State-Aware Nira (Journey Orchestration) ───
     getSanitizedContext,
@@ -596,6 +597,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   const parsePassengerDetailsFromText = (text: string): {
     passengers: PassengerProfile[];
     contact?: { phone?: string; email?: string };
+    classCode?: string;
   } | null => {
     const lower = text.toLowerCase();
     
@@ -719,7 +721,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
       // Clean name
       let cleanName = cleanSegNoContact
-        .replace(/\b(?:passenger\s*\d*|details|my|name|is|age|years?|old|male|female|m|f|boy|girl|man|woman|berth|lower|upper|middle|side|window|senior|citizen|fill|book|for|seat|seats|ticket|tickets|with|me|and|also|mobile|phone|email|gmail|com)\b/gi, '')
+        .replace(/\b(?:passenger\s*\d*|details|my|name|is|age|years?|old|male|female|m|f|boy|girl|man|woman|berth|lower|upper|middle|side|window|senior|citizen|fill|book|for|seat|seats|ticket|tickets|with|me|and|also|mobile|phone|email|gmail|com|3a|2a|1a|sl|cc|ec|sleeper|tier|ac)\b/gi, '')
         .replace(/\d+/g, '')
         .replace(/[^a-zA-Z\s]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -745,7 +747,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       });
     }
 
-    return parsed.length > 0 ? { passengers: parsed, contact } : null;
+    // Extract class preference from message if present
+    let extractedClassCode: string | undefined = undefined;
+    if (/\b(?:3a|3-tier|3 tier|ac 3|3rd ac)\b/i.test(lower)) extractedClassCode = '3A';
+    else if (/\b(?:2a|2-tier|2 tier|ac 2|2nd ac)\b/i.test(lower)) extractedClassCode = '2A';
+    else if (/\b(?:1a|1st ac|first ac|first class)\b/i.test(lower)) extractedClassCode = '1A';
+    else if (/\b(?:sl|sleeper|non ac)\b/i.test(lower)) extractedClassCode = 'SL';
+    else if (/\b(?:cc|chair car)\b/i.test(lower)) extractedClassCode = 'CC';
+    else if (/\b(?:ec|exec|executive)\b/i.test(lower)) extractedClassCode = 'EC';
+
+    return parsed.length > 0 ? { passengers: parsed, contact, classCode: extractedClassCode } : null;
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -994,7 +1005,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
       const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
       const targetTrain = selectedTrain || (nextRouteCtx.trainNumber ? resolveTrainDetail(nextRouteCtx.trainNumber) : null) || resolveTrainDetail('12232');
-      const targetClass = selectedClassCode || nextRouteCtx.classCode || '3A';
+      const targetClass = parsedPaxResult.classCode || selectedClassCode || nextRouteCtx.classCode || '3A';
+      if (parsedPaxResult.classCode) {
+        setSelectedClassCode(parsedPaxResult.classCode);
+      }
       const singleFare = targetTrain.classes?.find((c) => c.classCode === targetClass)?.fare || targetTrain.classes?.[0]?.fare || 1040;
       const totalAmount = singleFare * extractedPassengers.length;
 

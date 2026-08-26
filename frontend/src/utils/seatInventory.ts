@@ -5,14 +5,13 @@ export type LiveSeatStatus = 'AVAILABLE' | 'RAC' | 'WL';
 export interface LiveSeatInventory {
   seats: number;
   waitlist: number;
+  racCount: number;         // Actual number of RAC passengers (e.g. 2, 4, or 0)
   status: LiveSeatStatus;
   initialWaitlist: number;
   positionsCleared: number;
   cancellationVelocity: number; // e.g. 3.4/hr
   occupancyPercent: number;
 }
-
-const TICK_MS = 6_000;
 
 function hash(value: string): number {
   let output = 2166136261;
@@ -30,9 +29,6 @@ export interface CoachInfo {
 
 /**
  * Dynamically builds authentic coach composition based strictly on the train's actual classes.
- * Trains like Vande Bharat (CC, EC) will only have C1-C8 and E1-E2.
- * Rajdhani will have B1-B6, A1-A2, H1.
- * Express trains will have S1-S6, B1-B4, A1, H1.
  */
 export function getTrainCoaches(trainNumber: string, availableClasses: Array<{ classCode: string; className?: string }>): CoachInfo[] {
   const coaches: CoachInfo[] = [];
@@ -110,108 +106,147 @@ export interface SeatBerth {
 }
 
 /**
- * Generates the authentic berth/seat layout for a specific coach class.
+ * Generates the authentic berth/seat layout for a specific coach class and exact RAC count.
+ * Exactly lights up only the required RAC berths (1 Side-Lower per 2 RAC passengers).
+ * First AC (1A) and Chair Cars (CC/EC) NEVER have RAC.
  */
-export function getCoachBerthLayout(coachCode: string, classCode: string, userWlPosition = 14): SeatBerth[] {
+export function getCoachBerthLayout(
+  coachCode: string,
+  classCode: string,
+  racCount = 0,
+  isUserCoach = false,
+  userSeatNumber?: number
+): SeatBerth[] {
   const seats: SeatBerth[] = [];
 
+  // Chair car layout: CC / EC (NEVER HAS RAC)
   if (classCode === 'CC' || classCode === 'EC') {
-    // Chair car layout: 2x3 for CC, 2x2 for EC
     const totalSeats = classCode === 'EC' ? 16 : 20;
     const types = classCode === 'EC' ? ['W', 'A', 'A', 'W'] : ['W', 'M', 'A', 'A', 'W'];
     for (let i = 1; i <= totalSeats; i++) {
       const type = types[(i - 1) % types.length];
+      const isUser = isUserCoach && userSeatNumber === i;
       seats.push({
         num: i,
         type,
-        status: i > totalSeats - 2 ? 'RAC' : 'CNF',
-        label: i > totalSeats - 2 ? 'RAC' : 'CNF',
+        status: 'CNF',
+        label: isUser ? 'YOU' : 'CNF',
+        isUserSeat: isUser,
       });
     }
     return seats;
   }
 
-  if (classCode === '2A') {
-    // 2-Tier AC: 6 berths per bay (no middle berth: LB, UB, LB, UB, SL, SU)
-    const bayPattern = [
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'SL', isRac: true, label: 'RAC 1/2' },
-      { type: 'SU', isRac: false },
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'SL', isRac: true, label: 'RAC 3/4' },
-      { type: 'SU', isRac: false },
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'LB', isRac: false },
-      { type: 'UB', isRac: false },
-      { type: 'SL', isRac: true, label: 'RAC 5/6' },
-      { type: 'SU', isRac: false },
-    ];
-    bayPattern.forEach((bp, idx) => {
+  // 1st AC layout: H1 (NEVER HAS RAC)
+  if (classCode === '1A') {
+    const cabinPattern = ['LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB'];
+    cabinPattern.forEach((type, idx) => {
+      const num = idx + 1;
+      const isUser = isUserCoach && userSeatNumber === num;
       seats.push({
-        num: idx + 1,
-        type: bp.type,
-        status: bp.isRac ? 'RAC' : 'CNF',
-        label: bp.label || 'CNF',
+        num,
+        type,
+        status: 'CNF',
+        label: isUser ? 'YOU' : 'CNF',
+        isUserSeat: isUser,
       });
     });
     return seats;
   }
 
-  if (classCode === '1A') {
-    // 1st AC: 4 berths per cabin (LB, UB, LB, UB)
-    const cabinPattern = ['LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB'];
-    cabinPattern.forEach((type, idx) => {
+  // Number of Side Lower berths needed to accommodate racCount (2 RAC passengers per Side Lower berth)
+  const activeRacBerthSlots = Math.min(3, Math.ceil(racCount / 2));
+
+  // 2-Tier AC layout: A1, A2 (6 berths per bay: LB, UB, LB, UB, SL, SU)
+  if (classCode === '2A') {
+    const raw2ABay = [
+      { num: 1, type: 'LB' },
+      { num: 2, type: 'UB' },
+      { num: 3, type: 'LB' },
+      { num: 4, type: 'UB' },
+      { num: 5, type: 'SL', isSideLower: true, racSlotIndex: 1 },
+      { num: 6, type: 'SU' },
+      { num: 7, type: 'LB' },
+      { num: 8, type: 'UB' },
+      { num: 9, type: 'LB' },
+      { num: 10, type: 'UB' },
+      { num: 11, type: 'SL', isSideLower: true, racSlotIndex: 2 },
+      { num: 12, type: 'SU' },
+      { num: 13, type: 'LB' },
+      { num: 14, type: 'UB' },
+      { num: 15, type: 'LB' },
+      { num: 16, type: 'UB' },
+      { num: 17, type: 'SL', isSideLower: true, racSlotIndex: 3 },
+      { num: 18, type: 'SU' },
+    ];
+
+    raw2ABay.forEach((s) => {
+      const isRac = !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+      const isUser = isUserCoach && userSeatNumber === s.num;
+      let label = 'CNF';
+      if (isUser) label = 'YOU';
+      else if (isRac) {
+        label = s.racSlotIndex === 1 ? 'RAC 1/2' : s.racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+      }
+
       seats.push({
-        num: idx + 1,
-        type,
-        status: 'CNF',
-        label: 'CNF',
+        num: s.num,
+        type: s.type,
+        status: isRac ? 'RAC' : 'CNF',
+        label,
+        isUserSeat: isUser,
       });
     });
     return seats;
   }
 
   // Standard 3-Tier (3A & SL): 8 berths per bay (LB, MB, UB, LB, MB, UB, SL, SU)
-  const standardBay = [
-    { num: 1, type: 'LB', status: 'CNF' },
-    { num: 2, type: 'MB', status: 'CNF' },
-    { num: 3, type: 'UB', status: 'CNF' },
-    { num: 4, type: 'LB', status: 'CNF' },
-    { num: 5, type: 'MB', status: 'CNF' },
-    { num: 6, type: 'UB', status: 'CNF' },
-    { num: 7, type: 'SL', status: 'RAC', label: 'RAC 1/2' },
-    { num: 8, type: 'SU', status: 'CNF' },
-    { num: 9, type: 'LB', status: 'CNF' },
-    { num: 10, type: 'MB', status: 'CNF' },
-    { num: 11, type: 'UB', status: 'CNF' },
-    { num: 12, type: 'LB', status: 'CNF' },
-    { num: 13, type: 'MB', status: 'CNF' },
-    { num: 14, type: 'UB', status: 'CNF' },
-    { num: 15, type: 'SL', status: 'RAC', label: 'RAC 3/4' },
-    { num: 16, type: 'SU', status: 'CNF' },
-    { num: 17, type: 'LB', status: 'CNF' },
-    { num: 18, type: 'MB', status: 'CNF' },
-    { num: 19, type: 'UB', status: 'CNF' },
-    { num: 20, type: 'LB', status: 'CNF' },
-    { num: 21, type: 'MB', status: 'CNF' },
-    { num: 22, type: 'UB', status: 'CNF' },
-    { num: 23, type: 'SL', status: 'RAC', label: 'RAC 5/6' },
-    { num: 24, type: 'SU', status: 'CNF' },
+  const raw3ABay = [
+    { num: 1, type: 'LB' },
+    { num: 2, type: 'MB' },
+    { num: 3, type: 'UB' },
+    { num: 4, type: 'LB' },
+    { num: 5, type: 'MB' },
+    { num: 6, type: 'UB' },
+    { num: 7, type: 'SL', isSideLower: true, racSlotIndex: 1 },
+    { num: 8, type: 'SU' },
+    { num: 9, type: 'LB' },
+    { num: 10, type: 'MB' },
+    { num: 11, type: 'UB' },
+    { num: 12, type: 'LB' },
+    { num: 13, type: 'MB' },
+    { num: 14, type: 'UB' },
+    { num: 15, type: 'SL', isSideLower: true, racSlotIndex: 2 },
+    { num: 16, type: 'SU' },
+    { num: 17, type: 'LB' },
+    { num: 18, type: 'MB' },
+    { num: 19, type: 'UB' },
+    { num: 20, type: 'LB' },
+    { num: 21, type: 'MB' },
+    { num: 22, type: 'UB' },
+    { num: 23, type: 'SL', isSideLower: true, racSlotIndex: 3 },
+    { num: 24, type: 'SU' },
   ];
 
-  return standardBay.map((s) => ({
-    num: s.num,
-    type: s.type,
-    status: s.status as any,
-    label: s.label || 'CNF',
-  }));
+  raw3ABay.forEach((s) => {
+    const isRac = !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+    const isUser = isUserCoach && userSeatNumber === s.num;
+    let label = 'CNF';
+    if (isUser) label = 'YOU';
+    else if (isRac) {
+      label = s.racSlotIndex === 1 ? 'RAC 1/2' : s.racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+    }
+
+    seats.push({
+      num: s.num,
+      type: s.type,
+      status: isRac ? 'RAC' : 'CNF',
+      label,
+      isUserSeat: isUser,
+    });
+  });
+
+  return seats;
 }
 
 /**
@@ -230,43 +265,51 @@ export function liveSeatInventory(
   let baseWl = 14;
   let velocity = 3.4;
   let occupancy = 94;
+  let racCount = 2;
 
   switch (classCode) {
     case 'SL':
       baseWl = 28 + (seed % 16); // 28 to 44
       velocity = 4.8;
       occupancy = 98;
+      racCount = 4;
       break;
     case '3A':
     case '3E':
       baseWl = 12 + (seed % 10); // 12 to 22
       velocity = 3.4;
       occupancy = 94;
+      racCount = 2;
       break;
     case '2A':
       baseWl = 6 + (seed % 6);   // 6 to 12
       velocity = 1.8;
       occupancy = 91;
+      racCount = 2; // Exactly 1 Side Lower (RAC 1/2)
       break;
     case '1A':
       baseWl = 2 + (seed % 3);   // 2 to 4
       velocity = 0.8;
       occupancy = 86;
+      racCount = 0; // First AC NEVER has RAC
       break;
     case 'CC':
       baseWl = 10 + (seed % 8);  // 10 to 18
       velocity = 2.6;
       occupancy = 92;
+      racCount = 0; // Chair Car NEVER has RAC
       break;
     case 'EC':
       baseWl = 3 + (seed % 4);   // 3 to 6
       velocity = 1.1;
       occupancy = 88;
+      racCount = 0; // Exec Chair Car NEVER has RAC
       break;
     default:
       baseWl = 14;
       velocity = 3.0;
       occupancy = 93;
+      racCount = 2;
   }
 
   // Gradual simulated drop based on clock
@@ -279,6 +322,7 @@ export function liveSeatInventory(
     return {
       seats: initialSeats,
       waitlist: 0,
+      racCount: 0,
       status: 'AVAILABLE',
       initialWaitlist: baseWl,
       positionsCleared: cleared,
@@ -290,7 +334,8 @@ export function liveSeatInventory(
   return {
     seats: 0,
     waitlist: currentWl,
-    status: currentWl <= 4 ? 'RAC' : 'WL',
+    racCount: currentWl <= 2 ? 2 : racCount,
+    status: currentWl <= 2 ? 'RAC' : 'WL',
     initialWaitlist: baseWl,
     positionsCleared: cleared,
     cancellationVelocity: velocity,

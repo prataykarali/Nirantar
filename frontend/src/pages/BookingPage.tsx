@@ -31,6 +31,7 @@ export const BookingPage: React.FC = () => {
     searchParams,
     selectedTrain,
     selectedClassCode,
+    setSelectedClassCode,
     passengers,
     setPassengers,
     navigateTo,
@@ -279,6 +280,54 @@ export const BookingPage: React.FC = () => {
       <form onSubmit={handleContinueToPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 items-start">
         {/* ──────────────── LEFT COLUMN: PASSENGER FORMS (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-2">
+          {/* TRAVEL CLASS SELECTION SECTION */}
+          {train.classes && train.classes.length > 0 && (
+            <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Train className="w-3.5 h-3.5 text-purple-700" />
+                  <span>Travel Class: <strong className="text-purple-900 font-mono">{selectedClass.classCode} ({selectedClass.className})</strong></span>
+                </span>
+                <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                  {train.classes.length} Classes Available
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {train.classes.map((c) => {
+                  const isSelected = (selectedClassCode || train.classes[0]?.classCode) === c.classCode;
+                  return (
+                    <button
+                      key={c.classCode}
+                      type="button"
+                      onClick={() => setSelectedClassCode(c.classCode)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-purple-900 text-white border-purple-900 shadow-md ring-2 ring-purple-300'
+                          : 'bg-purple-50/50 hover:bg-purple-100/70 border-purple-100 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <strong className="font-mono text-sm font-black">{c.classCode}</strong>
+                        <span className={`font-mono text-xs font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                          ₹{c.fare}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] mt-0.5">
+                        <span className={isSelected ? 'text-purple-200' : 'text-slate-500'}>
+                          {c.className}
+                        </span>
+                        <span className={`font-semibold ${isSelected ? 'text-emerald-200' : 'text-emerald-600'}`}>
+                          {c.status}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* PASSENGERS CARD LIST */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">

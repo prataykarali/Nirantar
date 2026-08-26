@@ -74,7 +74,7 @@ const KNOWN_TRAIN_NAMES: Record<string, string> = {
 };
 
 export const JourneyTrackerPage: React.FC = () => {
-  const { searchParams, selectedTrain, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
+  const { searchParams, selectedTrain, selectedClassCode, trackQuery, setTrackQuery, navigateTo, addNotification } = useJourney();
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || '12302';
 
   // ─── STATE HOOKS (Declared at Top) ───
@@ -183,9 +183,20 @@ export const JourneyTrackerPage: React.FC = () => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
 
+  // Determine if this selected coach is the user's booked coach/class
+  const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
+  const isUserClass = selectedCoachInfo.classCode === userBookedClass;
+  const isUserCoach = selectedCoach === 'B4' || (isUserClass && selectedCoach === (trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4'));
+
   const coachBerthLayout = useMemo(() => {
-    return getCoachBerthLayout(selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.waitlist);
-  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.waitlist]);
+    return getCoachBerthLayout(
+      selectedCoachInfo.code,
+      selectedCoachInfo.classCode,
+      coachInventory.racCount,
+      isUserCoach,
+      isUserCoach ? 14 : undefined
+    );
+  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach]);
 
   const seatClass = foundTrain?.classes?.find((c) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
   const seatInventory = coachInventory;
@@ -956,12 +967,14 @@ export const JourneyTrackerPage: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
                   <Explain term="CNF" />
                 </span>
-                <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
-                  <Explain term="RAC" />
-                </span>
+                {coachInventory.racCount > 0 && (
+                  <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
+                    <Explain term="RAC" />
+                  </span>
+                )}
                 <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} (You)
+                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} {isUserCoach ? '(You)' : '(Queue)'}
                   <Explain
                     term="GNWL"
                     context={{
@@ -1005,7 +1018,7 @@ export const JourneyTrackerPage: React.FC = () => {
                 <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
                   <span>Occupancy: {coachInventory.occupancyPercent}%</span>
                   <span>•</span>
-                  <span>4 RAC</span>
+                  <span>{coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
                   <span>•</span>
                   <span>{coachInventory.waitlist} GNWL in Queue</span>
                   <Explain
@@ -1023,11 +1036,14 @@ export const JourneyTrackerPage: React.FC = () => {
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
                 {coachBerthLayout.map((seat) => {
                   const isRac = seat.status === 'RAC';
+                  const isUser = !!seat.isUserSeat;
                   return (
                     <div
                       key={seat.num}
                       className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                        isRac
+                        isUser
+                          ? 'bg-purple-600/40 border-purple-400 text-white ring-2 ring-purple-400 shadow-sm shadow-purple-500/50'
+                          : isRac
                           ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
                           : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                       }`}
@@ -1036,7 +1052,11 @@ export const JourneyTrackerPage: React.FC = () => {
                       <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
                       <span
                         className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 ${
-                          isRac ? 'bg-amber-400 text-slate-950' : 'bg-emerald-400/20 text-emerald-300'
+                          isUser
+                            ? 'bg-purple-400 text-slate-950 font-black'
+                            : isRac
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-emerald-400/20 text-emerald-300'
                         }`}
                       >
                         {seat.label || 'CNF'}
@@ -1048,25 +1068,55 @@ export const JourneyTrackerPage: React.FC = () => {
 
               {/* User's Waitlist Highlight Tile */}
               <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">
-                    ★
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
-                    <Explain
-                      term="GNWL"
-                      context={{
-                        currentValue: coachInventory.waitlist,
-                        initialValue: coachInventory.initialWaitlist,
-                        probability: wlWatch.confirmationProbability,
-                      }}
-                    />
-                  </span>
-                </div>
-                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                  ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
-                </span>
+                {isUserCoach ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">
+                        ★
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
+                        <Explain
+                          term="GNWL"
+                          context={{
+                            currentValue: coachInventory.waitlist,
+                            initialValue: coachInventory.initialWaitlist,
+                            probability: wlWatch.confirmationProbability,
+                          }}
+                        />
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                      ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">
+                        ℹ
+                      </span>
+                      <span className="flex items-center gap-1.5 text-purple-200">
+                        Coach <strong className="text-white font-mono">{selectedCoach}</strong> Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> • {coachInventory.racCount} RAC ({selectedCoachInfo.className})
+                        <Explain
+                          term="GNWL"
+                          context={{
+                            currentValue: coachInventory.waitlist,
+                            initialValue: coachInventory.initialWaitlist,
+                            probability: wlWatch.confirmationProbability,
+                          }}
+                        />
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCoach(trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4')}
+                      className="text-[11px] font-bold text-purple-200 bg-purple-800/60 hover:bg-purple-700/60 px-2.5 py-1 rounded-full border border-purple-400/30 transition-all cursor-pointer"
+                    >
+                      Jump to Your Booked Coach →
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
