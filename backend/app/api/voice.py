@@ -124,18 +124,12 @@ async def speech_to_text(req: TranscribeRequest):
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    transcript = (
-                        data.get("results", {})
-                        .get("channels", [{}])[0]
-                        .get("alternatives", [{}])[0]
-                        .get("transcript", "")
-                    )
-                    confidence = (
-                        data.get("results", {})
-                        .get("channels", [{}])[0]
-                        .get("alternatives", [{}])[0]
-                        .get("confidence", 0.96)
-                    )
+                    channels = data.get("results", {}).get("channels", [])
+                    first_channel = channels[0] if channels else {}
+                    alternatives = first_channel.get("alternatives", [])
+                    first_alt = alternatives[0] if alternatives else {}
+                    transcript = first_alt.get("transcript", "")
+                    confidence = first_alt.get("confidence", 0.96)
                     return {
                         "status": 200,
                         "transcript": transcript,
