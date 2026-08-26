@@ -233,9 +233,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       },
       {
         icon: ShieldCheck,
-        label: 'Prepare Tatkal safe autofill for 10:00 AM',
+        label: 'Prepare Tatkal passenger details for 10:00 AM',
         query: 'Auto prepare Tatkal autofill for 10:00 AM booking opening',
-        tag: 'SafeAssist',
+        tag: 'Passenger details',
       },
       {
         icon: HelpCircle,
@@ -315,9 +315,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       },
       {
         icon: ShieldCheck,
-        label: 'How Nirantar SafeAssist Zero-PII works',
-        query: 'How does Nirantar SafeAssist Zero-PII protection work?',
-        tag: 'Privacy Boundary',
+        label: 'How passenger details are used in this demo',
+        query: 'How do passenger details work in this demo?',
+        tag: 'Passenger details',
       },
     ],
   };
@@ -1080,8 +1080,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER 3: LLM STREAMING + GRACEFUL FALLBACK (Safe Assist Mode)
-    // With 15-second UI safety timeout to prevent infinite spinner
+    // Deterministic local reply engine with a UI safety timeout.
     // ═══════════════════════════════════════════════════════════
     let accumulated = '';
     let streamResolved = false;
@@ -1092,7 +1091,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         streamResolved = true;
         const timeoutMsg = accumulated
           ? accumulated  // partial tokens arrived — show what we got
-          : "I'm having trouble reaching the AI service right now. Please try again in a moment, or ask me to find trains, track a train, or help with your booking.";
+          : "I can help with routes, booking, tracking, payments, journeys, voice controls, and the Page Guide. What would you like to do?";
         setIsLoading(false);
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, text: timeoutMsg, isStreaming: false } : m))
@@ -1217,10 +1216,10 @@ Please review the details above on the screen. Ready to proceed to payment?`;
             <div className="flex items-center gap-1.5">
               <h3 className="font-bold text-sm text-slate-900 leading-tight">Nira</h3>
               <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200">
-                🛡️ Nira Safe
+                Journey Guide
               </span>
             </div>
-            <p className="text-[10px] font-semibold text-purple-700">AI Journey Copilot • Zero-PII</p>
+            <p className="text-[10px] font-semibold text-purple-700">Routes • Booking • Tracking • Help</p>
           </div>
         </div>
 
@@ -1488,7 +1487,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600" />
                           </span>
-                          <span className="text-xs font-bold animate-pulse">Nira is streaming response...</span>
+                          <span className="text-xs font-bold animate-pulse">Nira is preparing your guide...</span>
                         </div>
                       ) : (
                         <div className="space-y-1.5">
@@ -1685,7 +1684,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
                       {/* Passenger draft notice */}
                       <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium px-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Passenger: <strong>{m.autoBookCard.passengerName}</strong> ({m.autoBookCard.passengersCount} adult) • SafeAssist Autofill</span>
+                        <span>Passenger: <strong>{m.autoBookCard.passengerName}</strong> ({m.autoBookCard.passengersCount} adult) • Autofill preview</span>
                       </div>
 
                       {/* Action Buttons */}

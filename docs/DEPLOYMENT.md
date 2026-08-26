@@ -4,6 +4,21 @@ Instructions for deploying NIRANTAR on bare-metal, Kubernetes, or air-gapped sec
 
 ---
 
+## Vercel deployment (recommended for the demo frontend)
+
+This repository deploys the Vite application from `frontend/` as a static site.
+Nira's response engine runs locally in the browser; it does not call an LLM or
+an external AI provider.
+
+1. Push this repository to GitHub, GitLab, or Bitbucket, then import it in Vercel.
+2. Leave **Root Directory** empty (the repository root). Vercel reads `vercel.json`.
+3. No environment variables are required for this static deployment.
+
+The Nira chat uses deterministic phrase scoring and local scripted replies.
+Scrapling and the Python backend are not included in the Vercel deployment.
+
+---
+
 ## 1. Local / Air-Gapped Deployment
 
 NIRANTAR requires zero external cloud connections to function:

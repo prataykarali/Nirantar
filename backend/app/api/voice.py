@@ -13,8 +13,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/voice", tags=["Voice & Speech"])
 
-MURF_API_KEY = os.getenv("MURF_API_KEY", "ap2_e02822c1-60a7-4cb2-95cb-f7f60445cf92")
-DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "d4ce071a8da028082bacade9f4708be3dfa7287f")
+MURF_API_KEY = os.getenv("MURF_API_KEY", "").strip()
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "").strip()
 
 
 class SpeakRequest(BaseModel):

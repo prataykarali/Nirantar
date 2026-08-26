@@ -164,7 +164,7 @@ export const DiscoverPage: React.FC = () => {
     }
   };
 
-  // NVIDIA structured intent, with Safe Assist fallback if the API is down.
+  // Local deterministic intent parsing.
   const handleProcessIntent = async (text: string) => {
     if (!text.trim()) return;
     setIsListening(false);
@@ -172,7 +172,7 @@ export const DiscoverPage: React.FC = () => {
     try {
       const result = await parseNiraIntent(text, 'en');
       setAssistResult(result);
-      setAssistSource(result.explanation?.includes('without AI') ? 'safe_assist' : 'nvidia');
+      setAssistSource('safe_assist');
     } catch {
       setAssistResult(SafeAssistParser.parse(text));
       setAssistSource('safe_assist');
@@ -647,10 +647,10 @@ export const DiscoverPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-bold flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-rose-500 animate-ping' : 'bg-emerald-400'}`} />
-                  {isListening ? 'Listening via Speech Recognition...' : assistLoading ? 'Nira is interpreting…' : 'Nira + Safe Assist ready'}
+                  {isListening ? 'Listening via Speech Recognition...' : assistLoading ? 'Nira is interpreting…' : 'Nira ready'}
                 </span>
                 <span className="text-[10px] font-mono text-purple-300 font-bold bg-purple-900/80 px-2 py-0.5 rounded">
-                  {assistSource === 'safe_assist' ? 'Safe Assist fallback' : 'NVIDIA JSON'}
+                  Local guide
                 </span>
               </div>
 
