@@ -523,14 +523,25 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     contact?: { phone?: string; email?: string };
   } | null => {
     const lower = text.toLowerCase();
+    const isWorkspaceStep = activePage === 'workspace' || activePage === 'booking';
+
     const hasGender = /\b(?:male|female|m|f|boy|girl|man|woman|gent|lady)\b/i.test(lower);
     const hasAge = /\b(?:age\s*\d{1,2}|\d{1,2}\s*(?:years?|yrs?|yr|yo|pax|passenger)|age\b|\b\d{2}\b)/i.test(lower);
     const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat)\b/i.test(lower);
     const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(text);
     const hasPhone = /\b[6-9]\d{9}\b/.test(text);
-    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram)\b/i.test(lower);
+    const hasPassengerKeywords = /\b(?:passenger|name|fill|book for|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|karali|sharma|kumar|singh)\b/i.test(lower);
+    const isLikelyNameInput = text.trim().length >= 2 && !text.includes('?') && !lower.startsWith('book') && !lower.startsWith('track') && !lower.startsWith('find') && !lower.startsWith('search') && !lower.startsWith('where') && !lower.startsWith('auto book');
 
-    if (!((hasGender && (hasAge || hasBerth || hasPhone || hasEmail)) || (hasPassengerKeywords && (hasAge || hasGender || hasBerth)) || (hasEmail && hasPhone))) {
+    if (
+      !(
+        isWorkspaceStep ||
+        (hasGender && (hasAge || hasBerth || hasPhone || hasEmail)) ||
+        (hasPassengerKeywords && (hasAge || hasGender || hasBerth)) ||
+        (hasEmail && hasPhone) ||
+        isLikelyNameInput
+      )
+    ) {
       return null;
     }
 
@@ -564,6 +575,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       rawSegments = text.split(multiPaxRegex).map((s) => s.trim()).filter((s) => s.length > 2);
     }
 
+    const existingPassengers = currentPassengers || [];
     const parsed: PassengerProfile[] = [];
 
     for (let i = 0; i < rawSegments.length; i++) {
@@ -576,10 +588,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         .replace(/\b[6-9]\d{9}\b/g, ' ');
 
       const ageMatch = cleanSegNoContact.match(/\b(?:age\s*)?(\b\d{1,2}\b)/i);
-      let age = ageMatch ? parseInt(ageMatch[1], 10) : 25;
+      const existingAge = existingPassengers[i]?.age || 25;
+      let age = ageMatch ? parseInt(ageMatch[1], 10) : existingAge;
       if (age > 100 || age < 1) age = 25;
 
-      let gender: 'M' | 'F' | 'O' = 'M';
+      const existingGender = existingPassengers[i]?.gender || 'M';
+      let gender: 'M' | 'F' | 'O' = existingGender;
       if (/\b(?:female|f|girl|woman|lady|mrs|ms|mother|mom|sister|wife|daughter)\b/i.test(sLower)) {
         gender = 'F';
       } else if (/\b(?:male|m|boy|man|gent|mr|father|dad|brother|husband|son)\b/i.test(sLower)) {
@@ -588,7 +602,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         gender = 'O';
       }
 
-      let berthPreference: PassengerProfile['berthPreference'] = 'NO_PREFERENCE';
+      let berthPreference: PassengerProfile['berthPreference'] = existingPassengers[i]?.berthPreference || 'NO_PREFERENCE';
       if (sLower.includes('side lower') || sLower.includes('sl')) berthPreference = 'SIDE_LOWER';
       else if (sLower.includes('side upper') || sLower.includes('su')) berthPreference = 'SIDE_UPPER';
       else if (sLower.includes('upper') || sLower.includes('ub')) berthPreference = 'UPPER';
@@ -604,7 +618,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         .trim();
 
       if (!cleanName || cleanName.length < 2) {
-        cleanName = `Passenger ${i + 1}`;
+        cleanName = existingPassengers[i]?.name || `Passenger ${i + 1}`;
       }
 
       const formattedName = cleanName
@@ -614,7 +628,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         .join(' ');
 
       parsed.push({
-        id: `p_${Date.now()}_${i + 1}`,
+        id: existingPassengers[i]?.id || `p_${Date.now()}_${i + 1}`,
         name: formattedName,
         age,
         gender,
