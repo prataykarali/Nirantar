@@ -32,7 +32,7 @@ import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTra
 import { sendCitizenQuery } from '../services/api';
 import { speakNiraResponse, stopNiraSpeech, setNiraMuted } from '../services/voiceService';
 import { streamNiraChat, transcribeAudio } from '../services/niraApi';
-import { getTrainStoppages } from '../data/trainStoppages';
+import { getTrainStoppages, KNOWN_TRAIN_NAMES, resolveTrainDetail } from '../data/trainStoppages';
 import { formatTrainGrounding, rankTrains, plainClass } from '../utils/rankTrains';
 import { NiraPlanner, NiraSanitizedContext } from '../ai/NiraPlanner';
 import { PiiRedactor } from '../ai/PiiRedactor';
@@ -147,6 +147,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setNiraPendingQuery,
     trackQuery,
   } = useJourney();
+
+  const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
+  const isBetweenTransactionStates = activePage === 'workspace' || activePage === 'payment';
+  const shouldShowResumeTask = taskStack.length > 0 && (hasEnteredPassengerDetails || isBetweenTransactionStates);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -440,11 +444,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         lower.startsWith('autobook') ||
         lower.startsWith('book ') ||
         lower.startsWith('reserve ') ||
+        lower.includes('want to book') ||
+        lower.includes('wanna book') ||
         lower.includes('find trains from') ||
         lower.includes('search trains from') ||
-        lower.includes('book ticket from') ||
-        lower.includes('book train from') ||
-        /(?:book|reserve)\b.*(?:train|#)\s*\d{5}/i.test(text)
+        lower.includes('book ticket') ||
+        lower.includes('book train') ||
+        /(?:book|reserve)\b.*(?:train|#)\s*\d+/i.test(text)
       );
 
     const isTrack =
@@ -467,14 +473,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
-    const rawNumberMatch = text.match(/(?:train|#)\s*(\d{5})/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
+    const rawNumberMatch = text.match(/(?:train|#)\s*(\d+)/i) || (isTrack ? text.match(/\b(\d+)\b/) : null);
     if (rawNumberMatch) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         updated.trainNumber = num;
-      } else if (num.length > 0 && num.length < 5 && isTrack) {
+      } else {
         (updated as any).invalidTrainNumber = num;
       }
+    } else if (
+      (lower.includes('book train') || lower.includes('want to book train') || lower.includes('reserve train')) &&
+      !lower.includes('from') &&
+      !lower.includes('to')
+    ) {
+      (updated as any).missingTrainNumber = true;
     }
 
     // 2. Station Extraction: explicit route regex or verified station names
@@ -777,67 +789,43 @@ Please review the details above on the screen. Ready to proceed to payment?`;
       return;
     }
 
-    // ─── 1B: Tracking Intent (preserves booking in task stack if active) ───
+    // ─── 1B: Validation for Train Numbers & Booking / Tracking ───
     const intentData = extractAdvancedIntent(safeQuery, routeCtx);
     const nextRouteCtx = intentData.route;
     setRouteCtx(nextRouteCtx);
 
-    if (intentData.isTrack || (intentData.trainNumber && !intentData.isAutoBook)) {
-      const invalidNum = (intentData.route as any)?.invalidTrainNumber;
-      if (invalidNum) {
-        const invalidMsg = `⚠️ **Invalid Train Number (#${invalidNum})**: Train numbers in Indian Railways must be **5 digits long** (for example: **#12302** Howrah Rajdhani or **#12951** Mumbai Rajdhani).\n\nPlease provide a valid 5-digit train number to track live GPS status!`;
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === botMsgId ? { ...m, text: invalidMsg, isStreaming: false } : m))
-        );
-        if (autoVoice) speakNiraResponse(invalidMsg);
-        return;
-      }
+    const invalidNum = (intentData.route as any)?.invalidTrainNumber;
+    if (invalidNum) {
+      const invalidMsg = `⚠️ **Invalid Train Number (#${invalidNum})**: Indian Railways train numbers are strictly **5 digits long** (for example: **#12302** Howrah Rajdhani, **#12951** Mumbai Rajdhani, **#12115** Siddheshwar SF Express).\n\nPlease enter a valid 5-digit train number!`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: invalidMsg, isStreaming: false } : m))
+      );
+      if (autoVoice) speakNiraResponse('That is not a valid 5 digit train number. Please enter a 5 digit train number.');
+      return;
+    }
 
-      if (!intentData.trainNumber) {
-        const askMsg = `Please provide a **5-digit train number** (e.g. **#12302** Howrah Rajdhani or **#12951** Mumbai Rajdhani) to track its real-time GPS telemetry and upcoming station halts!`;
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === botMsgId ? { ...m, text: askMsg, isStreaming: false } : m))
-        );
-        if (autoVoice) speakNiraResponse(askMsg);
-        return;
-      }
+    if ((intentData.route as any)?.missingTrainNumber) {
+      const askMsg = `Please enter a **5-digit train number** (e.g. **#12302**, **#12951**, **#12115**) or specify your origin and destination stations (e.g. *'Delhi to Mumbai'*).`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: askMsg, isStreaming: false } : m))
+      );
+      if (autoVoice) speakNiraResponse('Please enter a 5-digit train number or specify your route.');
+      return;
+    }
 
-      const trainNo = intentData.trainNumber.trim();
+    if (intentData.isTrack && !intentData.isAutoBook) {
+      const trainNo = (intentData.trainNumber || '12302').trim();
       handleQuickTrack(trainNo);
 
-      // If user is mid-booking, save progress to task stack before switching
-      if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
+      // Only save booking to task stack if user entered passenger details or between transactions
+      if ((hasEnteredPassengerDetails || isBetweenTransactionStates) && bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
         pushTask('BOOKING', 'Resume Booking', `${searchParams.fromStation?.city} → ${searchParams.toStation?.city}`);
       }
 
-      const dynamicTrainName =
-        trainNo === '12302'
-          ? 'Howrah Rajdhani Express'
-          : trainNo === '12951'
-          ? 'Mumbai Rajdhani Express'
-          : trainNo === '22436'
-          ? 'Varanasi Vande Bharat Express'
-          : trainNo === '12002'
-          ? 'Bhopal Shatabdi Express'
-          : trainNo === '12004'
-          ? 'Lucknow Shatabdi Express'
-          : trainNo === '22692'
-          ? 'Bengaluru Rajdhani Express'
-          : trainNo === '20835'
-          ? 'Puri Vande Bharat Express'
-          : `Superfast Express #${trainNo}`;
-
-      const foundDbTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === trainNo) || null;
-      const matchedTrain = foundDbTrain || {
-        trainNumber: trainNo,
-        trainName: dynamicTrainName,
-        fromCity: 'Origin',
-        toCity: 'Destination',
-      };
-
-      const stops = getTrainStoppages(trainNo, foundDbTrain);
+      const matchedTrain = resolveTrainDetail(trainNo);
+      const stops = getTrainStoppages(trainNo, matchedTrain);
       const nextStop = stops[1] || stops[0] || { name: 'Prayagraj Junction', code: 'PRYJ', platform: 'Platform 4', doorSide: 'RIGHT SIDE' };
 
       const trackCardData: TrackData = {
@@ -887,34 +875,80 @@ Please review the details above on the screen. Ready to proceed to payment?`;
       return;
     }
 
-    // ─── 1C: Route Search & Booking Intent with Real Multi-Train Grounding ───
+    // ─── 1C: Route Search & Booking Intent with Specific Train Grounding ───
     const isQuestion = /^(?:can|could|how|what|when|where|why|is|are|do|does|tell|explain|rules?|policy|guideline|luggage|baggage|senior|tatkal|pnr|chart|cancel|refund|boarding|food|cater|concession)\b/i.test(safeQuery.trim()) || safeQuery.trim().endsWith('?');
     const queryHasRoute = !isQuestion && (safeQuery.toLowerCase().includes(' to ') || safeQuery.toLowerCase().includes(' from '));
     const hasExplicitRoute = !isQuestion && !!(nextRouteCtx.fromStation && nextRouteCtx.toStation && (queryHasRoute || intentData.isAutoBook));
-    const hasExplicitTrain = !isQuestion && !!(intentData.trainNumber && intentData.isAutoBook);
+    const hasExplicitTrain = !isQuestion && !!intentData.trainNumber;
 
-    if (hasExplicitRoute || hasExplicitTrain) {
-      const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
-      const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
+    if (hasExplicitTrain || hasExplicitRoute || intentData.isAutoBook) {
       const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
       const paxCount = nextRouteCtx.passengers || 1;
       const classCode = nextRouteCtx.classCode || '3A';
 
-      if (hasExplicitTrain && !hasExplicitRoute) {
-        const matched = MOCK_TRAINS_DATABASE.find((train) => train.trainNumber === intentData.trainNumber);
-        if (matched) {
-          selectTrain(matched, classCode);
-          navigateTo('workspace');
-          const bookingText = `Opening the Passenger & Booking Workspace for #${matched.trainNumber} ${matched.trainName}. Choose ${classCode}, review passenger details, then continue to payment.`;
-          setIsLoading(false);
-          setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, text: bookingText, isStreaming: false } : m));
-          if (autoVoice) speakNiraResponse(bookingText);
-          return;
-        } else {
-          navigateTo('trains');
-        }
+      if (hasExplicitTrain) {
+        const trainNo = intentData.trainNumber!.trim();
+        const matchedTrain = resolveTrainDetail(trainNo, classCode);
+        selectTrain(matchedTrain, classCode);
+
+        const fromStationObj: Station = findStation(matchedTrain.fromStationCode) || {
+          name: matchedTrain.fromStationName,
+          code: matchedTrain.fromStationCode,
+          city: matchedTrain.fromCity,
+          state: 'India',
+          aliases: [],
+        };
+        const toStationObj: Station = findStation(matchedTrain.toStationCode) || {
+          name: matchedTrain.toStationName,
+          code: matchedTrain.toStationCode,
+          city: matchedTrain.toCity,
+          state: 'India',
+          aliases: [],
+        };
+
+        const understoodCard = {
+          from: `${matchedTrain.fromStationName} (${matchedTrain.fromStationCode})`,
+          to: `${matchedTrain.toStationName} (${matchedTrain.toStationCode})`,
+          date: travelDate,
+          time: `${matchedTrain.departureTime} → ${matchedTrain.arrivalTime}`,
+          passengers: paxCount,
+          classCode,
+          fare: (matchedTrain.classes.find(c => c.classCode === classCode)?.fare || matchedTrain.classes[0]?.fare || 1870) * paxCount,
+          trainName: matchedTrain.trainName,
+          trainNumber: matchedTrain.trainNumber,
+          fromStation: fromStationObj,
+          toStation: toStationObj,
+        };
+
+        const bookingText = `I found **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} → ${matchedTrain.toCity}).\n\n- Departure: **${matchedTrain.departureTime}** from ${matchedTrain.fromStationName}\n- Class: **${classCode}** (${matchedTrain.classes.find(c => c.classCode === classCode)?.className || 'AC 3 Tier'})\n- Fare: **₹${(matchedTrain.classes.find(c => c.classCode === classCode)?.fare || 1870) * paxCount}**\n\nTap **'Book #${matchedTrain.trainNumber}'** below to review passenger details and complete your booking.`;
+
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: bookingText,
+                  isStreaming: false,
+                  trainList: [matchedTrain],
+                  understoodCard,
+                  actionCard: {
+                    title: `#${matchedTrain.trainNumber} • ${matchedTrain.trainName}`,
+                    subtitle: `${matchedTrain.fromCity} → ${matchedTrain.toCity} • ${classCode}`,
+                    buttonLabel: `Book #${matchedTrain.trainNumber} Now ➔`,
+                    route: '/workspace',
+                    trainNumber: matchedTrain.trainNumber,
+                  },
+                }
+              : m
+          )
+        );
+        if (autoVoice) speakNiraResponse(`I found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Tap Book This Train to continue.`);
+        return;
       }
 
+      const fromSt = nextRouteCtx.fromStation || POPULAR_STATIONS[0];
+      const toSt = nextRouteCtx.toStation || (fromSt.code === 'NDLS' ? POPULAR_STATIONS[2] : POPULAR_STATIONS[0]);
       const trains = searchTrains(fromSt.code, toSt.code);
 
       if (trains && trains.length > 0) {
@@ -1387,8 +1421,8 @@ Please review the details above on the screen. Ready to proceed to payment?`;
           2. CHAT BODY: INITIAL WELCOME & CONVERSATION STREAM
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
-        {/* Interrupted Journey Task Stack Banner */}
-        {taskStack.length > 0 && (
+        {/* Interrupted Journey Task Stack Banner (Shown ONLY if passenger details entered or between transactions) */}
+        {shouldShowResumeTask && (
           <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 space-y-2 animate-in slide-in-from-top-2 duration-200 shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-bold text-xs text-amber-900">
@@ -1884,7 +1918,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
         })}
 
         {/* ─── RESUME PAUSED JOURNEY BANNER (Item 6) ─── */}
-        {taskStack.length > 0 && (
+        {shouldShowResumeTask && taskStack.length > 0 && (
           <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950 text-white border border-purple-500/30 shadow-lg space-y-2 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-purple-300 font-bold flex items-center gap-1.5">

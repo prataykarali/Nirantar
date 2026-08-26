@@ -277,6 +277,22 @@ function corridorBetween(from: string, to: string, trainNum = ''): string[] {
   return [from || 'NDLS', ...pickedIntermediates, to || 'HWH'];
 }
 
+export const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12302': 'Howrah Rajdhani Express',
+  '12951': 'Mumbai Rajdhani Express',
+  '12952': 'Mumbai Rajdhani Express',
+  '22436': 'Varanasi Vande Bharat Express',
+  '12002': 'Bhopal Shatabdi Express',
+  '12004': 'Lucknow Shatabdi Express',
+  '22692': 'Bengaluru Rajdhani Express',
+  '20835': 'Puri Vande Bharat Express',
+  '12259': 'Sealdah Duronto Express',
+  '12115': 'Siddheshwar SF Express',
+  '12116': 'Siddheshwar SF Express',
+  '12423': 'Dibrugarh Rajdhani Express',
+  '12626': 'Kerala Superfast Express',
+};
+
 export function getTrainStoppages(
   trainNumber: string,
   train?: TrainDetail | null
@@ -297,4 +313,48 @@ export function getTrainStoppages(
   const km = found?.distanceKm || 450 + (seed % 1200);
   const codes = corridorBetween(from, to, num);
   return buildStops(codes, dep, arr, km);
+}
+
+export function resolveTrainDetail(trainNumber: string, defaultClassCode = '3A'): TrainDetail {
+  const cleanNo = (trainNumber || '').trim();
+  const foundDbTrain = MOCK_TRAINS_DATABASE.find((t) => t.trainNumber === cleanNo);
+  if (foundDbTrain) return foundDbTrain;
+
+  const num = Number.parseInt(cleanNo, 10) || 12345;
+  const stops = getTrainStoppages(cleanNo);
+  const firstStop = stops[0] || { code: 'NDLS', name: 'New Delhi', platform: 'Platform 1', scheduledDep: '16:55' };
+  const lastStop = stops[stops.length - 1] || { code: 'HWH', name: 'Howrah Junction', platform: 'Platform 9', scheduledArr: '09:55' };
+
+  const knownName = KNOWN_TRAIN_NAMES[cleanNo];
+  const type = num % 5 === 0 ? 'Vande Bharat Express' : num % 4 === 0 ? 'Rajdhani Express' : num % 3 === 0 ? 'Shatabdi Express' : num % 2 === 0 ? 'Duronto Express' : 'Superfast Express';
+  const name = knownName || `${firstStop.name} - ${lastStop.name} ${type} #${cleanNo}`;
+
+  return {
+    trainNumber: cleanNo,
+    trainName: name,
+    trainType: num % 5 === 0 ? 'VANDE_BHARAT' : num % 4 === 0 ? 'RAJDHANI' : 'SUPERFAST',
+    fromStationName: firstStop.name,
+    fromStationCode: firstStop.code,
+    fromCity: firstStop.name,
+    toStationName: lastStop.name,
+    toStationCode: lastStop.code,
+    toCity: lastStop.name,
+    departureTime: firstStop.scheduledDep && firstStop.scheduledDep !== '--:--' ? firstStop.scheduledDep : '16:55',
+    arrivalTime: lastStop.scheduledArr && lastStop.scheduledArr !== '--:--' ? lastStop.scheduledArr : '08:40',
+    durationHours: '15h 45m',
+    distanceKm: lastStop.distanceKm || 1440,
+    runningDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    rating: 4.8,
+    punctualityScore: 96,
+    pantryAvailable: true,
+    cleanlinessScore: 98,
+    isFastest: num % 2 === 0,
+    isBestValue: num % 3 === 0,
+    classes: [
+      { classCode: '3A', className: 'AC 3 Tier', fare: 1870, status: 'AVAILABLE', availableSeats: 48, cateringIncluded: true, confirmationProbability: 95 },
+      { classCode: '2A', className: 'AC 2 Tier', fare: 2650, status: 'AVAILABLE', availableSeats: 18, cateringIncluded: true, confirmationProbability: 98 },
+      { classCode: '1A', className: 'AC First Class', fare: 4120, status: 'AVAILABLE', availableSeats: 6, cateringIncluded: true, confirmationProbability: 99 },
+      { classCode: 'SL', className: 'Sleeper', fare: 650, status: 'AVAILABLE', availableSeats: 82, cateringIncluded: false, confirmationProbability: 88 },
+    ],
+  };
 }
