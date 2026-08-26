@@ -89,6 +89,19 @@ function buildStops(
 
 /** Published-style halt lists for flagship trains. */
 const FLAGSHIP_STOPS: Record<string, StationStop[]> = {
+  '12232': [
+    { code: 'CDG', name: 'Chandigarh Junction', platform: 'Platform 1', scheduledArr: '--:--', scheduledDep: '21:05', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Pillar #2 & Main Entrance' },
+    { code: 'UMB', name: 'Ambala Cantt Junction', platform: 'Platform 2', scheduledArr: '21:45', scheduledDep: '21:50', distanceKm: 45, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #4 & Footover Bridge' },
+    { code: 'YJUD', name: 'Yamunanagar Jagadhri', platform: 'Platform 1', scheduledArr: '22:30', scheduledDep: '22:32', distanceKm: 96, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #6 & Ramp' },
+    { code: 'SRE', name: 'Saharanpur Junction', platform: 'Platform 3', scheduledArr: '23:10', scheduledDep: '23:20', distanceKm: 126, doorSide: 'LEFT SIDE', haltMins: 10, pillarInfo: 'Pillar #8 & Main Exit' },
+    { code: 'RK', name: 'Roorkee', platform: 'Platform 1', scheduledArr: '23:53', scheduledDep: '23:55', distanceKm: 161, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Escalator' },
+    { code: 'LRJ', name: 'Laksar Junction', platform: 'Platform 2', scheduledArr: '00:15', scheduledDep: '00:17', distanceKm: 179, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Overbridge' },
+    { code: 'MB', name: 'Moradabad Junction', platform: 'Platform 1', scheduledArr: '02:30', scheduledDep: '02:38', distanceKm: 320, doorSide: 'RIGHT SIDE', haltMins: 8, pillarInfo: 'Pillar #12 & Food Court' },
+    { code: 'BE', name: 'Bareilly Junction', platform: 'Platform 1', scheduledArr: '04:05', scheduledDep: '04:07', distanceKm: 411, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #7 & Main Exit' },
+    { code: 'SPN', name: 'Shahjahanpur', platform: 'Platform 2', scheduledArr: '05:13', scheduledDep: '05:15', distanceKm: 482, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & Ramp' },
+    { code: 'HRI', name: 'Hardoi', platform: 'Platform 3', scheduledArr: '06:08', scheduledDep: '06:10', distanceKm: 545, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #6 & Footover Bridge' },
+    { code: 'LKO', name: 'Lucknow Charbagh NR', platform: 'Platform 6', scheduledArr: '08:25', scheduledDep: '--:--', distanceKm: 647, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #16 & Cabway' },
+  ],
   '12302': [
     { code: 'NDLS', name: 'New Delhi', platform: 'Platform 14', scheduledArr: '--:--', scheduledDep: '16:55', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Pillar #4 & North Overbridge' },
     { code: 'CNB', name: 'Kanpur Central', platform: 'Platform 1', scheduledArr: '21:29', scheduledDep: '21:34', distanceKm: 440, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #8 & Main Exit' },
@@ -278,6 +291,7 @@ function corridorBetween(from: string, to: string, trainNum = ''): string[] {
 }
 
 export const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12232': 'Chandigarh - Lucknow SF Express',
   '12302': 'Howrah Rajdhani Express',
   '12951': 'Mumbai Rajdhani Express',
   '12952': 'Mumbai Rajdhani Express',

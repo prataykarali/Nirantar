@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 
+import { speakNiraResponse } from '../services/voiceService';
+
 export const CompletionResultPage: React.FC = () => {
   const {
     searchParams,
@@ -49,6 +51,36 @@ export const CompletionResultPage: React.FC = () => {
     arrivalTime: '08:40',
     durationHours: '15h 45m',
     classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
+  };
+
+  const isWaitlisted =
+    train.trainNumber === '12232' ||
+    (issuedTicket?.status as string) === 'WAITLIST' ||
+    (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('WL') ||
+    (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+    (bookingRecord?.seatAllotment?.coach || '').includes('WL') ||
+    (bookingRecord?.seatAllotment?.coach || '').includes('GNWL') ||
+    bookingRecord?.status === 'WAITLIST';
+
+  const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
+  const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
+
+  // Trigger audio announcement for waitlisted bookings
+  React.useEffect(() => {
+    if (isWaitlisted) {
+      speakNiraResponse(
+        "Oh no! It seems you are under waiting list for train 12232. Tap to track your waitlist in real-time."
+      );
+    }
+  }, [isWaitlisted]);
+
+  const handleMascotTap = () => {
+    setMascotReaction('HAPPY');
+    speakNiraResponse("Let's track your waitlist in real-time on the radar!");
+    setTimeout(() => {
+      setShowWaitlistPopup(false);
+      handleQuickTrack(train.trainNumber || '12232');
+    }, 700);
   };
 
   const passengerName = issuedTicket?.passengers[0]?.name || passengers[0]?.name || 'Ananya Sharma';
@@ -125,6 +157,109 @@ export const CompletionResultPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
+          WAITLIST NIRA BOT JUMP POPUP (FOR TRAIN 12232 / WAITLIST BOOKINGS)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showWaitlistPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div
+            onClick={handleMascotTap}
+            className="relative w-full max-w-lg bg-white rounded-[32px] p-6 sm:p-7 shadow-[0_24px_80px_rgba(124,58,237,0.35)] border-2 border-purple-300 text-center space-y-4 cursor-pointer transform hover:scale-[1.01] transition-all group ring-8 ring-purple-100/80"
+          >
+            {/* Top Close / Dismiss */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowWaitlistPopup(false);
+              }}
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+            >
+              ✕
+            </button>
+
+            {/* 3D Robot Mascot (Sad jumping -> Happy on tap) */}
+            <div className="relative w-36 h-36 mx-auto -mt-16 flex items-center justify-center">
+              {mascotReaction === 'SAD' ? (
+                <div className="relative w-full h-full flex items-center justify-center animate-bounce duration-700">
+                  <img
+                    src="/assets/images/characters/nira_sad.png"
+                    alt="Nira Sad Robot"
+                    className="w-full h-full object-contain filter drop-shadow-[0_15px_25px_rgba(244,63,94,0.35)]"
+                  />
+                  <div className="absolute -top-1 -right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-md">
+                    Oh no! 💧
+                  </div>
+                </div>
+              ) : (
+                <div className="relative w-full h-full flex items-center justify-center animate-pulse duration-500 scale-110">
+                  <img
+                    src="/assets/images/characters/nira_happy_mascot.png"
+                    alt="Nira Happy Mascot"
+                    className="w-full h-full object-contain filter drop-shadow-[0_15px_25px_rgba(16,185,129,0.45)]"
+                  />
+                  <div className="absolute -top-1 -right-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md">
+                    Let's Track! ✨
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Title & Speech Bubble */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-xs font-black">
+                <span>⚠️ Waiting List Allocated</span>
+                <span>•</span>
+                <span>GNWL-14</span>
+              </div>
+
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                {mascotReaction === 'SAD'
+                  ? 'Oh no! It seems you are under waiting list'
+                  : 'Great! Opening Real-Time Waitlist Radar...'}
+              </h3>
+
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200 text-slate-700 text-xs font-medium space-y-2 text-left">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
+                  <strong className="text-purple-950 font-bold">Nira says:</strong>
+                </div>
+                <p className="text-slate-700 text-xs sm:text-sm font-semibold leading-relaxed">
+                  "Oh no! It seems you are under waiting list (GNWL-14) for <strong>#{train.trainNumber} {train.trainName}</strong>. But don't worry—tap below and I'll show you exactly how the waitlist is analysed in real time based on your destination!"
+                </p>
+
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-purple-100 text-center text-[10px]">
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
+                    <span className="text-slate-400 block font-bold">Position</span>
+                    <strong className="text-amber-700 font-mono text-xs">WL 14</strong>
+                  </div>
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
+                    <span className="text-slate-400 block font-bold">RAC Probability</span>
+                    <strong className="text-purple-700 font-mono text-xs">92% High</strong>
+                  </div>
+                  <div className="p-1.5 rounded-xl bg-white border border-purple-100">
+                    <span className="text-slate-400 block font-bold">Confirmation</span>
+                    <strong className="text-emerald-600 font-mono text-xs">78% Odds</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              type="button"
+              onClick={handleMascotTap}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>🔍 Tap to Analyse Waitlist & Track Live ➔</span>
+            </button>
+            <p className="text-[10px] text-slate-400 font-medium">
+              (Tap anywhere on this card to switch to real-time seat analysis & tracking)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
           2. BOOKING CONFIRMED HERO BANNER WITH CELEBRATION SCENIC BG
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative rounded-2xl overflow-hidden shadow-sm border border-purple-200/60 p-3 sm:p-4 flex items-center justify-between gap-3 text-slate-900">
@@ -139,15 +274,15 @@ export const CompletionResultPage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/88 to-purple-50/75 pointer-events-none" />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 shrink-0">
-            <Check className="w-6 h-6 stroke-[3]" />
+          <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center shadow-md shrink-0 ${isWaitlisted ? 'bg-amber-500 shadow-amber-500/25' : 'bg-emerald-500 shadow-emerald-500/25'}`}>
+            {isWaitlisted ? <Zap className="w-6 h-6 stroke-[2.5]" /> : <Check className="w-6 h-6 stroke-[3]" />}
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              Booking Confirmed!
+              {isWaitlisted ? 'Booking Allocated (Waitlist GNWL-14)' : 'Booking Confirmed!'}
             </h2>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
-              We hope you have a safe and comfortable journey.
+              {isWaitlisted ? 'High probability of confirmation (78%). Chart preparation in ~3h 45m.' : 'We hope you have a safe and comfortable journey.'}
             </p>
           </div>
         </div>
@@ -155,7 +290,9 @@ export const CompletionResultPage: React.FC = () => {
         {/* Train badge on right */}
         <div className="relative z-10 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-purple-100 shadow-xs">
           <Train className="w-4 h-4 text-purple-700" />
-          <span className="text-xs font-bold text-purple-950">Gati Shakti Express • Confirmed</span>
+          <span className="text-xs font-bold text-purple-950">
+            {train.trainName} • {isWaitlisted ? 'WL-14' : 'Confirmed'}
+          </span>
         </div>
       </section>
 

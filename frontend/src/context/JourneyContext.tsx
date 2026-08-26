@@ -571,8 +571,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const pnr = `${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(10 + Math.random() * 90)}`;
     const bookingRef = `NR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    const coach = `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
-    const baseSeat = Math.floor(12 + Math.random() * 50);
+    const isWaitlistTrain = resolvedTrain.trainNumber === '12232' || selectedTrain?.trainNumber === '12232';
+    const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
+    const baseSeat = isWaitlistTrain ? 14 : Math.floor(12 + Math.random() * 50);
 
     const newTicket: TicketRecord = {
       ticketId: `tkt_${Date.now()}`,
@@ -583,9 +584,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       classCode: selectedClassCode || '3A',
       passengers: passengers.length > 0 ? passengers : [defaultSavedPassengers[0]],
       seatAllotments: (passengers.length > 0 ? passengers : [defaultSavedPassengers[0]]).map((_, idx) => ({
-        coach,
-        seatNumber: baseSeat + idx,
-        berthType: idx % 2 === 0 ? 'Lower' : 'Middle',
+        coach: isWaitlistTrain ? 'GNWL' : coach,
+        seatNumber: isWaitlistTrain ? 14 + idx : baseSeat + idx,
+        berthType: isWaitlistTrain ? `Waitlist Queue #${14 + idx}` : (idx % 2 === 0 ? 'Lower' : 'Middle'),
       })),
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
@@ -602,11 +603,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       trainNumber: resolvedTrain.trainNumber,
       trainName: resolvedTrain.trainName,
       classCode: selectedClassCode || '3A',
-      status: 'CONFIRMED',
+      status: isWaitlistTrain ? ('WAITLIST' as any) : 'CONFIRMED',
       seatAllotment: {
-        coach,
-        seatNumber: baseSeat,
-        berthType: 'Lower',
+        coach: isWaitlistTrain ? 'GNWL' : coach,
+        seatNumber: isWaitlistTrain ? 14 : baseSeat,
+        berthType: isWaitlistTrain ? 'Waitlist Queue #14 (78% CNF Odds)' : 'Lower',
       },
       createdAt: new Date().toISOString(),
     };

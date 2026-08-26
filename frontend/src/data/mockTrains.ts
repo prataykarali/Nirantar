@@ -35,7 +35,63 @@ export interface TrainDetail {
   isBestValue?: boolean;
 }
 
-export const MOCK_TRAINS_DATABASE: TrainDetail[] = rawData.trains as TrainDetail[];
+export const TRAIN_12232: TrainDetail = {
+  trainNumber: '12232',
+  trainName: 'Chandigarh - Lucknow SF Express',
+  trainType: 'SUPERFAST',
+  fromStationCode: 'CDG',
+  fromStationName: 'Chandigarh Junction',
+  fromCity: 'Chandigarh',
+  toStationCode: 'LKO',
+  toStationName: 'Lucknow Charbagh NR',
+  toCity: 'Lucknow',
+  departureTime: '21:05',
+  arrivalTime: '08:25',
+  durationHours: '11h 20m',
+  distanceKm: 647,
+  runningDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  classes: [
+    {
+      classCode: '3A',
+      className: 'AC 3 Tier',
+      fare: 1040,
+      status: 'WL-14',
+      availableSeats: 0,
+      confirmationProbability: 78,
+    },
+    {
+      classCode: '2A',
+      className: 'AC 2 Tier',
+      fare: 1480,
+      status: 'WL-8',
+      availableSeats: 0,
+      confirmationProbability: 84,
+    },
+    {
+      classCode: 'SL',
+      className: 'Sleeper',
+      fare: 385,
+      status: 'WL-32',
+      availableSeats: 0,
+      confirmationProbability: 62,
+    },
+    {
+      classCode: '1A',
+      className: 'AC 1st Class',
+      fare: 2490,
+      status: 'WL-2',
+      availableSeats: 0,
+      confirmationProbability: 91,
+    },
+  ],
+  rating: 4.6,
+  punctualityScore: 92,
+  pantryAvailable: true,
+  cleanlinessScore: 94,
+  aiRecommendationReason: 'High probability of confirmation (78%) via dynamic cancellation balance',
+};
+
+export const MOCK_TRAINS_DATABASE: TrainDetail[] = [TRAIN_12232, ...(rawData.trains as TrainDetail[])];
 
 const MAJOR_CORRIDORS: string[][] = [
   ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'FTP', 'PRYJ', 'MZP', 'DDU', 'SSM', 'DOS', 'GAYA', 'KQR', 'GMO', 'DHN', 'ASN', 'DGR', 'BWN', 'HWH', 'SDAH'],

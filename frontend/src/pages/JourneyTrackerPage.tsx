@@ -41,6 +41,7 @@ type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTI
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
 
 const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12232': 'Chandigarh - Lucknow SF Express',
   '12302': 'Howrah Rajdhani Express',
   '12301': 'Howrah Rajdhani Express',
   '12951': 'Mumbai Rajdhani Express',
@@ -82,6 +83,9 @@ export const JourneyTrackerPage: React.FC = () => {
   const [speedJitter, setSpeedJitter] = useState(0);
   const [showDetailedFlow, setShowDetailedFlow] = useState(false);
   const [comfortLevel, setComfortLevel] = useState<ComfortLevel>('BALANCED');
+  const [selectedCoach, setSelectedCoach] = useState<string>('B4');
+  const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
+  const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [watchAlerts, setWatchAlerts] = useState({
     underTwenty: true,
     probSeventy: true,
@@ -89,6 +93,24 @@ export const JourneyTrackerPage: React.FC = () => {
     chartPrep: true,
   });
   const lastNotifKey = useRef('');
+
+  // Handle Poof Off Animation
+  const handlePoofOff = () => {
+    setIsPoofingOff(true);
+    setTimeout(() => {
+      setShowNiraHappyBanner(false);
+      setIsPoofingOff(false);
+    }, 600);
+  };
+
+  // Speak Nira waitlist advice on mount / train change
+  useEffect(() => {
+    if (activeTrainNumber === '12232' || trackQuery === '12232') {
+      speakNiraResponse(
+        "Keep an eye on the list, it'll confirm once wait list is balanced! Based on your destination."
+      );
+    }
+  }, [activeTrainNumber, trackQuery]);
 
   useEffect(() => {
     if (trackQuery && trackQuery.trim()) {
@@ -386,6 +408,19 @@ export const JourneyTrackerPage: React.FC = () => {
         <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
         <button
           type="button"
+          onClick={() => selectTrainToTrack('12232')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12232'
+              ? 'bg-[#7C3AED] text-white shadow-sm ring-2 ring-purple-300'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-300" />
+          <span>#12232 Chandigarh - Lucknow (WL Watch)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => selectTrainToTrack('12302')}
           className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
             trainNumber === '12302'
@@ -475,6 +510,81 @@ export const JourneyTrackerPage: React.FC = () => {
           <span>#22692 Bengaluru Rajdhani</span>
         </button>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          NIRA FLOATING MASCOT SPEECH BANNER (HAPPY FACE + POOF OFF)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showNiraHappyBanner && (
+        <div
+          className={`relative rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border-2 border-purple-400/40 overflow-hidden transition-all duration-500 ${
+            isPoofingOff ? 'scale-90 opacity-0 blur-md pointer-events-none' : 'animate-in slide-in-from-top-4'
+          }`}
+        >
+          {/* Subtle radial sheen */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
+            {/* Mascot Image (Happy expression) */}
+            <div className="flex items-center gap-3.5 shrink-0">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
+                <img
+                  src="/assets/images/characters/nira_happy_mascot.png"
+                  alt="Nira Happy Mascot"
+                  className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(16,185,129,0.5)] animate-pulse"
+                />
+                <div className="absolute -top-1 -right-1 bg-emerald-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shadow">
+                  Active AI
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span className="font-extrabold text-sm text-amber-300">Nira Waitlist Copilot</span>
+                </div>
+                <span className="text-[10px] text-purple-200 block font-medium">Real-Time Destination Intelligence</span>
+              </div>
+            </div>
+
+            {/* Speech Bubble with the exact text requested */}
+            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-white/20 text-center sm:text-left space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
+                "Keep an eye on the list it'll confirm once wait list is balanced! Based on your destination."
+              </p>
+              <span className="text-[10px] text-purple-200 block font-medium">
+                Destination quota for <strong>{toCity}</strong> has high clearance velocity (↑ 3.4 cancels/hr across corridor).
+              </span>
+            </div>
+
+            {/* Voice and Poof Off Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() =>
+                  speakNiraResponse(
+                    "Keep an eye on the list, it'll confirm once wait list is balanced! Based on your destination."
+                  )
+                }
+                className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Play voice audio"
+              >
+                <Volume2 className="w-3.5 h-3.5 text-amber-300" />
+                <span>Play Voice</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePoofOff}
+                className="px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xs flex items-center gap-1 shadow-md transition-all cursor-pointer active:scale-95"
+                title="Dismiss with poof animation"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Poof Off 💨</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           2. LIVE SPEED & RUNNING STATUS HERO CARD
@@ -750,14 +860,232 @@ export const JourneyTrackerPage: React.FC = () => {
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: STATION TIMELINE & SHIFT ENGINE (2 Cols) ──────────────── */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-purple-700" />
-              <h3 className="font-bold text-sm sm:text-base text-slate-900">
-                Station Timeline & Live Platform Alignment
-              </h3>
+        <div className="lg:col-span-2 space-y-4">
+          {/* ─── INTERACTIVE SEAT MAP & REAL-TIME WAITLIST INTELLIGENCE PIPELINE ─── */}
+          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-purple-100 text-purple-900">
+                    <Train className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
+                    Live Coach Composition & Seat Berth Feature
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Interactive Coach Layout • Real-time quota balance based on destination ({toCity})
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
+                </span>
+                <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
+                </span>
+                <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-14 (You)
+                </span>
+              </div>
             </div>
+
+            {/* Coach Selection Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
+              {['S1 (SL)', 'S2 (SL)', 'B1 (3A)', 'B2 (3A)', 'B3 (3A)', 'B4 (3A)', 'A1 (2A)', 'H1 (1A)'].map((c) => {
+                const code = c.split(' ')[0];
+                const isSelected = selectedCoach === code;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setSelectedCoach(code)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs ${
+                      isSelected
+                        ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
+                        : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Coach Berth Grid Layout */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white space-y-3">
+              <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
+                <span className="font-bold text-purple-200">
+                  Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoach.startsWith('B') ? 'AC 3 Tier' : selectedCoach.startsWith('A') ? 'AC 2 Tier' : selectedCoach.startsWith('H') ? 'AC 1st Class' : 'Sleeper'}) Layout:
+                </span>
+                <span className="text-[11px] font-mono text-emerald-300 font-bold">
+                  Occupancy: 94% • 4 RAC • 14 GNWL in Queue
+                </span>
+              </div>
+
+              {/* Seat Rows Grid */}
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
+                {[
+                  { num: 1, type: 'LB', status: 'CNF' },
+                  { num: 2, type: 'MB', status: 'CNF' },
+                  { num: 3, type: 'UB', status: 'CNF' },
+                  { num: 4, type: 'LB', status: 'CNF' },
+                  { num: 5, type: 'MB', status: 'CNF' },
+                  { num: 6, type: 'UB', status: 'CNF' },
+                  { num: 7, type: 'SL', status: 'RAC', label: 'RAC 1/2' },
+                  { num: 8, type: 'SU', status: 'CNF' },
+                  { num: 9, type: 'LB', status: 'CNF' },
+                  { num: 10, type: 'MB', status: 'CNF' },
+                  { num: 11, type: 'UB', status: 'CNF' },
+                  { num: 12, type: 'LB', status: 'CNF' },
+                  { num: 13, type: 'MB', status: 'CNF' },
+                  { num: 14, type: 'UB', status: 'CNF' },
+                  { num: 15, type: 'SL', status: 'RAC', label: 'RAC 3/4' },
+                  { num: 16, type: 'SU', status: 'CNF' },
+                  { num: 17, type: 'LB', status: 'CNF' },
+                  { num: 18, type: 'MB', status: 'CNF' },
+                  { num: 19, type: 'UB', status: 'CNF' },
+                  { num: 20, type: 'LB', status: 'CNF' },
+                  { num: 21, type: 'MB', status: 'CNF' },
+                  { num: 22, type: 'UB', status: 'CNF' },
+                  { num: 23, type: 'SL', status: 'RAC', label: 'RAC 5/6' },
+                  { num: 24, type: 'SU', status: 'CNF' },
+                ].map((seat) => {
+                  const isRac = seat.status === 'RAC';
+                  return (
+                    <div
+                      key={seat.num}
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                        isRac
+                          ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
+                          : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                      }`}
+                    >
+                      <span className="font-bold text-sm leading-none">{seat.num}</span>
+                      <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
+                      <span
+                        className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 ${
+                          isRac ? 'bg-amber-400 text-slate-950' : 'bg-emerald-400/20 text-emerald-300'
+                        }`}
+                      >
+                        {seat.label || 'CNF'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* User's Waitlist Highlight Tile */}
+              <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">
+                    ★
+                  </span>
+                  <span>
+                    Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-14</strong> (Coach {selectedCoach} Promotion Path)
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                  ⚡ Projected RAC 6 at Chart 1
+                </span>
+              </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                HOW THE WAITLIST IS ANALYSED IN REAL TIME (DIRECTIONAL ARROWS)
+                ═══════════════════════════════════════════════════════════════════ */}
+            <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">
+                    AI
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                    HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">
+                  Real-Time Model
+                </span>
+              </div>
+
+              {/* 4 Connected Pipeline Cards with Animated Directional Arrows */}
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
+                {/* Step 1: Destination Quota Matrix */}
+                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">
+                      Step 1
+                    </span>
+                    <span className="text-xs">🎯</span>
+                  </div>
+                  <span className="text-xs font-black text-slate-900 block">
+                    Destination Quota
+                  </span>
+                  <p className="text-[10px] text-slate-600 font-medium leading-tight">
+                    Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.
+                  </p>
+                </div>
+
+                {/* Animated Directional Arrow 1 */}
+                <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse">
+                  <span>➔</span>
+                  <span className="text-[8px] font-bold text-slate-400">Velocity</span>
+                </div>
+
+                {/* Step 2: Cancellation Velocity */}
+                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">
+                      Step 2
+                    </span>
+                    <span className="text-xs">📈</span>
+                  </div>
+                  <span className="text-xs font-black text-slate-900 block">
+                    Live Cancel Rate
+                  </span>
+                  <p className="text-[10px] text-slate-600 font-medium leading-tight">
+                    <strong className="text-emerald-600">↑ 3.4 cancels/hr</strong> telemetry detected on this route today.
+                  </p>
+                </div>
+
+                {/* Animated Directional Arrow 2 */}
+                <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse">
+                  <span>➔</span>
+                  <span className="text-[8px] font-bold text-slate-400">Release</span>
+                </div>
+
+                {/* Step 3: Final Berth Settlement */}
+                <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-emerald-300 bg-emerald-50/40 shadow-xs space-y-1.5 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900">
+                      Step 3
+                    </span>
+                    <span className="text-xs">✅</span>
+                  </div>
+                  <span className="text-xs font-black text-emerald-950 block">
+                    Berth Confirmed
+                  </span>
+                  <p className="text-[10px] text-emerald-800 font-bold leading-tight">
+                    WL-14 ➔ RAC 6 ➔ Confirmed Berth (B4 Lower) forecast (78% odds).
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── STATION TIMELINE CARD ─── */}
+          <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-purple-700" />
+                <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                  Station Timeline & Live Platform Alignment
+                </h3>
+              </div>
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -980,6 +1308,7 @@ export const JourneyTrackerPage: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
 
         {/* ──────────────── RIGHT COLUMN: WAITLIST WATCH & NIRA COPILOT (1 Col) ──────────────── */}
         <div className="space-y-3">
