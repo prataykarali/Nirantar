@@ -35,9 +35,9 @@ export const SafeAutofillProfile: React.FC<SafeAutofillProfileProps> = ({
       } else {
         // Fallback default safe profile
         setProfile({
-          full_name: 'Ananya Sharma',
-          age: 32,
-          gender: 'Female',
+          full_name: 'Pratay Karali',
+          age: 24,
+          gender: 'Male',
           berth_preference: 'Lower Berth (SL/3A)',
           meal_preference: 'Vegetarian',
           preferred_source_station: 'NDLS',
@@ -46,9 +46,9 @@ export const SafeAutofillProfile: React.FC<SafeAutofillProfileProps> = ({
     } catch (err) {
       // Robust offline fallback
       setProfile({
-        full_name: 'Ananya Sharma',
-        age: 32,
-        gender: 'Female',
+        full_name: 'Pratay Karali',
+        age: 24,
+        gender: 'Male',
         berth_preference: 'Lower Berth (SL/3A)',
         meal_preference: 'Vegetarian',
         preferred_source_station: 'NDLS',
@@ -109,7 +109,7 @@ export const SafeAutofillProfile: React.FC<SafeAutofillProfileProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 bg-slate-950/70 rounded-xl p-3.5 border border-slate-800/80 text-xs">
         <div>
           <span className="text-slate-400 block">{t('autofill.name', 'Full Name')}</span>
-          <span className="font-semibold text-slate-200">{profile?.full_name || 'Ananya Sharma'}</span>
+          <span className="font-semibold text-slate-200">{profile?.full_name || 'Pratay Karali'}</span>
         </div>
         <div>
           <span className="text-slate-400 block">{t('autofill.age', 'Age')} / {t('autofill.gender', 'Gender')}</span>

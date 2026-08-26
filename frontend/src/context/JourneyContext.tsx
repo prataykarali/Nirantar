@@ -869,8 +869,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Fallback verified synthetic user
       const fallbackAuth: AuthState = {
         status: 'VERIFIED',
-        userId: 'usr-ananya-84920',
-        displayName: 'Ananya Sharma',
+        userId: 'usr-pratay-84920',
+        displayName: 'Pratay Karali',
         isAuthenticated: true,
         failureReason: null,
       };
@@ -881,7 +881,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const verifyMockOtp = async (otp: string): Promise<boolean> => {
     try {
-      const res = await apiMockVerify(authState.userId || 'usr-ananya-84920', otp);
+      const res = await apiMockVerify(authState.userId || 'usr-pratay-84920', otp);
       setAuthState(res);
       return res.isAuthenticated;
     } catch {
@@ -1212,7 +1212,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     // Set passenger name if explicitly provided
-    if (params.passengerName && params.passengerName !== 'Ananya Sharma') {
+    if (params.passengerName && params.passengerName !== 'Pratay Karali') {
       setPassengers([
         {
           id: `p_${Date.now()}`,

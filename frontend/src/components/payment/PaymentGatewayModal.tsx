@@ -68,7 +68,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
   // Form states
   const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim'>('gpay');
-  const [upiVpa, setUpiVpa] = useState('ananya.sharma@okhdfcbank');
+  const [upiVpa, setUpiVpa] = useState('pratay.karali@okhdfcbank');
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
   const [pinDigits, setPinDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [activePinIndex, setActivePinIndex] = useState<number>(0);
@@ -376,7 +376,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                       4532 •••• •••• 8492
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-300">
-                      <span>ANANYA SHARMA</span>
+                      <span>PRATAY KARALI</span>
                       <span>EXP: 08/29</span>
                     </div>
                   </div>

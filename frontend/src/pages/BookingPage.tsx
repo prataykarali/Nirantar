@@ -5,8 +5,6 @@ import {
   User,
   ShieldCheck,
   CheckCircle2,
-  Phone,
-  Mail,
   Plus,
   Trash2,
   Train,
@@ -21,9 +19,6 @@ const ALLOWED_AI_FIELDS = [
   'gender',
   'berthPreference',
   'seniorCitizenConcession',
-  'mobile',
-  'email',
-  'irctcUsername',
 ] as const;
 
 export const BookingPage: React.FC = () => {
@@ -37,9 +32,6 @@ export const BookingPage: React.FC = () => {
     navigateTo,
   } = useJourney();
 
-  const [mobileNumber, setMobileNumber] = useState('9876543210');
-  const [emailAddress, setEmailAddress] = useState('ananya.sharma@example.com');
-  const [irctcUserId, setIrctcUserId] = useState('ananya_irctc_24');
   const [isAiAutofilled, setIsAiAutofilled] = useState(false);
   const [autofillNotice, setAutofillNotice] = useState<string | null>(null);
   const [lockSeconds, setLockSeconds] = useState(585); // 09:45 min
@@ -97,13 +89,10 @@ export const BookingPage: React.FC = () => {
   // AI-Assisted Safe Autofill Engine with Strict Allowed-Field Filter
   const handleAiAutofill = () => {
     const rawData = {
-      name: 'Ananya Sharma',
-      age: 22,
-      gender: 'F' as const,
+      name: 'Pratay Karali',
+      age: 24,
+      gender: 'M' as const,
       berthPreference: 'LOWER' as const,
-      mobile: '9876543210',
-      email: 'ananya.sharma@example.com',
-      irctcUsername: 'ananya_irctc_24',
       __disallowed_pin: '1234',
       __disallowed_otp: '998811',
       __disallowed_token: 'secret_jwt_xyz',
@@ -112,21 +101,12 @@ export const BookingPage: React.FC = () => {
     const sanitizedPassenger: PassengerProfile = {
       id: `p_${Date.now()}_1`,
       name: ALLOWED_AI_FIELDS.includes('name') ? rawData.name : '',
-      age: ALLOWED_AI_FIELDS.includes('age') ? rawData.age : 18,
-      gender: ALLOWED_AI_FIELDS.includes('gender') ? rawData.gender : 'F',
+      age: ALLOWED_AI_FIELDS.includes('age') ? rawData.age : 24,
+      gender: ALLOWED_AI_FIELDS.includes('gender') ? rawData.gender : 'M',
       berthPreference: ALLOWED_AI_FIELDS.includes('berthPreference') ? rawData.berthPreference : 'NO_PREFERENCE',
     };
 
-    const sanitizedContact = {
-      mobile: ALLOWED_AI_FIELDS.includes('mobile') ? rawData.mobile : '',
-      email: ALLOWED_AI_FIELDS.includes('email') ? rawData.email : '',
-      irctc: ALLOWED_AI_FIELDS.includes('irctcUsername') ? rawData.irctcUsername : '',
-    };
-
     setPassengers([sanitizedPassenger]);
-    setMobileNumber(sanitizedContact.mobile);
-    setEmailAddress(sanitizedContact.email);
-    setIrctcUserId(sanitizedContact.irctc);
     setIsAiAutofilled(true);
     setAutofillNotice('Passenger details safely autofilled via SafeAssist Allowed-Field Filter. Sensitive fields excluded.');
   };
@@ -170,10 +150,6 @@ export const BookingPage: React.FC = () => {
     const emptyNames = passengers.filter((p) => !p.name || p.name.trim() === '');
     if (emptyNames.length > 0) {
       console.log('Please provide the full name for all passengers.');
-      return;
-    }
-    if (!mobileNumber || mobileNumber.length < 10) {
-      console.log('Please enter a valid 10-digit mobile number for SMS ticket delivery.');
       return;
     }
     setShowPassengerConfirmModal(true);
@@ -415,7 +391,7 @@ export const BookingPage: React.FC = () => {
                       type="text"
                       value={passenger.name}
                       onChange={(e) => handleUpdatePassenger(passenger.id, 'name', e.target.value)}
-                      placeholder="e.g. Ananya Sharma"
+                      placeholder="e.g. Pratay Karali"
                       className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all"
                       required
                     />
@@ -447,8 +423,8 @@ export const BookingPage: React.FC = () => {
                       onChange={(e) => handleUpdatePassenger(passenger.id, 'gender', e.target.value as any)}
                       className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white transition-all cursor-pointer"
                     >
-                      <option value="F">Female</option>
                       <option value="M">Male</option>
+                      <option value="F">Female</option>
                       <option value="O">Other</option>
                     </select>
                   </div>
@@ -508,66 +484,6 @@ export const BookingPage: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* CONTACT & IRCTC CREDENTIAL VERIFICATION */}
-          <div className="bg-white rounded-2xl p-2.5 px-3.5 shadow-sm border border-purple-100 space-y-1.5">
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-purple-700" />
-              <span>Contact & Booking Details</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {/* Mobile Number */}
-              <div className="space-y-0.5">
-                <label className="block text-[11px] font-bold text-slate-700">
-                  Mobile Number (SMS Updates)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">+91</span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    placeholder="9876543210"
-                    className="w-full bg-purple-50/30 border border-purple-100 rounded-xl pl-9 pr-2 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div className="space-y-0.5">
-                <label className="block text-[11px] font-bold text-slate-700">
-                  Email (e-Ticket PDF)
-                </label>
-                <input
-                  type="email"
-                  value={emailAddress}
-                  onChange={(e) => setEmailAddress(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
-                  required
-                />
-              </div>
-
-              {/* IRCTC User ID */}
-              <div className="space-y-0.5">
-                <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
-                  <span>IRCTC User ID</span>
-                  <span className="text-[10px] text-emerald-600 font-bold">Verified ✓</span>
-                </label>
-                <input
-                  type="text"
-                  value={irctcUserId}
-                  onChange={(e) => setIrctcUserId(e.target.value)}
-                  placeholder="irctc_username"
-                  className="w-full bg-purple-50/30 border border-purple-100 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
-                  required
-                />
-              </div>
-            </div>
           </div>
 
           {/* PRIVACY & SECURITY BOUNDARY NOTICE */}
@@ -723,22 +639,6 @@ export const BookingPage: React.FC = () => {
                   )}
                 </div>
               ))}
-            </div>
-
-            {/* Contact Details */}
-            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 text-[11px] space-y-0.5">
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Mobile (SMS Updates):</span>
-                <strong className="text-slate-900 font-mono">{mobileNumber}</strong>
-              </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Email (e-Ticket PDF):</span>
-                <strong className="text-slate-900 truncate max-w-[180px]">{emailAddress}</strong>
-              </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span>IRCTC User ID:</span>
-                <strong className="text-slate-900">{irctcUserId}</strong>
-              </div>
             </div>
 
             {/* Action Buttons */}

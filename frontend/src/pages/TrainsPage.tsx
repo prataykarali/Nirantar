@@ -486,9 +486,13 @@ export const TrainsPage: React.FC = () => {
                       onClick={() => {
                         const inList = compareList.some((t) => t.trainNumber === train.trainNumber);
                         if (inList) {
-                          removeCompare(train.trainNumber);
+                          setShowCompareModal(true);
                         } else {
-                          setCompareList((prev) => [...prev.slice(0, 2), train]);
+                          const updated = [...compareList.slice(0, 2), train];
+                          setCompareList(updated);
+                          if (updated.length >= 2) {
+                            setShowCompareModal(true);
+                          }
                         }
                       }}
                       className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
@@ -498,7 +502,7 @@ export const TrainsPage: React.FC = () => {
                       }`}
                     >
                       <Scale className="w-3 h-3" />
-                      <span>{compareList.some((t) => t.trainNumber === train.trainNumber) ? 'Added to Compare ✓' : '+ Compare'}</span>
+                      <span>{compareList.some((t) => t.trainNumber === train.trainNumber) ? 'Added to Compare ✓ (View)' : '+ Compare'}</span>
                     </button>
 
                     <button
@@ -849,6 +853,45 @@ export const TrainsPage: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          FLOATING BOTTOM COMPARE DOCK (ALWAYS VISIBLE OVER ALL DRAWERS)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {compareList.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 backdrop-blur-md text-white px-4 sm:px-6 py-3 rounded-full shadow-[0_16px_50px_rgba(88,28,135,0.4)] border-2 border-purple-400/50 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200 select-none">
+          <Scale className="w-4 h-4 text-purple-300 animate-pulse shrink-0" />
+          <div className="flex items-center gap-1.5 text-xs font-bold">
+            <span className="hidden sm:inline">Comparing ({compareList.length}):</span>
+            {compareList.map((t) => (
+              <span key={t.trainNumber} className="bg-purple-900/80 border border-purple-400/30 px-2.5 py-0.5 rounded-full font-mono text-[11px] text-amber-300">
+                #{t.trainNumber}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (compareList.length === 1 && availableTrains.length >= 2) {
+                const other = availableTrains.find((t) => t.trainNumber !== compareList[0].trainNumber);
+                if (other) setCompareList([compareList[0], other]);
+              }
+              setShowCompareModal(true);
+            }}
+            className="px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
+          >
+            <span>⚡ Compare Side-by-Side</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompareList([])}
+            className="w-6 h-6 rounded-full hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
+            title="Clear comparison"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

@@ -233,8 +233,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       },
       {
         icon: Sparkles,
-        label: 'Auto book Delhi to Bangalore for Ananya Sharma',
-        query: 'Auto book Delhi to Bangalore 3A tomorrow for Ananya Sharma',
+        label: 'Auto book Delhi to Bangalore for Pratay Karali',
+        query: 'Auto book Delhi to Bangalore 3A tomorrow for Pratay Karali',
         tag: 'With Passenger',
       },
       {
@@ -2389,14 +2389,14 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         type="button"
                         onClick={() => {
                           if (m.actionCard?.route === 'autofill_passenger') {
-                            const pName = routeCtx.passengerName || 'Ananya Sharma';
+                            const pName = routeCtx.passengerName || 'Pratay Karali';
                             const singleFare = selectedTrain?.classes[0]?.fare || 450;
                             setPassengers([
                               {
                                 id: `p_${Date.now()}`,
                                 name: pName,
                                 age: 24,
-                                gender: 'F',
+                                gender: 'M',
                                 berthPreference: 'LOWER',
                               },
                             ]);

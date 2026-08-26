@@ -163,9 +163,9 @@ export const MyJourneysPage: React.FC = () => {
       quota: 'General (GN)',
       passengers: [
         {
-          name: 'Ananya Sharma',
-          age: 19,
-          gender: 'Female',
+          name: 'Pratay Karali',
+          age: 24,
+          gender: 'Male',
           coach: 'B4',
           seatNumber: 36,
           berthType: 'Lower',
@@ -226,9 +226,9 @@ export const MyJourneysPage: React.FC = () => {
       quota: 'General (GN)',
       passengers: [
         {
-          name: 'Ananya Sharma',
-          age: 19,
-          gender: 'Female',
+          name: 'Pratay Karali',
+          age: 24,
+          gender: 'Male',
           coach: 'C3',
           seatNumber: 18,
           berthType: 'Window',
@@ -273,9 +273,9 @@ export const MyJourneysPage: React.FC = () => {
       quota: 'General (GN)',
       passengers: [
         {
-          name: 'Ananya Sharma',
-          age: 19,
-          gender: 'Female',
+          name: 'Pratay Karali',
+          age: 24,
+          gender: 'Male',
           coach: 'E1',
           seatNumber: 12,
           berthType: 'Aisle',
@@ -330,9 +330,9 @@ export const MyJourneysPage: React.FC = () => {
       quota: 'General (GN)',
       passengers: [
         {
-          name: 'Ananya Sharma',
-          age: 19,
-          gender: 'Female',
+          name: 'Pratay Karali',
+          age: 24,
+          gender: 'Male',
           coach: 'B2',
           seatNumber: 42,
           berthType: 'Upper',

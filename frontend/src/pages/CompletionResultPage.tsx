@@ -66,36 +66,19 @@ export const CompletionResultPage: React.FC = () => {
   const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
 
-  // Dynamic Real-Time Waitlist Countdown (Starts at 42 and clears down to 2 in real-time)
+  // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
   const initialWaitlistNum = 42;
-  const [liveWl, setLiveWl] = useState<number>(42);
-
-  React.useEffect(() => {
-    if (!isWaitlisted) return;
-    setLiveWl(42);
-    const targetSteps = [42, 36, 29, 21, 14, 8, 4, 2];
-    let stepIndex = 0;
-    const interval = setInterval(() => {
-      stepIndex += 1;
-      if (stepIndex < targetSteps.length) {
-        setLiveWl(targetSteps[stepIndex]);
-      } else {
-        clearInterval(interval);
-      }
-    }, 450);
-    return () => clearInterval(interval);
-  }, [isWaitlisted]);
-
-  const clearedAhead = initialWaitlistNum - liveWl;
-  const liveProb = Math.min(99, Math.round(62 + ((initialWaitlistNum - liveWl) / (initialWaitlistNum - 2)) * 36));
-  const racProb = Math.min(99, Math.round(76 + ((initialWaitlistNum - liveWl) / (initialWaitlistNum - 2)) * 23));
+  const liveWl = 42;
+  const clearedAhead = 0;
+  const liveProb = 62;
+  const racProb = 76;
 
   const handleMascotTap = () => {
     setMascotReaction('HAPPY');
     setTimeout(() => {
       setShowWaitlistPopup(false);
       handleQuickTrack(train.trainNumber || '12232');
-    }, 700);
+    }, 400);
   };
 
   const displayPassengers = (issuedTicket?.passengers && issuedTicket.passengers.length > 0)

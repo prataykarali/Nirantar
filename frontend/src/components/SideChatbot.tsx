@@ -54,7 +54,7 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
     {
       id: 'init-1',
       sender: 'nira',
-      text: "Hi Ananya! 👋\nI'm Nira, your AI assistant.\nHow can I help you today?",
+      text: "Hi Pratay! 👋\nI'm Nira, your AI assistant.\nHow can I help you today?",
       timestamp: 'Just now',
     },
   ]);
@@ -253,7 +253,7 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900 leading-relaxed">
-                    Hi Ananya! 👋<br />
+                    Hi Pratay! 👋<br />
                     I'm Nira, your AI assistant.<br />
                     How can I help you today?
                   </p>

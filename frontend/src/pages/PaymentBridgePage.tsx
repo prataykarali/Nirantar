@@ -43,7 +43,7 @@ export const PaymentBridgePage: React.FC = () => {
   } = useJourney();
 
   const [activeTab, setActiveTab] = useState<PaymentTab>('upi');
-  const [upiId, setUpiId] = useState('ananya@okhdfcbank');
+  const [upiId, setUpiId] = useState('pratay@okhdfcbank');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
   const [chatMessage, setChatMessage] = useState('');

@@ -76,17 +76,18 @@ const KNOWN_TRAIN_NAMES: Record<string, string> = {
 
 export const JourneyTrackerPage: React.FC = () => {
   const {
-    searchParams,
+    trackQuery,
+    setTrackQuery,
     selectedTrain,
-    selectedClassCode,
     issuedTicket,
     bookingRecord,
     passengers,
-    trackQuery,
-    setTrackQuery,
-    navigateTo,
+    selectedClassCode,
+    showChatDrawer,
+    setShowChatDrawer,
     addNotification,
   } = useJourney();
+
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12302';
 
   // ─── STATE HOOKS (Declared at Top) ───
@@ -108,6 +109,76 @@ export const JourneyTrackerPage: React.FC = () => {
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
+
+  // Real-Time Randomized Waitlist Clearance Simulation (Starts at 42 and clears to 2, then 0 CONFIRMED)
+  const isWaitlistBooking = Boolean(
+    activeTrainNumber === '12232' ||
+    (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
+    bookingRecord?.status === 'WAITLIST' ||
+    bookingRecord?.status === 'RAC'
+  );
+
+  const [simulatedWl, setSimulatedWl] = useState<number>(42);
+  const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
+  const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isWaitlistBooking) return;
+    setSimulatedWl(42);
+    setShowConfirmedCelebration(false);
+    setIsPoofingCelebration(false);
+
+    // Realistic progressive sequence with randomized pacing: 42 -> 36 -> 28 -> 19 -> 12 -> 6 -> 2 -> 0
+    const sequence = [
+      { wl: 36, delay: 3500 + Math.random() * 800 },
+      { wl: 28, delay: 4200 + Math.random() * 800 },
+      { wl: 19, delay: 4800 + Math.random() * 900 },
+      { wl: 12, delay: 4500 + Math.random() * 800 },
+      { wl: 6, delay: 4200 + Math.random() * 800 },
+      { wl: 2, delay: 4000 + Math.random() * 800 },
+      { wl: 0, delay: 3800 + Math.random() * 600 },
+    ];
+
+    let step = 0;
+    let timerId: any = null;
+
+    const tick = () => {
+      if (step < sequence.length) {
+        const next = sequence[step];
+        timerId = setTimeout(() => {
+          setSimulatedWl(next.wl);
+          if (next.wl === 0) {
+            setShowConfirmedCelebration(true);
+            // Auto poof-off after 9 seconds if user doesn't dismiss
+            setTimeout(() => {
+              setIsPoofingCelebration(true);
+              setTimeout(() => {
+                setShowConfirmedCelebration(false);
+                setIsPoofingCelebration(false);
+              }, 600);
+            }, 9000);
+          }
+          step += 1;
+          tick();
+        }, next.delay);
+      }
+    };
+
+    tick();
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [isWaitlistBooking, activeTrainNumber]);
+
+  const handlePoofCelebration = () => {
+    setIsPoofingCelebration(true);
+    setTimeout(() => {
+      setShowConfirmedCelebration(false);
+      setIsPoofingCelebration(false);
+    }, 600);
+  };
+
   const [watchAlerts, setWatchAlerts] = useState({
     underTwenty: true,
     probSeventy: true,
@@ -124,15 +195,6 @@ export const JourneyTrackerPage: React.FC = () => {
       setIsPoofingOff(false);
     }, 600);
   };
-
-  // Speak Nira waitlist advice on mount / train change
-  useEffect(() => {
-    if (activeTrainNumber === '12232' || trackQuery === '12232') {
-      speakNiraResponse(
-        "Keep an eye on the list, it'll confirm once wait list is balanced! Based on your destination."
-      );
-    }
-  }, [activeTrainNumber, trackQuery]);
 
   useEffect(() => {
     if (trackQuery && trackQuery.trim()) {
@@ -252,19 +314,48 @@ export const JourneyTrackerPage: React.FC = () => {
   }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach, userSeatNumbers]);
 
   const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
-  const seatInventory = coachInventory;
+
+  const effectiveWl = isWaitlistBooking ? simulatedWl : coachInventory.waitlist;
+  const effectiveCleared = isWaitlistBooking ? Math.max(0, 42 - simulatedWl) : coachInventory.positionsCleared;
+  const effectiveProb = isWaitlistBooking
+    ? (simulatedWl === 0 ? 100 : Math.min(99, Math.round(62 + ((42 - simulatedWl) / 42) * 37)))
+    : coachInventory.waitlist <= 2 ? 98 : 88;
+
+  const seatInventory = useMemo(() => {
+    if (isWaitlistBooking) {
+      return {
+        ...coachInventory,
+        waitlist: effectiveWl,
+        positionsCleared: effectiveCleared,
+        status: effectiveWl === 0 ? ('AVAILABLE' as const) : effectiveWl <= 2 ? ('RAC' as const) : ('WL' as const),
+      };
+    }
+    return coachInventory;
+  }, [coachInventory, isWaitlistBooking, effectiveWl, effectiveCleared]);
+
   const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations), [trainNumber, routeStations]);
   const primaryNoSeat = noSeatSegments[0];
 
+  const rawWlWatch = useMemo(() => {
+    return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, effectiveWl, comfortLevel);
+  }, [trainNumber, selectedCoachInfo.classCode, effectiveWl, comfortLevel]);
+
   const wlWatch = useMemo(() => {
-    return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel);
-  }, [trainNumber, selectedCoachInfo.classCode, coachInventory.waitlist, comfortLevel]);
+    if (isWaitlistBooking) {
+      return {
+        ...rawWlWatch,
+        confirmationProbability: effectiveProb,
+        predictedFinalState: (effectiveWl === 0 ? 'CONFIRMED' : 'RAC_OR_CONFIRMED') as any,
+      };
+    }
+    return rawWlWatch;
+  }, [rawWlWatch, isWaitlistBooking, effectiveProb, effectiveWl]);
 
   // Auto-pop the Waitlist Watch or Coach view when user has booked a ticket
   useEffect(() => {
     const hasWaitlistBooking = isUserBookedTrain && Boolean(
       (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
-      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some(s => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
+      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
       trainNumber === '12232'
     );
     if (hasWaitlistBooking) {
@@ -278,21 +369,21 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // Dynamic Passenger List for Waitlist Watch Sidebar
   const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
-    const p1Wl = coachInventory.waitlist;
-    const p1Init = coachInventory.initialWaitlist;
-    const p1Prob = wlWatch.confirmationProbability;
-    const p1Moved = coachInventory.positionsCleared;
+    const p1Wl = effectiveWl;
+    const p1Init = 42;
+    const p1Prob = effectiveProb;
+    const p1Moved = effectiveCleared;
 
     return userPassengers.map((p: any, idx: number) => ({
       name: p.name || `Passenger ${idx + 1}`,
       displayName: `Passenger ${idx + 1}`,
       quotaType: 'GNWL',
       initialWl: p1Init + idx * 2,
-      currentWl: Math.max(1, p1Wl + idx * 2),
+      currentWl: Math.max(0, p1Wl + idx * 2),
       probability: Math.max(10, p1Prob - idx * 4),
       positionsCleared: p1Moved,
     }));
-  }, [userPassengers, coachInventory, wlWatch.confirmationProbability]);
+  }, [userPassengers, effectiveWl, effectiveProb, effectiveCleared]);
 
   const ticketExplanation = useMemo(() => {
     return explainMyTicket(passengerEntries, 4, privacyMode);
@@ -327,31 +418,11 @@ export const JourneyTrackerPage: React.FC = () => {
     }
   };
 
-  // Full Station Announcement (Chime + Voice TTS)
+  // Full Station Announcement (Chime)
   const announceArrival = (station = currentTargetStation, remainingSecs = countdownSeconds) => {
     setIsPlayingAnnouncement(true);
     playRailwayChime();
-
-    setTimeout(() => {
-      let speechText = '';
-      if (phase === 'DESTINATION_ARRIVED' || (isFinalDestination && countdownSeconds === 0)) {
-        speechText = `Attention please! Train number ${trainNumber}, ${trainName}, has reached its final destination ${station.name} on ${station.platform}. All passengers are requested to deboard from the ${station.doorSide.toLowerCase()}. Thank you for choosing Indian Railways and Nirantar.`;
-      } else {
-        const minsText = remainingSecs <= 30 ? 'shortly' : `in ${Math.ceil(remainingSecs / 60)} minutes`;
-        const delayNotice =
-          delayStatus === 'BEFORE_TIME'
-            ? 'running 5 minutes before time'
-            : delayStatus === 'DELAY_8M'
-            ? 'delayed by approximately 8 minutes due to signal clearance'
-            : delayStatus === 'DELAY_25M'
-            ? 'delayed by 25 minutes'
-            : 'running right on time';
-
-        speechText = `May I have your attention please! Train number ${trainNumber}, ${trainName}, ${delayNotice}, is arriving ${minsText} on ${station.platform}. Doors will open on the ${station.doorSide.toLowerCase()}. Coach B4 aligns near ${station.pillarInfo}. Please stay behind the yellow safety line.`;
-      }
-      speakNiraResponse(speechText, { isAnnouncement: true });
-      setTimeout(() => setIsPlayingAnnouncement(false), 9000);
-    }, 1100);
+    setTimeout(() => setIsPlayingAnnouncement(false), 3000);
   };
 
   // Live Timer & Lifecycle State Machine
@@ -1233,8 +1304,47 @@ export const JourneyTrackerPage: React.FC = () => {
           {/* ─── TAB 3: DEDICATED WAITLIST WATCH & CONFIRMATION RADAR ─── */}
           {activeTrackerTab === 'waitlist' && (
             <div className="space-y-4 animate-in fade-in">
-              {/* Mascot Floating Advice Card */}
-              {showNiraHappyBanner && (
+              {/* 1. CELEBRATORY "YEAH! CONFIRMED" BANNER WHEN WAITLIST CLEARS TO 0 */}
+              {showConfirmedCelebration && (
+                <div
+                  className={`relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-2xl border-2 border-emerald-300 overflow-hidden transition-all duration-500 animate-in zoom-in-95 ${
+                    isPoofingCelebration ? 'scale-90 opacity-0 blur-md pointer-events-none' : ''
+                  }`}
+                >
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center text-4xl shadow-inner animate-bounce">
+                        🎉
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-900 text-[10px] font-black uppercase tracking-wider shadow-xs">
+                            100% CONFIRMED
+                          </span>
+                          <span className="text-base sm:text-lg font-black text-white">
+                            YEAH! Your Seats are Confirmed! 🥳
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-emerald-100 font-bold mt-1 leading-snug">
+                          All 42 waitlist positions cleared! Allocated Coach <span className="underline font-mono text-amber-200 font-black">B4</span> • Berth <span className="underline font-mono text-amber-200 font-black">36 (Lower) & 37 (Middle)</span>.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePoofCelebration}
+                      className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-white/30 shadow-md"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Poof Off 💨</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Mascot Floating Advice Card (When not in full confirmed celebration) */}
+              {!showConfirmedCelebration && showNiraHappyBanner && (
                 <div
                   className={`relative rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border-2 border-purple-400/40 overflow-hidden transition-all duration-500 ${
                     isPoofingOff ? 'scale-90 opacity-0 blur-md pointer-events-none' : ''
@@ -1282,34 +1392,62 @@ export const JourneyTrackerPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Zero Seat Warning Alert */}
-              {isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
-                <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <AlertCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
-                          Zero Seat Alert
-                        </span>
-                        <span className="text-xs font-black text-rose-950">
-                          NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} to {primaryNoSeat?.toStation || toCity}
-                        </span>
+              {/* 3. Zero Seat Warning Alert vs Confirmed Status Banner */}
+              {isUserBookedTrain && (
+                effectiveWl === 0 ? (
+                  <div className="rounded-2xl border border-emerald-300 bg-emerald-50/95 p-3.5 text-emerald-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
-                      <p className="text-[11px] text-rose-800 font-medium mt-0.5">
-                        Occupancy at 100% capacity on this segment. Active Waitlist: {seatInventory.status} GNWL {seatInventory.waitlist} (Initial: 42).
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
+                            BERTH ALLOCATED
+                          </span>
+                          <span className="text-xs font-black text-emerald-950">
+                            CONFIRMED: Coach B4 • Seat 36 (Lower) & Seat 37 (Middle)
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
+                          All 42 waitlist positions cleared! Your e-Ticket is fully confirmed for travel.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black font-mono shrink-0 shadow-xs">
+                      100% CNF
                     </div>
                   </div>
-                  <div className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold shrink-0">
-                    Occupancy 100%
-                  </div>
-                </div>
+                ) : (
+                  (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
+                    <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                          <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
+                              Zero Seat Alert
+                            </span>
+                            <span className="text-xs font-black text-rose-950">
+                              NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} to {primaryNoSeat?.toStation || toCity}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-rose-800 font-medium mt-0.5">
+                            Occupancy at 100% capacity on this segment. Active Waitlist: {seatInventory.status} GNWL {effectiveWl} (Initial: 42).
+                          </p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold shrink-0">
+                        Occupancy 100%
+                      </div>
+                    </div>
+                  )
+                )
               )}
 
-              {/* Real-Time Confirmation Probability & Clearance Meter */}
+              {/* 4. Real-Time Confirmation Probability & Clearance Meter */}
               <div className="rounded-3xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/95 via-white to-indigo-50/95 p-4 sm:p-5 text-slate-900 shadow-md space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-100 pb-3">
                   <div className="flex items-center gap-3">
@@ -1327,7 +1465,9 @@ export const JourneyTrackerPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-600 font-medium mt-0.5">
-                        Dynamic queue clearance moved your ticket from <strong className="text-amber-800 font-mono">GNWL 42</strong> ➔ <strong className="text-emerald-700 font-mono">GNWL {seatInventory.waitlist}</strong> ({42 - seatInventory.waitlist} cleared ahead in real-time).
+                        {effectiveWl === 0
+                          ? '🎉 All 42 waitlist positions cleared! Ticket successfully confirmed in Coach B4.'
+                          : `Dynamic queue clearance moved your ticket from GNWL 42 ➔ GNWL ${effectiveWl} (${effectiveCleared} cleared ahead in real-time).`}
                       </p>
                     </div>
                   </div>
@@ -1335,10 +1475,10 @@ export const JourneyTrackerPage: React.FC = () => {
                   <div className="flex items-center gap-2 self-start sm:self-center shrink-0 bg-white px-3.5 py-2 rounded-2xl border border-purple-200 shadow-2xs">
                     <div className="text-right">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase">Confirmation Odds</span>
-                      <span className="text-base font-black text-emerald-600 font-mono">{wlWatch.confirmationProbability}%</span>
+                      <span className="text-base font-black text-emerald-600 font-mono">{effectiveProb}%</span>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-300 shadow-2xs">
-                      {wlWatch.confirmationProbability}%
+                      {effectiveProb}%
                     </div>
                   </div>
                 </div>
@@ -1351,25 +1491,25 @@ export const JourneyTrackerPage: React.FC = () => {
                       Initial Queue: GNWL 42
                     </span>
                     <span className="text-purple-700 font-mono font-black">
-                      Current Position: GNWL {seatInventory.waitlist}
+                      Current Position: {effectiveWl === 0 ? 'CONFIRMED ✓' : `GNWL ${effectiveWl}`}
                     </span>
                     <span className="text-emerald-700 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Confirmed Berth Forecast ({wlWatch.confirmationProbability}%)
+                      Confirmed Berth Forecast ({effectiveProb}%)
                     </span>
                   </div>
 
                   <div className="w-full h-3.5 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-amber-500 via-purple-600 to-emerald-500 transition-all duration-700 ease-out shadow-xs"
-                      style={{ width: `${Math.min(100, Math.max(20, ((42 - seatInventory.waitlist) / 40) * 100))}%` }}
+                      style={{ width: `${Math.min(100, Math.max(20, ((42 - effectiveWl) / 42) * 100))}%` }}
                     />
                   </div>
 
                   <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium flex-wrap gap-1">
                     <span>⚡ Clearance velocity: 4.8 cancellations/hr</span>
-                    <span className="text-emerald-700 font-bold">✓ {42 - seatInventory.waitlist} cancellations & quota adjustments absorbed</span>
-                    <span>Chart Prep in ~3h 45m</span>
+                    <span className="text-emerald-700 font-bold">✓ {effectiveCleared} cancellations & quota adjustments absorbed</span>
+                    <span>{effectiveWl === 0 ? 'Chart Prepared • Berths Allocated' : 'Chart Prep in ~3h 45m'}</span>
                   </div>
                 </div>
 
@@ -1378,8 +1518,12 @@ export const JourneyTrackerPage: React.FC = () => {
                   <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Queue Position</span>
                     <div className="font-black text-slate-900 flex items-center gap-1.5">
-                      <span className="font-mono text-purple-700 text-sm">GNWL {seatInventory.waitlist}</span>
-                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">Fast Clearance</span>
+                      <span className="font-mono text-purple-700 text-sm">
+                        {effectiveWl === 0 ? 'CNF (Confirmed)' : `GNWL ${effectiveWl}`}
+                      </span>
+                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">
+                        {effectiveWl === 0 ? 'Allocated ✓' : 'Fast Clearance'}
+                      </span>
                     </div>
                     <p className="text-[10px] text-slate-500">Started at GNWL 42 at booking time</p>
                   </div>
@@ -1388,16 +1532,18 @@ export const JourneyTrackerPage: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Berth Allocation Forecast</span>
                     <div className="font-black text-emerald-700 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Berth Assured (Lower/Side)</span>
+                      <span>{effectiveWl === 0 ? 'Coach B4 • Seat 36 & 37' : 'Berth Assured (Lower/Side)'}</span>
                     </div>
-                    <p className="text-[10px] text-slate-500">Auto-assigned upon chart preparation</p>
+                    <p className="text-[10px] text-slate-500">
+                      {effectiveWl === 0 ? 'Confirmed in reservation system' : 'Auto-assigned upon chart preparation'}
+                    </p>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">AI Confidence Rating</span>
                     <div className="font-black text-indigo-700 flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>99.4% Model Precision</span>
+                      <span>{effectiveWl === 0 ? '100% Confirmation' : '99.4% Model Precision'}</span>
                     </div>
                     <p className="text-[10px] text-slate-500">Trained on 14,280 historic Northern Railway runs</p>
                   </div>
@@ -1428,7 +1574,7 @@ export const JourneyTrackerPage: React.FC = () => {
                     <div className="md:col-span-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 shadow-xs space-y-1.5">
                       <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-2xs">Output</span>
                       <span className="text-xs font-black text-emerald-950 block">Berth Confirmed</span>
-                      <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{seatInventory.waitlist} ➔ RAC ➔ Confirmed Berth forecast ({wlWatch.confirmationProbability}% odds).</p>
+                      <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{effectiveWl} ➔ RAC ➔ Confirmed Berth forecast ({effectiveProb}% odds).</p>
                     </div>
                   </div>
                 </div>
@@ -1643,7 +1789,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => speakNiraResponse(`Alarm set! You will receive audio announcements 15 minutes before reaching ${currentTargetStation.name}.`)}
+                  onClick={() => alert(`⏰ Station Wake-Up Alarm set for ${currentTargetStation.name}! You will be alerted 15 minutes before arrival.`)}
                   className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
@@ -1678,7 +1824,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => speakNiraResponse("IRCTC e-Catering is available on your route! You can order hot meals, thalis, and beverages delivered directly to your berth at the next scheduled halt.")}
+                  onClick={() => alert('🍱 IRCTC e-Catering is available! Fresh hot meals and beverages can be delivered directly to your berth at the next scheduled halt.')}
                   className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
