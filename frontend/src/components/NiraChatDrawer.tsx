@@ -2101,6 +2101,37 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                       </div>
                     </div>
                   )}
+                  {/* ─────────────────────────────────────────────────────────────
+                      CONGRATULATIONS / NEXT STEP ACTION CARD IN CHAT DRAWER
+                      ───────────────────────────────────────────────────────────── */}
+                  {m.text && m.text.includes('Congratulations! Your ticket is successfully booked') && !m.bookedTrainStatusCard && (
+                    <div className="ml-8 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-purple-50 border-2 border-emerald-300 shadow-sm space-y-2.5 animate-in zoom-in-95">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-black text-emerald-950 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Track Your Booked Train</span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 px-2 py-0.2 rounded-full border border-emerald-200">
+                          Live Satellite GPS
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-700 font-medium leading-relaxed">
+                        View real-time speed, live platform door alignment, and station countdowns on the Radar!
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const trainNo = issuedTicket?.train?.trainNumber || selectedTrain?.trainNumber || bookingRecord?.trainNumber || '12260';
+                          handleQuickTrack(trainNo);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-700/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                      >
+                        <Train className="w-3.5 h-3.5" />
+                        <span>🛰️ Open Live GPS Platform Radar</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* ─────────────────────────────────────────────────────────────
                       "NIRA UNDERSTOOD YOU" CONFIRMATION CARD (Item 1 & 4)

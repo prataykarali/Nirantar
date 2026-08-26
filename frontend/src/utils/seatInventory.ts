@@ -115,9 +115,15 @@ export function getCoachBerthLayout(
   classCode: string,
   racCount = 0,
   isUserCoach = false,
-  userSeatNumber?: number
+  userSeatNumber?: number | number[]
 ): SeatBerth[] {
   const seats: SeatBerth[] = [];
+
+  const checkIsUserSeat = (num: number) => {
+    if (!isUserCoach || userSeatNumber === undefined) return false;
+    if (Array.isArray(userSeatNumber)) return userSeatNumber.includes(num);
+    return userSeatNumber === num;
+  };
 
   // Chair car layout: CC / EC (NEVER HAS RAC)
   if (classCode === 'CC' || classCode === 'EC') {
@@ -125,7 +131,7 @@ export function getCoachBerthLayout(
     const types = classCode === 'EC' ? ['W', 'A', 'A', 'W'] : ['W', 'M', 'A', 'A', 'W'];
     for (let i = 1; i <= totalSeats; i++) {
       const type = types[(i - 1) % types.length];
-      const isUser = isUserCoach && userSeatNumber === i;
+      const isUser = checkIsUserSeat(i);
       seats.push({
         num: i,
         type,
@@ -142,7 +148,7 @@ export function getCoachBerthLayout(
     const cabinPattern = ['LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB'];
     cabinPattern.forEach((type, idx) => {
       const num = idx + 1;
-      const isUser = isUserCoach && userSeatNumber === num;
+      const isUser = checkIsUserSeat(num);
       seats.push({
         num,
         type,
@@ -181,8 +187,8 @@ export function getCoachBerthLayout(
     ];
 
     raw2ABay.forEach((s) => {
-      const isRac = isUserCoach && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
-      const isUser = isUserCoach && userSeatNumber === s.num;
+      const isRac = isUserCoach && !checkIsUserSeat(s.num) && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+      const isUser = checkIsUserSeat(s.num);
       let label = 'CNF';
       if (isUser) label = 'YOU';
       else if (isRac) {
@@ -229,8 +235,8 @@ export function getCoachBerthLayout(
   ];
 
   raw3ABay.forEach((s) => {
-    const isRac = isUserCoach && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
-    const isUser = isUserCoach && userSeatNumber === s.num;
+    const isRac = isUserCoach && !checkIsUserSeat(s.num) && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
+    const isUser = checkIsUserSeat(s.num);
     let label = 'CNF';
     if (isUser) label = 'YOU';
     else if (isRac) {

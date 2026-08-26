@@ -208,10 +208,37 @@ export const JourneyTrackerPage: React.FC = () => {
     );
   }, [issuedTicket, bookingRecord, selectedTrain, trainNumber]);
 
-  // Determine if this selected coach is the user's booked coach/class
+  // Real booked passengers from Citizen profile / ticket database
+  const userPassengers = useMemo(() => {
+    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
+      return issuedTicket.passengers;
+    }
+    if (passengers && passengers.length > 0) {
+      return passengers;
+    }
+    return [
+      { id: 'p1', name: 'Pratay Karali', age: 24, gender: 'M' as const, berthPreference: 'SIDE_LOWER' as const, assignedClassCode: '3A' },
+    ];
+  }, [issuedTicket, passengers]);
+
+  // Determine if this selected coach belongs to any user passenger
   const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
-  const isUserClass = isUserBookedTrain && selectedCoachInfo.classCode === userBookedClass;
-  const isUserCoach = Boolean(isUserBookedTrain && (selectedCoach === 'B4' || (isUserClass && selectedCoach === (trainCoaches.find((c) => c.classCode === userBookedClass)?.code || 'B4'))));
+  const passengersInThisCoach = useMemo(() => {
+    if (!isUserBookedTrain) return [];
+    return userPassengers.filter((p: any) => {
+      const pClass = p.assignedClassCode || userBookedClass || '3A';
+      return pClass === selectedCoachInfo.classCode;
+    });
+  }, [isUserBookedTrain, userPassengers, selectedCoachInfo.classCode, userBookedClass]);
+
+  const isUserCoach = Boolean(isUserBookedTrain && (passengersInThisCoach.length > 0 || selectedCoach === 'B4'));
+
+  // Generate seat numbers for all booked passengers in this coach
+  const userSeatNumbers = useMemo(() => {
+    if (!isUserCoach) return [];
+    const count = Math.max(1, passengersInThisCoach.length);
+    return Array.from({ length: count }, (_, idx) => 14 + idx * 8);
+  }, [isUserCoach, passengersInThisCoach.length]);
 
   const coachBerthLayout = useMemo(() => {
     return getCoachBerthLayout(
@@ -219,9 +246,9 @@ export const JourneyTrackerPage: React.FC = () => {
       selectedCoachInfo.classCode,
       coachInventory.racCount,
       isUserCoach,
-      isUserCoach ? 14 : undefined
+      userSeatNumbers
     );
-  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach]);
+  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach, userSeatNumbers]);
 
   const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
   const seatInventory = coachInventory;
@@ -244,20 +271,6 @@ export const JourneyTrackerPage: React.FC = () => {
       setActiveTrackerTab('timeline');
     }
   }, [trainNumber, isUserBookedTrain, bookingRecord?.status, issuedTicket?.seatAllotments]);
-
-  // Real booked passengers from Citizen profile / ticket database
-  const userPassengers = useMemo(() => {
-    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
-      return issuedTicket.passengers;
-    }
-    if (passengers && passengers.length > 0) {
-      return passengers;
-    }
-    return [
-      { id: 'p1', name: 'Anusuya Nita', age: 44, gender: 'F' as const, berthPreference: 'SIDE_LOWER' as const },
-      { id: 'p2', name: 'Moupiya Sharma', age: 45, gender: 'F' as const, berthPreference: 'UPPER' as const },
-    ];
-  }, [issuedTicket, passengers]);
 
   // Dynamic Passenger List for Waitlist Watch Sidebar
   const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
@@ -332,7 +345,7 @@ export const JourneyTrackerPage: React.FC = () => {
 
         speechText = `May I have your attention please! Train number ${trainNumber}, ${trainName}, ${delayNotice}, is arriving ${minsText} on ${station.platform}. Doors will open on the ${station.doorSide.toLowerCase()}. Coach B4 aligns near ${station.pillarInfo}. Please stay behind the yellow safety line.`;
       }
-      speakNiraResponse(speechText);
+      speakNiraResponse(speechText, { isAnnouncement: true });
       setTimeout(() => setIsPlayingAnnouncement(false), 9000);
     }, 1100);
   };
@@ -1310,18 +1323,28 @@ export const JourneyTrackerPage: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
                 {trainCoaches.map((c) => {
                   const isSelected = selectedCoach === c.code;
+                  const hasPassengerInCoach = isUserBookedTrain && userPassengers.some(
+                    (p: any) => (p.assignedClassCode || userBookedClass) === c.classCode
+                  );
                   return (
                     <button
                       key={c.code}
                       type="button"
                       onClick={() => setSelectedCoach(c.code)}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs ${
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs flex items-center gap-1.5 ${
                         isSelected
                           ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
+                          : hasPassengerInCoach
+                          ? 'bg-purple-100 text-purple-950 border border-purple-300 hover:bg-purple-200'
                           : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
                       }`}
                     >
-                      {c.label}
+                      <span>{c.label}</span>
+                      {hasPassengerInCoach && (
+                        <span className="px-1 py-0.2 rounded-full bg-emerald-500 text-[9px] text-white font-black">
+                          Booked
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -1384,19 +1407,34 @@ export const JourneyTrackerPage: React.FC = () => {
                   })}
                 </div>
 
-                {/* User Waitlist Highlight */}
+                {/* User Booked Seats & Waitlist Highlight */}
                 <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
                   {isUserCoach ? (
                     <>
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse">★</span>
-                        <span className="flex items-center gap-1.5">
-                          Your Position in Queue: <strong className="text-amber-300 font-mono text-sm">WL-{coachInventory.waitlist}</strong> (Coach {selectedCoach} Promotion Path)
-                          <Explain term="GNWL" context={{ currentValue: coachInventory.waitlist, initialValue: coachInventory.initialWaitlist, probability: wlWatch.confirmationProbability }} />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse shrink-0">
+                          ★
                         </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-purple-200">
+                            Your Booked {passengersInThisCoach.length > 1 ? `Berths (${passengersInThisCoach.length} Passengers)` : 'Berth'} in Coach {selectedCoach}:
+                          </span>
+                          {passengersInThisCoach.map((p: any, idx: number) => {
+                            const seatNum = 14 + idx * 8;
+                            const berthType = p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'Lower';
+                            return (
+                              <span
+                                key={p.id || idx}
+                                className="px-2 py-0.5 rounded-full bg-purple-400/30 text-amber-300 font-mono font-bold text-[11px] border border-purple-300/40"
+                              >
+                                {p.name || `Passenger ${idx + 1}`}: Seat {seatNum} ({berthType})
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                       <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                        ⚡ Projected RAC {Math.max(1, Math.ceil(coachInventory.waitlist / 2))} at Chart 1
+                        ⚡ {passengersInThisCoach.length > 0 ? `${passengersInThisCoach.length} Confirmed Berths` : 'Projected RAC at Chart 1'}
                       </span>
                     </>
                   ) : (

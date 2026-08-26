@@ -84,7 +84,34 @@ export const CompletionResultPage: React.FC = () => {
     }, 700);
   };
 
-  const passengerName = issuedTicket?.passengers[0]?.name || passengers[0]?.name || 'Ananya Sharma';
+  const displayPassengers = (issuedTicket?.passengers && issuedTicket.passengers.length > 0)
+    ? issuedTicket.passengers
+    : (passengers && passengers.length > 0)
+    ? passengers
+    : [
+        {
+          id: 'p1',
+          name: 'Pratay Karali',
+          age: 24,
+          gender: 'M' as const,
+          berthPreference: 'SIDE_LOWER' as const,
+          assignedClassCode: '3A',
+        },
+      ];
+
+  const getPassengerSeat = (p: any, idx: number) => {
+    if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments[idx]) {
+      const s = issuedTicket.seatAllotments[idx];
+      return `${s.coach} - ${s.seatNumber} (${s.berthType})`;
+    }
+    const pClass = p.assignedClassCode || selectedClassCode || '3A';
+    const coachPrefix = pClass === '1A' ? 'H1' : pClass === '2A' ? 'A1' : pClass === 'SL' ? 'S5' : 'B4';
+    const seatNum = 14 + idx * 8;
+    const berthLabel = p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'Lower';
+    return `${coachPrefix} - ${seatNum} (${berthLabel})`;
+  };
+
+  const passengerName = displayPassengers[0]?.name || 'Pratay Karali';
   const pnrNumber = issuedTicket?.pnrNumber || bookingRecord?.pnrNumber || '2847 5896 1234';
 
   const handleCopyPnr = () => {
@@ -396,39 +423,64 @@ export const CompletionResultPage: React.FC = () => {
 
             {/* PANEL 2: PASSENGER DETAILS & ADVENTURE CARD */}
             <div className="space-y-2">
-              {/* Passenger Card */}
-              <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
-                <h4 className="text-xs font-bold text-slate-900 border-b border-purple-50 pb-1">
-                  Passenger Details
-                </h4>
-
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-900 font-bold text-[11px] flex items-center justify-center shrink-0">
-                    RS
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">{passengerName}</span>
-                    <span className="text-[10px] text-slate-500 font-medium">24 yrs • Male • Side Lower</span>
-                  </div>
+              {/* Passenger Cards */}
+              <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-purple-50 pb-1">
+                  <h4 className="text-xs font-bold text-slate-900">
+                    Passenger Details ({displayPassengers.length})
+                  </h4>
+                  <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                    DigiLocker Verified
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 text-xs pt-0.5 border-t border-purple-50">
-                  <div>
-                    <span className="text-[9px] text-slate-400 block font-semibold">Booking Status</span>
-                    <span className="font-bold text-emerald-600 text-xs">Confirmed</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 block font-semibold">Berth / Seat</span>
-                    <span className="font-bold text-slate-900 text-xs">S5 - 36</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 block font-semibold">ID Proof</span>
-                    <span className="font-semibold text-slate-800 text-[11px]">Aadhaar Card</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 block font-semibold">Nationality</span>
-                    <span className="font-semibold text-slate-800 text-[11px]">Indian</span>
-                  </div>
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-0.5">
+                  {displayPassengers.map((p, idx) => {
+                    const initials = p.name
+                      ? p.name
+                          .split(' ')
+                          .map((n: string) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : `P${idx + 1}`;
+                    const genderLabel = p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other';
+                    const berthLabel = p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'Lower Berth';
+                    const seatInfo = getPassengerSeat(p, idx);
+                    const pClass = p.assignedClassCode || selectedClassCode || '3A';
+
+                    return (
+                      <div key={p.id || idx} className="p-2.5 rounded-xl bg-purple-50/40 border border-purple-100 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-900 font-black text-[11px] flex items-center justify-center shrink-0 border border-purple-200">
+                              {initials}
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-900 block">{p.name || `Passenger ${idx + 1}`}</span>
+                              <span className="text-[10px] text-slate-500 font-semibold">
+                                {p.age} yrs • {genderLabel} • {berthLabel}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-200">
+                            Class {pClass}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 text-xs pt-1 border-t border-purple-100/60">
+                          <div>
+                            <span className="text-[9px] text-slate-400 block font-semibold">Booking Status</span>
+                            <span className="font-bold text-emerald-600 text-xs">Confirmed ✓</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-400 block font-semibold">Coach & Berth / Seat</span>
+                            <span className="font-bold text-purple-950 text-xs font-mono">{seatInfo}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
