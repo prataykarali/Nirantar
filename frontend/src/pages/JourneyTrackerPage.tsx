@@ -128,15 +128,15 @@ export const JourneyTrackerPage: React.FC = () => {
     setShowConfirmedCelebration(false);
     setIsPoofingCelebration(false);
 
-    // Realistic progressive sequence with randomized pacing: 42 -> 36 -> 28 -> 19 -> 12 -> 6 -> 2 -> 0
+    // Fast, engaging progressive sequence: 42 -> 36 -> 28 -> 19 -> 12 -> 6 -> 2 -> 0
     const sequence = [
-      { wl: 36, delay: 3500 + Math.random() * 800 },
-      { wl: 28, delay: 4200 + Math.random() * 800 },
-      { wl: 19, delay: 4800 + Math.random() * 900 },
-      { wl: 12, delay: 4500 + Math.random() * 800 },
-      { wl: 6, delay: 4200 + Math.random() * 800 },
-      { wl: 2, delay: 4000 + Math.random() * 800 },
-      { wl: 0, delay: 3800 + Math.random() * 600 },
+      { wl: 36, delay: 1700 + Math.random() * 300 },
+      { wl: 28, delay: 1900 + Math.random() * 300 },
+      { wl: 19, delay: 2100 + Math.random() * 300 },
+      { wl: 12, delay: 1900 + Math.random() * 300 },
+      { wl: 6, delay: 1800 + Math.random() * 300 },
+      { wl: 2, delay: 1700 + Math.random() * 300 },
+      { wl: 0, delay: 1900 + Math.random() * 300 },
     ];
 
     let step = 0;
@@ -149,14 +149,14 @@ export const JourneyTrackerPage: React.FC = () => {
           setSimulatedWl(next.wl);
           if (next.wl === 0) {
             setShowConfirmedCelebration(true);
-            // Auto poof-off after 9 seconds if user doesn't dismiss
+            // Auto poof-off after 7.5 seconds if user doesn't dismiss
             setTimeout(() => {
               setIsPoofingCelebration(true);
               setTimeout(() => {
                 setShowConfirmedCelebration(false);
                 setIsPoofingCelebration(false);
               }, 600);
-            }, 9000);
+            }, 7500);
           }
           step += 1;
           tick();
@@ -350,6 +350,72 @@ export const JourneyTrackerPage: React.FC = () => {
     }
     return rawWlWatch;
   }, [rawWlWatch, isWaitlistBooking, effectiveProb, effectiveWl]);
+
+  // Dynamic positive encouraging messages by Nira Copilot as waitlist decreases
+  const copilotDynamicAdvice = useMemo(() => {
+    if (effectiveWl >= 40) {
+      return {
+        title: `Hang tight Pratay! I'm monitoring the queue in real-time.`,
+        subtitle: `Initial GNWL-42 assigned. High cancellation corridor detected for ${toCity} (↑ 3.4 cancels/hr across corridor).`,
+        badge: 'Queue Active',
+        badgeColor: 'bg-amber-400 text-amber-950',
+      };
+    }
+    if (effectiveWl >= 30) {
+      return {
+        title: `Good news! 6 cancellations just cleared ahead in the ${toCity} quota! 🚀`,
+        subtitle: `Queue moving at 4.2 cancels/hr. Confirmation odds rising to ${effectiveProb}%.`,
+        badge: 'Moving Fast ⚡',
+        badgeColor: 'bg-emerald-400 text-emerald-950',
+      };
+    }
+    if (effectiveWl >= 20) {
+      return {
+        title: `We just cleared 14 more positions! Momentum is surging! ✨`,
+        subtitle: `Corridor balancing active. Current waitlist dropped to GNWL-${effectiveWl}.`,
+        badge: '14 Cleared 🚀',
+        badgeColor: 'bg-emerald-400 text-emerald-950',
+      };
+    }
+    if (effectiveWl >= 15) {
+      return {
+        title: `Over half the queue cleared! Down to GNWL-${effectiveWl}! 📈`,
+        subtitle: `Chart preparation clearance probability is surging at ${effectiveProb}%. Almost entering RAC!`,
+        badge: 'Over 50% Cleared',
+        badgeColor: 'bg-teal-400 text-teal-950',
+      };
+    }
+    if (effectiveWl >= 10) {
+      return {
+        title: `Down to GNWL-${effectiveWl}! Emergency & VIP quota buffers released! 🟢`,
+        subtitle: `High clearance velocity! Confirmation probability reached ${effectiveProb}%.`,
+        badge: 'Quota Released 🟢',
+        badgeColor: 'bg-teal-400 text-teal-950',
+      };
+    }
+    if (effectiveWl >= 5) {
+      return {
+        title: `Just ${effectiveWl} spots away! RAC threshold crossed — your seat is assured! 🎫`,
+        subtitle: `Berth allocation algorithm is preparing your Lower/Middle berth assignments.`,
+        badge: 'RAC Assured 🎫',
+        badgeColor: 'bg-emerald-400 text-emerald-950',
+      };
+    }
+    if (effectiveWl >= 1) {
+      return {
+        title: `Only ${effectiveWl} left! Final chart buffer balancing in progress! ⚡`,
+        subtitle: `Confirmation odds now at ${effectiveProb}%. Berth allocation imminent!`,
+        badge: 'Almost Confirmed! ⚡',
+        badgeColor: 'bg-amber-300 text-amber-950',
+      };
+    }
+    return {
+      title: '🎉 ALL BERTHS CONFIRMED! All 42 positions cleared successfully! 🥳',
+      subtitle: `Allocated Coach B4 • Seat 36 (Lower) & Seat 37 (Middle) for ${toCity}!`,
+      badge: '100% Confirmed 🎉',
+      badgeColor: 'bg-emerald-400 text-emerald-950',
+    };
+  }, [effectiveWl, effectiveProb, toCity]);
 
   // Auto-pop the Waitlist Watch or Coach view when user has booked a ticket
   useEffect(() => {
@@ -1358,8 +1424,8 @@ export const JourneyTrackerPage: React.FC = () => {
                           alt="Nira Happy Mascot"
                           className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(16,185,129,0.5)] animate-pulse"
                         />
-                        <div className="absolute -top-1 -right-1 bg-emerald-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shadow">
-                          Active AI
+                        <div className={`absolute -top-1 -right-1 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shadow ${copilotDynamicAdvice.badgeColor}`}>
+                          {copilotDynamicAdvice.badge}
                         </div>
                       </div>
                       <div>
@@ -1371,12 +1437,12 @@ export const JourneyTrackerPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center sm:text-left space-y-1">
-                      <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
-                        "Keep an eye on the list it'll confirm once wait list is balanced! Based on your destination."
+                    <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/20 text-center sm:text-left space-y-1 transition-all">
+                      <p className="text-xs sm:text-sm font-bold text-white leading-relaxed animate-in fade-in key={effectiveWl}">
+                        "{copilotDynamicAdvice.title}"
                       </p>
                       <span className="text-[10px] text-purple-200 block font-medium">
-                        Destination quota for <strong>{toCity}</strong> has high clearance velocity (↑ 3.4 cancels/hr across corridor).
+                        {copilotDynamicAdvice.subtitle}
                       </span>
                     </div>
 
