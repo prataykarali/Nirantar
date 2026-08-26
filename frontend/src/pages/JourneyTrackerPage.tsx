@@ -24,6 +24,7 @@ import { useJourney } from '../context/JourneyContext';
 import { speakNiraResponse } from '../services/voiceService';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { getTrainStoppages, StationStop } from '../data/trainStoppages';
+import { liveSeatInventory, stationLoadProjection } from '../utils/seatInventory';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
@@ -76,6 +77,7 @@ export const JourneyTrackerPage: React.FC = () => {
   const [delayStatus, setDelayStatus] = useState<DelayStatus>('ON_TIME');
   const [isPlayingAnnouncement, setIsPlayingAnnouncement] = useState(false);
   const [speedJitter, setSpeedJitter] = useState(0);
+  const [inventoryClock, setInventoryClock] = useState(Date.now());
   const lastNotifKey = useRef('');
 
   // Reset tracker cycle whenever train number changes
@@ -86,6 +88,11 @@ export const JourneyTrackerPage: React.FC = () => {
     setPhase('TRAVELING');
     lastNotifKey.current = '';
   }, [trainNumber]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setInventoryClock(Date.now()), 6_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const isFinalDestination = activeStationIndex >= routeStations.length - 1;
   const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1] || firstStop;
@@ -663,12 +670,21 @@ export const JourneyTrackerPage: React.FC = () => {
             </span>
           </div>
 
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+            {(() => {
+              const cls = foundTrain?.classes?.[0];
+              const inventory = liveSeatInventory(trainNumber, cls?.classCode || '3A', cls?.availableSeats || 42, inventoryClock);
+              return <><span className="font-bold text-emerald-900">Destination availability ({cls?.classCode || '3A'}): {inventory.status === 'AVAILABLE' ? `${inventory.seats} vacant seats` : `${inventory.status} ${inventory.waitlist}/100`}</span><span className="text-emerald-800">Station rows show passengers boarding, leaving, and projected vacancies.</span></>;
+            })()}
+          </div>
+
           {/* Interactive Route Timeline */}
           <div className="space-y-4 relative pl-3 before:absolute before:left-[21px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
             {routeStations.map((st, idx) => {
               const isPassed = idx < activeStationIndex;
               const isCurrent = idx === activeStationIndex;
               const isUpcoming = idx > activeStationIndex;
+              const load = stationLoadProjection(trainNumber, routeStations, idx);
 
               return (
                 <div
@@ -722,6 +738,11 @@ export const JourneyTrackerPage: React.FC = () => {
                         {st.distanceKm} km • Arr {st.scheduledArr} • Dep {st.scheduledDep}
                         {st.haltMins > 0 ? ` • Halt ${st.haltMins} min` : ''}
                       </span>
+                      <div className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-bold">
+                        <span className="rounded-full bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 text-indigo-800">↑ {load.boarding} board</span>
+                        <span className="rounded-full bg-orange-50 border border-orange-100 px-1.5 py-0.5 text-orange-800">↓ {load.alighting} leave</span>
+                        <span className="rounded-full bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-emerald-800">{load.vacantSeats} vacant after departure</span>
+                      </div>
                       {isCurrent && (
                         <div className="mt-2 flex items-center gap-2 flex-wrap">
                           <div className="flex items-center gap-1.5 px-2.5 py-0.8 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold shadow-xs animate-pulse">

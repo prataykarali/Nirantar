@@ -443,7 +443,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         lower.includes('find trains from') ||
         lower.includes('search trains from') ||
         lower.includes('book ticket from') ||
-        lower.includes('book train from')
+        lower.includes('book train from') ||
+        /(?:book|reserve)\b.*(?:train|#)\s*\d{5}/i.test(text)
       );
 
     const isTrack =
@@ -804,6 +805,7 @@ Please review the details above on the screen. Ready to proceed to payment?`;
       }
 
       const trainNo = intentData.trainNumber.trim();
+      handleQuickTrack(trainNo);
 
       // If user is mid-booking, save progress to task stack before switching
       if (bookingState !== 'IDLE' && bookingState !== 'TICKET_VIEW' && bookingState !== 'CONFIRMED') {
@@ -897,6 +899,21 @@ Please review the details above on the screen. Ready to proceed to payment?`;
       const travelDate = nextRouteCtx.travelDate || 'Tomorrow';
       const paxCount = nextRouteCtx.passengers || 1;
       const classCode = nextRouteCtx.classCode || '3A';
+
+      if (hasExplicitTrain && !hasExplicitRoute) {
+        const matched = MOCK_TRAINS_DATABASE.find((train) => train.trainNumber === intentData.trainNumber);
+        if (matched) {
+          selectTrain(matched, classCode);
+          navigateTo('workspace');
+          const bookingText = `Opening the Passenger & Booking Workspace for #${matched.trainNumber} ${matched.trainName}. Choose ${classCode}, review passenger details, then continue to payment.`;
+          setIsLoading(false);
+          setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, text: bookingText, isStreaming: false } : m));
+          if (autoVoice) speakNiraResponse(bookingText);
+          return;
+        } else {
+          navigateTo('trains');
+        }
+      }
 
       const trains = searchTrains(fromSt.code, toSt.code);
 

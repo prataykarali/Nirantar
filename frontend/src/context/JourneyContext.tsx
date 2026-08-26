@@ -770,7 +770,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const nextGuidanceStep = useCallback(() => {
     setGuidanceStepIndex((prev) => {
-      if (prev >= 3) {
+      if (prev >= 4) {
         setGuidanceActive(false);
         return 0;
       }
@@ -827,8 +827,22 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       },
     },
     {
-      id: 'step-ticket-companion',
+      id: 'step-station-seat-forecast',
       stepNumber: 4,
+      title: 'Find Vacant Seats at Upcoming Stations',
+      speech: 'Worried about a waitlist? Open the Live Train Radar to see each station’s passenger boarding and exit projection, plus seats expected to be vacant after departure.',
+      actionCue: 'Check the station timeline for board, leave, and vacant-seat estimates.',
+      actionButtonText: 'Open Station Seat Forecast ➔',
+      arrowPlacement: { top: '32%', right: '18%' },
+      arrowLabel: 'Station-wise vacant seats',
+      onAction: () => {
+        setActivePage('track');
+        setGuidanceStepIndex(4);
+      },
+    },
+    {
+      id: 'step-ticket-companion',
+      stepNumber: 5,
       title: 'Journey Companion & Live Radar',
       speech: 'Booking confirmed! Here is your confirmed digital ticket with live coach, platform, and GPS tracking.',
       actionCue: 'View your digital ticket and track your train in real-time.',

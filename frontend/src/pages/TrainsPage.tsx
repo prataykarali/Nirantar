@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,6 +18,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 import { TrainDetail } from '../data/mockTrains';
 import { findLocalTrains, LocalTrainRoute } from '../data/localTrainsData';
+import { liveSeatInventory } from '../utils/seatInventory';
 
 type FilterType = 'recommended' | 'fastest' | 'cheapest' | 'earliest' | 'availability';
 
@@ -40,6 +41,12 @@ export const TrainsPage: React.FC = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedClassMap, setSelectedClassMap] = useState<Record<string, string>>({});
   const [expandedTrainId, setExpandedTrainId] = useState<string | null>(null);
+  const [inventoryClock, setInventoryClock] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setInventoryClock(Date.now()), 6_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const activeFilter = activeSort as FilterType;
   const setActiveFilter = (val: FilterType) => {
@@ -448,7 +455,11 @@ export const TrainsPage: React.FC = () => {
                 <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 bg-amber-50/90 border border-amber-200/80 px-2.5 py-1 rounded-xl">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span>🔥 High Demand: Only {train.classes[0]?.availableSeats || 4} seats left in {currentSelectedClass}!</span>
+                    {(() => {
+                      const selected = train.classes.find((c) => c.classCode === currentSelectedClass) || train.classes[0];
+                      const inventory = liveSeatInventory(train.trainNumber, selected?.classCode || currentSelectedClass, selected?.availableSeats || 4, inventoryClock);
+                      return <span>🔥 High Demand: {inventory.status === 'AVAILABLE' ? `Only ${inventory.seats} seats left` : `${inventory.status} ${inventory.waitlist}/100`} in {currentSelectedClass}!</span>;
+                    })()}
                   </div>
                   <span className="text-amber-800 font-semibold hidden sm:inline">
                     👥 3 other citizens viewing right now
@@ -543,7 +554,10 @@ export const TrainsPage: React.FC = () => {
                                 : 'text-rose-600'
                             }`}
                           >
-                            {cls.status === 'AVAILABLE' ? `AVL ${cls.availableSeats}` : cls.status}
+                            {(() => {
+                              const inventory = liveSeatInventory(train.trainNumber, cls.classCode, cls.availableSeats, inventoryClock);
+                              return inventory.status === 'AVAILABLE' ? `AVL ${inventory.seats}` : `${inventory.status} ${inventory.waitlist}/100`;
+                            })()}
                           </span>
                         </button>
                       );

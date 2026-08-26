@@ -73,7 +73,7 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
                   Nira Guided Journey
                 </span>
                 <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  Step {currentStepData.stepNumber} of 4
+                  Step {currentStepData.stepNumber} of 5
                 </span>
               </div>
               <span className="text-[10px] text-purple-700 font-bold">
