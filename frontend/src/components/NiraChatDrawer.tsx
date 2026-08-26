@@ -361,7 +361,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       {
         icon: Sparkles,
         label: 'Underneath Nirantar (1-Min Dev Pitch)',
-        query: 'Now, let me quickly show what happens underneath Nirantar.',
+        query: "Welcome back! Now, as the developer, let's address what the user experienced underneath Nirantar:",
         tag: '1-Min Dev Pitch & Tech Stack',
       },
       {

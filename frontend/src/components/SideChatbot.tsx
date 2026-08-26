@@ -69,7 +69,7 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
       id: 'pitch',
       icon: <Sparkles className="w-4 h-4 text-purple-600" />,
       text: 'Underneath Nirantar (1-Min Dev Pitch)',
-      action: 'Now, let me quickly show what happens underneath Nirantar.',
+      action: "Welcome back! Now, as the developer, let's address what the user experienced underneath Nirantar:",
     },
     {
       id: 'cert',

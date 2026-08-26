@@ -20,37 +20,25 @@ export const RAILWAY_KNOWLEDGE_BASE: KnowledgeEntry[] = [
   {
     category: 'system_architecture_pitch',
     patterns: [
-      /\b(architecture|dev pitch|pitch|underneath nirantar|how it works|tech stack|4 layers|four layers|how you built|how i built|system design)\b/i,
+      /\b(architecture|dev pitch|pitch|underneath nirantar|how it works|tech stack|4 layers|four layers|how you built|how i built|system design|welcome back)\b/i,
       /\b(explain nirantar architecture|what happens underneath|tell me the pitch|one minute pitch)\b/i,
     ],
-    keywords: ['architecture', 'dev pitch', 'underneath nirantar', 'tech stack', '4 layers', 'how it works'],
-    reply: `"Now, let me quickly show what happens underneath Nirantar."
+    keywords: ['architecture', 'dev pitch', 'underneath nirantar', 'tech stack', '4 layers', 'how it works', 'welcome back'],
+    reply: `"Welcome back! Now, as the developer, let's address what the user experienced underneath Nirantar:
 
-📊 **Nirantar is built around four core layers:**
+📊 **4 Core Architectural Layers:**
 
-1️⃣ **First is our prediction engine** — it takes journey and waitlist signals and estimates how a booking is likely to progress.
-*How we built it:* Implemented via a deterministic Poisson queue model and historical corridor clearance rate calculator (\`seatInventory.ts\`) predicting live odds with 99.4% precision.
+1️⃣ **Prediction Engine** — Estimates waitlist and journey clearance using a deterministic Poisson queue model and corridor velocity algorithms (\`seatInventory.ts\`) predicting live odds with 99.4% precision.
 
-2️⃣ **Second is our real-time intelligence layer**, which combines train movement, platform, coach and passenger-flow information instead of showing these as isolated data points.
-*How we built it:* Powered by a unified telemetry state machine fusing live GPS satellite tracking, platform door-side alignment, dynamic 24-berth coach layouts, and segment occupancy projections (\`trainStoppages.ts\`).
+2️⃣ **Real-Time Intelligence** — Fuses live GPS satellite tracking, platform pillar alignment, and 24-berth coach layouts into a unified telemetry state machine (\`trainStoppages.ts\`).
 
-3️⃣ **Third is Nira, our context-aware assistant**. It sits on top of these systems and converts that intelligence into something a passenger can actually understand — explaining terms, answering questions and suggesting what to do next.
-*How we built it:* Built with a zero-latency conversational parser, multi-turn state-aware planner (\`NiraPlanner.ts\`), and Plain-English ticket intelligence (\`ticketIntelligence.ts\`) translating railway jargon like GNWL, RLWL, and RAC into clear, actionable advice.
+3️⃣ **Nira Context Assistant** — Zero-latency parser and state planner (\`NiraPlanner.ts\`) translating railway jargon (GNWL, RAC, Tatkal) into plain-English advice.
 
-4️⃣ **And finally, we have our human-in-the-loop automation layer**. For sensitive operations like booking and payment, Nirantar can prepare the action, but the user remains the final authority.
-*How we built it:* Engineered using SafeAssist zero-PII security filters (\`SafeAssistParser.ts\`), isolated client-side memory partitions, and strict authorization gates that never expose banking credentials to the AI layer.
+4️⃣ **Human-in-the-Loop Automation** — SafeAssist zero-PII security filters (\`SafeAssistParser.ts\`) with strict authorization gates for booking and payments.
 
-🛠️ **Tech Stack Used in Nirantar:**
-• **Frontend:** React 18, TypeScript, Tailwind CSS, Vite
-• **State & Architecture:** React Context API, Multi-Phase Journey State Machine
-• **Algorithms & Intelligence:** Deterministic Seed-Based Simulation, Heuristic Route Ranking
-• **Audio & UX:** Web Audio API Synthesizer (4-Tone Railway Chimes), Lucide Vector Icons
+🛠️ **Tech Stack:** React 18, TypeScript, Tailwind CSS, Vite, Web Audio API Synthesizers, Context API State Orchestration.
 
-So technically, we're not just building another railway frontend.
-
-We're connecting prediction, live intelligence, guidance and controlled automation into one journey system.
-
-And that's what powers everything you just saw.`,
+Technically, we're not just building another railway frontend — we're connecting prediction, live intelligence, guidance, and controlled automation into one unified journey system."`,
   },
 
   // ── 1. OUT-OF-DOMAIN BOUNDARIES (STRICT POLITE REDIRECTS) ──
