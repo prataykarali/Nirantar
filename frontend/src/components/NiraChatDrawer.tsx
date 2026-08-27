@@ -1231,15 +1231,14 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
       if (fromSt && toSt) {
         // Synchronize active journey search so the main screen updates immediately
+        const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
         executeSearch({
           fromStation: fromSt,
           toStation: toSt,
-          travelDate: travelDate !== 'Tomorrow' ? travelDate : undefined,
+          travelDate: effDate,
           passengersCount: paxCount,
         });
-        if (activePage !== 'trains' && activePage !== 'workspace' && activePage !== 'booking') {
-          navigateTo('trains');
-        }
+        navigateTo('trains');
 
         const trains = searchTrains(fromSt.code, toSt.code);
         if (trains && trains.length > 0) {
@@ -2233,11 +2232,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         <button
                           type="button"
                           onClick={() => {
+                            const effDate = (m.understoodCard?.date && m.understoodCard.date !== 'Tomorrow') ? m.understoodCard.date : (searchParams.travelDate || 'Tomorrow');
                             executeSearch({
                               fromStation: m.understoodCard!.fromStation,
                               toStation: m.understoodCard!.toStation,
-                              passengersCount: m.understoodCard!.passengers,
-                              travelDate: m.understoodCard!.date !== 'Tomorrow' ? m.understoodCard!.date : undefined,
+                              passengersCount: m.understoodCard!.passengers || 1,
+                              travelDate: effDate,
                             });
                             navigateTo('trains');
                           }}
@@ -2307,11 +2307,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             <button
                               type="button"
                               onClick={() => {
+                                const effDate = (m.understoodCard?.date && m.understoodCard.date !== 'Tomorrow') ? m.understoodCard.date : (searchParams.travelDate || 'Tomorrow');
                                 executeSearch({
                                   fromStation: m.understoodCard?.fromStation || searchParams.fromStation,
                                   toStation: m.understoodCard?.toStation || searchParams.toStation,
                                   passengersCount: m.understoodCard?.passengers || 1,
-                                  travelDate: m.understoodCard?.date !== 'Tomorrow' ? m.understoodCard?.date : undefined,
+                                  travelDate: effDate,
                                 });
                                 navigateTo('trains');
                               }}

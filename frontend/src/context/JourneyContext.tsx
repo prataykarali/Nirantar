@@ -741,7 +741,22 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const executeSearch = async (paramsOverride?: Partial<JourneySearchParams>): Promise<{ success: boolean; error?: string }> => {
     clearError();
-    const params = { ...searchParams, ...paramsOverride };
+
+    // Clean paramsOverride to ignore undefined/null values so they never overwrite defaults
+    const cleanedOverride: Partial<JourneySearchParams> = {};
+    if (paramsOverride) {
+      for (const [k, v] of Object.entries(paramsOverride)) {
+        if (v !== undefined && v !== null && v !== '') {
+          (cleanedOverride as any)[k] = v;
+        }
+      }
+    }
+
+    const params: JourneySearchParams = {
+      ...searchParams,
+      ...cleanedOverride,
+      travelDate: cleanedOverride.travelDate || searchParams.travelDate || 'Tomorrow',
+    };
 
     // Validation
     if (!params.fromStation) {
@@ -757,8 +772,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return { success: false, error: 'Boarding and destination stations cannot be the same.' };
     }
     if (!params.travelDate) {
-      setNamedError('INVALID_JOURNEY', 'Please select a valid travel date.');
-      return { success: false, error: 'Please select a valid travel date.' };
+      params.travelDate = 'Tomorrow';
     }
 
     setSearchParams(params);
