@@ -59,6 +59,18 @@ export const CompletionResultPage: React.FC = () => {
     train.trainNumber === '12863' ||
     train.trainNumber === '12864' ||
     train.trainNumber === '12245' ||
+    selectedTrain?.trainNumber === '12232' ||
+    selectedTrain?.trainNumber === '12863' ||
+    selectedTrain?.trainNumber === '12864' ||
+    selectedTrain?.trainNumber === '12245' ||
+    (train.fromStationCode === 'HWH' && train.toStationCode === 'SBC') ||
+    (train.fromStationCode === 'SBC' && train.toStationCode === 'HWH') ||
+    (train.fromStationCode === 'CDG' && train.toStationCode === 'LKO') ||
+    (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
+    (searchParams.fromStation?.code === 'SBC' && searchParams.toStation?.code === 'HWH') ||
+    (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO') ||
+    Boolean(train.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
+    Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
     (issuedTicket?.status as string) === 'WAITLIST' ||
     (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('WL') ||
     (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
@@ -68,6 +80,12 @@ export const CompletionResultPage: React.FC = () => {
 
   const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
+
+  React.useEffect(() => {
+    if (isWaitlisted) {
+      setShowWaitlistPopup(true);
+    }
+  }, [isWaitlisted]);
 
   // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
   const initialWaitlistNum = 42;

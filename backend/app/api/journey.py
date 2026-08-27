@@ -286,7 +286,7 @@ def get_ticket(journey_id: str, db: Session = Depends(get_db)):
         "travelDate": journey.travel_date,
         "origin": _serialize_station(origin) if origin else None,
         "destination": _serialize_station(dest) if dest else None,
-        "status": "ACTIVE",
+        "status": "WAITLIST" if (b.status == "WAITLIST" or b.coach == "GNWL" or "WL" in (b.coach or "")) else "ACTIVE",
         "issuedAt": b.created_at.isoformat() if b.created_at else None,
     }
 

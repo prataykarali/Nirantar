@@ -583,6 +583,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       selectedTrain?.trainNumber === '12863' ||
       selectedTrain?.trainNumber === '12864' ||
       selectedTrain?.trainNumber === '12245' ||
+      (resolvedTrain.fromStationCode === 'HWH' && resolvedTrain.toStationCode === 'SBC') ||
+      (resolvedTrain.fromStationCode === 'SBC' && resolvedTrain.toStationCode === 'HWH') ||
+      (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
+      (searchParams.fromStation?.code === 'SBC' && searchParams.toStation?.code === 'HWH') ||
+      (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO') ||
       Boolean(resolvedTrain.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
       Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0)));
     const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
@@ -604,7 +609,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
       destination: searchParams.toStation,
-      status: 'ACTIVE',
+      status: isWaitlistTrain ? ('WAITLIST' as any) : 'ACTIVE',
       issuedAt: new Date().toISOString(),
     };
 
@@ -976,11 +981,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPaymentState(res.state);
 
       if (res.state === 'SUCCESS' || res.state === 'BOOKING_CONFIRMED') {
+        syncConfirmedBookingAndPayment(res);
         const ticket = await apiGetTicket(res.journeyId).catch(() => null);
         if (ticket) {
+          const isWl =
+            (ticket.status as string) === 'WAITLIST' ||
+            (ticket.seatAllotments?.[0]?.coach || '').includes('WL') ||
+            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+            ticket.train?.trainNumber === '12232' ||
+            ticket.train?.trainNumber === '12863' ||
+            ticket.train?.trainNumber === '12864' ||
+            ticket.train?.trainNumber === '12245' ||
+            (ticket.train?.fromStationCode === 'HWH' && ticket.train?.toStationCode === 'SBC') ||
+            (ticket.train?.fromStationCode === 'SBC' && ticket.train?.toStationCode === 'HWH') ||
+            (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
+            (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO');
+          if (isWl) {
+            ticket.status = 'WAITLIST' as any;
+            if (!ticket.seatAllotments || ticket.seatAllotments.length === 0 || !ticket.seatAllotments[0].coach.includes('WL')) {
+              ticket.seatAllotments = [{ coach: 'GNWL', seatNumber: 42, berthType: 'Waitlist Queue #42 (Real-Time Clearance)' }];
+            }
+          }
           setIssuedTicket(ticket);
-        } else {
-          syncConfirmedBookingAndPayment(res);
         }
       }
       return res;
@@ -1007,11 +1029,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPaymentState(res.state);
 
       if (result === 'SUCCESS') {
+        syncConfirmedBookingAndPayment(res);
         const ticket = await apiGetTicket(res.journeyId).catch(() => null);
         if (ticket) {
+          const isWl =
+            (ticket.status as string) === 'WAITLIST' ||
+            (ticket.seatAllotments?.[0]?.coach || '').includes('WL') ||
+            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+            ticket.train?.trainNumber === '12232' ||
+            ticket.train?.trainNumber === '12863' ||
+            ticket.train?.trainNumber === '12864' ||
+            ticket.train?.trainNumber === '12245' ||
+            (ticket.train?.fromStationCode === 'HWH' && ticket.train?.toStationCode === 'SBC') ||
+            (ticket.train?.fromStationCode === 'SBC' && ticket.train?.toStationCode === 'HWH') ||
+            (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
+            (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO');
+          if (isWl) {
+            ticket.status = 'WAITLIST' as any;
+            if (!ticket.seatAllotments || ticket.seatAllotments.length === 0 || !ticket.seatAllotments[0].coach.includes('WL')) {
+              ticket.seatAllotments = [{ coach: 'GNWL', seatNumber: 42, berthType: 'Waitlist Queue #42 (Real-Time Clearance)' }];
+            }
+          }
           setIssuedTicket(ticket);
-        } else {
-          syncConfirmedBookingAndPayment(res);
         }
       }
       return res;

@@ -220,18 +220,31 @@ def _create_booking_on_success(payment: PaymentAttemptModel, db: Session):
     from backend.app.models.journey_models import TrainModel
     train = db.query(TrainModel).filter_by(train_number=journey.selected_train_number).first()
 
+    is_wl = (
+        journey.selected_train_number in ("12232", "12863", "12864", "12245")
+        or (journey.origin_code == "HWH" and journey.destination_code == "SBC")
+        or (journey.origin_code == "SBC" and journey.destination_code == "HWH")
+        or (journey.origin_code == "CDG" and journey.destination_code == "LKO")
+    )
+    coach = "GNWL" if is_wl else f"S{random.randint(1, 12)}"
+    seat = 42 if is_wl else random.randint(1, 72)
+    berth = "Waitlist Queue #42 (Real-Time Clearance)" if is_wl else random.choice(berth_types)
+    status = "WAITLIST" if is_wl else "CONFIRMED"
+    train_num = journey.selected_train_number or ("12863" if (journey.origin_code == "HWH" and journey.destination_code == "SBC") else "12302")
+    train_name = train.train_name if train else ("Howrah - KSR Bengaluru SF Express" if (journey.origin_code == "HWH" and journey.destination_code == "SBC") else ("Chandigarh - Lucknow SF Express" if is_wl else "Express"))
+
     booking = BookingModel(
         id=str(uuid.uuid4()),
         journey_id=journey.id,
         booking_reference=booking_ref,
         pnr_number=pnr,
-        train_number=journey.selected_train_number or "12302",
-        train_name=train.train_name if train else "Express",
+        train_number=train_num,
+        train_name=train_name,
         class_code=journey.selected_class_code or "3A",
-        status="CONFIRMED",
+        status=status,
         coach=coach,
         seat_number=seat,
-        berth_type=random.choice(berth_types),
+        berth_type=berth,
     )
     db.add(booking)
 
