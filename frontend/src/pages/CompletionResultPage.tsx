@@ -54,6 +54,14 @@ export const CompletionResultPage: React.FC = () => {
     classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
   };
 
+  const isKolkataBangalore =
+    (searchParams.fromStation?.city?.toLowerCase()?.includes('kolkata') || searchParams.fromStation?.name?.toLowerCase()?.includes('howrah') || ['HWH', 'SDAH', 'SHM', 'KOAA'].includes(searchParams.fromStation?.code || '')) &&
+    (searchParams.toStation?.city?.toLowerCase()?.includes('bengaluru') || searchParams.toStation?.city?.toLowerCase()?.includes('bangalore') || ['SBC', 'YPR', 'SMVB', 'BNC', 'BAND'].includes(searchParams.toStation?.code || ''));
+
+  const isChandigarhLucknow =
+    (searchParams.fromStation?.city?.toLowerCase()?.includes('chandigarh') || searchParams.fromStation?.code === 'CDG') &&
+    (searchParams.toStation?.city?.toLowerCase()?.includes('lucknow') || searchParams.toStation?.code === 'LKO');
+
   const isWaitlisted =
     train.trainNumber === '12232' ||
     train.trainNumber === '12863' ||
@@ -63,6 +71,8 @@ export const CompletionResultPage: React.FC = () => {
     selectedTrain?.trainNumber === '12863' ||
     selectedTrain?.trainNumber === '12864' ||
     selectedTrain?.trainNumber === '12245' ||
+    isKolkataBangalore ||
+    isChandigarhLucknow ||
     (train.fromStationCode === 'HWH' && train.toStationCode === 'SBC') ||
     (train.fromStationCode === 'SBC' && train.toStationCode === 'HWH') ||
     (train.fromStationCode === 'CDG' && train.toStationCode === 'LKO') ||
@@ -98,24 +108,44 @@ export const CompletionResultPage: React.FC = () => {
     setMascotReaction('HAPPY');
     setTimeout(() => {
       setShowWaitlistPopup(false);
-      handleQuickTrack(train.trainNumber || '12232');
+      handleQuickTrack(train.trainNumber || '12863');
     }, 400);
   };
 
-  const displayPassengers = (issuedTicket?.passengers && issuedTicket.passengers.length > 0)
-    ? issuedTicket.passengers
-    : (passengers && passengers.length > 0)
-    ? passengers
-    : [
-        {
-          id: 'p1',
-          name: 'Pratay Karali',
-          age: 24,
-          gender: 'M' as const,
-          berthPreference: 'SIDE_LOWER' as const,
-          assignedClassCode: '3A',
-        },
-      ];
+  const displayPassengers = React.useMemo(() => {
+    let pList = (issuedTicket?.passengers && issuedTicket.passengers.length > 0)
+      ? issuedTicket.passengers
+      : (passengers && passengers.length > 0)
+      ? passengers
+      : [
+          {
+            id: 'p1',
+            name: 'Pratay Karali',
+            age: 24,
+            gender: 'M' as const,
+            berthPreference: 'SIDE_LOWER' as const,
+            assignedClassCode: selectedClassCode || '3A',
+          },
+        ];
+
+    const targetCount = Math.max(searchParams.passengersCount || 1, pList.length || 1);
+    if (pList.length < targetCount) {
+      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
+      const expanded = [...pList];
+      for (let i = pList.length; i < targetCount; i++) {
+        expanded.push({
+          id: `p_${i + 1}`,
+          name: defaultNames[i] || `Passenger ${i + 1}`,
+          age: 24 + i * 2,
+          gender: i % 2 === 0 ? ('M' as const) : ('F' as const),
+          berthPreference: i % 2 === 0 ? ('SIDE_LOWER' as const) : ('MIDDLE' as const),
+          assignedClassCode: selectedClassCode || '3A',
+        });
+      }
+      return expanded;
+    }
+    return pList;
+  }, [issuedTicket, passengers, searchParams.passengersCount, selectedClassCode]);
 
   const getPassengerSeat = (p: any, idx: number) => {
     if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments[idx]) {
@@ -123,9 +153,11 @@ export const CompletionResultPage: React.FC = () => {
       return `${s.coach} - ${s.seatNumber} (${s.berthType})`;
     }
     const pClass = p.assignedClassCode || selectedClassCode || '3A';
-    const coachPrefix = pClass === '1A' ? 'H1' : pClass === '2A' ? 'A1' : pClass === 'SL' ? 'S5' : 'B4';
-    const seatNum = 14 + idx * 8;
-    const berthLabel = p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : 'Lower';
+    const coachPrefix = isWaitlisted ? 'GNWL' : (pClass === '1A' ? 'H1' : pClass === '2A' ? 'A1' : pClass === 'SL' ? 'S1' : 'B4');
+    const seatNum = isWaitlisted ? 42 + idx : 14 + idx * 8;
+    const berthLabel = isWaitlisted
+      ? `Queue #${42 + idx} (Real-Time Clearance)`
+      : (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : (idx % 2 === 0 ? 'Lower' : 'Middle'));
     return `${coachPrefix} - ${seatNum} (${berthLabel})`;
   };
 
@@ -407,8 +439,12 @@ export const CompletionResultPage: React.FC = () => {
                 </div>
                 <div>
                   <User className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
-                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{passengers.length} Adult</span>
-                  <span className="text-[9px] text-slate-400 truncate block">{passengerName.split(' ')[0]}</span>
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">
+                    {displayPassengers.length} {displayPassengers.length > 1 ? 'Adults' : 'Adult'}
+                  </span>
+                  <span className="text-[9px] text-slate-400 truncate block">
+                    {displayPassengers.map((p: any) => p.name ? p.name.split(' ')[0] : 'Pax').join(', ')}
+                  </span>
                 </div>
               </div>
 
@@ -496,7 +532,13 @@ export const CompletionResultPage: React.FC = () => {
                         <div className="grid grid-cols-2 gap-1.5 text-xs pt-1 border-t border-purple-100/60">
                           <div>
                             <span className="text-[9px] text-slate-400 block font-semibold">Booking Status</span>
-                            <span className="font-bold text-emerald-600 text-xs">Confirmed ✓</span>
+                            {isWaitlisted ? (
+                              <span className="font-bold text-amber-600 text-xs flex items-center gap-1 font-mono">
+                                ⚠️ GNWL-{42 + idx}
+                              </span>
+                            ) : (
+                              <span className="font-bold text-emerald-600 text-xs">Confirmed ✓</span>
+                            )}
                           </div>
                           <div>
                             <span className="text-[9px] text-slate-400 block font-semibold">Coach & Berth / Seat</span>

@@ -551,28 +551,36 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const syncConfirmedBookingAndPayment = useCallback((attempt: PaymentAttempt) => {
     const trainCandidate = selectedTrain || availableTrains[0] || (searchParams.fromStation?.code ? localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] : null) || MOCK_TRAINS_DATABASE[0];
     const resolvedTrain: TrainDetail = trainCandidate || {
-      trainNumber: '12302',
-      trainName: 'Howrah Rajdhani Express',
-      trainType: 'Rajdhani',
-      fromStationName: searchParams.fromStation.name,
-      fromStationCode: searchParams.fromStation.code,
-      toStationName: searchParams.toStation.name,
-      toStationCode: searchParams.toStation.code,
-      fromCity: searchParams.fromStation.city,
-      toCity: searchParams.toStation.city,
-      departureTime: '16:55',
-      arrivalTime: '09:55',
-      durationHours: '17h 00m',
-      distanceKm: 1451,
+      trainNumber: '12863',
+      trainName: 'Howrah - KSR Bengaluru SF Express',
+      trainType: 'Superfast',
+      fromStationName: searchParams.fromStation.name || 'Howrah Junction',
+      fromStationCode: searchParams.fromStation.code || 'HWH',
+      toStationName: searchParams.toStation.name || 'KSR Bengaluru City',
+      toStationCode: searchParams.toStation.code || 'SBC',
+      fromCity: searchParams.fromStation.city || 'Kolkata',
+      toCity: searchParams.toStation.city || 'Bengaluru',
+      departureTime: '22:55',
+      arrivalTime: '06:45',
+      durationHours: '31h 50m',
+      distanceKm: 1958,
       runningDays: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-      departureDayOffset: 0,
-      classes: [{ classCode: selectedClassCode, className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 42 }],
-      score: 98,
-      tags: ['Superfast', 'Punctual'],
+      departureDayOffset: 2,
+      classes: [{ classCode: selectedClassCode || '3A', className: 'AC 3 Tier', fare: 1958, status: 'GNWL-42', availableSeats: 0 }],
+      score: 96,
+      tags: ['Superfast', 'High Demand'],
     };
 
     const pnr = `${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(10 + Math.random() * 90)}`;
     const bookingRef = `NR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+    const isKolkataBangalore =
+      (searchParams.fromStation?.city?.toLowerCase()?.includes('kolkata') || searchParams.fromStation?.name?.toLowerCase()?.includes('howrah') || ['HWH', 'SDAH', 'SHM', 'KOAA'].includes(searchParams.fromStation?.code || '')) &&
+      (searchParams.toStation?.city?.toLowerCase()?.includes('bengaluru') || searchParams.toStation?.city?.toLowerCase()?.includes('bangalore') || ['SBC', 'YPR', 'SMVB', 'BNC', 'BAND'].includes(searchParams.toStation?.code || ''));
+
+    const isChandigarhLucknow =
+      (searchParams.fromStation?.city?.toLowerCase()?.includes('chandigarh') || searchParams.fromStation?.code === 'CDG') &&
+      (searchParams.toStation?.city?.toLowerCase()?.includes('lucknow') || searchParams.toStation?.code === 'LKO');
 
     const isWaitlistTrain =
       resolvedTrain.trainNumber === '12232' ||
@@ -583,6 +591,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       selectedTrain?.trainNumber === '12863' ||
       selectedTrain?.trainNumber === '12864' ||
       selectedTrain?.trainNumber === '12245' ||
+      isKolkataBangalore ||
+      isChandigarhLucknow ||
       (resolvedTrain.fromStationCode === 'HWH' && resolvedTrain.toStationCode === 'SBC') ||
       (resolvedTrain.fromStationCode === 'SBC' && resolvedTrain.toStationCode === 'HWH') ||
       (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
@@ -590,8 +600,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO') ||
       Boolean(resolvedTrain.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
       Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0)));
-    const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
+    
+    const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : selectedClassCode?.includes('SL') ? 'S1' : 'B4'}`;
     const baseSeat = isWaitlistTrain ? 42 : Math.floor(12 + Math.random() * 50);
+
+    // Multi-passenger resolution
+    const targetCount = Math.max(searchParams.passengersCount || 1, passengers.length || 1);
+    const resolvedPassengers: PassengerProfile[] = [];
+    const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
+    for (let i = 0; i < targetCount; i++) {
+      if (passengers[i] && passengers[i].name) {
+        resolvedPassengers.push(passengers[i]);
+      } else {
+        resolvedPassengers.push({
+          id: `p_${i + 1}`,
+          name: defaultNames[i] || `Passenger ${i + 1}`,
+          age: 24 + i * 2,
+          gender: i % 2 === 0 ? 'M' : 'F',
+          berthPreference: i % 2 === 0 ? 'SIDE_LOWER' : 'MIDDLE',
+          assignedClassCode: selectedClassCode || '3A',
+        });
+      }
+    }
 
     const newTicket: TicketRecord = {
       ticketId: `tkt_${Date.now()}`,
@@ -600,11 +630,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       pnrNumber: pnr,
       train: resolvedTrain,
       classCode: selectedClassCode || '3A',
-      passengers: passengers.length > 0 ? passengers : [defaultSavedPassengers[0]],
-      seatAllotments: (passengers.length > 0 ? passengers : [defaultSavedPassengers[0]]).map((_, idx) => ({
+      passengers: resolvedPassengers,
+      seatAllotments: resolvedPassengers.map((_, idx) => ({
         coach: isWaitlistTrain ? 'GNWL' : coach,
         seatNumber: isWaitlistTrain ? 42 + idx : baseSeat + idx,
-        berthType: isWaitlistTrain ? `Waitlist Queue #${42 + idx}` : (idx % 2 === 0 ? 'Lower' : 'Middle'),
+        berthType: isWaitlistTrain ? `Waitlist Queue #${42 + idx} (Real-Time Clearance)` : (idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth'),
       })),
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
@@ -625,7 +655,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       seatAllotment: {
         coach: isWaitlistTrain ? 'GNWL' : coach,
         seatNumber: isWaitlistTrain ? 42 : baseSeat,
-        berthType: isWaitlistTrain ? 'Waitlist Queue #42 (Real-Time Clearance)' : 'Lower',
+        berthType: isWaitlistTrain ? 'Waitlist Queue #42 (Real-Time Clearance)' : 'Lower Berth',
       },
       createdAt: new Date().toISOString(),
     };

@@ -44,6 +44,24 @@ export const BookingPage: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
+  React.useEffect(() => {
+    if (searchParams.passengersCount && searchParams.passengersCount > passengers.length) {
+      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
+      const expanded = [...passengers];
+      for (let i = passengers.length; i < searchParams.passengersCount; i++) {
+        expanded.push({
+          id: `p_${Date.now()}_${i + 1}`,
+          name: defaultNames[i] || `Passenger ${i + 1}`,
+          age: 24 + i * 2,
+          gender: i % 2 === 0 ? 'M' : 'F',
+          berthPreference: i % 2 === 0 ? 'LOWER' : 'MIDDLE',
+          assignedClassCode: selectedClassCode || '3A',
+        });
+      }
+      setPassengers(expanded);
+    }
+  }, [searchParams.passengersCount, passengers.length, selectedClassCode, setPassengers]);
+
   const formatLockTimer = (s: number) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;

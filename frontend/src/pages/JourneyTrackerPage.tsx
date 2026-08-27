@@ -85,12 +85,14 @@ export const JourneyTrackerPage: React.FC = () => {
     bookingRecord,
     passengers,
     selectedClassCode,
+    searchParams,
     showChatDrawer,
     setShowChatDrawer,
     addNotification,
   } = useJourney();
 
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12302';
+  const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
 
   // ─── STATE HOOKS (Declared at Top) ───
   const [searchInput, setSearchInput] = useState(initialTrainNumber);
@@ -133,15 +135,14 @@ export const JourneyTrackerPage: React.FC = () => {
     setShowConfirmedCelebration(false);
     setIsPoofingCelebration(false);
 
-    // Fast, engaging progressive sequence: 42 -> 36 -> 28 -> 19 -> 12 -> 6 -> 2 -> 0
+    // Fast, responsive progressive sequence: 42 -> 31 -> 20 -> 11 -> 5 -> 1 -> 0 (~2.6 seconds total)
     const sequence = [
-      { wl: 36, delay: 1700 + Math.random() * 300 },
-      { wl: 28, delay: 1900 + Math.random() * 300 },
-      { wl: 19, delay: 2100 + Math.random() * 300 },
-      { wl: 12, delay: 1900 + Math.random() * 300 },
-      { wl: 6, delay: 1800 + Math.random() * 300 },
-      { wl: 2, delay: 1700 + Math.random() * 300 },
-      { wl: 0, delay: 1900 + Math.random() * 300 },
+      { wl: 31, delay: 450 },
+      { wl: 20, delay: 480 },
+      { wl: 11, delay: 450 },
+      { wl: 5, delay: 420 },
+      { wl: 1, delay: 400 },
+      { wl: 0, delay: 450 },
     ];
 
     let step = 0;
@@ -154,14 +155,17 @@ export const JourneyTrackerPage: React.FC = () => {
           setSimulatedWl(next.wl);
           if (next.wl === 0) {
             setShowConfirmedCelebration(true);
-            // Auto poof-off after 7.5 seconds if user doesn't dismiss
+            // Instantly pop and switch to Coach Composition Layout page!
+            setActiveTrackerTab('coach');
+            setSelectedCoach(userBookedClass?.includes('SL') ? 'S1' : userBookedClass?.includes('1') ? 'A1' : userBookedClass?.includes('2') ? 'A1' : 'B4');
+            // Auto poof-off celebration after 5 seconds if user doesn't dismiss
             setTimeout(() => {
               setIsPoofingCelebration(true);
               setTimeout(() => {
                 setShowConfirmedCelebration(false);
                 setIsPoofingCelebration(false);
               }, 600);
-            }, 7500);
+            }, 5000);
           }
           step += 1;
           tick();
@@ -174,7 +178,7 @@ export const JourneyTrackerPage: React.FC = () => {
     return () => {
       if (timerId) clearTimeout(timerId);
     };
-  }, [isWaitlistBooking, activeTrainNumber]);
+  }, [isWaitlistBooking, activeTrainNumber, userBookedClass]);
 
   const handlePoofCelebration = () => {
     setIsPoofingCelebration(true);
@@ -278,18 +282,34 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
+    let pList: any[] = [];
     if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
-      return issuedTicket.passengers;
+      pList = issuedTicket.passengers;
+    } else if (passengers && passengers.length > 0) {
+      pList = passengers;
+    } else {
+      pList = [
+        { id: 'p1', name: 'Pratay Karali', age: 24, gender: 'M' as const, berthPreference: 'SIDE_LOWER' as const, assignedClassCode: '3A' },
+      ];
     }
-    if (passengers && passengers.length > 0) {
-      return passengers;
+    const targetCount = searchParams.passengersCount || pList.length || 1;
+    if (pList.length < targetCount) {
+      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
+      const expanded = [...pList];
+      for (let i = pList.length; i < targetCount; i++) {
+        expanded.push({
+          id: `p_${i + 1}`,
+          name: defaultNames[i] || `Passenger ${i + 1}`,
+          age: 24 + i * 2,
+          gender: i % 2 === 0 ? ('M' as const) : ('F' as const),
+          berthPreference: i % 2 === 0 ? ('SIDE_LOWER' as const) : ('MIDDLE' as const),
+          assignedClassCode: selectedClassCode || '3A',
+        });
+      }
+      return expanded;
     }
-    return [
-      { id: 'p1', name: 'Pratay Karali', age: 24, gender: 'M' as const, berthPreference: 'SIDE_LOWER' as const, assignedClassCode: '3A' },
-    ];
-  }, [issuedTicket, passengers]);
-
-  const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
+    return pList;
+  }, [issuedTicket, passengers, searchParams.passengersCount, selectedClassCode]);
 
   // User's allocated seats across specific coaches (e.g. Coach B4 for 3A, Coach S1 for SL)
   const allocatedSeats = useMemo(() => {

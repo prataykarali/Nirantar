@@ -593,10 +593,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
 
     // 4. Passenger Count
-    const paxMatch = text.match(/\b(\d+)\s*(?:passenger|adult|seat|ticket|person|pax)/i);
-    if (paxMatch) {
-      updatedRoute.passengers = Math.min(6, Math.max(1, parseInt(paxMatch[1], 10)));
-    } else if (lower.includes('two') || lower.includes('2 seats')) {
+    const paxMatch = text.match(/\b(\d+)\s*(?:passengers?|adults?|seats?|tickets?|persons?|people|pax|seat\s+books?)?\b/i);
+    if (paxMatch && parseInt(paxMatch[1], 10) > 0) {
+      const num = parseInt(paxMatch[1], 10);
+      if (num >= 1 && num <= 6) {
+        updatedRoute.passengers = num;
+      }
+    } else if (lower.includes('two') || lower.includes('2 seats') || lower.includes('2 seat') || lower.includes('for 2') || lower.includes('2 pax')) {
       updatedRoute.passengers = 2;
     }
 
