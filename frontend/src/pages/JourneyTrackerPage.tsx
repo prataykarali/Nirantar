@@ -49,6 +49,8 @@ type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTI
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
 
 const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12863': 'Howrah - KSR Bengaluru SF Express',
+  '12864': 'KSR Bengaluru - Howrah SF Express',
   '12232': 'Chandigarh - Lucknow SF Express',
   '12302': 'Howrah Rajdhani Express',
   '12301': 'Howrah Rajdhani Express',
@@ -113,6 +115,9 @@ export const JourneyTrackerPage: React.FC = () => {
   // Real-Time Randomized Waitlist Clearance Simulation (Starts at 42 and clears to 2, then 0 CONFIRMED)
   const isWaitlistBooking = Boolean(
     activeTrainNumber === '12232' ||
+    activeTrainNumber === '12863' ||
+    activeTrainNumber === '12864' ||
+    activeTrainNumber === '12245' ||
     (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
     bookingRecord?.status === 'WAITLIST' ||
     bookingRecord?.status === 'RAC'
@@ -422,7 +427,10 @@ export const JourneyTrackerPage: React.FC = () => {
     const hasWaitlistBooking = isUserBookedTrain && Boolean(
       (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
       (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
-      trainNumber === '12232'
+      trainNumber === '12232' ||
+      trainNumber === '12863' ||
+      trainNumber === '12864' ||
+      trainNumber === '12245'
     );
     if (hasWaitlistBooking) {
       setActiveTrackerTab('waitlist');
@@ -684,6 +692,19 @@ export const JourneyTrackerPage: React.FC = () => {
       {/* Active Express Trains Radar Switcher */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
+        <button
+          type="button"
+          onClick={() => selectTrainToTrack('12863')}
+          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+            trainNumber === '12863'
+              ? 'bg-[#7C3AED] text-white shadow-sm ring-2 ring-purple-300'
+              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-300" />
+          <span>#12863 Howrah - Bengaluru (WL Watch)</span>
+        </button>
+
         <button
           type="button"
           onClick={() => selectTrainToTrack('12232')}

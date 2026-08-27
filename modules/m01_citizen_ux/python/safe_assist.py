@@ -18,9 +18,9 @@ from backend.app.schemas.nira_intent import NiraEntities, NiraIntentOutput
 # ═══════════════════════════════════════════════════════════════════
 STATION_CATALOG: List[Dict[str, Any]] = [
     {"code": "NDLS", "name": "New Delhi", "city": "Delhi", "state": "Delhi", "platforms": 16, "aliases": ["NEW DELHI", "DELHI", "DLI", "NZM", "ANAND VIHAR", "NDLS", "HAZRAT NIZAMUDDIN", "ANVT"]},
-    {"code": "HWH", "name": "Howrah Junction", "city": "Kolkata", "state": "West Bengal", "platforms": 23, "aliases": ["HOWRAH", "KOLKATA", "CALCUTTA", "SDAH", "SEALDAH", "KOAA", "HWH", "SHM"]},
+    {"code": "HWH", "name": "Howrah Junction", "city": "Kolkata", "state": "West Bengal", "platforms": 23, "aliases": ["HOWRAH", "KOLKATA", "CALCUTTA", "SDAH", "SEALDAH", "KOAA", "HWH", "SHM", "HOWRAH JN"]},
     {"code": "CSMT", "name": "Chhatrapati Shivaji Maharaj Terminus", "city": "Mumbai", "state": "Maharashtra", "platforms": 18, "aliases": ["MUMBAI", "BOMBAY", "BCT", "MMCT", "MUMBAI CENTRAL", "CSMT", "CSTM", "LTT", "BDTS", "DADAR"]},
-    {"code": "SBC", "name": "KSR Bengaluru City", "city": "Bengaluru", "state": "Karnataka", "platforms": 10, "aliases": ["BANGALORE", "BENGALURU", "YPR", "YESVANTPUR", "SMVB", "SBC"]},
+    {"code": "SBC", "name": "KSR Bengaluru City", "city": "Bengaluru", "state": "Karnataka", "platforms": 10, "aliases": ["BANGALORE", "BENGALURU", "BANGALURU", "YPR", "YESVANTPUR", "SMVB", "SBC", "KSR BENGALURU"]},
     {"code": "MAS", "name": "Chennai Central", "city": "Chennai", "state": "Tamil Nadu", "platforms": 12, "aliases": ["CHENNAI", "MADRAS", "MS", "CHENNAI EGMORE", "TBM", "MAS"]},
     {"code": "HYB", "name": "Hyderabad Deccan", "city": "Hyderabad", "state": "Telangana", "platforms": 6, "aliases": ["HYDERABAD", "SECUNDERABAD", "SC", "KACHEGUDA", "KCG", "HYB"]},
     {"code": "ADI", "name": "Ahmedabad Junction", "city": "Ahmedabad", "state": "Gujarat", "platforms": 12, "aliases": ["AHMEDABAD", "AMDAVAD", "SABARMATI", "SBT", "ADI"]},
@@ -35,7 +35,7 @@ STATION_CATALOG: List[Dict[str, Any]] = [
     {"code": "CBE", "name": "Coimbatore Junction", "city": "Coimbatore", "state": "Tamil Nadu", "platforms": 6, "aliases": ["COIMBATORE", "KOVAI", "CBE"]},
     {"code": "MDU", "name": "Madurai Junction", "city": "Madurai", "state": "Tamil Nadu", "platforms": 8, "aliases": ["MADURAI", "TEMPLE CITY", "MDU"]},
     {"code": "BPL", "name": "Bhopal Junction", "city": "Bhopal", "state": "Madhya Pradesh", "platforms": 6, "aliases": ["BHOPAL", "RKMP", "RANI KAMALAPATI", "HABIBGANJ", "BPL"]},
-    {"code": "NJP", "name": "New Jalpaiguri", "city": "Siliguri", "state": "West Bengal", "platforms": 8, "aliases": ["NJP", "JALPAIGURI", "SILIGURI"]},
+    {"code": "NJP", "name": "New Jalpaiguri", "city": "Siliguri", "state": "West Bengal", "platforms": 8, "aliases": ["NJP", "JALPAIGURI", "SILIGURI", "NEW JALPAIGURI", "DARJEELING"]},
     {"code": "RNC", "name": "Ranchi Junction", "city": "Ranchi", "state": "Jharkhand", "platforms": 6, "aliases": ["RANCHI", "HATIA", "HTE", "RNC"]},
     {"code": "CNB", "name": "Kanpur Central", "city": "Kanpur", "state": "Uttar Pradesh", "platforms": 10, "aliases": ["KANPUR", "CNB"]},
     {"code": "PRYJ", "name": "Prayagraj Junction", "city": "Prayagraj", "state": "Uttar Pradesh", "platforms": 10, "aliases": ["ALLAHABAD", "PRAYAGRAJ", "PRYJ", "ALD"]},

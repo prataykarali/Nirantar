@@ -56,6 +56,9 @@ export const CompletionResultPage: React.FC = () => {
 
   const isWaitlisted =
     train.trainNumber === '12232' ||
+    train.trainNumber === '12863' ||
+    train.trainNumber === '12864' ||
+    train.trainNumber === '12245' ||
     (issuedTicket?.status as string) === 'WAITLIST' ||
     (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('WL') ||
     (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('GNWL') ||

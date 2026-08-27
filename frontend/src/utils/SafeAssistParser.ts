@@ -175,6 +175,9 @@ export class SafeAssistParser {
       lower.includes('autobook') ||
       lower.includes('book ticket') ||
       lower.includes('book train') ||
+      lower.includes('book a train') ||
+      lower.includes("let's book") ||
+      lower.includes('lets book') ||
       lower.includes('book 2 seats') ||
       lower.includes('reserve seat');
 
@@ -182,11 +185,22 @@ export class SafeAssistParser {
     // 6. ROUTE & ENTITY EXTRACTION (Origin, Destination, Date, Class, Pax, Preference)
     // ─────────────────────────────────────────────────────────────
     // Extract From -> To
+    const cleanedRaw = raw
+      .replace(/^(?:let'?s\s+(?:book\s+)?(?:a\s+)?(?:train\s+)?|i\s+want\s+to\s+book\s+(?:a\s+)?(?:train\s+)?|please\s+book\s+(?:a\s+)?(?:train\s+)?|book\s+(?:a\s+)?(?:train\s+)?|search\s+trains?\s+(?:from\s+)?|find\s+trains?\s+(?:from\s+)?)\s*/i, '')
+      .trim();
+
     const routeRegex = /(?:from\s+)?([a-z\s]+?)\s+(?:to|->|towards|–|-|se)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|kal|today|aaj|next|for|in|\d)|\b|$)/i;
-    const match = raw.match(routeRegex);
+    const match = cleanedRaw.match(routeRegex) || raw.match(routeRegex);
     if (match) {
-      const s1 = findStation(match[1].trim());
-      const s2 = findStation(match[2].trim());
+      const cleanFromStr = match[1]
+        .replace(/\b(?:let'?s|book|a|train|trains|find|search|tickets?|from|between|want|to)\b/gi, ' ')
+        .trim();
+      const cleanToStr = match[2]
+        .replace(/\b(?:tomorrow|today|day|after|next|in|for|seats?|passengers?|pax|please|train|trains|kal|aaj)\b/gi, ' ')
+        .trim();
+
+      const s1 = findStation(cleanFromStr) || findStation(match[1].trim());
+      const s2 = findStation(cleanToStr) || findStation(match[2].trim());
       if (s1) entities.origin = s1.city;
       if (s2) entities.destination = s2.city;
     }

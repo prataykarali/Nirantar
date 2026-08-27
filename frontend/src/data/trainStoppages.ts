@@ -89,6 +89,25 @@ function buildStops(
 
 /** Published-style halt lists for flagship trains. */
 const FLAGSHIP_STOPS: Record<string, StationStop[]> = {
+  '12863': [
+    { code: 'HWH', name: 'Howrah Junction', platform: 'Platform 19', scheduledArr: '--:--', scheduledDep: '20:35', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #18 & Cabway' },
+    { code: 'KGP', name: 'Kharagpur Junction', platform: 'Platform 3', scheduledArr: '22:15', scheduledDep: '22:20', distanceKm: 115, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #5 & Main Gate' },
+    { code: 'BLS', name: 'Baleshwar', platform: 'Platform 2', scheduledArr: '23:45', scheduledDep: '23:50', distanceKm: 231, doorSide: 'RIGHT SIDE', haltMins: 5, pillarInfo: 'Pillar #4 & FOB' },
+    { code: 'BHC', name: 'Bhadrak', platform: 'Platform 2', scheduledArr: '00:43', scheduledDep: '00:45', distanceKm: 294, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Exit' },
+    { code: 'CTC', name: 'Cuttack Junction', platform: 'Platform 3', scheduledArr: '02:05', scheduledDep: '02:10', distanceKm: 409, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #6 & Main Hall' },
+    { code: 'BBS', name: 'Bhubaneswar', platform: 'Platform 4', scheduledArr: '02:40', scheduledDep: '02:45', distanceKm: 437, doorSide: 'RIGHT SIDE', haltMins: 5, pillarInfo: 'Pillar #7 & North Exit' },
+    { code: 'KUR', name: 'Khurda Road Junction', platform: 'Platform 5', scheduledArr: '03:10', scheduledDep: '03:30', distanceKm: 456, doorSide: 'LEFT SIDE', haltMins: 20, pillarInfo: 'Pillar #5 & FOB' },
+    { code: 'BAM', name: 'Brahmapur', platform: 'Platform 2', scheduledArr: '05:10', scheduledDep: '05:15', distanceKm: 603, doorSide: 'RIGHT SIDE', haltMins: 5, pillarInfo: 'Pillar #4 & Portico' },
+    { code: 'VSKP', name: 'Visakhapatnam Junction', platform: 'Platform 8', scheduledArr: '09:05', scheduledDep: '09:25', distanceKm: 881, doorSide: 'RIGHT SIDE', haltMins: 20, pillarInfo: 'Pillar #12 & Escalator' },
+    { code: 'RJY', name: 'Rajahmundry', platform: 'Platform 1', scheduledArr: '12:08', scheduledDep: '12:10', distanceKm: 1081, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #6 & Main Exit' },
+    { code: 'BZA', name: 'Vijayawada Junction', platform: 'Platform 7', scheduledArr: '14:20', scheduledDep: '14:30', distanceKm: 1230, doorSide: 'RIGHT SIDE', haltMins: 10, pillarInfo: 'Pillar #8 & North FOB' },
+    { code: 'RU', name: 'Renigunta Junction', platform: 'Platform 1', scheduledArr: '20:18', scheduledDep: '20:20', distanceKm: 1607, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #3 & Tourist Gate' },
+    { code: 'KPD', name: 'Katpadi Junction', platform: 'Platform 1', scheduledArr: '22:18', scheduledDep: '22:20', distanceKm: 1732, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Ramp' },
+    { code: 'JTJ', name: 'Jolarpettai Junction', platform: 'Platform 4', scheduledArr: '23:48', scheduledDep: '23:50', distanceKm: 1816, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #4 & FOB' },
+    { code: 'BWT', name: 'Bangarapet Junction', platform: 'Platform 3', scheduledArr: '00:53', scheduledDep: '00:55', distanceKm: 1891, doorSide: 'LEFT SIDE', haltMins: 2, pillarInfo: 'Pillar #2 & Exit' },
+    { code: 'KJM', name: 'Krishnarajapuram', platform: 'Platform 4', scheduledArr: '01:48', scheduledDep: '01:50', distanceKm: 1948, doorSide: 'RIGHT SIDE', haltMins: 2, pillarInfo: 'Pillar #5 & Overbridge' },
+    { code: 'SBC', name: 'KSR Bengaluru', platform: 'Platform 6', scheduledArr: '06:45', scheduledDep: '--:--', distanceKm: 1957, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Platform Pillar #12 & Majestic Exit' },
+  ],
   '12232': [
     { code: 'CDG', name: 'Chandigarh Junction', platform: 'Platform 1', scheduledArr: '--:--', scheduledDep: '21:05', distanceKm: 0, doorSide: 'RIGHT SIDE', haltMins: 0, pillarInfo: 'Pillar #2 & Main Entrance' },
     { code: 'UMB', name: 'Ambala Cantt Junction', platform: 'Platform 2', scheduledArr: '21:45', scheduledDep: '21:50', distanceKm: 45, doorSide: 'LEFT SIDE', haltMins: 5, pillarInfo: 'Pillar #4 & Footover Bridge' },
@@ -291,8 +310,12 @@ function corridorBetween(from: string, to: string, trainNum = ''): string[] {
 }
 
 export const KNOWN_TRAIN_NAMES: Record<string, string> = {
+  '12863': 'Howrah - KSR Bengaluru SF Express',
+  '12864': 'KSR Bengaluru - Howrah SF Express',
+  '12245': 'Howrah - Yesvantpur Duronto',
   '12232': 'Chandigarh - Lucknow SF Express',
   '12302': 'Howrah Rajdhani Express',
+  '12301': 'Howrah Rajdhani Express',
   '12951': 'Mumbai Rajdhani Express',
   '12952': 'Mumbai Rajdhani Express',
   '22436': 'Varanasi Vande Bharat Express',

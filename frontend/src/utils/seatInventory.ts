@@ -332,12 +332,13 @@ export function liveSeatInventory(
   const seed = hash(`${trainNumber}:${classCode}:inventory`);
 
   // Category specific baseline settings
-  let baseWl = trainNumber === '12232' ? 42 : 14;
+  const isWaitlistFlagship = trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245';
+  let baseWl = isWaitlistFlagship ? 42 : 14;
   let velocity = 4.2;
   let occupancy = 98;
   let racCount = 2;
 
-  if (trainNumber === '12232') {
+  if (isWaitlistFlagship) {
     baseWl = 42;
     velocity = 5.6;
     occupancy = 99;
@@ -522,7 +523,7 @@ export function getWaitlistWatchProjection(
   comfort: ComfortLevel = 'BALANCED'
 ): WaitlistWatchState {
   const seed = hash(`${trainNumber}:${classCode}:watch`);
-  const initialWl = trainNumber === '12232' || classCode === '3A' || classCode === 'SL' ? 42 : 28;
+  const initialWl = trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245' || classCode === '3A' || classCode === 'SL' ? 42 : 28;
   const effectiveWl = currentWl > 0 ? currentWl : 2;
   const cleared = Math.max(0, initialWl - effectiveWl);
 

@@ -245,6 +245,18 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         tag: 'Best Value',
       },
       {
+        icon: Train,
+        label: 'Auto book Kolkata to Bangalore (WL Watch)',
+        query: 'Auto book train 12863 from Kolkata to Bangalore tomorrow in 3A',
+        tag: 'WL Clearance',
+      },
+      {
+        icon: Zap,
+        label: 'Book train from Delhi to NJP',
+        query: 'Book a train from Delhi to NJP tomorrow in CC',
+        tag: 'North Bengal',
+      },
+      {
         icon: Search,
         label: 'Book Delhi to Lucknow Gomti Express',
         query: 'Book Delhi to Lucknow Gomti Express in CC class',
@@ -472,6 +484,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         lower.includes('search trains from') ||
         lower.includes('book ticket') ||
         lower.includes('book train') ||
+        lower.includes('book a train') ||
+        lower.includes("let's book") ||
+        lower.includes('lets book') ||
+        lower.includes('show trains') ||
         /(?:book|reserve)\b.*(?:train|#)\s*\d+/i.test(text)
       );
 
@@ -515,18 +531,32 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     let extractedTo: Station | undefined = undefined;
 
     if (!isQuestion) {
+      // Strip conversational prefixes so station extraction is clean
+      const cleanedRouteText = text
+        .replace(/^(?:let'?s\s+(?:book\s+)?(?:a\s+)?(?:train\s+)?|i\s+want\s+to\s+book\s+(?:a\s+)?(?:train\s+)?|please\s+book\s+(?:a\s+)?(?:train\s+)?|book\s+(?:a\s+)?(?:train\s+)?|can\s+we\s+book\s+(?:a\s+)?(?:train\s+)?|search\s+trains?\s+(?:from\s+)?|find\s+trains?\s+(?:from\s+)?|show\s+trains?\s+(?:from\s+)?)\s*/i, '')
+        .trim();
+
       const routeRegex = /(?:from\s+)?([a-z\s]+?)\s+(?:to|->|towards|–|-)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i;
-      const match = text.match(routeRegex);
+      const betweenRegex = /(?:between\s+)?([a-z\s]+?)\s+(?:and|&)\s+([a-z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i;
+
+      const match = cleanedRouteText.match(routeRegex) || text.match(routeRegex) || cleanedRouteText.match(betweenRegex);
       if (match) {
-        const s1 = findStation(match[1].trim());
-        const s2 = findStation(match[2].trim());
+        const cleanFromStr = match[1]
+          .replace(/\b(?:let'?s|book|a|train|trains|find|search|tickets?|from|between|want|to)\b/gi, ' ')
+          .trim();
+        const cleanToStr = match[2]
+          .replace(/\b(?:tomorrow|today|day|after|next|in|for|seats?|passengers?|pax|please|train|trains)\b/gi, ' ')
+          .trim();
+
+        const s1 = findStation(cleanFromStr) || findStation(match[1].trim());
+        const s2 = findStation(cleanToStr) || findStation(match[2].trim());
         if (s1) extractedFrom = s1;
         if (s2) extractedTo = s2;
       }
 
       if (!extractedFrom || !extractedTo) {
         const words = lower.split(/[\s,]+/);
-        const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help', 'go', 'going', 'hey', 'wanna', 'the', 'a', 'an', 'my', 'live', 'status', 'track', 'where'];
+        const ignoreWords = ['i', 'want', 'to', 'book', 'ticket', 'tickets', 'train', 'trains', 'seat', 'seats', 'with', 'from', 'this', 'that', 'they', 'what', 'is', 'for', 'me', 'please', 'can', 'you', 'help', 'go', 'going', 'hey', 'wanna', 'the', 'a', 'an', 'my', 'live', 'status', 'track', 'where', 'lets', "let's"];
         for (const w of words) {
           if (w.length < 3 || ignoreWords.includes(w)) continue;
           const st = findStation(w);
@@ -1200,6 +1230,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       const toSt = nextRouteCtx.toStation;
 
       if (fromSt && toSt) {
+        // Synchronize active journey search so the main screen updates immediately
+        executeSearch({
+          fromStation: fromSt,
+          toStation: toSt,
+          travelDate: travelDate !== 'Tomorrow' ? travelDate : undefined,
+          passengersCount: paxCount,
+        });
+        if (activePage !== 'trains' && activePage !== 'workspace' && activePage !== 'booking') {
+          navigateTo('trains');
+        }
+
         const trains = searchTrains(fromSt.code, toSt.code);
         if (trains && trains.length > 0) {
           const topTrains = rankTrains(trains).slice(0, 3);
@@ -1214,6 +1255,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                     text: promptText,
                     isStreaming: false,
                     trainList: topTrains,
+                    understoodCard: {
+                      from: fromSt.name,
+                      to: toSt.name,
+                      date: travelDate,
+                      passengers: paxCount,
+                      classCode,
+                      fromStation: fromSt,
+                      toStation: toSt,
+                    },
                   }
                 : m
             )
@@ -1231,11 +1281,22 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                     ...m,
                     text: noTrainText,
                     isStreaming: false,
+                    understoodCard: {
+                      from: fromSt.name,
+                      to: toSt.name,
+                      date: travelDate,
+                      passengers: paxCount,
+                      classCode,
+                      fromStation: fromSt,
+                      toStation: toSt,
+                    },
                     actionCard: {
                       title: `Search Route: ${fromSt.city} → ${toSt.city}`,
                       subtitle: `Connecting trains available via major junctions`,
                       buttonLabel: `Search Route on Trains Screen →`,
                       route: 'trains',
+                      fromStation: fromSt,
+                      toStation: toSt,
                     },
                   }
                 : m

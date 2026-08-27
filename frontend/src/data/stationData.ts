@@ -9,10 +9,10 @@ export interface Station {
 }
 
 const BASE_STATIONS: Station[] = [
-  { code: 'NDLS', name: 'New Delhi', city: 'Delhi', state: 'Delhi', aliases: ['NEW DELHI', 'DELHI', 'DLI', 'NZM', 'ANVT', 'HAZRAT NIZAMUDDIN', 'ANAND VIHAR'] },
-  { code: 'HWH', name: 'Howrah Junction', city: 'Kolkata', state: 'West Bengal', aliases: ['HOWRAH', 'KOLKATA', 'CALCUTTA', 'SDAH', 'SEALDAH', 'KOAA', 'SHM'] },
-  { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', city: 'Mumbai', state: 'Maharashtra', aliases: ['MUMBAI', 'BOMBAY', 'BCT', 'MMCT', 'MUMBAI CENTRAL', 'CSTM', 'LTT', 'BDTS', 'DADAR', 'DR', 'KYN', 'KALYAN'] },
-  { code: 'SBC', name: 'KSR Bengaluru', city: 'Bengaluru', state: 'Karnataka', aliases: ['BANGALORE', 'BENGALURU', 'YPR', 'YESVANTPUR', 'SMVB'] },
+  { code: 'NDLS', name: 'New Delhi', city: 'Delhi', state: 'Delhi', aliases: ['NEW DELHI', 'DELHI', 'DLI', 'NZM', 'ANVT', 'HAZRAT NIZAMUDDIN', 'ANAND VIHAR', 'NDLS'] },
+  { code: 'HWH', name: 'Howrah Junction', city: 'Kolkata', state: 'West Bengal', aliases: ['HOWRAH', 'KOLKATA', 'CALCUTTA', 'SDAH', 'SEALDAH', 'KOAA', 'SHM', 'HOWRAH JN', 'HWH', 'KOL'] },
+  { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', city: 'Mumbai', state: 'Maharashtra', aliases: ['MUMBAI', 'BOMBAY', 'BCT', 'MMCT', 'MUMBAI CENTRAL', 'CSMT', 'CSTM', 'LTT', 'BDTS', 'DADAR', 'DR', 'KYN', 'KALYAN'] },
+  { code: 'SBC', name: 'KSR Bengaluru', city: 'Bengaluru', state: 'Karnataka', aliases: ['BANGALORE', 'BENGALURU', 'BANGALURU', 'YPR', 'YESVANTPUR', 'SMVB', 'SBC', 'KSR BENGALURU', 'BENGALURU CITY'] },
   { code: 'MAS', name: 'MGR Chennai Central', city: 'Chennai', state: 'Tamil Nadu', aliases: ['CHENNAI', 'MADRAS', 'MAS', 'MS', 'CHENNAI EGMORE'] },
   { code: 'DHN', name: 'Dhanbad Junction', city: 'Dhanbad', state: 'Jharkhand', aliases: ['DHANBAD', 'DHN', 'JHARIA'] },
   { code: 'CNB', name: 'Kanpur Central', city: 'Kanpur', state: 'Uttar Pradesh', aliases: ['KANPUR', 'CNB', 'KANPUR CENTRAL'] },
@@ -37,7 +37,7 @@ const BASE_STATIONS: Station[] = [
   { code: 'PURI', name: 'Puri Terminus', city: 'Puri', state: 'Odisha', aliases: ['PURI', 'JAGANNATH PURI'] },
   { code: 'BBS', name: 'Bhubaneswar', city: 'Bhubaneswar', state: 'Odisha', aliases: ['BHUBANESWAR', 'BBS'] },
   { code: 'KGP', name: 'Kharagpur Junction', city: 'Kharagpur', state: 'West Bengal', aliases: ['KHARAGPUR', 'KGP'] },
-  { code: 'NJP', name: 'New Jalpaiguri', city: 'Siliguri', state: 'West Bengal', aliases: ['SILIGURI', 'NEW JALPAIGURI', 'NJP', 'DARJEELING'] },
+  { code: 'NJP', name: 'New Jalpaiguri', city: 'Siliguri', state: 'West Bengal', aliases: ['SILIGURI', 'NEW JALPAIGURI', 'NJP', 'DARJEELING', 'JALPAIGURI', 'NEW JALPAIGURI JN', 'NORTH BENGAL'] },
   { code: 'CDG', name: 'Chandigarh Junction', city: 'Chandigarh', state: 'Chandigarh', aliases: ['CHANDIGARH', 'CDG', 'SHIMLA', 'KALKA', 'KLK'] },
   { code: 'JAT', name: 'Jammu Tawi', city: 'Jammu', state: 'Jammu and Kashmir', aliases: ['JAMMU', 'JAT', 'JAMMU TAWI', 'KASHMIR', 'SRINAGAR'] },
   { code: 'SVDK', name: 'SMVD Katra', city: 'Katra', state: 'Jammu and Kashmir', aliases: ['KATRA', 'SVDK', 'VAISHNO DEVI', 'KASHMIR'] },
@@ -53,13 +53,20 @@ export const POPULAR_STATIONS: Station[] = (rawData.stations && (rawData.station
 
 export function findStation(query: string): Station | null {
   if (!query || typeof query !== 'string') return null;
-  const clean = query.trim().toUpperCase();
+  const clean = query
+    .trim()
+    .toUpperCase()
+    .replace(/^(?:FROM|TO|NEAR|STATION|JN|JUNCTION|CITY)\s+/i, '')
+    .trim();
+
+  if (!clean) return null;
+
   if (clean.length < 3) {
-    return POPULAR_STATIONS.find((s) => s.code === clean) || null;
+    return POPULAR_STATIONS.find((s) => s.code.toUpperCase() === clean) || null;
   }
 
   // 1. Direct code match
-  const direct = POPULAR_STATIONS.find((s) => s.code === clean);
+  const direct = POPULAR_STATIONS.find((s) => s.code.toUpperCase() === clean);
   if (direct) return direct;
 
   // 2. City or name exact match
@@ -68,20 +75,45 @@ export function findStation(query: string): Station | null {
   );
   if (exactName) return exactName;
 
-  // 3. Alias match
-  const aliasMatch = POPULAR_STATIONS.find((s) =>
-    s.aliases && s.aliases.some((a) => a.toUpperCase() === clean || clean.includes(a.toUpperCase()))
+  // 3. Exact alias match
+  const exactAliasMatch = POPULAR_STATIONS.find((s) =>
+    s.aliases && s.aliases.some((a) => a.toUpperCase() === clean)
   );
-  if (aliasMatch) return aliasMatch;
+  if (exactAliasMatch) return exactAliasMatch;
 
-  // 4. Partial substring
-  const partial = POPULAR_STATIONS.find(
+  // 4. Word-boundary token matching (ensures short aliases like "RU" do not match inside "BANGALURU")
+  const wordBoundaryMatch = POPULAR_STATIONS.find((s) => {
+    // Check if city matches as a standalone word
+    const cityUpper = s.city.toUpperCase();
+    if (new RegExp(`\\b${cityUpper.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'i').test(clean)) {
+      return true;
+    }
+    // Check if station code matches as a standalone word
+    const codeUpper = s.code.toUpperCase();
+    if (new RegExp(`\\b${codeUpper.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'i').test(clean)) {
+      return true;
+    }
+    // Check if any alias matches as a standalone word (only for aliases of length >= 3 to prevent false positives)
+    if (s.aliases) {
+      for (const a of s.aliases) {
+        const aUpper = a.toUpperCase();
+        if (aUpper.length >= 3 && new RegExp(`\\b${aUpper.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'i').test(clean)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+  if (wordBoundaryMatch) return wordBoundaryMatch;
+
+  // 5. Prefix / startsWith matching for queries of at least 3 characters
+  const prefixMatch = POPULAR_STATIONS.find(
     (s) =>
-      s.name.toUpperCase().includes(clean) ||
-      s.city.toUpperCase().includes(clean) ||
-      clean.includes(s.city.toUpperCase())
+      s.city.toUpperCase().startsWith(clean) ||
+      s.name.toUpperCase().startsWith(clean) ||
+      (s.aliases && s.aliases.some((a) => a.toUpperCase().startsWith(clean) && clean.length >= 3))
   );
-  if (partial) return partial;
+  if (prefixMatch) return prefixMatch;
 
   return null;
 }

@@ -573,7 +573,18 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const pnr = `${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(10 + Math.random() * 90)}`;
     const bookingRef = `NR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    const isWaitlistTrain = resolvedTrain.trainNumber === '12232' || selectedTrain?.trainNumber === '12232';
+
+    const isWaitlistTrain =
+      resolvedTrain.trainNumber === '12232' ||
+      resolvedTrain.trainNumber === '12863' ||
+      resolvedTrain.trainNumber === '12864' ||
+      resolvedTrain.trainNumber === '12245' ||
+      selectedTrain?.trainNumber === '12232' ||
+      selectedTrain?.trainNumber === '12863' ||
+      selectedTrain?.trainNumber === '12864' ||
+      selectedTrain?.trainNumber === '12245' ||
+      Boolean(resolvedTrain.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
+      Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0)));
     const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : 'B4'}`;
     const baseSeat = isWaitlistTrain ? 42 : Math.floor(12 + Math.random() * 50);
 
@@ -828,6 +839,26 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSelectedTrain(train);
     const chosenClass = classCode || (train.classes.length > 0 ? train.classes[0].classCode : '3A');
     setSelectedClassCode(chosenClass);
+
+    const matchedFrom = findStation(train.fromStationCode) || {
+      code: train.fromStationCode,
+      name: train.fromStationName,
+      city: train.fromCity,
+      state: '',
+      aliases: [],
+    };
+    const matchedTo = findStation(train.toStationCode) || {
+      code: train.toStationCode,
+      name: train.toStationName,
+      city: train.toCity,
+      state: '',
+      aliases: [],
+    };
+    setSearchParams((prev) => ({
+      ...prev,
+      fromStation: matchedFrom,
+      toStation: matchedTo,
+    }));
 
     setJourneyState((prev) => ({
       ...prev,
