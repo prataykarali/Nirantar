@@ -179,142 +179,124 @@ export function getCoachBerthLayout(
   classCode: string,
   racCount = 0,
   isUserCoach = false,
-  userSeatNumber?: number | number[]
+  userSeatNumber?: number | number[] | Array<{ seatNumber: number; passengerName?: string }>
 ): SeatBerth[] {
   const seats: SeatBerth[] = [];
 
-  const checkIsUserSeat = (num: number) => {
-    if (!isUserCoach || userSeatNumber === undefined) return false;
-    if (Array.isArray(userSeatNumber)) return userSeatNumber.includes(num);
-    return userSeatNumber === num;
+  const getUserSeatInfo = (num: number): { isUser: boolean; name?: string } => {
+    if (!isUserCoach || userSeatNumber === undefined) return { isUser: false };
+    if (Array.isArray(userSeatNumber)) {
+      for (const item of userSeatNumber) {
+        if (typeof item === 'number' && item === num) {
+          return { isUser: true };
+        } else if (typeof item === 'object' && item !== null && (item as any).seatNumber === num) {
+          return { isUser: true, name: (item as any).passengerName };
+        }
+      }
+      return { isUser: false };
+    }
+    return { isUser: userSeatNumber === num };
   };
 
   // Chair car layout: CC / EC (NEVER HAS RAC)
   if (classCode === 'CC' || classCode === 'EC') {
-    const totalSeats = classCode === 'EC' ? 16 : 20;
+    const totalSeats = classCode === 'EC' ? 40 : 72;
     const types = classCode === 'EC' ? ['W', 'A', 'A', 'W'] : ['W', 'M', 'A', 'A', 'W'];
     for (let i = 1; i <= totalSeats; i++) {
       const type = types[(i - 1) % types.length];
-      const isUser = checkIsUserSeat(i);
+      const userInfo = getUserSeatInfo(i);
       seats.push({
         num: i,
         type,
         status: 'CNF',
-        label: isUser ? 'YOU' : 'CNF',
-        isUserSeat: isUser,
+        label: userInfo.isUser ? (userInfo.name ? userInfo.name.split(' ')[0].toUpperCase() : 'YOU') : 'CNF',
+        isUserSeat: userInfo.isUser,
       });
     }
     return seats;
   }
 
-  // 1st AC layout: H1 (NEVER HAS RAC)
+  // 1st AC layout: H1 (24 berths: 6 cabins)
   if (classCode === '1A') {
-    const cabinPattern = ['LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB', 'LB', 'UB'];
-    cabinPattern.forEach((type, idx) => {
-      const num = idx + 1;
-      const isUser = checkIsUserSeat(num);
+    const cabinPattern = ['LB', 'UB', 'LB', 'UB'];
+    for (let i = 1; i <= 24; i++) {
+      const type = cabinPattern[(i - 1) % cabinPattern.length];
+      const userInfo = getUserSeatInfo(i);
       seats.push({
-        num,
+        num: i,
         type,
         status: 'CNF',
-        label: isUser ? 'YOU' : 'CNF',
-        isUserSeat: isUser,
+        label: userInfo.isUser ? (userInfo.name ? userInfo.name.split(' ')[0].toUpperCase() : 'YOU') : 'CNF',
+        isUserSeat: userInfo.isUser,
       });
-    });
+    }
     return seats;
   }
 
   // Number of Side Lower berths needed to accommodate racCount (only if this is user's coach)
   const activeRacBerthSlots = isUserCoach ? Math.min(3, Math.ceil(racCount / 2)) : 0;
 
-  // 2-Tier AC layout: A1, A2 (6 berths per bay: LB, UB, LB, UB, SL, SU)
+  // 2-Tier AC layout: A1, A2 (9 bays * 6 berths = 54 berths)
   if (classCode === '2A') {
-    const raw2ABay = [
-      { num: 1, type: 'LB' },
-      { num: 2, type: 'UB' },
-      { num: 3, type: 'LB' },
-      { num: 4, type: 'UB' },
-      { num: 5, type: 'SL', isSideLower: true, racSlotIndex: 1 },
-      { num: 6, type: 'SU' },
-      { num: 7, type: 'LB' },
-      { num: 8, type: 'UB' },
-      { num: 9, type: 'LB' },
-      { num: 10, type: 'UB' },
-      { num: 11, type: 'SL', isSideLower: true, racSlotIndex: 2 },
-      { num: 12, type: 'SU' },
-      { num: 13, type: 'LB' },
-      { num: 14, type: 'UB' },
-      { num: 15, type: 'LB' },
-      { num: 16, type: 'UB' },
-      { num: 17, type: 'SL', isSideLower: true, racSlotIndex: 3 },
-      { num: 18, type: 'SU' },
-    ];
+    const berth2APattern = ['LB', 'UB', 'LB', 'UB', 'SL', 'SU'];
+    for (let bay = 0; bay < 9; bay++) {
+      const base = bay * 6;
+      for (let pos = 0; pos < 6; pos++) {
+        const num = base + pos + 1;
+        const type = berth2APattern[pos];
+        const isSideLower = type === 'SL';
+        const racSlotIndex = isSideLower ? bay + 1 : undefined;
+        const userInfo = getUserSeatInfo(num);
+        const isRac = isUserCoach && !userInfo.isUser && isSideLower && (racSlotIndex || 0) <= activeRacBerthSlots;
+        
+        let label = 'CNF';
+        if (userInfo.isUser) {
+          label = userInfo.name ? userInfo.name.split(' ')[0].toUpperCase() : 'YOU';
+        } else if (isRac) {
+          label = racSlotIndex === 1 ? 'RAC 1/2' : racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+        }
 
-    raw2ABay.forEach((s) => {
-      const isRac = isUserCoach && !checkIsUserSeat(s.num) && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
-      const isUser = checkIsUserSeat(s.num);
-      let label = 'CNF';
-      if (isUser) label = 'YOU';
-      else if (isRac) {
-        label = s.racSlotIndex === 1 ? 'RAC 1/2' : s.racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+        seats.push({
+          num,
+          type,
+          status: isRac ? 'RAC' : 'CNF',
+          label,
+          isUserSeat: userInfo.isUser,
+        });
       }
-
-      seats.push({
-        num: s.num,
-        type: s.type,
-        status: isRac ? 'RAC' : 'CNF',
-        label,
-        isUserSeat: isUser,
-      });
-    });
+    }
     return seats;
   }
 
-  // Standard 3-Tier (3A & SL): 8 berths per bay (LB, MB, UB, LB, MB, UB, SL, SU)
-  const raw3ABay = [
-    { num: 1, type: 'LB' },
-    { num: 2, type: 'MB' },
-    { num: 3, type: 'UB' },
-    { num: 4, type: 'LB' },
-    { num: 5, type: 'MB' },
-    { num: 6, type: 'UB' },
-    { num: 7, type: 'SL', isSideLower: true, racSlotIndex: 1 },
-    { num: 8, type: 'SU' },
-    { num: 9, type: 'LB' },
-    { num: 10, type: 'MB' },
-    { num: 11, type: 'UB' },
-    { num: 12, type: 'LB' },
-    { num: 13, type: 'MB' },
-    { num: 14, type: 'UB' },
-    { num: 15, type: 'SL', isSideLower: true, racSlotIndex: 2 },
-    { num: 16, type: 'SU' },
-    { num: 17, type: 'LB' },
-    { num: 18, type: 'MB' },
-    { num: 19, type: 'UB' },
-    { num: 20, type: 'LB' },
-    { num: 21, type: 'MB' },
-    { num: 22, type: 'UB' },
-    { num: 23, type: 'SL', isSideLower: true, racSlotIndex: 3 },
-    { num: 24, type: 'SU' },
-  ];
+  // Standard 3-Tier (3A & SL): 9 bays * 8 berths = 72 berths
+  // Bay pattern: 1-LB, 2-MB, 3-UB, 4-LB, 5-MB, 6-UB, 7-SL, 8-SU
+  const berthPattern = ['LB', 'MB', 'UB', 'LB', 'MB', 'UB', 'SL', 'SU'];
+  for (let bay = 0; bay < 9; bay++) {
+    const base = bay * 8;
+    for (let pos = 0; pos < 8; pos++) {
+      const num = base + pos + 1;
+      const type = berthPattern[pos];
+      const isSideLower = type === 'SL';
+      const racSlotIndex = isSideLower ? bay + 1 : undefined;
+      const userInfo = getUserSeatInfo(num);
+      const isRac = isUserCoach && !userInfo.isUser && isSideLower && (racSlotIndex || 0) <= activeRacBerthSlots;
 
-  raw3ABay.forEach((s) => {
-    const isRac = isUserCoach && !checkIsUserSeat(s.num) && !!s.isSideLower && s.racSlotIndex! <= activeRacBerthSlots;
-    const isUser = checkIsUserSeat(s.num);
-    let label = 'CNF';
-    if (isUser) label = 'YOU';
-    else if (isRac) {
-      label = s.racSlotIndex === 1 ? 'RAC 1/2' : s.racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+      let label = 'CNF';
+      if (userInfo.isUser) {
+        label = userInfo.name ? userInfo.name.split(' ')[0].toUpperCase() : 'YOU';
+      } else if (isRac) {
+        label = racSlotIndex === 1 ? 'RAC 1/2' : racSlotIndex === 2 ? 'RAC 3/4' : 'RAC 5/6';
+      }
+
+      seats.push({
+        num,
+        type,
+        status: isRac ? 'RAC' : 'CNF',
+        label,
+        isUserSeat: userInfo.isUser,
+      });
     }
-
-    seats.push({
-      num: s.num,
-      type: s.type,
-      status: isRac ? 'RAC' : 'CNF',
-      label,
-      isUserSeat: isUser,
-    });
-  });
+  }
 
   return seats;
 }

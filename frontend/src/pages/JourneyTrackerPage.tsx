@@ -324,8 +324,11 @@ export const JourneyTrackerPage: React.FC = () => {
 
   const isUserCoach = Boolean(isUserBookedTrain && passengersInThisCoach.length > 0);
 
-  const userSeatNumbers = useMemo(() => {
-    return passengersInThisCoach.map((s) => s.seatNumber);
+  const userSeatObjects = useMemo(() => {
+    return passengersInThisCoach.map((s) => ({
+      seatNumber: s.seatNumber,
+      passengerName: s.passengerName,
+    }));
   }, [passengersInThisCoach]);
 
   const coachBerthLayout = useMemo(() => {
@@ -334,9 +337,9 @@ export const JourneyTrackerPage: React.FC = () => {
       selectedCoachInfo.classCode,
       coachInventory.racCount,
       isUserCoach,
-      userSeatNumbers
+      userSeatObjects
     );
-  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach, userSeatNumbers]);
+  }, [selectedCoachInfo.code, selectedCoachInfo.classCode, coachInventory.racCount, isUserCoach, userSeatObjects]);
 
   const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
 
@@ -1334,7 +1337,7 @@ export const JourneyTrackerPage: React.FC = () => {
                         key={seat.num}
                         className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                           isUser
-                            ? 'bg-purple-600/40 border-purple-400 text-white ring-2 ring-purple-400 shadow-sm shadow-purple-500/50'
+                            ? 'bg-purple-600/70 border-purple-300 text-white ring-2 ring-purple-300 shadow-md shadow-purple-500/50 scale-105 z-10'
                             : isRac
                             ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
                             : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
@@ -1343,11 +1346,11 @@ export const JourneyTrackerPage: React.FC = () => {
                         <span className="font-bold text-sm leading-none">{seat.num}</span>
                         <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
                         <span
-                          className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 ${
+                          className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 truncate max-w-full ${
                             isUser
-                              ? 'bg-purple-400 text-slate-950 font-black'
+                              ? 'bg-amber-300 text-slate-950 font-black'
                               : isRac
-                              ? 'bg-amber-400 text-slate-950'
+                              ? 'bg-amber-400 text-slate-950 font-bold'
                               : 'bg-emerald-400/20 text-emerald-300'
                           }`}
                         >
