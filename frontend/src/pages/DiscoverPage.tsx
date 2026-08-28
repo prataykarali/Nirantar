@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
-import { POPULAR_STATIONS, Station, searchStations, findStation } from '../data/stationData';
+import { POPULAR_STATIONS, Station, searchStations, findStation, VERIFIED_PLATFORM_HUBS } from '../data/stationData';
 import { CitizenCharacter } from '../components/characters/CitizenCharacter';
 import { NiraRobot } from '../components/characters/NiraRobot';
 import { Card } from '../design-system/components/Card';
@@ -32,6 +32,7 @@ export const DiscoverPage: React.FC = () => {
   const [toQuery, setToQuery] = useState(searchParams.toStation.city);
   const [selectedFrom, setSelectedFrom] = useState<Station>(searchParams.fromStation);
   const [selectedTo, setSelectedTo] = useState<Station>(searchParams.toStation);
+  const [activeZoneTab, setActiveZoneTab] = useState<'all' | 'north' | 'central' | 'east' | 'west' | 'south'>('all');
   const todayIso = new Date().toISOString().split('T')[0];
   const tomorrowIso = (() => {
     const d = new Date();

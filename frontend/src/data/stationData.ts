@@ -51,6 +51,108 @@ export const POPULAR_STATIONS: Station[] = (rawData.stations && (rawData.station
   ? (rawData.stations as Station[])
   : BASE_STATIONS;
 
+export interface VerifiedHub {
+  code: string;
+  name: string;
+  city: string;
+  platforms: string;
+  zone: 'north' | 'west' | 'east' | 'south' | 'central';
+  state: string;
+  tag?: string;
+}
+
+export const VERIFIED_PLATFORM_HUBS: VerifiedHub[] = [
+  // North
+  { code: 'NDLS', name: 'New Delhi', city: 'Delhi', platforms: 'Plat 1-16', zone: 'north', state: 'Delhi', tag: 'Capital Hub' },
+  { code: 'DLI', name: 'Old Delhi', city: 'Delhi', platforms: 'Plat 1-16', zone: 'north', state: 'Delhi', tag: 'Historic' },
+  { code: 'NZM', name: 'Hazrat Nizamuddin', city: 'Delhi', platforms: 'Plat 1-8', zone: 'north', state: 'Delhi', tag: 'Express Terminal' },
+  { code: 'ANVT', name: 'Anand Vihar Terminus', city: 'Delhi', platforms: 'Plat 1-7', zone: 'north', state: 'Delhi' },
+  { code: 'CDG', name: 'Chandigarh Junction', city: 'Chandigarh', platforms: 'Plat 1-6', zone: 'north', state: 'Chandigarh' },
+  { code: 'ASR', name: 'Amritsar Junction', city: 'Amritsar', platforms: 'Plat 1-5', zone: 'north', state: 'Punjab' },
+  { code: 'JAT', name: 'Jammu Tawi', city: 'Jammu', platforms: 'Plat 1-5', zone: 'north', state: 'Jammu & Kashmir' },
+  { code: 'SVDK', name: 'SMVD Katra', city: 'Katra', platforms: 'Plat 1-5', zone: 'north', state: 'Jammu & Kashmir', tag: 'Pilgrimage' },
+  { code: 'HW', name: 'Haridwar Junction', city: 'Haridwar', platforms: 'Plat 1-6', zone: 'north', state: 'Uttarakhand', tag: 'Ganga Ghats' },
+  { code: 'DDN', name: 'Dehradun Terminus', city: 'Dehradun', platforms: 'Plat 1-5', zone: 'north', state: 'Uttarakhand' },
+  { code: 'JP', name: 'Jaipur Junction', city: 'Jaipur', platforms: 'Plat 1-8', zone: 'north', state: 'Rajasthan', tag: 'Pink City' },
+  { code: 'JU', name: 'Jodhpur Junction', city: 'Jodhpur', platforms: 'Plat 1-5', zone: 'north', state: 'Rajasthan' },
+  { code: 'AII', name: 'Ajmer Junction', city: 'Ajmer', platforms: 'Plat 1-5', zone: 'north', state: 'Rajasthan' },
+  { code: 'KOTA', name: 'Kota Junction', city: 'Kota', platforms: 'Plat 1-6', zone: 'north', state: 'Rajasthan' },
+  { code: 'UDZ', name: 'Udaipur City', city: 'Udaipur', platforms: 'Plat 1-5', zone: 'north', state: 'Rajasthan', tag: 'Lake City' },
+  { code: 'SML', name: 'Shimla Heritage', city: 'Shimla', platforms: 'Plat 1-2', zone: 'north', state: 'Himachal Pradesh', tag: 'UNESCO Toy Train' },
+  { code: 'KLK', name: 'Kalka Junction', city: 'Kalka', platforms: 'Plat 1-4', zone: 'north', state: 'Haryana' },
+
+  // Central (UP & MP)
+  { code: 'CNB', name: 'Kanpur Central', city: 'Kanpur', platforms: 'Plat 1-10', zone: 'central', state: 'Uttar Pradesh', tag: 'Mega Junction' },
+  { code: 'PRYJ', name: 'Prayagraj Junction', city: 'Prayagraj', platforms: 'Plat 1-10', zone: 'central', state: 'Uttar Pradesh', tag: 'Sangam Hub' },
+  { code: 'BSB', name: 'Varanasi Junction', city: 'Varanasi', platforms: 'Plat 1-9', zone: 'central', state: 'Uttar Pradesh', tag: 'Kashi Hub' },
+  { code: 'DDU', name: 'Pt. Deen Dayal Upadhyaya', city: 'Mughalsarai', platforms: 'Plat 1-8', zone: 'central', state: 'Uttar Pradesh', tag: 'Asia Largest Yard' },
+  { code: 'LKO', name: 'Lucknow Charbagh', city: 'Lucknow', platforms: 'Plat 1-9', zone: 'central', state: 'Uttar Pradesh', tag: 'Heritage Palace' },
+  { code: 'AGC', name: 'Agra Cantt', city: 'Agra', platforms: 'Plat 1-6', zone: 'central', state: 'Uttar Pradesh', tag: 'Taj Mahal City' },
+  { code: 'GWL', name: 'Gwalior Junction', city: 'Gwalior', platforms: 'Plat 1-5', zone: 'central', state: 'Madhya Pradesh' },
+  { code: 'JHS', name: 'V Lakshmibai Jhansi', city: 'Jhansi', platforms: 'Plat 1-7', zone: 'central', state: 'Uttar Pradesh' },
+  { code: 'BPL', name: 'Bhopal Junction', city: 'Bhopal', platforms: 'Plat 1-6', zone: 'central', state: 'Madhya Pradesh' },
+  { code: 'INDB', name: 'Indore Junction', city: 'Indore', platforms: 'Plat 1-6', zone: 'central', state: 'Madhya Pradesh', tag: 'Commercial Hub' },
+  { code: 'UJN', name: 'Ujjain Junction', city: 'Ujjain', platforms: 'Plat 1-8', zone: 'central', state: 'Madhya Pradesh', tag: 'Mahakal Corridor' },
+  { code: 'JBP', name: 'Jabalpur Junction', city: 'Jabalpur', platforms: 'Plat 1-6', zone: 'central', state: 'Madhya Pradesh' },
+  { code: 'GKP', name: 'Gorakhpur Junction', city: 'Gorakhpur', platforms: 'Plat 1-10', zone: 'central', state: 'Uttar Pradesh', tag: 'World Longest PF' },
+
+  // East & Northeast
+  { code: 'HWH', name: 'Howrah Junction', city: 'Kolkata', platforms: 'Plat 1-23', zone: 'east', state: 'West Bengal', tag: '23 Platforms (Largest)' },
+  { code: 'SDAH', name: 'Sealdah Terminus', city: 'Kolkata', platforms: 'Plat 1-21', zone: 'east', state: 'West Bengal', tag: '21 Platforms' },
+  { code: 'KOAA', name: 'Kolkata Chitpur', city: 'Kolkata', platforms: 'Plat 1-5', zone: 'east', state: 'West Bengal' },
+  { code: 'KGP', name: 'Kharagpur Junction', city: 'Kharagpur', platforms: 'Plat 1-12', zone: 'east', state: 'West Bengal', tag: '12 Platforms' },
+  { code: 'NJP', name: 'New Jalpaiguri', city: 'Siliguri', platforms: 'Plat 1-5', zone: 'east', state: 'West Bengal', tag: 'Gateway to Northeast' },
+  { code: 'MLDT', name: 'Malda Town', city: 'Malda', platforms: 'Plat 1-6', zone: 'east', state: 'West Bengal' },
+  { code: 'DJ', name: 'Darjeeling Himalayan', city: 'Darjeeling', platforms: 'Plat 1-2', zone: 'east', state: 'West Bengal', tag: 'Toy Train' },
+  { code: 'PNBE', name: 'Patna Junction', city: 'Patna', platforms: 'Plat 1-10', zone: 'east', state: 'Bihar', tag: 'State Capital' },
+  { code: 'GAYA', name: 'Gaya Junction', city: 'Gaya', platforms: 'Plat 1-9', zone: 'east', state: 'Bihar', tag: 'Bodh Gaya' },
+  { code: 'MFP', name: 'Muzaffarpur Junction', city: 'Muzaffarpur', platforms: 'Plat 1-5', zone: 'east', state: 'Bihar' },
+  { code: 'DBG', name: 'Darbhanga Junction', city: 'Darbhanga', platforms: 'Plat 1-5', zone: 'east', state: 'Bihar' },
+  { code: 'DHN', name: 'Dhanbad Junction', city: 'Dhanbad', platforms: 'Plat 1-8', zone: 'east', state: 'Jharkhand', tag: 'Coal Capital' },
+  { code: 'RNC', name: 'Ranchi Junction', city: 'Ranchi', platforms: 'Plat 1-6', zone: 'east', state: 'Jharkhand' },
+  { code: 'TATA', name: 'Tatanagar', city: 'Jamshedpur', platforms: 'Plat 1-5', zone: 'east', state: 'Jharkhand', tag: 'Steel City' },
+  { code: 'BBS', name: 'Bhubaneswar', city: 'Bhubaneswar', platforms: 'Plat 1-6', zone: 'east', state: 'Odisha', tag: 'Temple City' },
+  { code: 'PURI', name: 'Puri Terminus', city: 'Puri', platforms: 'Plat 1-8', zone: 'east', state: 'Odisha', tag: 'Jagannath Dham' },
+  { code: 'GHY', name: 'Guwahati Junction', city: 'Guwahati', platforms: 'Plat 1-7', zone: 'east', state: 'Assam', tag: 'Northeast Hub' },
+
+  // West
+  { code: 'MMCT', name: 'Mumbai Central', city: 'Mumbai', platforms: 'Plat 1-8', zone: 'west', state: 'Maharashtra', tag: 'Western Hub' },
+  { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', city: 'Mumbai', platforms: 'Plat 1-18', zone: 'west', state: 'Maharashtra', tag: '18 Platforms (UNESCO)' },
+  { code: 'BDTS', name: 'Bandra Terminus', city: 'Mumbai', platforms: 'Plat 1-7', zone: 'west', state: 'Maharashtra' },
+  { code: 'LTT', name: 'Lokmanya Tilak Terminus', city: 'Mumbai', platforms: 'Plat 1-5', zone: 'west', state: 'Maharashtra' },
+  { code: 'PUNE', name: 'Pune Junction', city: 'Pune', platforms: 'Plat 1-6', zone: 'west', state: 'Maharashtra', tag: 'IT & Cultural Hub' },
+  { code: 'NGP', name: 'Nagpur Junction', city: 'Nagpur', platforms: 'Plat 1-8', zone: 'west', state: 'Maharashtra', tag: 'Diamond Crossing' },
+  { code: 'BSL', name: 'Bhusawal Junction', city: 'Bhusawal', platforms: 'Plat 1-8', zone: 'west', state: 'Maharashtra' },
+  { code: 'SUR', name: 'Solapur Junction', city: 'Solapur', platforms: 'Plat 1-5', zone: 'west', state: 'Maharashtra' },
+  { code: 'ADI', name: 'Ahmedabad Junction', city: 'Ahmedabad', platforms: 'Plat 1-12', zone: 'west', state: 'Gujarat', tag: 'Kalupur 12 PFs' },
+  { code: 'ST', name: 'Surat', city: 'Surat', platforms: 'Plat 1-6', zone: 'west', state: 'Gujarat', tag: 'Diamond City' },
+  { code: 'BRC', name: 'Vadodara Junction', city: 'Vadodara', platforms: 'Plat 1-7', zone: 'west', state: 'Gujarat' },
+  { code: 'RJT', name: 'Rajkot Junction', city: 'Rajkot', platforms: 'Plat 1-5', zone: 'west', state: 'Gujarat' },
+  { code: 'MAO', name: 'Madgaon Junction', city: 'Goa', platforms: 'Plat 1-4', zone: 'west', state: 'Goa', tag: 'Konkan Gateway' },
+  { code: 'R', name: 'Raipur Junction', city: 'Raipur', platforms: 'Plat 1-7', zone: 'west', state: 'Chhattisgarh' },
+  { code: 'BSP', name: 'Bilaspur Junction', city: 'Bilaspur', platforms: 'Plat 1-8', zone: 'west', state: 'Chhattisgarh' },
+
+  // South
+  { code: 'SBC', name: 'KSR Bengaluru City', city: 'Bengaluru', platforms: 'Plat 1-10', zone: 'south', state: 'Karnataka', tag: 'Silicon Hub' },
+  { code: 'YPR', name: 'Yesvantpur Junction', city: 'Bengaluru', platforms: 'Plat 1-6', zone: 'south', state: 'Karnataka' },
+  { code: 'SMVB', name: 'SMVT Bengaluru', city: 'Bengaluru', platforms: 'Plat 1-7', zone: 'south', state: 'Karnataka', tag: 'Air-Conditioned' },
+  { code: 'MAS', name: 'MGR Chennai Central', city: 'Chennai', platforms: 'Plat 1-12', zone: 'south', state: 'Tamil Nadu', tag: '12 Platforms' },
+  { code: 'MS', name: 'Chennai Egmore', city: 'Chennai', platforms: 'Plat 1-11', zone: 'south', state: 'Tamil Nadu', tag: '11 Platforms' },
+  { code: 'CBE', name: 'Coimbatore Junction', city: 'Coimbatore', platforms: 'Plat 1-6', zone: 'south', state: 'Tamil Nadu' },
+  { code: 'MDU', name: 'Madurai Junction', city: 'Madurai', platforms: 'Plat 1-8', zone: 'south', state: 'Tamil Nadu', tag: 'Temple City' },
+  { code: 'TPJ', name: 'Tiruchchirappalli Junction', city: 'Trichy', platforms: 'Plat 1-7', zone: 'south', state: 'Tamil Nadu' },
+  { code: 'CAPE', name: 'Kanniyakumari', city: 'Kanyakumari', platforms: 'Plat 1-4', zone: 'south', state: 'Tamil Nadu', tag: 'Southernmost Point' },
+  { code: 'HYB', name: 'Hyderabad Deccan', city: 'Hyderabad', platforms: 'Plat 1-6', zone: 'south', state: 'Telangana', tag: 'Nampally' },
+  { code: 'SC', name: 'Secunderabad Junction', city: 'Hyderabad', platforms: 'Plat 1-10', zone: 'south', state: 'Telangana', tag: '10 Platforms' },
+  { code: 'BZA', name: 'Vijayawada Junction', city: 'Vijayawada', platforms: 'Plat 1-10', zone: 'south', state: 'Andhra Pradesh', tag: 'Grand Junction' },
+  { code: 'VSKP', name: 'Visakhapatnam Junction', city: 'Visakhapatnam', platforms: 'Plat 1-8', zone: 'south', state: 'Andhra Pradesh', tag: 'Coastal Hub' },
+  { code: 'TPTY', name: 'Tirupati Main', city: 'Tirupati', platforms: 'Plat 1-5', zone: 'south', state: 'Andhra Pradesh', tag: 'Tirumala Balaji' },
+  { code: 'TVC', name: 'Thiruvananthapuram Central', city: 'Thiruvananthapuram', platforms: 'Plat 1-5', zone: 'south', state: 'Kerala', tag: 'State Capital' },
+  { code: 'ERS', name: 'Ernakulam Junction', city: 'Kochi', platforms: 'Plat 1-6', zone: 'south', state: 'Kerala', tag: 'Kochi South' },
+  { code: 'CLT', name: 'Kozhikode (Calicut)', city: 'Kozhikode', platforms: 'Plat 1-4', zone: 'south', state: 'Kerala' },
+  { code: 'CAN', name: 'Kannur', city: 'Kannur', platforms: 'Plat 1-3', zone: 'south', state: 'Kerala' },
+];
+
 export function findStation(query: string): Station | null {
   if (!query || typeof query !== 'string') return null;
   const clean = query

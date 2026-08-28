@@ -99,6 +99,50 @@ export const NewUserWelcomeModal: React.FC = () => {
           </div>
         </div>
 
+        {/* Top Verified Popular Platforms & Stations Available in Nirantar */}
+        <div className="p-3 rounded-2xl bg-purple-50/90 border border-purple-200 text-xs space-y-1.5 text-left">
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+              <span>🚉 Top Verified Platforms Available:</span>
+            </span>
+            <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-200">
+              100% Direct Routes
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10.5px]">
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🏛️ NDLS (New Delhi • Plat 1–16)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌊 MMCT (Mumbai Central • Plat 1–8)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌉 HWH (Howrah Jn • Plat 1–23)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌳 SBC (KSR Bengaluru • Plat 1–10)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🚂 MAS (Chennai Central • Plat 1–12)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🛕 BSB (Varanasi Jn • Plat 1–9)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌊 PRYJ (Prayagraj Jn • Plat 1–10)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🏰 PUNE (Pune Jn • Plat 1–6)
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              ⚡ ADI (Ahmedabad Jn • Plat 1–12)
+            </span>
+          </div>
+          <p className="text-[9.5px] text-purple-800 font-semibold leading-tight">
+            💡 Supported verified platform hubs ensure you never mistakenly input unknown platforms or unserviced stops!
+          </p>
+        </div>
+
         {/* Prompt Question & Yes/No Toggle Buttons */}
         <div className="space-y-2 pt-1">
           <p className="text-xs text-center font-bold text-slate-800">
