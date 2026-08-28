@@ -32,7 +32,18 @@ export const DiscoverPage: React.FC = () => {
   const [toQuery, setToQuery] = useState(searchParams.toStation.city);
   const [selectedFrom, setSelectedFrom] = useState<Station>(searchParams.fromStation);
   const [selectedTo, setSelectedTo] = useState<Station>(searchParams.toStation);
-  const [travelDate, setTravelDate] = useState(searchParams.travelDate);
+  const todayIso = new Date().toISOString().split('T')[0];
+  const tomorrowIso = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const [travelDate, setTravelDate] = useState(
+    searchParams.travelDate && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.travelDate)
+      ? searchParams.travelDate
+      : tomorrowIso
+  );
 
   const [fromSuggestions, setFromSuggestions] = useState<Station[]>([]);
   const [toSuggestions, setToSuggestions] = useState<Station[]>([]);
@@ -50,14 +61,6 @@ export const DiscoverPage: React.FC = () => {
 
   // Speech Recognition ref
   const recognitionRef = useRef<any>(null);
-
-  // Tomorrow string calculation
-  const tomorrowFormatted = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `Tomorrow, ${d.getDate()} ${months[d.getMonth()]}`;
-  })();
 
   // Handle Autocomplete
   const handleFromChange = (val: string) => {
@@ -434,13 +437,17 @@ export const DiscoverPage: React.FC = () => {
               <Calendar className="w-5 h-5 text-purple-700 shrink-0" />
               <div className="flex-1 min-w-0">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Date
+                  Travel Date
                 </label>
-                <div className="text-sm sm:text-base font-black text-slate-900 truncate">
-                  {tomorrowFormatted}
-                </div>
+                <input
+                  type="date"
+                  value={travelDate}
+                  min={todayIso}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  className="w-full bg-transparent text-sm sm:text-base font-black text-slate-900 focus:outline-none cursor-pointer"
+                  aria-label="Select journey travel date"
+                />
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
             </div>
           </div>
 

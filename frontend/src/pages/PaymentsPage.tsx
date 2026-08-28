@@ -71,6 +71,28 @@ export const PaymentsPage: React.FC = () => {
     },
   ];
 
+  const totalBookingsAmount = React.useMemo(() => {
+    return defaultPayments
+      .filter((p) => p.status === 'Paid')
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [defaultPayments]);
+
+  const totalRefundsAmount = React.useMemo(() => {
+    return defaultPayments
+      .filter((p) => p.status === 'Refunded')
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [defaultPayments]);
+
+  const totalPendingAmount = React.useMemo(() => {
+    return defaultPayments
+      .filter((p) => p.status === 'Processing')
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [defaultPayments]);
+
+  const confirmedJourneysCount = React.useMemo(() => {
+    return defaultPayments.filter((p) => p.status === 'Paid').length;
+  }, [defaultPayments]);
+
   const filtered = defaultPayments.filter((p) => {
     if (filter !== 'ALL' && p.status.toUpperCase() !== filter) return false;
     if (searchQuery.trim()) {
@@ -113,20 +135,20 @@ export const PaymentsPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
           <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-0.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Bookings</span>
-            <div className="text-base sm:text-lg font-black text-slate-900">₹7,060</div>
-            <span className="text-[10px] font-semibold text-emerald-600">4 Confirmed Journeys</span>
+            <div className="text-base sm:text-lg font-black text-slate-900">₹{totalBookingsAmount.toLocaleString('en-IN')}</div>
+            <span className="text-[10px] font-semibold text-emerald-600">{confirmedJourneysCount} Confirmed Journeys</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-0.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Refunds Processed</span>
-            <div className="text-base sm:text-lg font-black text-emerald-800">₹1,950</div>
+            <div className="text-base sm:text-lg font-black text-emerald-800">₹{totalRefundsAmount.toLocaleString('en-IN')}</div>
             <span className="text-[10px] font-semibold text-emerald-700">100% Direct to Source</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-0.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending / Uncertain</span>
-            <div className="text-base sm:text-lg font-black text-slate-900">₹0.00</div>
-            <span className="text-[10px] font-semibold text-slate-500">Zero Unresolved TXNs</span>
+            <div className="text-base sm:text-lg font-black text-slate-900">₹{totalPendingAmount.toLocaleString('en-IN')}</div>
+            <span className="text-[10px] font-semibold text-slate-500">{totalPendingAmount === 0 ? 'Zero Unresolved TXNs' : 'Active Settlement'}</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-0.5">

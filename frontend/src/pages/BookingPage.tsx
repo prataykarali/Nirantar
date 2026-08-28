@@ -29,6 +29,7 @@ export const BookingPage: React.FC = () => {
     setSelectedClassCode,
     passengers,
     setPassengers,
+    savedPassengers,
     navigateTo,
   } = useJourney();
 
@@ -46,21 +47,21 @@ export const BookingPage: React.FC = () => {
 
   React.useEffect(() => {
     if (searchParams.passengersCount && searchParams.passengersCount > passengers.length) {
-      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
       const expanded = [...passengers];
       for (let i = passengers.length; i < searchParams.passengersCount; i++) {
+        const saved = savedPassengers?.[i];
         expanded.push({
           id: `p_${Date.now()}_${i + 1}`,
-          name: defaultNames[i] || `Passenger ${i + 1}`,
-          age: 24 + i * 2,
-          gender: i % 2 === 0 ? 'M' : 'F',
-          berthPreference: i % 2 === 0 ? 'LOWER' : 'MIDDLE',
+          name: saved?.name || `Passenger ${i + 1}`,
+          age: saved?.age || (24 + i * 2),
+          gender: saved?.gender || (i % 2 === 0 ? 'M' : 'F'),
+          berthPreference: saved?.berthPreference || (i % 2 === 0 ? 'LOWER' : 'MIDDLE'),
           assignedClassCode: selectedClassCode || '3A',
         });
       }
       setPassengers(expanded);
     }
-  }, [searchParams.passengersCount, passengers.length, selectedClassCode, setPassengers]);
+  }, [searchParams.passengersCount, passengers.length, selectedClassCode, setPassengers, savedPassengers]);
 
   const formatLockTimer = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -106,9 +107,9 @@ export const BookingPage: React.FC = () => {
 
   // AI-Assisted Safe Autofill Engine with Strict Allowed-Field Filter
   const handleAiAutofill = () => {
-    const rawData = {
-      name: 'Pratay Karali',
-      age: 24,
+    const candidateProfile = savedPassengers?.[0] || {
+      name: 'Primary Passenger',
+      age: 26,
       gender: 'M' as const,
       berthPreference: 'LOWER' as const,
       __disallowed_pin: '1234',
@@ -118,10 +119,10 @@ export const BookingPage: React.FC = () => {
 
     const sanitizedPassenger: PassengerProfile = {
       id: `p_${Date.now()}_1`,
-      name: ALLOWED_AI_FIELDS.includes('name') ? rawData.name : '',
-      age: ALLOWED_AI_FIELDS.includes('age') ? rawData.age : 24,
-      gender: ALLOWED_AI_FIELDS.includes('gender') ? rawData.gender : 'M',
-      berthPreference: ALLOWED_AI_FIELDS.includes('berthPreference') ? rawData.berthPreference : 'NO_PREFERENCE',
+      name: ALLOWED_AI_FIELDS.includes('name') ? (candidateProfile.name || 'Primary Passenger') : 'Primary Passenger',
+      age: ALLOWED_AI_FIELDS.includes('age') ? (candidateProfile.age || 26) : 26,
+      gender: ALLOWED_AI_FIELDS.includes('gender') ? (candidateProfile.gender || 'M') : 'M',
+      berthPreference: ALLOWED_AI_FIELDS.includes('berthPreference') ? (candidateProfile.berthPreference || 'NO_PREFERENCE') : 'NO_PREFERENCE',
     };
 
     setPassengers([sanitizedPassenger]);
