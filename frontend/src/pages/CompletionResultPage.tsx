@@ -40,6 +40,20 @@ export const CompletionResultPage: React.FC = () => {
 
   const [copiedPnr, setCopiedPnr] = useState(false);
 
+  const formattedTravelDate = React.useMemo(() => {
+    const rawDate = issuedTicket?.travelDate || searchParams.travelDate;
+    if (!rawDate) return { dateStr: 'Tomorrow', dayStr: 'Next Day' };
+    try {
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return { dateStr: rawDate, dayStr: 'Scheduled' };
+      const dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const dayStr = d.toLocaleDateString('en-IN', { weekday: 'short' });
+      return { dateStr, dayStr };
+    } catch {
+      return { dateStr: rawDate, dayStr: 'Scheduled' };
+    }
+  }, [issuedTicket?.travelDate, searchParams.travelDate]);
+
   // Train data fallback
   const train = issuedTicket?.train || selectedTrain || {
     trainNumber: '12951',
@@ -395,18 +409,18 @@ export const CompletionResultPage: React.FC = () => {
               <div className="grid grid-cols-4 gap-1 text-center bg-purple-50/40 p-1.5 rounded-xl text-[10px]">
                 <div>
                   <Calendar className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
-                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">24 May</span>
-                  <span className="text-[9px] text-slate-400">Sat</span>
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{formattedTravelDate.dateStr}</span>
+                  <span className="text-[9px] text-slate-400">{formattedTravelDate.dayStr}</span>
                 </div>
                 <div>
                   <Clock className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
-                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.departureTime}</span>
-                  <span className="text-[9px] text-slate-400">Departure</span>
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.departureTime || '16:55'}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">Departure</span>
                 </div>
                 <div>
                   <Clock className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />
-                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.arrivalTime}</span>
-                  <span className="text-[9px] text-slate-400">Arrival</span>
+                  <span className="font-bold text-slate-800 block text-[11px] leading-tight">{train.arrivalTime || '08:40'}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">Arrival</span>
                 </div>
                 <div>
                   <User className="w-3 h-3 text-purple-700 mx-auto mb-0.5" />

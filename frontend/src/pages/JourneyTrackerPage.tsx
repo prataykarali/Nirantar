@@ -935,6 +935,36 @@ export const JourneyTrackerPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Scheduled Timings & Route Duration Strip */}
+        <div className="relative z-10 mt-3 pt-3 border-t border-purple-800/60 grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="bg-purple-900/60 border border-purple-800/80 p-2 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-purple-300 block">Scheduled Departure</span>
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-mono font-black text-sm text-white">{firstStop.scheduledDep || foundTrain?.departureTime || '16:55'}</span>
+            </div>
+            <span className="text-[9px] text-purple-300 font-semibold truncate block mt-0.5">{fromCity} ({fromCode})</span>
+          </div>
+
+          <div className="bg-purple-900/60 border border-purple-800/80 p-2 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-purple-300 block">Total Duration</span>
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              <Compass className="w-3.5 h-3.5 text-amber-300" />
+              <span className="font-mono font-black text-sm text-amber-300">{foundTrain?.durationHours || '15h 45m'}</span>
+            </div>
+            <span className="text-[9px] text-purple-300 font-semibold block mt-0.5">{routeStations.length} Halts • Express</span>
+          </div>
+
+          <div className="bg-purple-900/60 border border-purple-800/80 p-2 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-purple-300 block">Scheduled Arrival</span>
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-purple-300" />
+              <span className="font-mono font-black text-sm text-white">{lastStop.scheduledArr || foundTrain?.arrivalTime || '08:40'}</span>
+            </div>
+            <span className="text-[9px] text-purple-300 font-semibold truncate block mt-0.5">{toCity} ({toCode})</span>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════

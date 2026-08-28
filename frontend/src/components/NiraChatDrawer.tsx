@@ -25,6 +25,7 @@ import {
   Navigation,
   ListFilter,
   RefreshCw,
+  Calendar,
 } from 'lucide-react';
 import { useJourney, PassengerProfile } from '../context/JourneyContext';
 import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
@@ -85,6 +86,8 @@ interface ChatMessage {
     to: string;
     date: string;
     time?: string;
+    departureTime?: string;
+    arrivalTime?: string;
     passengers: number;
     classCode?: string;
     fare?: number;
@@ -1145,7 +1148,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         : '';
       const breakdownSnippet = parsedPaxResult.classBreakdown ? ` • ${parsedPaxResult.classBreakdown}` : ` • Class ${targetClass}`;
 
-      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${breakdownSnippet}${contactSnippet}) on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details correct as entered?`;
+      // Check whether an explicit travel date was specified in this query or context
+      const queryDateMatch = query.match(/\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*|today|tomorrow|day after tomorrow|kal|aaj|\d{4}-\d{2}-\d{2})\b/i);
+      const activeTravelDate = nextRouteCtx.travelDate || (queryDateMatch ? queryDateMatch[1] : null);
+
+      const dateNotice = activeTravelDate
+        ? `\n• **Travel Date**: **${activeTravelDate}**`
+        : `\n\n📅 **Which date would you like to travel on?** (Select *Today*, *Tomorrow*, or choose below):`;
+
+      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${breakdownSnippet}${contactSnippet})${dateNotice} on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details and travel date correct as entered?`;
 
       if (activePage !== 'workspace' && activePage !== 'booking') {
         navigateTo('workspace');
@@ -1172,7 +1183,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         )
       );
       if (autoVoice) {
-        speakNiraResponse(`I have entered the passenger details for ${passengerNames}. Please confirm if the passenger details are correct.`);
+        speakNiraResponse(
+          activeTravelDate
+            ? `I have entered the passenger details for ${passengerNames} on ${activeTravelDate}. Please confirm if the details are correct.`
+            : `I have entered the passenger details for ${passengerNames}. Which date would you like to travel on?`
+        );
       }
       return;
     }
@@ -1263,6 +1278,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                       date: travelDate,
                       passengers: paxCount,
                       classCode,
+                      fare: topTrains[0]?.classes?.find((c) => c.classCode === classCode)?.fare || topTrains[0]?.classes?.[0]?.fare || 1870,
+                      trainName: `#${topTrains[0]?.trainNumber} ${topTrains[0]?.trainName}`,
+                      trainNumber: topTrains[0]?.trainNumber,
+                      departureTime: topTrains[0]?.departureTime || '16:55',
+                      arrivalTime: topTrains[0]?.arrivalTime || '08:40',
                       fromStation: fromSt,
                       toStation: toSt,
                     },
@@ -2017,8 +2037,56 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         })}
                       </div>
 
+                      {/* Travel Date Selector Strip */}
+                      <div className="bg-purple-50/70 p-2.5 rounded-xl border border-purple-200 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-purple-950 flex items-center gap-1 text-[11px]">
+                            <Calendar className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Booking Travel Date:</span>
+                            <span className="text-purple-800 font-bold ml-1">{searchParams.travelDate || 'Tomorrow'}</span>
+                          </span>
+                          <span className="text-[10px] text-purple-700 font-bold bg-purple-100 px-1.5 py-0.2 rounded">
+                            Required
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const todayStr = new Date().toISOString().split('T')[0];
+                              executeSearch({ travelDate: todayStr });
+                            }}
+                            className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
+                          >
+                            📅 Today
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 1);
+                              executeSearch({ travelDate: d.toISOString().split('T')[0] });
+                            }}
+                            className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
+                          >
+                            📅 Tomorrow
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 2);
+                              executeSearch({ travelDate: d.toISOString().split('T')[0] });
+                            }}
+                            className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
+                          >
+                            📅 Day After
+                          </button>
+                        </div>
+                      </div>
+
                       <p className="text-xs font-bold text-slate-800">
-                        Are these passenger details correct?
+                        Are these passenger details and booking date correct?
                       </p>
 
                       <div className="grid grid-cols-2 gap-2 pt-0.5">
@@ -2227,9 +2295,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
                       <div className="p-2.5 rounded-xl bg-purple-950 text-white flex items-center justify-between gap-2 shadow-xs">
                         <div className="min-w-0">
-                          <div className="text-xs font-black truncate">{m.understoodCard.trainName}</div>
+                          <div className="text-xs font-black truncate">{m.understoodCard.trainName || 'Express Service'}</div>
                           <div className="text-[10px] text-purple-200 truncate">
-                            ⚡ Fastest • ₹{m.understoodCard.fare} ({m.understoodCard.classCode}) • ⭐ Best Match
+                            ⚡ Depart: {m.understoodCard.departureTime || '16:55'} • Arrive: {m.understoodCard.arrivalTime || '08:40'} • ₹{m.understoodCard.fare || 1870} ({m.understoodCard.classCode || '3A'})
                           </div>
                         </div>
                         <button

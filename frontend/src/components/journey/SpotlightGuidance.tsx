@@ -141,6 +141,41 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
           </div>
         </div>
 
+        {/* Top Verified Popular Stations & Platforms Guide Strip */}
+        <div className="p-2.5 rounded-2xl bg-purple-50/80 border border-purple-200/80 space-y-1.5 text-left">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-900 flex items-center gap-1">
+              <span>🚉 Top Verified Hubs & Platforms:</span>
+            </span>
+            <span className="text-[9px] font-semibold text-purple-700 bg-purple-100/80 px-1.5 py-0.2 rounded-md">
+              100% Direct Routes
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar text-[10px]">
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🏛️ NDLS • Plat 1-16
+            </span>
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌊 MMCT • Plat 1-8
+            </span>
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌉 HWH • Plat 1-23
+            </span>
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🌳 SBC • Plat 1-10
+            </span>
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🚂 MAS • Plat 1-12
+            </span>
+            <span className="px-2 py-0.8 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 whitespace-nowrap shadow-2xs">
+              🛕 BSB • Plat 1-9
+            </span>
+          </div>
+          <p className="text-[9.5px] text-purple-800 font-medium leading-tight">
+            💡 Select verified stations to ensure you never input unknown platforms or unserviced stops.
+          </p>
+        </div>
+
         {/* Action Button Strip with ← Back Button */}
         <div className="flex items-center gap-2 pt-1">
           {guidanceStepIndex > 0 && (

@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
-import { POPULAR_STATIONS, Station, searchStations } from '../data/stationData';
+import { POPULAR_STATIONS, Station, searchStations, findStation } from '../data/stationData';
 import { CitizenCharacter } from '../components/characters/CitizenCharacter';
 import { NiraRobot } from '../components/characters/NiraRobot';
 import { Card } from '../design-system/components/Card';
@@ -461,6 +461,49 @@ export const DiscoverPage: React.FC = () => {
             <Search className="w-5 h-5" />
           </button>
         </form>
+
+        {/* TOP VERIFIED POPULAR PLATFORMS & STATIONS QUICK SELECTOR */}
+        <div className="mt-2.5 pt-2 border-t border-purple-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-purple-950 font-black shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+            <span>Top Verified Platform Hubs:</span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar text-xs">
+            {[
+              { code: 'NDLS', name: 'New Delhi', city: 'Delhi', platforms: 'Plat 1-16' },
+              { code: 'MMCT', name: 'Mumbai Central', city: 'Mumbai', platforms: 'Plat 1-8' },
+              { code: 'HWH', name: 'Howrah Jn', city: 'Kolkata', platforms: 'Plat 1-23' },
+              { code: 'SBC', name: 'KSR Bengaluru', city: 'Bengaluru', platforms: 'Plat 1-10' },
+              { code: 'MAS', name: 'Chennai Central', city: 'Chennai', platforms: 'Plat 1-12' },
+              { code: 'PRYJ', name: 'Prayagraj Jn', city: 'Prayagraj', platforms: 'Plat 1-10' },
+              { code: 'BSB', name: 'Varanasi Jn', city: 'Varanasi', platforms: 'Plat 1-9' },
+              { code: 'PUNE', name: 'Pune Jn', city: 'Pune', platforms: 'Plat 1-6' },
+              { code: 'ADI', name: 'Ahmedabad Jn', city: 'Ahmedabad', platforms: 'Plat 1-12' },
+            ].map((st) => (
+              <button
+                key={st.code}
+                type="button"
+                onClick={() => {
+                  const match = findStation(st.code);
+                  if (match) {
+                    if (selectedFrom.code === match.code) {
+                      setSelectedTo(match);
+                      setToQuery(`${match.city} (${match.code})`);
+                    } else {
+                      setSelectedTo(match);
+                      setToQuery(`${match.city} (${match.code})`);
+                    }
+                  }
+                }}
+                className="px-2.5 py-1 rounded-full bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-950 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                title={`Quick select ${st.name} (${st.platforms})`}
+              >
+                <span>{st.city} ({st.code})</span>
+                <span className="text-[9px] font-mono text-purple-700 bg-purple-200/60 px-1 rounded">{st.platforms}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
