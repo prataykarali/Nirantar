@@ -1,0 +1,33 @@
+# OpenAI Codex Configuration for NIRANTAR
+[project]
+name = "NIRANTAR"
+version = "2.0.0"
+description = "Zero-PII State-Aware AI Assistant & Resilience Layer for Indian Railway Journeys"
+engine = "codex-5.3-instruct"
+primary_language = "python"
+secondary_language = "typescript"
+
+[agents]
+architect = ".codex/agents/architect_agent.md"
+lead_developer = ".codex/agents/lead_developer_agent.md"
+nira_ai = ".codex/agents/nira_ai_agent.md"
+resilience_guard = ".codex/agents/resilience_guard_agent.md"
+security_warden = ".codex/agents/security_warden_agent.md"
+qa_verification = ".codex/agents/qa_verification_agent.md"
+
+[rules]
+rules_dir = ".codex/rules"
+system_prompt = ".codex/SYSTEM_PROMPT.md"
+zero_pii_enforcement = true
+deterministic_state_transitions = true
+
+[evals]
+evals_dir = ".codex/evals"
+anti_hardcoding_check = "python3 .codex/evals/anti_hardcoding_auditor.py --dir ."
+code_quality_review = "python3 .codex/evals/code_quality_reviewer.py --source backend/"
+test_runner = "pytest tests/ -v"
+
+[security]
+pii_redactor = "enabled"
+allowed_actions = ["SEARCH_TRAINS", "CHECK_AVAILABILITY", "SELECT_TRAIN", "AUTOFILL_PASSENGER_DRAFT", "INITIATE_BOOKING", "VERIFY_PAYMENT", "TRACK_JOURNEY"]
+blocked_credentials = ["PASSWORD", "OTP", "CVV", "UPI_PIN", "CARD_NUMBER", "AADHAAR_FULL"]

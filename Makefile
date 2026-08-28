@@ -25,12 +25,12 @@ prayog:
 	python3 -m simulation.engine NORMAL 200
 
 review: audit
-	python3 .company/evals/code_quality_reviewer.py --source contracts/
-	python3 .company/evals/code_quality_reviewer.py --source m0_digital_twin/
-	python3 .company/evals/code_quality_reviewer.py --source backend/
+	python3 .codex/evals/code_quality_reviewer.py --source contracts/
+	python3 .codex/evals/code_quality_reviewer.py --source m0_digital_twin/
+	python3 .codex/evals/code_quality_reviewer.py --source backend/
 
 audit:
-	python3 .company/evals/anti_hardcoding_auditor.py --dir .
+	python3 .codex/evals/anti_hardcoding_auditor.py --dir .
 
 seed:
 	python3 -m m0_digital_twin.cli --seed --summary

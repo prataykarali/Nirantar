@@ -45,8 +45,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Local agent scratch (empty tool dirs)
-.agents/
-.codex/
-.github/
+# Local agent scratch
 .vercel/
