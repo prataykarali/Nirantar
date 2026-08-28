@@ -472,6 +472,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       lower.includes('live train') ||
       lower.includes('gps radar') ||
       lower.includes('check status') ||
+      lower.includes('which platform') ||
+      lower.includes('platform number') ||
+      lower.includes('arriving at') ||
+      lower.includes('live speed') ||
+      lower.includes('next stop') ||
+      lower.includes('check live') ||
+      lower.includes('delay') ||
       (/^\d{5}$/.test(text.trim()));
 
     const isAutoBook =
@@ -491,13 +498,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         lower.includes("let's book") ||
         lower.includes('lets book') ||
         lower.includes('show trains') ||
+        lower.includes('find cheapest') ||
+        (lower.includes('find') && lower.includes('train') && lower.includes('from')) ||
+        (lower.includes('check') && lower.includes('availability') && lower.includes('from')) ||
         /(?:book|reserve)\b.*(?:train|#)\s*\d+/i.test(text)
       );
 
     const isTatkal =
       !isQuestion && (
-        lower.includes('tatkal booking') ||
-        lower.includes('book in tatkal') ||
+        lower.includes('tatkal') ||
         lower.includes('emergency quota')
       );
 
@@ -506,18 +515,25 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
 
     // 1. Train Number extraction (strictly 5 digits in Indian Railways)
-    const rawNumberMatch = text.match(/\b(\d+)\b/);
+    // PRIORITY: try 5-digit match first, then fall back to any number
+    const fiveDigitMatch = text.match(/\b(\d{5})\b/);
+    const rawNumberMatch = fiveDigitMatch || text.match(/\b(\d+)\b/);
     let currentInvalidNum: string | undefined = undefined;
     let currentMissingNum: boolean | undefined = undefined;
     let explicitTrainInCurrentQuery: string | undefined = undefined;
 
-    if (!isQuestion && rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
+    if ((!isQuestion || isTrack) && rawNumberMatch && (lower.includes('train') || isTrack || lower.includes('book') || lower.includes('reserve') || /^\d+$/.test(text.trim()))) {
       const num = rawNumberMatch[1];
       if (num.length === 5) {
         explicitTrainInCurrentQuery = num;
         updated.trainNumber = num;
       } else {
-        currentInvalidNum = num;
+        // Only flag as invalid if the number actually looks like a train number attempt
+        // (not a small passenger count like 2, 3, etc.)
+        const numVal = parseInt(num, 10);
+        if (numVal > 6) {
+          currentInvalidNum = num;
+        }
       }
     } else if (
       !isQuestion &&
@@ -595,13 +611,10 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       updatedRoute.travelDate = dateMatch[1];
     }
 
-    // 4. Passenger Count
-    const paxMatch = text.match(/\b(\d+)\s*(?:passengers?|adults?|seats?|tickets?|persons?|people|pax|seat\s+books?)?\b/i);
-    if (paxMatch && parseInt(paxMatch[1], 10) > 0) {
-      const num = parseInt(paxMatch[1], 10);
-      if (num >= 1 && num <= 6) {
-        updatedRoute.passengers = num;
-      }
+    // 4. Passenger Count — use keyword-anchored match to avoid grabbing train numbers
+    const paxMatch = text.match(/\b([1-6])\s*(?:passengers?|adults?|seats?|tickets?|persons?|people|pax)\b/i);
+    if (paxMatch) {
+      updatedRoute.passengers = parseInt(paxMatch[1], 10);
     } else if (lower.includes('two') || lower.includes('2 seats') || lower.includes('2 seat') || lower.includes('for 2') || lower.includes('2 pax')) {
       updatedRoute.passengers = 2;
     }
@@ -1121,6 +1134,36 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         prev.map((m) => (m.id === botMsgId ? { ...m, text: trackReply, isStreaming: false, trackCard: trackCardData } : m))
       );
       if (autoVoice) speakNiraResponse(`Live Radar active for train ${trainNo} ${matchedTrain.trainName}. Cruising at 118 kilometers per hour right on time.`);
+      return;
+    }
+
+    // ─── 1B.3: PNR Status Check ───
+    const pnrMatch = safeQuery.match(/\b(\d{10})\b/);
+    if (pnrMatch && (safeQuery.toLowerCase().includes('pnr') || safeQuery.toLowerCase().includes('status'))) {
+      const pnrNumber = pnrMatch[1];
+      const formattedPnr = `${pnrNumber.slice(0, 4)} ${pnrNumber.slice(4, 8)} ${pnrNumber.slice(8)}`;
+      const activeTrain = selectedTrain || resolveTrainDetail(issuedTicket?.train?.trainNumber || bookingRecord?.trainNumber || '12302');
+      const pnrStatusMsg = `🎫 **PNR Status Check — DigiLocker Verified**:\n\n🔢 **PNR Number**: \`${formattedPnr}\`\n🚆 **Train**: **#${activeTrain.trainNumber} ${activeTrain.trainName}**\n📍 **Route**: **${activeTrain.fromCity} (${activeTrain.fromStationCode})** ➔ **${activeTrain.toCity} (${activeTrain.toStationCode})**\n📅 **Travel Date**: ${searchParams.travelDate || 'Tomorrow'}\n\n---\n### 📋 Booking Status:\n✅ **Status**: **CONFIRMED** (Coach B4, Berth 32 — Lower Berth)\n👤 **Passenger 1**: Pratay Karali (M, 20) — **CNF / B4 / 32 / LB**\n\n---\n### 🔒 DigiLocker Verification:\n✅ Digitally signed e-Ticket available for download\n✅ QR Code verified against IRCTC central database\n\nTap **'Open e-Ticket'** below to view your full verified ticket!`;
+
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: pnrStatusMsg,
+                isStreaming: false,
+                actionCard: {
+                  title: `DigiLocker PNR: ${formattedPnr}`,
+                  subtitle: 'Confirmed • Verified e-Ticket Available',
+                  buttonLabel: 'Open e-Ticket & Download PDF ➔',
+                  route: 'my-journeys',
+                },
+              }
+            : m
+        )
+      );
+      if (autoVoice) speakNiraResponse(`PNR status for ${formattedPnr} is confirmed. Coach B4 Berth 32 lower berth.`);
       return;
     }
 

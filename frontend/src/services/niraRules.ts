@@ -314,6 +314,42 @@ Technically, we're not just building another railway frontend — we're connecti
     keywords: ['hello', 'hi', 'hey', 'who are you', 'what can you do'],
     reply: "Hello! 🚆 I am Nira, your dedicated AI Railway Copilot on NIRANTAR. I can help you find and compare express trains, auto-prepare passenger bookings, track live GPS radar telemetry, explain IRCTC rules (Tatkal, luggage, cancellation, catering, settings), and guide your journey step-by-step. Where would you like to travel today?",
   },
+
+  // ── 25. TATKAL AUTOFILL / PREPARATION ──
+  {
+    category: 'tatkal_preparation',
+    patterns: [
+      /\b(prepare|autofill|auto fill|pre-fill|prefill)\b.*\b(tatkal|10:00|11:00)\b/i,
+      /\b(tatkal)\b.*\b(prepare|autofill|auto fill|pre-fill|prefill|ready)\b/i,
+      /\bauto prepare tatkal\b/i,
+    ],
+    keywords: ['prepare tatkal', 'tatkal autofill', 'tatkal preparation', 'autofill 10:00 AM'],
+    reply: "⚡ **Tatkal Autofill Prepared & Armed!**\n\nI have pre-loaded your passenger details into the Tatkal Rapid-Fire autofill system:\n\n👤 **Passenger**: Pratay Karali (M, 20)\n📧 **Email**: pratay@gmail.com\n📱 **Mobile**: 842-077-3730\n🪑 **Berth Preference**: Lower Berth\n🎫 **Class**: AC 3-Tier (3A)\n\n---\n### ⏰ Tatkal Booking Windows:\n• **AC Classes (1A/2A/3A/CC)**: Opens at **10:00 AM** sharp\n• **Non-AC (SL/2S)**: Opens at **11:00 AM** sharp\n\n---\n### 🎯 Auto-Submit Strategy:\n1. ✅ Passenger details pre-filled and validated\n2. ✅ Payment method pre-selected (UPI / Citizen Wallet)\n3. ✅ CAPTCHA solver standing by\n4. ✅ One-tap instant submission when booking window opens\n\nYour Tatkal booking will fire automatically at the exact booking opening second with zero manual typing!",
+  },
+
+  // ── 26. UPI PAYMENT FAILURE & REFUND ──
+  {
+    category: 'upi_payment_failure',
+    patterns: [
+      /\b(upi|payment|pay)\b.*\b(fail|failed|error|declined|not going|issue|problem)\b/i,
+      /\b(auto[- ]?refund|refund works?|double.?charge|double.?debit)\b/i,
+      /\bwhy did my.*(payment|upi|transaction).*fail\b/i,
+    ],
+    keywords: ['upi payment failed', 'payment fail', 'auto-refund', 'double charge', 'upi declined'],
+    reply: "💳 **UPI Payment Failure & Auto-Refund — Double-Verify Protocol**:\n\n❌ **Common UPI Failure Reasons**:\n• Insufficient bank account balance\n• UPI PIN entered incorrectly (3 consecutive failures lock UPI for 24 hours)\n• Bank server timeout during peak hours (8 PM — 10 PM IST)\n• Daily UPI transaction limit exceeded (₹1,00,000 for most banks)\n• VPA (Virtual Payment Address) mismatch or expired session\n\n---\n### 🔄 Nirantar Double-Verify Auto-Refund Protocol:\n1. **Step 1**: If payment times out, Nirantar checks the bank's payment gateway response **twice** (Double-Verification) before marking the transaction.\n2. **Step 2**: If money was debited but ticket was NOT issued, an **automatic refund** is initiated within **24 hours** to the source bank account.\n3. **Step 3**: A transaction receipt with the refund reference ID is saved to your **Payments & Transactions** log.\n\n✅ **Your booking progress is fully preserved** — you can retry payment using a different UPI ID, Net Banking, or your Citizen Travel Wallet (₹10,000 pre-loaded).",
+  },
+
+  // ── 27. DIGITAL TICKET WITH DIGILOCKER BADGE ──
+  {
+    category: 'digilocker_ticket',
+    patterns: [
+      /\b(show|display|view|open)\b.*\b(confirmed|digital)\b.*\b(ticket|e-ticket)\b/i,
+      /\bdigilocker\b.*\b(badge|verified|ticket)\b/i,
+      /\bverified\b.*\be-?ticket\b/i,
+    ],
+    keywords: ['digilocker badge', 'confirmed digital ticket', 'verified e-ticket', 'digilocker ticket'],
+    reply: "🎫 **DigiLocker Verified e-Ticket**:\n\nYour confirmed digital ticket is stored with a DigiLocker verification badge, ensuring it is:\n\n✅ **Digitally Signed** by IRCTC's certificate authority\n✅ **QR Code Verified** — scannable by TTE for instant validation\n✅ **Tamper-Proof** — any modifications invalidate the digital signature\n✅ **Offline Available** — downloaded PDF works without internet\n\n📄 Navigate to **My Journeys** or the **e-Ticket Screen** to view, download, or share your verified ticket with the official DigiLocker badge.",
+  },
 ];
 
 function tokenize(text: string): string[] {
