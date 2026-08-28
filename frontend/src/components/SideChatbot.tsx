@@ -248,7 +248,7 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
 
       {/* FLOATING SIDE WINDOW CHATBOT */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-[410px] h-[640px] max-h-[90vh] bg-[#0c0d20] border border-purple-500/30 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-300 backdrop-blur-xl">
+        <div className="fixed inset-x-2 bottom-2 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 w-auto sm:w-full sm:max-w-[410px] h-[85vh] sm:h-[640px] max-h-[90vh] bg-[#0c0d20] border border-purple-500/30 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-300 backdrop-blur-xl">
           {/* PURPLE GRADIENT BANNER HEADER */}
           <div className="bg-gradient-to-r from-purple-800 via-indigo-800 to-purple-900 px-6 py-4 flex items-center justify-between text-white shadow-md relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-400/10 rounded-full blur-xl pointer-events-none" />

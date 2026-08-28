@@ -9,6 +9,7 @@ import {
   Link,
   LogOut,
   CheckCircle2,
+  Menu,
 } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
 import { OAuthLoginModal } from '../auth/OAuthLoginModal';
@@ -19,6 +20,7 @@ export interface TopBarProps {
   onOpenHelp?: () => void;
   onOpenNotifications?: () => void;
   onOpenProfile?: () => void;
+  onToggleMobileMenu?: () => void;
   notificationCount?: number;
   className?: string;
 }
@@ -27,6 +29,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   pageTitle = 'Home',
   pageSubtitle = 'Plan, discover & book your journey',
   notificationCount = 0,
+  onToggleMobileMenu,
   className = '',
 }) => {
   const {
@@ -86,10 +89,38 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <header
-      className={`h-16 px-6 lg:px-8 bg-transparent flex items-center justify-between sticky top-0 z-30 select-none ${className}`}
+      className={`h-16 px-3 sm:px-6 lg:px-8 bg-transparent flex items-center justify-between sticky top-0 z-30 select-none ${className}`}
     >
-      {/* LEFT: PAGE TITLE (Shown only on relevant sub-pages) */}
-      <div className="flex items-center gap-4">
+      {/* LEFT: MOBILE MENU TRIGGER & PAGE TITLE */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Mobile Hamburger Menu Toggle */}
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="md:hidden w-9 h-9 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-purple-900 border border-purple-100 hover:bg-purple-50 transition-all cursor-pointer shrink-0"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Mobile Brand Logo & Name (visible when on mobile) */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => navigateTo('home')}
+          className="flex items-center gap-1.5 md:hidden cursor-pointer"
+        >
+          <img
+            src="/assets/images/brand/nirantar_logo_icon.png"
+            alt="Nirantar"
+            className="w-7 h-7 object-contain drop-shadow-xs"
+          />
+          <span className="font-display font-black text-base text-slate-900 tracking-tight">
+            Nirantar
+          </span>
+        </div>
+
+        {/* Desktop Page Title (Shown only on relevant sub-pages) */}
         {activePage !== 'home' &&
         activePage !== 'trains' &&
         activePage !== 'results' &&
@@ -98,7 +129,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         activePage !== 'payment' &&
         activePage !== 'completion' &&
         activePage !== 'ticket' ? (
-          <div>
+          <div className="hidden md:block">
             <h2 className="font-display font-black text-2xl text-purple-950 tracking-tight leading-tight">
               {pageTitle}
             </h2>
@@ -109,17 +140,17 @@ export const TopBar: React.FC<TopBarProps> = ({
             )}
           </div>
         ) : (
-          <div />
+          <div className="hidden md:block" />
         )}
       </div>
 
       {/* RIGHT: TOP ACTION BUTTONS */}
-      <div className="flex items-center gap-2.5 relative">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
         {/* 🆘 CITIZEN "I'M STUCK" BUTTON */}
         <button
           type="button"
           onClick={() => setShowImStuck(true)}
-          className="px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
+          className="px-2.5 sm:px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer shrink-0"
           title="Get immediate step-by-step help"
         >
           <span className="text-sm">🆘</span>
@@ -130,7 +161,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           type="button"
           onClick={() => setShowVisualDiagram(true)}
-          className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer"
+          className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer shrink-0"
           title="Open interactive visual diagram of this specific screen"
         >
           <span className="text-sm">🧭</span>
@@ -146,14 +177,14 @@ export const TopBar: React.FC<TopBarProps> = ({
               setShowNotifications(false);
               setShowDropdown(false);
             }}
-            className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-purple-800 hover:text-purple-950 transition-all hover:scale-105 cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-purple-800 hover:text-purple-950 transition-all hover:scale-105 cursor-pointer"
             aria-label="Rewards"
           >
             <Gift className="w-4 h-4" />
           </button>
 
           {showRewards && (
-            <div className="absolute right-0 top-12 w-72 bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-72 max-w-xs bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-purple-50 pb-2">
                 <span className="font-bold text-xs text-purple-950 flex items-center gap-1.5">
                   <Gift className="w-3.5 h-3.5 text-purple-700" />
@@ -193,7 +224,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               setShowDropdown(false);
               if (!showNotifications) markNotificationsRead();
             }}
-            className="relative w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-purple-800 hover:text-purple-950 transition-all hover:scale-105 cursor-pointer"
+            className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-purple-800 hover:text-purple-950 transition-all hover:scale-105 cursor-pointer"
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -205,7 +236,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-80 max-w-sm bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-purple-50 pb-2">
                 <span className="font-bold text-xs text-purple-950 flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-purple-700" />
@@ -287,7 +318,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             4. DROPDOWN MENU (MATCHING REFERENCE IMAGE 1)
             ═══════════════════════════════════════════════════════════════════ */}
         {showDropdown && (
-          <div className="absolute right-0 top-12 w-64 bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-64 max-w-xs bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
             {/* Header User Card */}
             <div className="p-2.5 rounded-2xl bg-purple-50/50 border border-purple-50 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-purple-200 shrink-0 bg-purple-100">

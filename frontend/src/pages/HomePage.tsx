@@ -326,7 +326,7 @@ export const HomePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative rounded-[32px] overflow-hidden min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
+      <section className="relative rounded-2xl sm:rounded-[32px] overflow-hidden min-h-[280px] sm:min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
         {/* Background Station Scene */}
         <img
           src="/assets/images/hero_station_bg.jpg"
@@ -338,25 +338,25 @@ export const HomePage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 via-[50%] to-transparent pointer-events-none" />
 
         {/* Hero Content Container */}
-        <div className="relative z-10 flex flex-col justify-between h-full min-h-[350px] lg:min-h-[380px] p-6 sm:p-10 lg:p-11">
-          <div className="max-w-xl space-y-4">
+        <div className="relative z-10 flex flex-col justify-between h-full min-h-[280px] sm:min-h-[350px] lg:min-h-[380px] p-4 sm:p-10 lg:p-11">
+          <div className="max-w-xl space-y-3 sm:space-y-4">
             {/* HEADLINE */}
-            <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-[3.2rem] text-slate-950 leading-[1.1] tracking-tight">
+            <h1 className="font-display font-black text-2xl sm:text-4xl lg:text-[3.2rem] text-slate-950 leading-[1.15] sm:leading-[1.1] tracking-tight">
               Let's plan<br />
               your next<br />
               <span className="text-[#7C3AED]">
                 journey
               </span>
-              <span className="text-[#C4B5FD] ml-2 text-2xl lg:text-3xl">✦</span>
+              <span className="text-[#C4B5FD] ml-2 text-xl sm:text-2xl lg:text-3xl">✦</span>
             </h1>
 
             {/* SEARCH BAR (Pill shaped with mic on left & arrow on right) */}
-            <div ref={searchContainerRef} className="relative max-w-md">
+            <div ref={searchContainerRef} className="relative w-full max-w-md">
               <form onSubmit={handleNLSubmit} className="relative">
-                <div className="flex items-center bg-white rounded-full p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
+                <div className="flex items-center bg-white rounded-full p-1 sm:p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
                   {/* Search Icon */}
-                  <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
 
                   {/* Input Text */}
@@ -368,24 +368,24 @@ export const HomePage: React.FC = () => {
                       setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    placeholder="Where are you going? (e.g. Howrah to, Delhi to)"
-                    className="flex-1 bg-transparent text-sm sm:text-base font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none px-3 py-1.5"
+                    placeholder="Where are you going? (e.g. Delhi to Mumbai)"
+                    className="flex-1 min-w-0 bg-transparent text-xs sm:text-base font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none px-2 sm:px-3 py-1"
                   />
 
                   {/* Submit Arrow Button */}
                   <button
                     type="submit"
-                    className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
                     title="Search Trains"
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </form>
 
               {/* ── VERIFIED STATION & ROUTE AUTOCOMPLETE DROPDOWN ── */}
               {showSuggestions && autocompleteSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[340px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[300px] sm:max-h-[340px] overflow-y-auto">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-purple-900 px-3 py-1.5 flex items-center justify-between border-b border-purple-50 mb-1">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-[#7C3AED]" />
@@ -417,29 +417,29 @@ export const HomePage: React.FC = () => {
                           setShowSuggestions(true);
                         }
                       }}
-                      className="w-full text-left px-3 py-3 rounded-xl hover:bg-purple-50/90 transition-all flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-100 mb-1"
+                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-purple-50/90 transition-all flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-100 mb-1"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
-                          {item.type === 'ROUTE' ? <Train className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
+                          {item.type === 'ROUTE' ? <Train className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 group-hover:text-purple-950 flex items-center gap-1.5">
-                            <span>{item.label}</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-900 group-hover:text-purple-950 flex items-center gap-1.5 truncate">
+                            <span className="truncate">{item.label}</span>
                             {item.type === 'ROUTE' ? (
-                              <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.2 rounded font-mono font-bold">
-                                DIRECT TRAIN
+                              <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.2 rounded font-mono font-bold shrink-0">
+                                DIRECT
                               </span>
                             ) : (
-                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold shrink-0">
                                 CODE
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-slate-500 font-medium mt-0.2">{item.subtitle}</div>
+                          <div className="text-[10px] text-slate-500 font-medium mt-0.2 truncate">{item.subtitle}</div>
                         </div>
                       </div>
-                      <div className="text-purple-700 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                      <div className="text-purple-700 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center gap-0.5 shrink-0">
                         <span>Select</span>
                         <span>→</span>
                       </div>
@@ -450,41 +450,41 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* QUICK PILLS */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
               <button
                 type="button"
                 onClick={() => {
                   setTourStep(0);
                   setShowTourModal(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs sm:text-sm font-black transition-all shadow-md shadow-purple-600/20 cursor-pointer hover:scale-102"
+                className="flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[11px] sm:text-xs font-black transition-all shadow-md shadow-purple-600/20 cursor-pointer hover:scale-102"
               >
                 <span>✨</span>
-                <span>Step-by-Step Guide</span>
+                <span>Guide</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[2], tomorrowStr, 1)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-[11px] sm:text-xs font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-xs cursor-pointer"
               >
-                <MapPin className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <MapPin className="w-3 h-3 text-[#7C3AED]" />
                 Delhi to Mumbai
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[1], tomorrowStr, 1)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-[11px] sm:text-xs font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-xs cursor-pointer"
               >
-                <Calendar className="w-3.5 h-3.5 text-[#7C3AED]" />
-                Tomorrow morning
+                <Calendar className="w-3 h-3 text-[#7C3AED]" />
+                Tomorrow
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPill(POPULAR_STATIONS[0], POPULAR_STATIONS[2], tomorrowStr, 2)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-xs sm:text-sm font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white/90 backdrop-blur-sm border border-purple-100/80 text-[11px] sm:text-xs font-bold text-slate-700 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-xs cursor-pointer"
               >
-                <Users className="w-3.5 h-3.5 text-[#7C3AED]" />
-                2 Passengers
+                <Users className="w-3 h-3 text-[#7C3AED]" />
+                2 Adults
               </button>
             </div>
           </div>
@@ -501,19 +501,19 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. 4 UNBOXED FEATURE CARDS (Higher up, seamless white surfaces)
+          2. 4 UNBOXED FEATURE CARDS (2 Columns on mobile, 4 on desktop)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {featureCards.map((card) => (
           <button
             key={card.id}
             type="button"
             onClick={card.onClick}
-            className="relative bg-white rounded-[28px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-56 text-left group cursor-pointer"
+            className="relative bg-white rounded-2xl sm:rounded-[28px] p-3 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-40 sm:h-56 text-left group cursor-pointer"
           >
             {/* LIVE Tag for Live Trains card */}
             {card.badge && (
-              <span className="absolute top-4 right-4 bg-[#00B074] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm z-10">
+              <span className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-[#00B074] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-md uppercase tracking-wider shadow-xs z-10">
                 {card.badge}
               </span>
             )}
@@ -523,17 +523,17 @@ export const HomePage: React.FC = () => {
               <img
                 src={card.image}
                 alt={card.alt}
-                className="w-28 h-28 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                className="w-20 h-20 sm:w-28 sm:h-28 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
               />
             </div>
 
             {/* Bottom Row: Title + Arrow Action Button */}
             <div className="flex items-center justify-between pt-1">
-              <span className="font-display font-extrabold text-base text-slate-900 group-hover:text-[#7C3AED] transition-colors">
+              <span className="font-display font-black text-xs sm:text-base text-slate-900 group-hover:text-[#7C3AED] transition-colors truncate">
                 {card.title}
               </span>
-              <div className="w-8 h-8 rounded-full border border-purple-200 text-[#7C3AED] flex items-center justify-center group-hover:bg-[#7C3AED] group-hover:text-white group-hover:border-[#7C3AED] transition-all shadow-sm">
-                <ArrowRight className="w-3.5 h-3.5" />
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-purple-200 text-[#7C3AED] flex items-center justify-center group-hover:bg-[#7C3AED] group-hover:text-white group-hover:border-[#7C3AED] transition-all shadow-xs shrink-0 ml-1">
+                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
             </div>
           </button>

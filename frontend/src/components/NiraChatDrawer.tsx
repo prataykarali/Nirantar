@@ -1629,10 +1629,18 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <aside
-      className="fixed bottom-4 right-4 sm:right-6 w-[360px] sm:w-[410px] h-[640px] max-h-[92vh] bg-white rounded-[28px] shadow-[0_16px_50px_rgba(88,28,135,0.22)] border border-purple-100 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200"
-      aria-label="Nira AI Chat Window"
-    >
+    <>
+      {/* Mobile Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 md:hidden animate-in fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        className="fixed inset-x-2 bottom-2 top-12 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[410px] sm:h-[640px] max-h-[95vh] bg-white rounded-3xl sm:rounded-[28px] shadow-[0_16px_50px_rgba(88,28,135,0.25)] border border-purple-100 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200"
+        aria-label="Nira AI Chat Window"
+      >
       {/* ═══════════════════════════════════════════════════════════════════
           1. TOP BAR HEADER
           ═══════════════════════════════════════════════════════════════════ */}
@@ -2739,6 +2747,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         </form>
       </div>
     </aside>
+    </>
   );
 };
 

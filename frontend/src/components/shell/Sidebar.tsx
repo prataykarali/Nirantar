@@ -7,6 +7,7 @@ import {
   HelpCircle,
   Settings,
   Send,
+  X,
 } from 'lucide-react';
 
 export type NavPageId =
@@ -24,6 +25,8 @@ export interface SidebarProps {
   onNavigate: (page: string) => void;
   onOpenNira?: () => void;
   className?: string;
+  isMobileDrawer?: boolean;
+  onCloseDrawer?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -31,6 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   onOpenNira,
   className = '',
+  isMobileDrawer = false,
+  onCloseDrawer,
 }) => {
   const navItems: Array<{ id: string; label: string; icon: React.ElementType }> = [
     { id: 'home', label: 'Home', icon: Home },
@@ -42,17 +47,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const handleNavClick = (page: string) => {
+    onNavigate(page);
+    if (isMobileDrawer && onCloseDrawer) {
+      onCloseDrawer();
+    }
+  };
+
   return (
     <aside
-      className={`w-64 lg:w-72 bg-white/95 backdrop-blur-sm border-r border-purple-100 flex flex-col h-screen sticky top-0 z-40 select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden ${className}`}
+      className={`w-64 lg:w-72 bg-white/95 backdrop-blur-sm border-r border-purple-100 flex flex-col h-screen select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden ${className}`}
     >
       {/* 1. TOP BRAND LOGO & NAVIGATION */}
       <div className="space-y-3">
+        {/* MOBILE CLOSE BUTTON (IF IN DRAWER MODE) */}
+        {isMobileDrawer && (
+          <div className="flex items-center justify-between pb-1 border-b border-purple-50">
+            <span className="text-xs font-black text-purple-950 uppercase tracking-wider">Navigation Menu</span>
+            <button
+              type="button"
+              onClick={onCloseDrawer}
+              className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center cursor-pointer transition-colors"
+              aria-label="Close navigation menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* BRAND LOGO */}
         <div
           role="button"
           tabIndex={0}
-          onClick={() => onNavigate('home')}
+          onClick={() => handleNavClick('home')}
           className="cursor-pointer group focus:outline-none flex flex-col items-center text-center pt-1 pb-1"
         >
           {/* 3D "Ni" Brand Icon */}
@@ -85,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onNavigate(item.id)}
+                onClick={() => handleNavClick(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
                   isActive
                     ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
@@ -144,7 +171,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <button
             type="button"
-            onClick={onOpenNira}
+            onClick={() => {
+              if (isMobileDrawer && onCloseDrawer) onCloseDrawer();
+              onOpenNira?.();
+            }}
             className="w-full py-2 px-3 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
           >
             <span>Chat with Nira</span>

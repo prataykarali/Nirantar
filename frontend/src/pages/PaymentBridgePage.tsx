@@ -153,8 +153,8 @@ export const PaymentBridgePage: React.FC = () => {
           </div>
         </div>
 
-        {/* 6-Step Stepper matching reference */}
-        <div className="flex items-center justify-between max-w-2xl mx-auto px-4 py-1 text-xs">
+        {/* 6-Step Stepper matching reference (Desktop/Tablet) */}
+        <div className="hidden sm:flex items-center justify-between max-w-2xl mx-auto px-4 py-1 text-xs">
           {[
             { label: 'Search', done: true },
             { label: 'Select Train', done: true },
@@ -190,6 +190,17 @@ export const PaymentBridgePage: React.FC = () => {
             </div>
             <span className="text-[11px] font-medium text-slate-400">Confirmation</span>
           </div>
+        </div>
+
+        {/* Mobile Step Indicator */}
+        <div className="sm:hidden flex items-center justify-between px-3 py-1.5 bg-purple-50/80 rounded-xl text-xs border border-purple-100">
+          <span className="font-bold text-purple-950 flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center text-[10px] font-black shadow-xs">5</span>
+            <span>Step 5 of 6: Payment Gateway</span>
+          </span>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            SSL Protected
+          </span>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sidebar, NavPageId } from './Sidebar';
 import { TopBar } from './TopBar';
+import { MobileNav } from './MobileNav';
 import { useJourney } from '../../context/JourneyContext';
 import { HomePage } from '../../pages/HomePage';
 import { DiscoverPage } from '../../pages/DiscoverPage';
@@ -45,6 +46,8 @@ export const AppShell: React.FC = () => {
     passengers,
     navigateTo,
   } = useJourney();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Page title mapping
   const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -116,19 +119,47 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F8F6FC] font-sans antialiased text-slate-900 relative">
-      {/* 1. LEFT: PERSISTENT REUSABLE SIDEBAR */}
+      {/* 1. DESKTOP: PERSISTENT REUSABLE SIDEBAR */}
       <Sidebar
+        className="hidden md:flex"
         activePage={activePage as NavPageId}
         onNavigate={(page) => setActivePage(page)}
         onOpenNira={() => setShowChatDrawer(true)}
       />
 
+      {/* 1B. MOBILE SLIDE-OUT DRAWER WITH BACKDROP */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu backdrop"
+          />
+          <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">
+            <Sidebar
+              isMobileDrawer
+              onCloseDrawer={() => setMobileMenuOpen(false)}
+              activePage={activePage as NavPageId}
+              onNavigate={(page) => {
+                setActivePage(page);
+                setMobileMenuOpen(false);
+              }}
+              onOpenNira={() => {
+                setMobileMenuOpen(false);
+                setShowChatDrawer(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 2. RIGHT CONTAINER: TOPBAR + SCROLLABLE MAIN CONTENT CANVAS */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden w-full">
         {/* GLOBAL REUSABLE TOP NAVIGATION */}
         <TopBar
           pageTitle={currentMeta.title}
           pageSubtitle={currentMeta.subtitle}
+          onToggleMobileMenu={() => setMobileMenuOpen(true)}
           onOpenHelp={() => setShowChatDrawer(true)}
           onOpenNotifications={() =>
             console.log('Notifications: 1. Train 12302 arrives on platform 8. 2. PNR 8429104821 is Confirmed.')
@@ -139,21 +170,29 @@ export const AppShell: React.FC = () => {
         <FairAccessBanner />
 
         {/* 3. CENTER: MAIN APPLICATION CONTENT */}
-        <main className="flex-1 overflow-y-auto px-6 lg:px-8 py-2">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-2 pb-24 md:pb-6">
           {renderActivePage()}
         </main>
       </div>
 
-      {/* 4. CHAT SIDE BAR SMALL WINDOW (MATCHING REFERENCE IMAGE 3) */}
+      {/* 4. MOBILE BOTTOM NAVIGATION BAR */}
+      <MobileNav
+        activePage={activePage}
+        onNavigate={(page) => setActivePage(page)}
+        onOpenNira={() => setShowChatDrawer(true)}
+        onOpenMenu={() => setMobileMenuOpen(true)}
+      />
+
+      {/* 5. CHAT SIDE BAR SMALL WINDOW (MATCHING REFERENCE IMAGE 3) */}
       <NiraChatDrawer
         isOpen={showChatDrawer}
         onClose={() => setShowChatDrawer(false)}
       />
 
-      {/* 5. SMART SPOTLIGHT & GREEN ARROW GUIDANCE OVERLAY */}
+      {/* 6. SMART SPOTLIGHT & GREEN ARROW GUIDANCE OVERLAY */}
       <SpotlightGuidance />
 
-      {/* 6. CITIZEN "I'M STUCK" ASSISTANCE MODAL */}
+      {/* 7. CITIZEN "I'M STUCK" ASSISTANCE MODAL */}
       <ImStuckModal
         isOpen={showImStuck}
         onClose={() => setShowImStuck(false)}

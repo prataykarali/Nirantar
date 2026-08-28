@@ -31,7 +31,7 @@ export const FairAccessBanner: React.FC = () => {
   if (!ticket || ticket.admitted || ticket.status !== 'QUEUED') return null;
 
   return (
-    <div className="mx-6 lg:mx-8 mt-2 mb-1 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="mx-3 sm:mx-6 lg:mx-8 mt-2 mb-1 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex items-start gap-3 flex-1">
         <span className="w-9 h-9 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
           <Clock className="w-4 h-4" />

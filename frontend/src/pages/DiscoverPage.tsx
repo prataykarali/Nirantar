@@ -287,7 +287,7 @@ export const DiscoverPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           1. DISCOVER HERO BANNER (Distinct Modern IRCTC Station BG + Thinking Ananya)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative rounded-[28px] overflow-hidden min-h-[210px] lg:min-h-[225px] bg-gradient-to-r from-[#F7F4FD] via-[#F3EDFD] to-[#ECE2FE] shadow-[0_4px_25px_rgba(88,28,135,0.03)] border border-purple-100/50">
+      <section className="relative rounded-2xl sm:rounded-[28px] overflow-hidden min-h-[170px] sm:min-h-[210px] lg:min-h-[225px] bg-gradient-to-r from-[#F7F4FD] via-[#F3EDFD] to-[#ECE2FE] shadow-[0_4px_25px_rgba(88,28,135,0.03)] border border-purple-100/50">
         {/* Background Modern IRCTC Station Image */}
         <img
           src="/assets/images/discover_station_bg.jpg"
@@ -299,19 +299,19 @@ export const DiscoverPage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 via-[48%] to-transparent pointer-events-none" />
 
         {/* Hero Content */}
-        <div className="relative z-10 flex flex-col justify-between h-full min-h-[210px] lg:min-h-[225px] p-5 sm:p-7">
-          <div className="max-w-xl space-y-2">
+        <div className="relative z-10 flex flex-col justify-between h-full min-h-[170px] sm:min-h-[210px] lg:min-h-[225px] p-4 sm:p-7">
+          <div className="max-w-xl space-y-1.5 sm:space-y-2">
             {/* HEADLINE: Black upper, Blue lower, spaced out, no red line */}
-            <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-[3.2rem] leading-[1.15] tracking-tight">
+            <h1 className="font-display font-black text-2xl sm:text-4xl lg:text-[3.2rem] leading-[1.15] tracking-tight">
               <span className="text-slate-950 block">
                 Where would
               </span>
-              <span className="text-[#2563EB] block mt-1">
+              <span className="text-[#2563EB] block mt-0.5 sm:mt-1">
                 you like to go?
               </span>
             </h1>
 
-            <p className="text-xs sm:text-sm font-bold text-slate-600 pt-1">
+            <p className="text-[11px] sm:text-sm font-bold text-slate-600 pt-0.5 sm:pt-1">
               Speak or search routes across 8,000+ Indian Railway stations.
             </p>
           </div>
@@ -330,7 +330,7 @@ export const DiscoverPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           2. FLOATING JOURNEY SEARCH FORM (Elevated Higher Over Hero)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="bg-white rounded-[24px] p-2 sm:p-3 shadow-[0_8px_30px_rgba(88,28,135,0.08)] border border-purple-100/90 -mt-10 relative z-20 mx-2 sm:mx-4">
+      <section className="bg-white rounded-2xl sm:rounded-[24px] p-2.5 sm:p-3 shadow-[0_8px_30px_rgba(88,28,135,0.08)] border border-purple-100/90 -mt-6 sm:-mt-10 relative z-20 mx-1 sm:mx-4">
         <form onSubmit={handleFormSearch} className="flex flex-col lg:flex-row items-center gap-2 sm:gap-2.5">
           {/* FROM FIELD */}
           <div className="relative flex-1 w-full">

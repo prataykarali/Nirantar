@@ -187,8 +187,8 @@ export const CompletionResultPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 6-Step Stepper */}
-        <div className="flex items-center justify-between max-w-xl mx-auto px-2 py-0.5 text-xs">
+        {/* 6-Step Stepper (Desktop/Tablet) */}
+        <div className="hidden sm:flex items-center justify-between max-w-xl mx-auto px-2 py-0.5 text-xs">
           {[
             { label: 'Search', done: true },
             { label: 'Select Train', done: true },
@@ -216,6 +216,17 @@ export const CompletionResultPage: React.FC = () => {
             </div>
             <span className="text-[9px] font-bold text-purple-900">Confirmation</span>
           </div>
+        </div>
+
+        {/* Mobile Step Indicator */}
+        <div className="sm:hidden flex items-center justify-between px-3 py-1 bg-purple-50/80 rounded-xl text-xs border border-purple-100">
+          <span className="font-bold text-purple-950 flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black shadow-xs">✓</span>
+            <span>Step 6 of 6: Confirmed e-Ticket</span>
+          </span>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            Booking Confirmed
+          </span>
         </div>
       </div>
 

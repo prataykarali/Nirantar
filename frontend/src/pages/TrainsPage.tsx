@@ -176,7 +176,7 @@ export const TrainsPage: React.FC = () => {
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           {[
             { id: 'recommended' as FilterType, label: 'Recommended', icon: Sparkles },
             { id: 'fastest' as FilterType, label: 'Fastest', icon: Clock },
@@ -190,7 +190,7 @@ export const TrainsPage: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveFilter(item.id)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-purple-900 text-white shadow-sm'
                     : 'bg-white hover:bg-purple-50/70 text-slate-700 border border-purple-100 shadow-sm'
