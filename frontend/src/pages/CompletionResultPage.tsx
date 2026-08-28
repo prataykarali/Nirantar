@@ -54,55 +54,26 @@ export const CompletionResultPage: React.FC = () => {
     classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
   };
 
-  const isKolkataBangalore =
-    (searchParams.fromStation?.city?.toLowerCase()?.includes('kolkata') || searchParams.fromStation?.name?.toLowerCase()?.includes('howrah') || ['HWH', 'SDAH', 'SHM', 'KOAA'].includes(searchParams.fromStation?.code || '')) &&
-    (searchParams.toStation?.city?.toLowerCase()?.includes('bengaluru') || searchParams.toStation?.city?.toLowerCase()?.includes('bangalore') || ['SBC', 'YPR', 'SMVB', 'BNC', 'BAND'].includes(searchParams.toStation?.code || ''));
-
-  const isChandigarhLucknow =
-    (searchParams.fromStation?.city?.toLowerCase()?.includes('chandigarh') || searchParams.fromStation?.code === 'CDG') &&
-    (searchParams.toStation?.city?.toLowerCase()?.includes('lucknow') || searchParams.toStation?.code === 'LKO');
-
-  const isWaitlisted =
-    train.trainNumber === '12232' ||
-    train.trainNumber === '12863' ||
-    train.trainNumber === '12864' ||
-    train.trainNumber === '12245' ||
-    selectedTrain?.trainNumber === '12232' ||
-    selectedTrain?.trainNumber === '12863' ||
-    selectedTrain?.trainNumber === '12864' ||
-    selectedTrain?.trainNumber === '12245' ||
-    isKolkataBangalore ||
-    isChandigarhLucknow ||
-    (train.fromStationCode === 'HWH' && train.toStationCode === 'SBC') ||
-    (train.fromStationCode === 'SBC' && train.toStationCode === 'HWH') ||
-    (train.fromStationCode === 'CDG' && train.toStationCode === 'LKO') ||
-    (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
-    (searchParams.fromStation?.code === 'SBC' && searchParams.toStation?.code === 'HWH') ||
-    (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO') ||
-    Boolean(train.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
-    Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
-    (issuedTicket?.status as string) === 'WAITLIST' ||
-    (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('WL') ||
-    (issuedTicket?.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
-    (bookingRecord?.seatAllotment?.coach || '').includes('WL') ||
-    (bookingRecord?.seatAllotment?.coach || '').includes('GNWL') ||
-    bookingRecord?.status === 'WAITLIST';
+  const isWaitlisted = Boolean(
+    (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL'))) ||
+    (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+  );
 
   const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
 
   React.useEffect(() => {
-    if (isWaitlisted) {
-      setShowWaitlistPopup(true);
-    }
+    setShowWaitlistPopup(isWaitlisted);
   }, [isWaitlisted]);
 
   // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
-  const initialWaitlistNum = 42;
-  const liveWl = 42;
+  const initialWaitlistNum = isWaitlisted
+    ? Number(issuedTicket?.seatAllotments?.[0]?.seatNumber || bookingRecord?.seatAllotment?.seatNumber || 8)
+    : 0;
+  const liveWl = initialWaitlistNum;
   const clearedAhead = 0;
-  const liveProb = 62;
-  const racProb = 76;
+  const liveProb = 78;
+  const racProb = 88;
 
   const handleMascotTap = () => {
     setMascotReaction('HAPPY');
@@ -288,14 +259,14 @@ export const CompletionResultPage: React.FC = () => {
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-xs font-black shadow-2xs">
                   <span>⚠️ Waiting List Allocated</span>
                   <span>•</span>
-                  <span className="font-mono text-amber-700 font-extrabold">GNWL-42</span>
+                  <span className="font-mono text-amber-700 font-extrabold">GNWL-{initialWaitlistNum}</span>
                 </div>
               </div>
 
               <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
                 {mascotReaction === 'SAD'
-                  ? 'Oh no! It seems you are under waiting list'
-                  : 'Great! Opening Real-Time Waitlist Radar...'}
+                  ? 'Waiting list status allocated for this route'
+                  : 'Opening Real-Time Waitlist Radar...'}
               </h3>
 
               <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200 text-slate-700 text-xs font-medium space-y-2.5 text-left shadow-xs">
@@ -309,17 +280,17 @@ export const CompletionResultPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-slate-700 text-xs sm:text-sm font-semibold leading-relaxed">
-                  "Your booking for <strong>#{train.trainNumber} {train.trainName}</strong> is assigned to <strong className="text-amber-800 font-mono">GNWL-42</strong>. Tap below to analyse real-time cancellation velocity and live confirmation odds on the Tracking Radar!"
+                  "Your booking for <strong>#{train.trainNumber} {train.trainName}</strong> is assigned to <strong className="text-amber-800 font-mono">GNWL-{initialWaitlistNum}</strong>. Tap below to track real-time queue clearance and confirmation updates!"
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 pt-1 border-t border-purple-100 text-center text-[10px]">
                   <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Initial Position</span>
-                    <strong className="text-amber-700 font-mono text-xs">GNWL 42</strong>
+                    <strong className="text-amber-700 font-mono text-xs">GNWL {initialWaitlistNum}</strong>
                   </div>
                   <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Initial Odds</span>
-                    <strong className="text-purple-700 font-mono text-xs">62% Probable</strong>
+                    <strong className="text-purple-700 font-mono text-xs">{liveProb}% Probable</strong>
                   </div>
                   <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Live Radar</span>

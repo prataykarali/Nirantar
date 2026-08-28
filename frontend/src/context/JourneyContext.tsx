@@ -582,42 +582,32 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (searchParams.fromStation?.city?.toLowerCase()?.includes('chandigarh') || searchParams.fromStation?.code === 'CDG') &&
       (searchParams.toStation?.city?.toLowerCase()?.includes('lucknow') || searchParams.toStation?.code === 'LKO');
 
-    const isWaitlistTrain =
-      resolvedTrain.trainNumber === '12232' ||
-      resolvedTrain.trainNumber === '12863' ||
-      resolvedTrain.trainNumber === '12864' ||
-      resolvedTrain.trainNumber === '12245' ||
-      selectedTrain?.trainNumber === '12232' ||
-      selectedTrain?.trainNumber === '12863' ||
-      selectedTrain?.trainNumber === '12864' ||
-      selectedTrain?.trainNumber === '12245' ||
-      isKolkataBangalore ||
-      isChandigarhLucknow ||
-      (resolvedTrain.fromStationCode === 'HWH' && resolvedTrain.toStationCode === 'SBC') ||
-      (resolvedTrain.fromStationCode === 'SBC' && resolvedTrain.toStationCode === 'HWH') ||
-      (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
-      (searchParams.fromStation?.code === 'SBC' && searchParams.toStation?.code === 'HWH') ||
-      (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO') ||
-      Boolean(resolvedTrain.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0))) ||
-      Boolean(selectedTrain?.classes?.some((c) => c.classCode === (selectedClassCode || '3A') && (c.status?.includes('WL') || c.status?.includes('GNWL') || c.availableSeats === 0)));
-    
+    const chosenClass =
+      resolvedTrain.classes?.find((c) => c.classCode === (selectedClassCode || '3A')) ||
+      selectedTrain?.classes?.find((c) => c.classCode === (selectedClassCode || '3A')) ||
+      resolvedTrain.classes?.[0];
+
+    const isWaitlistTrain = Boolean(
+      chosenClass && (chosenClass.status?.includes('WL') || chosenClass.status?.includes('GNWL') || chosenClass.availableSeats === 0)
+    );
+
     const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : selectedClassCode?.includes('SL') ? 'S1' : 'B4'}`;
-    const baseSeat = isWaitlistTrain ? 42 : Math.floor(12 + Math.random() * 50);
+    const baseSeat = isWaitlistTrain ? Math.floor(4 + Math.random() * 8) : Math.floor(12 + Math.random() * 50);
 
     // Multi-passenger resolution
     const targetCount = Math.max(searchParams.passengersCount || 1, passengers.length || 1);
     const resolvedPassengers: PassengerProfile[] = [];
-    const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
     for (let i = 0; i < targetCount; i++) {
       if (passengers[i] && passengers[i].name) {
         resolvedPassengers.push(passengers[i]);
       } else {
+        const saved = savedPassengers?.[i];
         resolvedPassengers.push({
-          id: `p_${i + 1}`,
-          name: defaultNames[i] || `Passenger ${i + 1}`,
-          age: 24 + i * 2,
-          gender: i % 2 === 0 ? 'M' : 'F',
-          berthPreference: i % 2 === 0 ? 'SIDE_LOWER' : 'MIDDLE',
+          id: `p_${Date.now()}_${i + 1}`,
+          name: saved?.name || `Passenger ${i + 1}`,
+          age: saved?.age || (24 + i * 2),
+          gender: saved?.gender || (i % 2 === 0 ? 'M' : 'F'),
+          berthPreference: saved?.berthPreference || (i % 2 === 0 ? 'LOWER' : 'MIDDLE'),
           assignedClassCode: selectedClassCode || '3A',
         });
       }
@@ -631,10 +621,12 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       train: resolvedTrain,
       classCode: selectedClassCode || '3A',
       passengers: resolvedPassengers,
-      seatAllotments: resolvedPassengers.map((_, idx) => ({
+      seatAllotments: resolvedPassengers.map((p, idx) => ({
         coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: isWaitlistTrain ? 42 + idx : baseSeat + idx,
-        berthType: isWaitlistTrain ? `Waitlist Queue #${42 + idx} (Real-Time Clearance)` : (idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth'),
+        seatNumber: isWaitlistTrain ? baseSeat + idx : baseSeat + idx,
+        berthType: isWaitlistTrain
+          ? `Waitlist Queue #${baseSeat + idx}`
+          : (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? `${p.berthPreference} Berth` : (idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth')),
       })),
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
@@ -654,8 +646,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       status: isWaitlistTrain ? ('WAITLIST' as any) : 'CONFIRMED',
       seatAllotment: {
         coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: isWaitlistTrain ? 42 : baseSeat,
-        berthType: isWaitlistTrain ? 'Waitlist Queue #42 (Real-Time Clearance)' : 'Lower Berth',
+        seatNumber: baseSeat,
+        berthType: isWaitlistTrain ? `Waitlist Queue #${baseSeat}` : 'Lower Berth',
       },
       createdAt: new Date().toISOString(),
     };
@@ -1017,20 +1009,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const isWl =
             (ticket.status as string) === 'WAITLIST' ||
             (ticket.seatAllotments?.[0]?.coach || '').includes('WL') ||
-            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
-            ticket.train?.trainNumber === '12232' ||
-            ticket.train?.trainNumber === '12863' ||
-            ticket.train?.trainNumber === '12864' ||
-            ticket.train?.trainNumber === '12245' ||
-            (ticket.train?.fromStationCode === 'HWH' && ticket.train?.toStationCode === 'SBC') ||
-            (ticket.train?.fromStationCode === 'SBC' && ticket.train?.toStationCode === 'HWH') ||
-            (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
-            (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO');
+            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL');
           if (isWl) {
             ticket.status = 'WAITLIST' as any;
-            if (!ticket.seatAllotments || ticket.seatAllotments.length === 0 || !ticket.seatAllotments[0].coach.includes('WL')) {
-              ticket.seatAllotments = [{ coach: 'GNWL', seatNumber: 42, berthType: 'Waitlist Queue #42 (Real-Time Clearance)' }];
-            }
           }
           setIssuedTicket(ticket);
         }
@@ -1065,20 +1046,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const isWl =
             (ticket.status as string) === 'WAITLIST' ||
             (ticket.seatAllotments?.[0]?.coach || '').includes('WL') ||
-            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
-            ticket.train?.trainNumber === '12232' ||
-            ticket.train?.trainNumber === '12863' ||
-            ticket.train?.trainNumber === '12864' ||
-            ticket.train?.trainNumber === '12245' ||
-            (ticket.train?.fromStationCode === 'HWH' && ticket.train?.toStationCode === 'SBC') ||
-            (ticket.train?.fromStationCode === 'SBC' && ticket.train?.toStationCode === 'HWH') ||
-            (searchParams.fromStation?.code === 'HWH' && searchParams.toStation?.code === 'SBC') ||
-            (searchParams.fromStation?.code === 'CDG' && searchParams.toStation?.code === 'LKO');
+            (ticket.seatAllotments?.[0]?.coach || '').includes('GNWL');
           if (isWl) {
             ticket.status = 'WAITLIST' as any;
-            if (!ticket.seatAllotments || ticket.seatAllotments.length === 0 || !ticket.seatAllotments[0].coach.includes('WL')) {
-              ticket.seatAllotments = [{ coach: 'GNWL', seatNumber: 42, berthType: 'Waitlist Queue #42 (Real-Time Clearance)' }];
-            }
           }
           setIssuedTicket(ticket);
         }

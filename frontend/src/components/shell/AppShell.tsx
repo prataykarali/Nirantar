@@ -21,7 +21,6 @@ import { SettingsPage } from '../../pages/SettingsPage';
 import { NiraChatDrawer } from '../NiraChatDrawer';
 import { FairAccessBanner } from '../journey/FairAccessBanner';
 import { SpotlightGuidance } from '../journey/SpotlightGuidance';
-import { DemoModePanel } from '../DemoModePanel';
 import { ImStuckModal } from '../ImStuckModal';
 import { VisualDiagramModal } from '../VisualDiagramModal';
 import { NewUserWelcomeModal } from '../NewUserWelcomeModal';
@@ -154,10 +153,7 @@ export const AppShell: React.FC = () => {
       {/* 5. SMART SPOTLIGHT & GREEN ARROW GUIDANCE OVERLAY */}
       <SpotlightGuidance />
 
-      {/* 6. JUDGE / DEMO CONTROLS PANEL */}
-      <DemoModePanel />
-
-      {/* 7. CITIZEN "I'M STUCK" ASSISTANCE MODAL */}
+      {/* 6. CITIZEN "I'M STUCK" ASSISTANCE MODAL */}
       <ImStuckModal
         isOpen={showImStuck}
         onClose={() => setShowImStuck(false)}

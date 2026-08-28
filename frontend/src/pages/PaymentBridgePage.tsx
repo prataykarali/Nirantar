@@ -69,10 +69,11 @@ export const PaymentBridgePage: React.FC = () => {
     fare: 2990,
   };
 
-  const adultFare = 2990 * Math.max(1, passengers.length);
+  const unitFare = selectedClass?.fare || 2150;
+  const adultFare = unitFare * Math.max(1, passengers.length);
   const reservationCharges = 50;
   const superfastCharges = 40;
-  const gstCharges = 40;
+  const gstCharges = Math.round(adultFare * 0.05); // 5% GST for IRCTC AC classes
   const totalAmount = adultFare + reservationCharges + superfastCharges + gstCharges;
 
   const handlePay = async (e?: React.FormEvent) => {

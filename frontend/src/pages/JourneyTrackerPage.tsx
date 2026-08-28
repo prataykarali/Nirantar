@@ -114,35 +114,51 @@ export const JourneyTrackerPage: React.FC = () => {
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
 
-  // Real-Time Randomized Waitlist Clearance Simulation (Starts at 42 and clears to 2, then 0 CONFIRMED)
-  const isWaitlistBooking = Boolean(
-    activeTrainNumber === '12232' ||
-    activeTrainNumber === '12863' ||
-    activeTrainNumber === '12864' ||
-    activeTrainNumber === '12245' ||
-    (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
-    bookingRecord?.status === 'WAITLIST' ||
-    bookingRecord?.status === 'RAC'
-  );
+  // Check if current tracked train is really booked by this citizen
+  const isUserBookedTrain = useMemo(() => {
+    return Boolean(
+      (issuedTicket && issuedTicket.train?.trainNumber === activeTrainNumber && issuedTicket.status !== 'CANCELLED') ||
+      (bookingRecord && bookingRecord.trainNumber === activeTrainNumber && (bookingRecord.status === 'CONFIRMED' || bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC'))
+    );
+  }, [issuedTicket, bookingRecord, activeTrainNumber]);
 
-  const [simulatedWl, setSimulatedWl] = useState<number>(42);
+  // Real-Time Waitlist Clearance for actual booked waitlist tickets (no fake 42 starting number)
+  const isWaitlistBooking = useMemo(() => {
+    return Boolean(
+      isUserBookedTrain && (
+        (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL'))))) ||
+        (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+      )
+    );
+  }, [isUserBookedTrain, issuedTicket, bookingRecord]);
+
+  const initialWaitlistNumber = useMemo(() => {
+    if (!isWaitlistBooking) return 0;
+    const seatNum = issuedTicket?.seatAllotments?.[0]?.seatNumber || bookingRecord?.seatAllotment?.seatNumber;
+    return typeof seatNum === 'number' && seatNum > 0 ? seatNum : 6;
+  }, [isWaitlistBooking, issuedTicket, bookingRecord]);
+
+  const [simulatedWl, setSimulatedWl] = useState<number>(() => initialWaitlistNumber || 0);
   const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
   const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isWaitlistBooking) return;
-    setSimulatedWl(42);
+    if (!isWaitlistBooking || initialWaitlistNumber <= 0) {
+      setSimulatedWl(0);
+      return;
+    }
+    setSimulatedWl(initialWaitlistNumber);
     setShowConfirmedCelebration(false);
     setIsPoofingCelebration(false);
 
-    // Fast, responsive progressive sequence: 42 -> 31 -> 20 -> 11 -> 5 -> 1 -> 0 (~2.6 seconds total)
+    // Fast, responsive progressive sequence
     const sequence = [
-      { wl: 31, delay: 450 },
-      { wl: 20, delay: 480 },
-      { wl: 11, delay: 450 },
-      { wl: 5, delay: 420 },
-      { wl: 1, delay: 400 },
-      { wl: 0, delay: 450 },
+      { wl: Math.floor(initialWaitlistNumber * 0.75), delay: 600 },
+      { wl: Math.floor(initialWaitlistNumber * 0.5), delay: 650 },
+      { wl: Math.floor(initialWaitlistNumber * 0.25), delay: 600 },
+      { wl: 2, delay: 550 },
+      { wl: 1, delay: 500 },
+      { wl: 0, delay: 600 },
     ];
 
     let step = 0;
@@ -155,10 +171,8 @@ export const JourneyTrackerPage: React.FC = () => {
           setSimulatedWl(next.wl);
           if (next.wl === 0) {
             setShowConfirmedCelebration(true);
-            // Instantly pop and switch to Coach Composition Layout page!
             setActiveTrackerTab('coach');
             setSelectedCoach(userBookedClass?.includes('SL') ? 'S1' : userBookedClass?.includes('1') ? 'A1' : userBookedClass?.includes('2') ? 'A1' : 'B4');
-            // Auto poof-off celebration after 5 seconds if user doesn't dismiss
             setTimeout(() => {
               setIsPoofingCelebration(true);
               setTimeout(() => {
@@ -178,7 +192,7 @@ export const JourneyTrackerPage: React.FC = () => {
     return () => {
       if (timerId) clearTimeout(timerId);
     };
-  }, [isWaitlistBooking, activeTrainNumber, userBookedClass]);
+  }, [isWaitlistBooking, initialWaitlistNumber, userBookedClass]);
 
   const handlePoofCelebration = () => {
     setIsPoofingCelebration(true);
@@ -271,51 +285,31 @@ export const JourneyTrackerPage: React.FC = () => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
 
-  // Check if current tracked train is really booked by this citizen
-  const isUserBookedTrain = useMemo(() => {
-    return Boolean(
-      (issuedTicket && issuedTicket.train?.trainNumber === trainNumber) ||
-      (bookingRecord && bookingRecord.trainNumber === trainNumber) ||
-      (selectedTrain && selectedTrain.trainNumber === trainNumber)
-    );
-  }, [issuedTicket, bookingRecord, selectedTrain, trainNumber]);
-
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
-    let pList: any[] = [];
+    if (!isUserBookedTrain) return [];
     if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
-      pList = issuedTicket.passengers;
-    } else if (passengers && passengers.length > 0) {
-      pList = passengers;
-    } else {
-      pList = [
-        { id: 'p1', name: 'Pratay Karali', age: 24, gender: 'M' as const, berthPreference: 'SIDE_LOWER' as const, assignedClassCode: '3A' },
-      ];
+      return issuedTicket.passengers;
     }
-    const targetCount = searchParams.passengersCount || pList.length || 1;
-    if (pList.length < targetCount) {
-      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
-      const expanded = [...pList];
-      for (let i = pList.length; i < targetCount; i++) {
-        expanded.push({
-          id: `p_${i + 1}`,
-          name: defaultNames[i] || `Passenger ${i + 1}`,
-          age: 24 + i * 2,
-          gender: i % 2 === 0 ? ('M' as const) : ('F' as const),
-          berthPreference: i % 2 === 0 ? ('SIDE_LOWER' as const) : ('MIDDLE' as const),
-          assignedClassCode: selectedClassCode || '3A',
-        });
-      }
-      return expanded;
+    if (passengers && passengers.length > 0) {
+      return passengers;
     }
-    return pList;
-  }, [issuedTicket, passengers, searchParams.passengersCount, selectedClassCode]);
+    return [];
+  }, [isUserBookedTrain, issuedTicket, passengers]);
 
   // User's allocated seats across specific coaches (e.g. Coach B4 for 3A, Coach S1 for SL)
   const allocatedSeats = useMemo(() => {
     if (!isUserBookedTrain) return [];
+    if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.length > 0) {
+      return issuedTicket.seatAllotments.map((s, idx) => ({
+        coachCode: s.coach,
+        seatNumber: s.seatNumber,
+        berthType: s.berthType,
+        passengerName: issuedTicket.passengers?.[idx]?.name || `Passenger ${idx + 1}`,
+      }));
+    }
     return allocatePassengerSeats(userPassengers, userBookedClass);
-  }, [isUserBookedTrain, userPassengers, userBookedClass]);
+  }, [isUserBookedTrain, issuedTicket, userPassengers, userBookedClass]);
 
   // Passengers in this specific coach
   const passengersInThisCoach = useMemo(() => {
@@ -936,9 +930,9 @@ export const JourneyTrackerPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. CLEAN PRIMARY VIEW SWITCHER TABS (DE-CONGESTED 3-VIEW BAR)
+          3. CLEAN PRIMARY VIEW SWITCHER TABS (DE-CONGESTED VIEW BAR)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 shadow-sm text-xs font-bold">
+      <div className={`grid grid-cols-1 ${isUserBookedTrain && isWaitlistBooking ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 shadow-sm text-xs font-bold`}>
         <button
           type="button"
           onClick={() => setActiveTrackerTab('timeline')}
@@ -962,25 +956,29 @@ export const JourneyTrackerPage: React.FC = () => {
           }`}
         >
           <Train className="w-4 h-4 shrink-0" />
-          <span className="truncate">💺 Coach & Seats {isUserCoach ? `(${selectedCoach})` : ''}</span>
+          <span className="truncate">
+            {isUserBookedTrain ? `💺 My Reserved Berths ${isUserCoach ? `(${selectedCoach})` : ''}` : '💺 Coach Composition Preview'}
+          </span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTrackerTab('waitlist')}
-          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            activeTrackerTab === 'waitlist'
-              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
-              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="truncate">📊 Waitlist Watch ({wlWatch.confirmationProbability}%)</span>
-        </button>
+        {isUserBookedTrain && isWaitlistBooking && (
+          <button
+            type="button"
+            onClick={() => setActiveTrackerTab('waitlist')}
+            className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTrackerTab === 'waitlist'
+                ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+                : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="truncate">📊 Waitlist Radar ({wlWatch.confirmationProbability}%)</span>
+          </button>
+        )}
       </div>
 
       {/* Sleek Compact Notification when Waitlist is Active and User is in other tabs */}
-      {activeTrackerTab !== 'waitlist' && isUserBookedTrain && (seatInventory.status !== 'AVAILABLE' || primaryNoSeat || trainNumber === '12232') && (
+      {activeTrackerTab !== 'waitlist' && isUserBookedTrain && isWaitlistBooking && (
         <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 via-white to-indigo-50 p-2.5 px-4 flex items-center justify-between gap-3 text-xs shadow-2xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -1375,7 +1373,7 @@ export const JourneyTrackerPage: React.FC = () => {
                           </span>
                           {passengersInThisCoach.map((s, idx) => (
                             <span
-                              key={s.passengerId || idx}
+                              key={`${s.coachCode}_${s.seatNumber}_${idx}`}
                               className="px-2 py-0.5 rounded-full bg-purple-400/30 text-amber-300 font-mono font-bold text-[11px] border border-purple-300/40"
                             >
                               {s.passengerName}: Seat {s.seatNumber} ({s.berthType})
