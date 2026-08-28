@@ -262,6 +262,8 @@ const CORRIDORS: string[][] = [
   ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'FTP', 'PRYJ', 'MZP', 'DDU', 'SSM', 'DOS', 'GAYA', 'KQR', 'GMO', 'DHN', 'ASN', 'DGR', 'BWN', 'HWH', 'SDAH'],
   ['NDLS', 'MTJ', 'BTE', 'SWM', 'KOTA', 'RMA', 'BWM', 'NAD', 'RTM', 'DHD', 'GDA', 'BRC', 'BH', 'ST', 'NVS', 'BL', 'VAPI', 'BVI', 'CSMT', 'MMCT'],
   ['NDLS', 'MTJ', 'AGC', 'GWL', 'VGLJ', 'BINA', 'BPL', 'ET', 'NGP', 'SEGM', 'CD', 'BPQ', 'SKZR', 'RDM', 'KZJ', 'SC', 'VKB', 'WADI', 'RC', 'MALM', 'GTL', 'ATP', 'DMM', 'HUP', 'YNK', 'SBC'],
+  ['HWH', 'SRC', 'KGP', 'BLS', 'BHC', 'JKR', 'CTC', 'BBS', 'KUR', 'BAM', 'VSKP', 'RJY', 'BZA', 'OGL', 'RU', 'KPD', 'JTJ', 'BWT', 'KJM', 'SMVB', 'SBC'],
+  ['NDLS', 'GZB', 'ALJN', 'TDL', 'ETW', 'CNB', 'PRYJ', 'DDU', 'BXR', 'ARA', 'PNBE', 'BJU', 'KGG', 'NNA', 'KIR', 'BOE', 'KNE', 'AUB', 'NJP', 'GHY'],
   ['NDLS', 'GZB', 'MB', 'BE', 'SPN', 'BLP', 'LKO', 'BBK', 'AY', 'AYC', 'BSB'],
   ['HWH', 'SRC', 'KGP', 'BLS', 'BHC', 'JKR', 'CTC', 'BBS', 'KUR', 'PURI'],
   ['CSMT', 'DR', 'TNA', 'KYN', 'KJT', 'LNL', 'SVJR', 'PUNE', 'DD', 'KWV', 'SUR', 'KLBG', 'WADI'],
@@ -269,6 +271,8 @@ const CORRIDORS: string[][] = [
   ['NDLS', 'UMB', 'CDG', 'LDH', 'JUC', 'ASR', 'PTKC', 'KTHU', 'JAT', 'UHP', 'SVDK'],
   ['NDLS', 'GZB', 'MTC', 'MOZ', 'TPZ', 'RK', 'HW', 'DDN'],
   ['HWH', 'BWN', 'RPH', 'MLDT', 'BOE', 'KNE', 'NJP'],
+  ['MAS', 'AJJ', 'KPD', 'JTJ', 'BWT', 'KJM', 'SBC', 'SA', 'ED', 'TUP', 'CBE', 'PGT', 'TCR', 'AWY', 'ERS', 'TVC'],
+  ['CSMT', 'TNA', 'PNVL', 'ROHA', 'RN', 'KUDL', 'MAO', 'KAWR', 'UD', 'MAJN', 'CAN', 'CLT', 'SRR', 'ERS'],
 ];
 
 function hashStr(str: string): number {

@@ -44,6 +44,10 @@ import {
 } from '../utils/seatInventory';
 import { Explain } from '../components/Explain';
 import { explainMyTicket, PassengerExplainEntry, TicketExplanation } from '../utils/explainContext';
+import { generateTrainCoaches } from '../utils/trainCoachGenerator';
+import { WakeUpAlarmModal } from '../components/journey/WakeUpAlarmModal';
+import { ShareTripModal } from '../components/journey/ShareTripModal';
+import { OrderFoodModal } from '../components/journey/OrderFoodModal';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
@@ -110,6 +114,10 @@ export const JourneyTrackerPage: React.FC = () => {
   const [selectedCoach, setSelectedCoach] = useState<string>('B4');
   const [privacyMode, setPrivacyMode] = useState<boolean>(false);
   const [showExplainTicketModal, setShowExplainTicketModal] = useState<boolean>(false);
+  const [showWakeUpModal, setShowWakeUpModal] = useState<boolean>(false);
+  const [showShareTripModal, setShowShareTripModal] = useState<boolean>(false);
+  const [showOrderFoodModal, setShowOrderFoodModal] = useState<boolean>(false);
+  const [activeAlarm, setActiveAlarm] = useState<{ station: string; leadMinutes: number } | null>(null);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
@@ -259,9 +267,9 @@ export const JourneyTrackerPage: React.FC = () => {
   const toCode = foundTrain?.toStationCode || lastStop.code;
   const toCity = foundTrain?.toCity || lastStop.name;
 
-  // Dynamic Coach List based strictly on train's authentic classes
+  // Dynamic Coach List based on authentic train composition & classes
   const trainCoaches: CoachInfo[] = useMemo(() => {
-    return getTrainCoaches(trainNumber, foundTrain?.classes || [{ classCode: '3A', className: 'AC 3 Tier' }]);
+    return generateTrainCoaches(trainNumber, foundTrain?.trainType, foundTrain?.classes);
   }, [trainNumber, foundTrain]);
 
   // Ensure selectedCoach is always valid
@@ -1891,37 +1899,43 @@ export const JourneyTrackerPage: React.FC = () => {
 
               {/* On-Board Passenger Tools Card */}
               <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-sm space-y-2.5 animate-in fade-in">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  On-Board Passenger Tools
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    On-Board Passenger Tools
+                  </h4>
+                  {activeAlarm && (
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>⏰ Alarm: {activeAlarm.leadMinutes}m before {activeAlarm.station}</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAlarm(null)}
+                        className="text-emerald-900 font-black hover:text-rose-600 ml-1 cursor-pointer"
+                        title="Cancel Alarm"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                </div>
 
                 <button
                   type="button"
-                  onClick={() => alert(`⏰ Station Wake-Up Alarm set for ${currentTargetStation.name}! You will be alerted 15 minutes before arrival.`)}
-                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                  onClick={() => setShowWakeUpModal(true)}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-2xs active:scale-98"
                 >
                   <div className="flex items-center gap-2">
                     <Bell className="w-3.5 h-3.5 text-purple-700" />
                     <span>Set Station Wake-Up Alarm</span>
                   </div>
                   <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-mono">
-                    15m Before
+                    {activeAlarm ? `${activeAlarm.leadMinutes}m Active` : '15m Before'}
                   </span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: `Tracking ${trainName}`,
-                        text: `I am currently traveling on Train ${trainNumber} approaching ${currentTargetStation.name}. Speed: ${currentSpeed} km/h.`,
-                      }).catch(() => {});
-                    } else {
-                      alert(`Copied live trip tracking link for Train ${trainNumber}!`);
-                    }
-                  }}
-                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                  onClick={() => setShowShareTripModal(true)}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-2xs active:scale-98"
                 >
                   <div className="flex items-center gap-2">
                     <Share2 className="w-3.5 h-3.5 text-purple-700" />
@@ -1932,8 +1946,8 @@ export const JourneyTrackerPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => alert('🍱 IRCTC e-Catering is available! Fresh hot meals and beverages can be delivered directly to your berth at the next scheduled halt.')}
-                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer"
+                  onClick={() => setShowOrderFoodModal(true)}
+                  className="w-full p-2.5 rounded-xl bg-purple-50/50 hover:bg-purple-100/70 border border-purple-100 flex items-center justify-between text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-2xs active:scale-98"
                 >
                   <div className="flex items-center gap-2">
                     <Utensils className="w-3.5 h-3.5 text-purple-700" />
@@ -2083,6 +2097,39 @@ export const JourneyTrackerPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 7. INTERACTIVE ON-BOARD PASSENGER MODALS */}
+      <WakeUpAlarmModal
+        isOpen={showWakeUpModal}
+        onClose={() => setShowWakeUpModal(false)}
+        trainNumber={trainNumber}
+        trainName={trainName}
+        stoppages={routeStations}
+        currentStationIndex={activeStationIndex}
+        onAlarmSet={(station, leadMinutes) => setActiveAlarm({ station, leadMinutes })}
+      />
+
+      <ShareTripModal
+        isOpen={showShareTripModal}
+        onClose={() => setShowShareTripModal(false)}
+        trainNumber={trainNumber}
+        trainName={trainName}
+        currentStationName={currentTargetStation.name}
+        currentSpeed={currentSpeed}
+        eta={formatTimer(countdownSeconds)}
+        pnrNumber={issuedTicket?.pnrNumber || bookingRecord?.pnrNumber}
+      />
+
+      <OrderFoodModal
+        isOpen={showOrderFoodModal}
+        onClose={() => setShowOrderFoodModal(false)}
+        trainNumber={trainNumber}
+        trainName={trainName}
+        stoppages={routeStations}
+        currentStationIndex={activeStationIndex}
+        coach={selectedCoach}
+        seatNumber={userSeatObjects[0]?.seatNumber || 36}
+      />
     </div>
   );
 };

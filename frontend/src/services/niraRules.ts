@@ -259,14 +259,60 @@ Technically, we're not just building another railway frontend — we're connecti
     reply: "Safety & Emergency Protocols:\n• Railway Helpline: Dial **139** (or RailMadad) for security, medical, and journey emergencies 24x7.\n• Medical Assistance: TTE contacts the next railway station to arrange on-platform doctor consultation and medications.\n• Kavach: Indigenous Automatic Train Protection (ATP) preventing head-on collisions and SPAD (Signal Passed at Danger).\n• Alarm Chain Pulling (ACP): Permitted only for genuine emergencies (unauthorized chain pulling is punishable under Section 141 of Railways Act with fine up to ₹1,000 or 1 year imprisonment).",
   },
 
-  // ── 20. GREETINGS & AI ASSISTANT INTRO ──
+  // ── 20. ON-BOARD PASSENGER TOOLS (WAKE-UP ALARM, SHARE TRIP, FOOD TO BERTH) ──
+  {
+    category: 'onboard_tools',
+    patterns: [
+      /\b(wake up alarm|station alarm|set alarm|alarm before station|wake me up)\b/i,
+      /\b(share trip|share live trip|share tracking|send tracking link|whatsapp tracking)\b/i,
+      /\b(order food|food to berth|e-catering|order meal|irctc food|pantry meal|order thali)\b/i,
+      /\b(on-board tools|passenger tools|what tools on train)\b/i,
+    ],
+    keywords: ['wake-up alarm', 'share trip status', 'order food to berth', 'e-catering', 'on-board tools'],
+    reply: "On-Board Passenger Tools on Nirantar:\n1. ⏰ **Station Wake-Up Alarm**: Set an audio and vibration alarm 15, 30, 45, or 60 minutes before arriving at any upcoming stoppage on your train's route.\n2. 🛰️ **Share Live Trip Status**: 1-tap WhatsApp and Telegram live GPS tracking link with speed, approaching station, and arrival ETA.\n3. 🍱 **Order Food to Berth (IRCTC e-Catering)**: Order fresh hot Deluxe Thalis, Hyderabadi Biryani, South Indian Breakfast, or Masala Chai delivered directly to your coach and berth at the next scheduled halt.",
+  },
+
+  // ── 21. COACH COMPOSITION & BERTH MATRIX ──
+  {
+    category: 'coach_composition_layout',
+    patterns: [
+      /\b(coach composition|coach layout|berth layout|how many coaches|vande bharat coaches|rajdhani coaches|where is my berth)\b/i,
+      /\b(seat layout|side lower|upper berth|middle berth|coupe|cabin)\b/i,
+    ],
+    keywords: ['coach composition', 'berth layout', 'vande bharat coaches', 'rajdhani coaches', 'seat layout'],
+    reply: "Train Coach Compositions on Nirantar:\n• **Vande Bharat Express**: 8 to 16 aerodynamic coaches with Executive Chair Car (EC1, EC2 — 52 seats in 2x2 layout) and AC Chair Car (C1 to C8 — 78 seats in 3x2 layout).\n• **Rajdhani / Duronto**: First AC (H1 — 24 berths), AC 2-Tier (A1 to A3 — 54 berths), AC 3-Tier (B1 to B8 — 72 berths), AC 3 Economy (M1, M2 — 83 berths), and Pantry Car (PC).\n• **Superfast & Mail Express**: Sleeper (S1 to S6 — 72 berths), AC 3-Tier (B1 to B4), AC 2-Tier (A1), and General (GS1, GS2).\nTap the **💺 Coach Composition & Seats** tab on the Live Tracker to interactively explore full coach berth grids and see your highlighted reserved seats!",
+  },
+
+  // ── 22. SETTINGS & APP CUSTOMIZATIONS ──
+  {
+    category: 'settings_customization',
+    patterns: [
+      /\b(settings|change theme|dark mode|light mode|font size|change language|default class|data saver|local storage)\b/i,
+      /\b(how to change settings|settings page|app language)\b/i,
+    ],
+    keywords: ['settings', 'theme', 'font size', 'app language', 'default class', 'data saver mode', 'local-first'],
+    reply: "Nirantar Settings & Personalization Options:\n• **Theme**: Toggle between Light, Dark, or System mode.\n• **Font Size**: Choose Small, Medium, or Large readability scaling.\n• **App Language**: Full multi-lingual support (English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada).\n• **Default Journey Class**: Pre-select your preferred class (3A, 2A, 1A, SL, CC, EC) on every search.\n• **Auto Save Journeys**: Seamlessly persist incomplete bookings locally on your browser with zero server PII leakage.\n• **Data Saver Mode**: Optimize low-bandwidth mobile connections by pausing rich satellite animations.",
+  },
+
+  // ── 23. HELP CENTER & CITIZEN ASSISTANCE ("I'M STUCK", "PAGE GUIDE") ──
+  {
+    category: 'help_center_features',
+    patterns: [
+      /\b(i'm stuck|im stuck|help button|sos|page guide|visual diagram|how to use nirantar|help center)\b/i,
+      /\b(where to get help|stuck on page|how does page guide work)\b/i,
+    ],
+    keywords: ["i'm stuck", 'page guide', 'visual diagram', 'help center', 'citizen guidance'],
+    reply: "Nirantar Citizen Assistance Tools:\n• 🆘 **'I'm Stuck' Button**: Located in the top bar, provides 1-tap instant assistance for finding trains, interactive form guidance with green spotlight arrows, payment questions, or explaining the current screen.\n• 🧭 **'Page Guide'**: Opens a visual architectural diagram showing your current location in the 4-step booking workflow with live stage status.\n• 🛡️ **Zero-PII Isolation**: Passwords, OTPs, and UPI PINs are 100% redacted locally before reaching any AI layer.\n• 💳 **Double Verification**: Protects against double-charging if a payment gateway times out.",
+  },
+
+  // ── 24. GREETINGS & AI ASSISTANT INTRO ──
   {
     category: 'greetings',
     patterns: [
       /\b(hello|hi|hey|namaste|good morning|good afternoon|good evening|who are you|what can you do|about nira)\b/i,
     ],
     keywords: ['hello', 'hi', 'hey', 'who are you', 'what can you do'],
-    reply: "Hello! 🚆 I am Nira, your dedicated AI Railway Copilot on NIRANTAR. I can help you find and compare express trains, auto-prepare passenger bookings, track live GPS radar telemetry, explain IRCTC rules (Tatkal, luggage, cancellation, catering), and guide your journey step-by-step. Where would you like to travel today?",
+    reply: "Hello! 🚆 I am Nira, your dedicated AI Railway Copilot on NIRANTAR. I can help you find and compare express trains, auto-prepare passenger bookings, track live GPS radar telemetry, explain IRCTC rules (Tatkal, luggage, cancellation, catering, settings), and guide your journey step-by-step. Where would you like to travel today?",
   },
 ];
 
