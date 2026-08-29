@@ -27,7 +27,7 @@ interface FAQItem {
 }
 
 export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOpenNiraChat }) => {
-  const { sendNiraQuery, setShowVisualDiagram } = useJourney();
+  const { sendNiraQuery, setShowVisualDiagram, startGuidanceTour, navigateTo } = useJourney();
 
   const [activeCategory, setActiveCategory] = useState('popular');
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,42 +136,237 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 font-sans select-none text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. CLEAN & AIRY HERO BANNER WITH ILLUSTRATION BACKGROUND
+          1. TOP VISUAL GUIDANCE CAROUSEL (3-CARD INTERACTIVE HERO)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-[32px] p-6 sm:p-8 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-xl overflow-hidden border border-purple-500/30">
-        {/* Background Banner Illustration */}
-        <div className="absolute inset-0 pointer-events-none opacity-45 overflow-hidden">
-          <img
-            src="/assets/images/help_center_banner.png"
-            alt="Help Center Banner"
-            className="w-full h-full object-cover object-right"
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-950/90 via-purple-950/60 to-transparent pointer-events-none" />
-
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-purple-200 text-xs font-mono font-bold backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-            <span>Nirantar 24x7 Citizen Knowledge Base</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* CARD 1: GUIDANCE HIGHLIGHTS */}
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-purple-100 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>Guidance Highlights</span>
+            </h2>
+            <button
+              type="button"
+              onClick={() => startGuidanceTour(0)}
+              className="text-[10px] font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+            >
+              Interactive Tour ➔
+            </button>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
-            How can we help you?
-          </h1>
+          <div className="space-y-2 text-[11px]">
+            {/* Row 1 */}
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-slate-700 font-medium text-[10px] truncate">"I recommend the best option!"</span>
+              </div>
+              <span className="shrink-0 text-slate-300 text-xs">┈➔</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
+                ✨ Recommended
+              </span>
+            </div>
 
-          <p className="text-xs sm:text-sm text-purple-200/90 font-medium leading-relaxed">
-            Search answers about railway bookings, <JargonHint term="GPS">GPS live tracking</JargonHint>, <JargonHint term="zero PII">zero-PII</JargonHint> security, <JargonHint term="Tatkal">Tatkal quotas</JargonHint>, or ask Nira Copilot.
-          </p>
+            {/* Row 2 */}
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-slate-700 font-medium text-[10px] truncate">"Good choice! Let's continue."</span>
+              </div>
+              <span className="shrink-0 text-slate-300 text-xs">┈➔</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-purple-700 text-white shrink-0">
+                Continue ➔
+              </span>
+            </div>
 
-          {/* Clean Search Input */}
+            {/* Row 3 */}
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-slate-700 font-medium text-[10px] truncate">"Track train in real-time here."</span>
+              </div>
+              <span className="shrink-0 text-slate-300 text-xs">┈➔</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('track')}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-900 shrink-0 hover:bg-indigo-200 cursor-pointer"
+              >
+                📍 Track Train
+              </button>
+            </div>
+
+            {/* Row 4 */}
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-slate-700 font-medium text-[10px] truncate">"Need help? I'm right here!"</span>
+              </div>
+              <span className="shrink-0 text-slate-300 text-xs">┈➔</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-pink-100 text-pink-900 shrink-0">
+                ❓ Help Center
+              </span>
+            </div>
+
+            {/* Row 5 */}
+            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-slate-700 font-medium text-[10px] truncate">"Your payment is 100% safe."</span>
+              </div>
+              <span className="shrink-0 text-slate-300 text-xs">┈➔</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-600 text-white shrink-0">
+                🛡️ Safe Pay
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD 2: TIPS FROM NIRA */}
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-purple-100 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-purple-100 p-0.5 shrink-0">
+                <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira Mascot" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <h2 className="text-xs font-black text-slate-900 leading-none">Tips from Nira</h2>
+                <span className="text-[9px] text-slate-400 font-medium">Smart guidance at every step</span>
+              </div>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="p-2 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 flex items-start gap-2">
+              <span className="text-sm shrink-0">👥</span>
+              <p className="text-[10px] text-slate-700 font-semibold leading-snug">
+                You can save your passengers in your profile for instant 1-click booking.
+              </p>
+            </div>
+
+            <div className="p-2 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 flex items-start gap-2">
+              <span className="text-sm shrink-0">🔔</span>
+              <p className="text-[10px] text-slate-700 font-semibold leading-snug">
+                Enable notifications to stay updated on RAC clearance and platform arrivals.
+              </p>
+            </div>
+
+            <div className="p-2 rounded-2xl bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-100 flex items-start gap-2">
+              <span className="text-sm shrink-0">🎙️</span>
+              <p className="text-[10px] text-slate-700 font-semibold leading-snug">
+                Use voice search or ask Nira in Hindi, Bengali, or English for instant route answers.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center pt-1">
+            <div className="w-14 h-14">
+              <img src="/assets/images/characters/nira_idea.png" alt="Nira Idea" className="w-full h-full object-contain" />
+            </div>
+          </div>
+        </div>
+
+        {/* CARD 3: HOW IT WORKS (5 SIMPLE STEPS) */}
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-purple-100 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>How It Works</span>
+            </h2>
+            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+              5 Simple Steps ➔
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Step list */}
+            <div className="space-y-1.5 flex-1 text-[11px] font-bold text-slate-700">
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold shrink-0">✓</span>
+                <div>
+                  <span className="text-slate-900 font-bold block text-[10px]">1. Search</span>
+                  <span className="text-[9px] text-slate-400 font-normal">Find trains easily</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold shrink-0">✓</span>
+                <div>
+                  <span className="text-slate-900 font-bold block text-[10px]">2. Select</span>
+                  <span className="text-[9px] text-slate-400 font-normal">Choose best train & class</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold shrink-0">✓</span>
+                <div>
+                  <span className="text-slate-900 font-bold block text-[10px]">3. Book</span>
+                  <span className="text-[9px] text-slate-400 font-normal">Auto-fill passenger details</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold shrink-0">✓</span>
+                <div>
+                  <span className="text-slate-900 font-bold block text-[10px]">4. Pay</span>
+                  <span className="text-[9px] text-slate-400 font-normal">1-click wallet checkout</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-purple-700 text-white text-[9px] flex items-center justify-center font-bold shrink-0">5</span>
+                <div>
+                  <span className="text-purple-950 font-bold block text-[10px]">5. e-Ticket</span>
+                  <span className="text-[9px] text-purple-700 font-medium">Download QR boarding pass</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Character Illustration holding ticket */}
+            <div className="w-20 h-28 shrink-0 overflow-hidden">
+              <img
+                src="/assets/images/characters/citizen_ticket.png"
+                alt="Citizen Holding Ticket"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          2. SEARCH & KNOWLEDGE BASE
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="relative rounded-3xl p-5 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-md overflow-hidden border border-purple-500/30">
+        <div className="relative z-10 max-w-2xl space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
+              Search Citizen Knowledge Base
+            </h3>
+            <span className="text-[10px] font-mono text-purple-300 bg-white/10 px-2 py-0.5 rounded-full">
+              Instant AI Lookup
+            </span>
+          </div>
+
           <div className="relative pt-1 max-w-xl">
-            <Search className="w-4 h-4 text-purple-300 absolute left-4 top-4.5" />
+            <Search className="w-4 h-4 text-purple-300 absolute left-4 top-3.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search help topics (e.g. 'I\'m Stuck', 'Payment Failed', 'Tatkal', 'GPS')..."
-              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/15 hover:bg-white/20 focus:bg-white/25 border border-purple-300/40 text-white placeholder-purple-300/70 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-400/60 transition-all backdrop-blur-md shadow-inner"
+              className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/20 focus:bg-white/25 border border-purple-300/40 text-white placeholder-purple-300/70 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-400/60 transition-all backdrop-blur-md"
             />
           </div>
         </div>

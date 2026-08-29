@@ -128,8 +128,14 @@ export class NiraPlanner {
       };
     }
 
-    // ── 3. DOWNLOAD TICKET / E-TICKET ACTIONS ──
+    // ── 3. SHOW BOOKED TICKETS & E-TICKET ACTIONS ──
     if (
+      lower.includes('booked ticket') ||
+      lower.includes('show me my booked tickets') ||
+      lower.includes('my booked tickets') ||
+      lower.includes('booked seats') ||
+      lower.includes('my tickets') ||
+      lower.includes('show my ticket') ||
       lower.includes('download ticket') ||
       lower.includes('download my ticket') ||
       lower.includes('show ticket') ||
@@ -140,7 +146,7 @@ export class NiraPlanner {
     ) {
       return {
         intent: 'DOWNLOAD_TICKET',
-        message: "📄 **DigiLocker Verified e-Ticket**: Your confirmed electronic ticket with scannable QR code and passenger itinerary is available for instant download on the e-Ticket and My Journeys screens.",
+        message: "🎫 **Your Booked Tickets & Passenger Itinerary**: Navigating to your **My Journeys** ledger where all your booked trains, coach seats (e.g. B4 / Seat 36), passenger manifests, travel dates, and DigiLocker e-tickets are ready for viewing.",
         actionCue: { type: 'NAVIGATE', target: 'my-journeys', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };

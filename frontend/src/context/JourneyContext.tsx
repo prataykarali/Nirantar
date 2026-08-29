@@ -226,11 +226,31 @@ export interface JourneyContextType {
   triggerAgenticAuth: () => Promise<boolean>;
   getWaitlistProbability: (status: string, classCode?: string) => { probability: number; label: string; confidence: string };
 
+  // Citizen Profile & Personal Security PIN
+  citizenProfile: CitizenProfile;
+  setCitizenProfile: React.Dispatch<React.SetStateAction<CitizenProfile>>;
+  securityPin: string;
+  setSecurityPin: (newPin: string) => void;
+
   // Popup + bell notifications
   notifications: AppNotification[];
   addNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => void;
   dismissNotification: (id: string) => void;
   markNotificationsRead: () => void;
+}
+
+export interface CitizenProfile {
+  name: string;
+  email: string;
+  phone: string;
+  accountNumber: string;
+  walletAccountNumber: string;
+  irctcId: string;
+  aadhaarMask: string;
+  securityPin: string;
+  digiLockerStatus: 'VERIFIED' | 'PENDING';
+  role: string;
+  avatar: string;
 }
 
 export interface AppNotification {
@@ -322,6 +342,56 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       failureReason: null,
     };
   });
+
+  const defaultCitizenProfile: CitizenProfile = {
+    name: 'Pratay Karali',
+    email: 'pratay.karali@gov.in',
+    phone: '+91 98765 43210',
+    accountNumber: 'CIT-9842-8812-IN',
+    walletAccountNumber: 'VA-8829-4102-991',
+    irctcId: 'PRATAY_K2026',
+    aadhaarMask: 'XXXX-XXXX-8921',
+    securityPin: '2026',
+    digiLockerStatus: 'VERIFIED',
+    role: 'Citizen & Explorer',
+    avatar: '/assets/images/avatars/avatar_1_student.svg',
+  };
+
+  const [citizenProfile, setCitizenProfile] = useState<CitizenProfile>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_citizen_profile');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultCitizenProfile;
+  });
+
+  const [securityPin, setSecurityPinState] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_security_pin');
+      if (saved) return saved;
+    } catch {}
+    return citizenProfile.securityPin || '2026';
+  });
+
+  const setSecurityPin = useCallback((newPin: string) => {
+    setSecurityPinState(newPin);
+    setCitizenProfile((prev) => {
+      const updated = { ...prev, securityPin: newPin };
+      try {
+        localStorage.setItem('nirantar_citizen_profile', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    try {
+      localStorage.setItem('nirantar_security_pin', newPin);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_citizen_profile', JSON.stringify(citizenProfile));
+    } catch {}
+  }, [citizenProfile]);
 
   useEffect(() => {
     try {
@@ -1689,6 +1759,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         niraPendingQuery,
         setNiraPendingQuery,
         sendNiraQuery,
+        citizenProfile,
+        setCitizenProfile,
+        securityPin,
+        setSecurityPin,
         notifications,
         addNotification,
         dismissNotification,

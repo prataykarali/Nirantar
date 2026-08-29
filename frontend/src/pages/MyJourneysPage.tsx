@@ -6,6 +6,7 @@ import {
   MapPin,
   Download,
   Eye,
+  EyeOff,
   CheckCircle2,
   AlertCircle,
   XCircle,
@@ -22,6 +23,10 @@ import {
   Zap,
   Coffee,
   Wifi,
+  Lock,
+  KeyRound,
+  Ticket as TicketIcon,
+  QrCode,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { DigitalTicketModal, TicketDetails } from '../components/journey/DigitalTicketModal';
@@ -78,13 +83,19 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket } = useJourney();
+  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [cancellingJourney, setCancellingJourney] = useState<JourneyRecord | null>(null);
   const [cancelledPnrList, setCancelledPnrList] = useState<string[]>([]);
+
+  // Cancel Ticket Security Verification States
+  const [cancelTrainNumberInput, setCancelTrainNumberInput] = useState('');
+  const [cancelPinInput, setCancelPinInput] = useState('');
+  const [showCancelPin, setShowCancelPin] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   // Dynamic ticket generated from active session
   const dynamicUpcoming: JourneyRecord[] = issuedTicket ? [
@@ -767,38 +778,64 @@ export const MyJourneysPage: React.FC = () => {
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          6. TICKET CANCELLATION & INSTANT REFUND MODAL
+          6. TICKET CANCELLATION & SECURITY PIN VERIFICATION MODAL
           ═══════════════════════════════════════════════════════════════════ */}
       {cancellingJourney && (() => {
         const clerkage = 60 * cancellingJourney.passengers.length;
         const refundAmount = Math.max(0, cancellingJourney.fare - clerkage);
+
+        const handleVerifyAndCancel = (e: React.FormEvent) => {
+          e.preventDefault();
+          if (cancelTrainNumberInput.trim() !== cancellingJourney.trainNumber) {
+            setCancelError(`Train number mismatch! Enter #${cancellingJourney.trainNumber} to verify.`);
+            return;
+          }
+          const validPin = securityPin || '2026';
+          if (cancelPinInput.trim() !== validPin) {
+            setCancelError('Incorrect 4-digit Security PIN! Check your citizen profile.');
+            return;
+          }
+          setCancelError(null);
+          cancelTicket(cancellingJourney.pnr, refundAmount);
+          setCancelledPnrList((prev) => [...prev, cancellingJourney.pnr]);
+          setCancellingJourney(null);
+          setActiveTab('cancelled');
+          setCancelTrainNumberInput('');
+          setCancelPinInput('');
+        };
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-3.5 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
               <div className="flex items-start justify-between border-b border-red-100 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center font-bold">
-                    <XCircle className="w-6 h-6" />
+                    <Lock className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">
-                      Cancel Train Booking?
+                      Security Verification: Cancel Ticket
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
-                      PNR #{cancellingJourney.pnr}
+                      PNR #{cancellingJourney.pnr} • Anti-Scam Protection
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setCancellingJourney(null)}
+                  onClick={() => {
+                    setCancellingJourney(null);
+                    setCancelError(null);
+                    setCancelTrainNumberInput('');
+                    setCancelPinInput('');
+                  }}
                   className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-700">
                   <span>Train:</span>
                   <strong className="text-slate-900">#{cancellingJourney.trainNumber} • {cancellingJourney.trainName}</strong>
@@ -807,54 +844,99 @@ export const MyJourneysPage: React.FC = () => {
                   <span>Journey:</span>
                   <span>{cancellingJourney.fromCity} ➔ {cancellingJourney.toCity} ({cancellingJourney.date})</span>
                 </div>
-                <div className="flex justify-between text-slate-700">
-                  <span>Passengers:</span>
-                  <span>{cancellingJourney.passengers.length} Citizen(s)</span>
-                </div>
-                <div className="border-t border-slate-200 pt-2 space-y-1">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Original Fare Paid:</span>
-                    <span className="font-mono font-bold">₹{cancellingJourney.fare.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-red-600">
-                    <span>IRCTC Statutory Clerkage Fee:</span>
-                    <span className="font-mono font-bold">-₹{clerkage.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-700 font-black text-sm pt-1 border-t border-slate-200">
-                    <span>Instant Wallet Refund:</span>
-                    <span className="font-mono text-base">₹{refundAmount.toLocaleString('en-IN')}.00</span>
-                  </div>
+                <div className="border-t border-slate-200 pt-1.5 flex justify-between text-emerald-700 font-black">
+                  <span>Instant Wallet Refund:</span>
+                  <span className="font-mono text-sm">₹{refundAmount.toLocaleString('en-IN')}.00</span>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>
-                  Refund of <strong>₹{refundAmount.toLocaleString('en-IN')}</strong> will be credited instantly to your <strong>Citizen Travel Wallet</strong> with 0 bank delay.
-                </span>
-              </div>
+              {/* SECURITY FORM */}
+              <form onSubmit={handleVerifyAndCancel} className="space-y-3">
+                {/* 1. Train Number Input */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 block">
+                    1. Confirm Train Number to Cancel:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cancelTrainNumberInput}
+                    onChange={(e) => {
+                      setCancelTrainNumberInput(e.target.value);
+                      setCancelError(null);
+                    }}
+                    placeholder={`Enter train #${cancellingJourney.trainNumber}`}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-purple-200 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                  />
+                </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelTicket(cancellingJourney.pnr, refundAmount);
-                    setCancelledPnrList((prev) => [...prev, cancellingJourney.pnr]);
-                    setCancellingJourney(null);
-                    setActiveTab('cancelled');
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
-                >
-                  Confirm Cancellation & Instant Refund
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCancellingJourney(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
-                >
-                  Keep Ticket
-                </button>
-              </div>
+                {/* 2. Personal Security PIN Input with Eye Toggle */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      2. Enter Personal Security PIN:
+                    </label>
+                    <span className="text-[10px] text-purple-700 font-bold">Default: {securityPin || '2026'}</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showCancelPin ? 'text' : 'password'}
+                      maxLength={6}
+                      required
+                      value={cancelPinInput}
+                      onChange={(e) => {
+                        setCancelPinInput(e.target.value);
+                        setCancelError(null);
+                      }}
+                      placeholder="••••"
+                      className="w-full pl-3 pr-10 py-2 rounded-xl bg-slate-50 border border-purple-200 text-xs font-mono font-bold text-slate-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelPin(!showCancelPin)}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-purple-700 cursor-pointer p-0.5"
+                    >
+                      {showCancelPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Error Banner */}
+                {cancelError && (
+                  <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700 flex items-center gap-1.5 animate-in fade-in">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                    <span>{cancelError}</span>
+                  </div>
+                )}
+
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-900 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>
+                    Secured by <strong>Zero-PII PIN Boundary</strong>. Your ticket is cancelled and ₹{refundAmount.toLocaleString('en-IN')} is refunded instantly.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
+                  >
+                    Authorize & Cancel Ticket
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCancellingJourney(null);
+                      setCancelError(null);
+                      setCancelTrainNumberInput('');
+                      setCancelPinInput('');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Keep Ticket
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         );

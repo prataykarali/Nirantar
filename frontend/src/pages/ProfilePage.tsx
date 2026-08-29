@@ -21,6 +21,9 @@ import {
   Camera,
   X,
   Check,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { JargonHint } from '../components/JargonHint';
@@ -108,7 +111,7 @@ export const CITIZEN_AVATARS: CitizenAvatar[] = [
 ];
 
 export const ProfilePage: React.FC = () => {
-  const { navigateTo, authState, setAuthState, walletBalance, savedPassengers, addNotification } = useJourney();
+  const { navigateTo, authState, setAuthState, walletBalance, savedPassengers, addNotification, securityPin, setSecurityPin, citizenProfile } = useJourney();
 
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -116,14 +119,41 @@ export const ProfilePage: React.FC = () => {
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'GOOGLE' | 'DIGILOCKER'>('LOGIN');
 
+  // Security PIN states with Eye Toggle
+  const [showPin, setShowPin] = useState(false);
+  const [isChangingPin, setIsChangingPin] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
+
   // Form State
   const [profile, setProfile] = useState({
-    fullName: authState.displayName || 'Pratay Karali',
-    phoneNumber: authState.phone || '8420773730',
-    email: authState.email || 'pratay.karali2005@gmail.com',
+    fullName: authState.displayName || citizenProfile?.name || 'Pratay Karali',
+    phoneNumber: authState.phone || citizenProfile?.phone || '8420773730',
+    email: authState.email || citizenProfile?.email || 'pratay.karali@gov.in',
     dob: '15 Aug 2005',
     aadhaarNumber: 'XXXX-XXXX-9421',
+    accountNumber: citizenProfile?.accountNumber || 'CIT-9842-8812-IN',
+    walletAccountNumber: citizenProfile?.walletAccountNumber || 'VA-8829-4102-991',
+    irctcId: citizenProfile?.irctcId || 'PRATAY_K2026',
   });
+
+  const handleUpdatePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPinInput.trim().length < 4) {
+      setPinMessage('PIN must be at least 4 digits');
+      return;
+    }
+    setSecurityPin(newPinInput.trim());
+    setIsChangingPin(false);
+    setNewPinInput('');
+    setPinMessage('✓ Personal Security PIN updated successfully!');
+    addNotification({
+      title: '🔒 Security PIN Updated',
+      body: 'Your 4-digit verification PIN has been successfully changed.',
+      type: 'info',
+    });
+    setTimeout(() => setPinMessage(null), 3000);
+  };
 
   // Auth Modal State
   const [modalName, setModalName] = useState('');
@@ -467,10 +497,10 @@ export const ProfilePage: React.FC = () => {
 
             <hr className="border-purple-50" />
 
-            {/* Email */}
+            {/* Email / Gmail */}
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Email
+                Gmail / Email ID
               </span>
               {isEditing ? (
                 <input
@@ -483,6 +513,87 @@ export const ProfilePage: React.FC = () => {
                 <div className="text-sm font-bold text-slate-900 py-1">
                   {profile.email}
                 </div>
+              )}
+            </div>
+
+            <hr className="border-purple-50" />
+
+            {/* Citizen Account & IRCTC Details Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-1">
+              <div className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-purple-700 block">Citizen Account ID</span>
+                <strong className="font-mono text-xs font-bold text-slate-900 block">{profile.accountNumber}</strong>
+                <span className="text-[9px] text-slate-500">Universal Public Key</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-purple-700 block">Virtual Wallet Account</span>
+                <strong className="font-mono text-xs font-bold text-slate-900 block">{profile.walletAccountNumber}</strong>
+                <span className="text-[9px] text-emerald-700 font-semibold">Pre-funded ₹10,000 Active</span>
+              </div>
+            </div>
+
+            <hr className="border-purple-50" />
+
+            {/* 🔒 Personal Security PIN with Eye Toggle */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-50/80 via-white to-pink-50/80 border border-purple-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-700 text-white flex items-center justify-center font-bold">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Personal Security PIN</span>
+                    <span className="text-[10px] text-slate-500">Protects ticket cancellation & payments</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-200 font-mono font-black text-sm text-purple-950 shadow-2xs">
+                    <span>{showPin ? (securityPin || '2026') : '••••'}</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="text-slate-400 hover:text-purple-700 cursor-pointer p-0.5"
+                    >
+                      {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-purple-700" />}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingPin(!isChangingPin)}
+                    className="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    {isChangingPin ? 'Cancel' : 'Change PIN'}
+                  </button>
+                </div>
+              </div>
+
+              {/* PIN Update Drawer */}
+              {isChangingPin && (
+                <form onSubmit={handleUpdatePin} className="pt-2 border-t border-purple-100 flex items-center gap-2 animate-in fade-in">
+                  <input
+                    type="password"
+                    maxLength={6}
+                    required
+                    placeholder="Enter new 4-digit PIN"
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-purple-200 bg-white text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+                  >
+                    Save PIN
+                  </button>
+                </form>
+              )}
+
+              {pinMessage && (
+                <p className="text-[11px] font-bold text-emerald-700 animate-in fade-in">
+                  {pinMessage}
+                </p>
               )}
             </div>
 
