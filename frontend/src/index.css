@@ -30,6 +30,56 @@
   }
 }
 
+/* Global railway glossary: terse by default, explanatory only when requested. */
+.jargon-hint {
+  position: relative;
+  display: inline;
+  color: inherit;
+  cursor: help;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: #a855f7;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.jargon-hint::after {
+  content: attr(title);
+  position: absolute;
+  z-index: 80;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: min(280px, 78vw);
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #24103f;
+  color: #fff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  box-shadow: 0 8px 24px rgb(50 17 82 / 24%);
+}
+
+.jargon-hint:hover::after,
+.jargon-hint:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.jargon-hint:focus-visible {
+  outline: 2px solid #a855f7;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Custom Smooth Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

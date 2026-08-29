@@ -4,7 +4,15 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "headers": [
+    {"source":"/assets/(.*)","headers":[{"key":"Cache-Control","value":"public, max-age=31536000, immutable"}]},
+    {"source":"/sitemap.xml","headers":[{"key":"Content-Type","value":"application/xml"}]}
+  ],
   "rewrites": [
+    {
+      "source": "/(pnr-status|tatkal-booking|tatkal-timing|train-running-status|train-platform|seat-availability|rac-meaning|waiting-list|ticket-cancellation|railway-refund|railway-complaint)",
+      "destination": "/seo/$1.html"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"

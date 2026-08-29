@@ -17,8 +17,9 @@ import { CitizenCharacter } from '../components/characters/CitizenCharacter';
 import { NiraRobot } from '../components/characters/NiraRobot';
 import { Card } from '../design-system/components/Card';
 import { SafeAssistParser, SafeAssistResult } from '../utils/SafeAssistParser';
-import { parseNiraIntent } from '../services/niraApi';
 import { TouristDestinationsModal } from '../components/journey/TouristDestinationsModal';
+import { DISCOVER_SERVICES } from '../data/discoverServices';
+import { DiscoveryMatch, resolveDiscoveryIntent } from '../utils/discoverIntent';
 
 export const DiscoverPage: React.FC = () => {
   const {
@@ -59,6 +60,8 @@ export const DiscoverPage: React.FC = () => {
   const [assistResult, setAssistResult] = useState<SafeAssistResult | null>(null);
   const [assistSource, setAssistSource] = useState<'nvidia' | 'safe_assist' | null>(null);
   const [assistLoading, setAssistLoading] = useState(false);
+  const [serviceQuery, setServiceQuery] = useState('');
+  const [serviceMatch, setServiceMatch] = useState<DiscoveryMatch | null>(null);
 
   // Speech Recognition ref
   const recognitionRef = useRef<any>(null);
@@ -168,20 +171,14 @@ export const DiscoverPage: React.FC = () => {
   };
 
   // Local deterministic intent parsing.
-  const handleProcessIntent = async (text: string) => {
+  const handleProcessIntent = (text: string) => {
     if (!text.trim()) return;
     setIsListening(false);
     setAssistLoading(true);
-    try {
-      const result = await parseNiraIntent(text, 'en');
-      setAssistResult(result);
-      setAssistSource('safe_assist');
-    } catch {
-      setAssistResult(SafeAssistParser.parse(text));
-      setAssistSource('safe_assist');
-    } finally {
-      setAssistLoading(false);
-    }
+    const result = SafeAssistParser.parse(text);
+    setAssistResult(result);
+    setAssistSource('safe_assist');
+    setAssistLoading(false);
   };
 
   // Confirm interpretation and proceed
@@ -284,6 +281,53 @@ export const DiscoverPage: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-4 select-none">
+      {/* P0: deterministic service discovery. No model, API, or hidden search request. */}
+      <section aria-labelledby="service-discovery-title" className="rounded-3xl border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-700">Nirantar Discover</p>
+            <h1 id="service-discovery-title" className="mt-1 font-display text-xl font-black text-slate-950">You know what you need. We find the service.</h1>
+            <p className="mt-1 max-w-2xl text-xs font-medium leading-relaxed text-slate-600">Describe a railway task and get a clear explanation, what you need, and the official place to complete it.</p>
+          </div>
+          <span className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-800 ring-1 ring-emerald-100">Offline, deterministic guide</span>
+        </div>
+
+        <form onSubmit={(event) => { event.preventDefault(); setServiceMatch(resolveDiscoveryIntent(serviceQuery)); }} className="mt-4 flex gap-2">
+          <input value={serviceQuery} onChange={(event) => setServiceQuery(event.target.value)} placeholder="Try: Where do I check my PNR?" className="min-w-0 flex-1 rounded-2xl border border-purple-200 bg-purple-50/50 px-3.5 py-2.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-purple-600 focus:bg-white" aria-label="Describe the railway service you need" />
+          <button type="submit" className="rounded-2xl bg-[#7C3AED] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-[#6D28D9]">Find service</button>
+        </form>
+
+        {!serviceMatch && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {DISCOVER_SERVICES.slice(0, 7).map((service) => (
+              <button key={service.id} type="button" onClick={() => { setServiceQuery(service.name); setServiceMatch({ service, confidence: 1 }); }} className="rounded-full border border-purple-100 bg-purple-50 px-2.5 py-1 text-[10px] font-bold text-purple-900 transition hover:border-purple-300 hover:bg-purple-100">{service.icon} {service.name}</button>
+            ))}
+          </div>
+        )}
+
+        {serviceMatch && (
+          <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3.5 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">You want</p>
+                <h2 className="mt-0.5 text-sm font-black text-slate-950">{serviceMatch.service.icon} {serviceMatch.service.name}</h2>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-700">{serviceMatch.service.summary}</p>
+              </div>
+              <button type="button" onClick={() => setServiceMatch(null)} className="self-start text-[11px] font-bold text-slate-500 hover:text-purple-800">Clear</button>
+            </div>
+            <div className="mt-3 grid gap-2 text-[11px] sm:grid-cols-2">
+              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">You’ll need: </span><span className="font-medium text-slate-600">{serviceMatch.service.needs}</span></div>
+              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">Nirantar can help: </span><span className="font-medium text-slate-600">{serviceMatch.service.nirantarHelp}</span></div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {serviceMatch.service.officialUrl !== '#' && <a href={serviceMatch.service.officialUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#7C3AED] px-3 py-2 text-[11px] font-black text-white transition hover:bg-[#6D28D9]">Open {serviceMatch.service.officialName} ↗</a>}
+              {serviceMatch.service.internalRoute && <button type="button" onClick={() => navigateTo(serviceMatch.service.internalRoute!)} className="rounded-xl border border-purple-200 bg-white px-3 py-2 text-[11px] font-black text-purple-800 transition hover:bg-purple-50">Get Nirantar guidance →</button>}
+            </div>
+            <p className="mt-2 text-[10px] font-medium text-slate-500">Nirantar guides; official railway services execute bookings, changes and complaints.</p>
+          </div>
+        )}
+      </section>
+
       {/* ═══════════════════════════════════════════════════════════════════
           1. DISCOVER HERO BANNER (Distinct Modern IRCTC Station BG + Thinking Ananya)
           ═══════════════════════════════════════════════════════════════════ */}

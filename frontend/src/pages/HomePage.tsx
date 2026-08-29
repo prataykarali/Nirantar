@@ -540,9 +540,9 @@ export const HomePage: React.FC = () => {
         ))}
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          3. GUIDANCE HIGHLIGHTS, TIPS FROM NIRA & HOW IT WORKS (MATCHING REF)
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* The previous three decorative panels are retained below only as a reference
+          while this compact, actionable guide takes their place. */}
+      {false && (
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
         {/* ── LEFT: GUIDANCE HIGHLIGHTS WITH NIRA SPEECH ROWS (5 Cols) ── */}
         <div className="lg:col-span-5 bg-white rounded-3xl p-5 shadow-sm border border-purple-100 space-y-3.5">
@@ -816,6 +816,62 @@ export const HomePage: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      </section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          3. COMPACT FEATURE GUIDE — DOCUMENTS THE PRODUCT WITHOUT A WALL OF UI
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section aria-labelledby="feature-guide-title" className="rounded-3xl border border-purple-100 bg-white p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col gap-2 border-b border-purple-50 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-700">Nirantar guide</p>
+            <h2 id="feature-guide-title" className="mt-1 font-display text-lg font-black text-slate-950 sm:text-xl">
+              Everything you need for a smoother train journey
+            </h2>
+          </div>
+          <p className="max-w-md text-xs font-medium leading-relaxed text-slate-500">
+            Explore a feature when you need it. Underlined railway terms reveal a plain-English explanation on hover.
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          <button type="button" onClick={() => navigateTo('discover')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">🔎</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Search your way</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Type a route, station code, or natural-language request to find trains and availability.</p>
+          </button>
+          <button type="button" onClick={() => navigateTo('trains')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">⚖️</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Compare before you choose</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Review duration, class, seat status and recommendations before selecting a train.</p>
+          </button>
+          <button type="button" onClick={() => navigateTo('booking')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">🧾</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Book with saved details</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Add passengers, berth preferences and concessions once, then use them for faster future bookings.</p>
+          </button>
+          <button type="button" onClick={() => navigateTo('payment')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">🛡️</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Pay with safeguards</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Use UPI, cards or net banking with payment-status checks designed to prevent duplicate charges.</p>
+          </button>
+          <button type="button" onClick={() => navigateTo('track')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">📍</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Track and understand tickets</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Follow live train movement, platform updates and PNR status in language that is easy to act on.</p>
+          </button>
+          <button type="button" onClick={() => navigateTo('my-journeys')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
+            <span className="text-lg">🎫</span>
+            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Keep every journey together</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Open confirmed e-tickets, manage upcoming trips, receipts and travel history in one place.</p>
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-purple-50 px-3.5 py-3">
+          <p className="text-[11px] font-semibold text-purple-950">Need guidance at any point? Nira can explain railway terms and help with the next step.</p>
+          <button type="button" onClick={() => navigateTo('help')} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-purple-800 shadow-sm ring-1 ring-purple-100 transition-colors hover:bg-purple-100">Open Help Center <span aria-hidden="true">→</span></button>
         </div>
       </section>
 
