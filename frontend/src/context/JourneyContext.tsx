@@ -30,6 +30,7 @@ import {
   apiMockVerify,
   apiGetTicket,
 } from '../services/journeyApi';
+import { allocatePassengerSeats } from '../utils/seatInventory';
 import { admitFairAccess } from '../services/niraApi';
 import { setFairAccessTicket } from '../lib/fairAccessStore';
 import { UiEventBus } from '../events/UiEventBus';
@@ -591,10 +592,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       chosenClass && (chosenClass.status?.includes('WL') || chosenClass.status?.includes('GNWL') || chosenClass.availableSeats === 0)
     );
 
-    const coach = isWaitlistTrain ? 'GNWL' : `${selectedClassCode?.includes('2') ? 'A2' : selectedClassCode?.includes('1') ? 'H1' : selectedClassCode?.includes('SL') ? 'S1' : 'B4'}`;
-    const baseSeat = isWaitlistTrain ? Math.floor(4 + Math.random() * 8) : Math.floor(12 + Math.random() * 50);
-
-    // Multi-passenger resolution
+    // Multi-passenger resolution (do not inject dummy names if user specified passengers)
     const targetCount = Math.max(searchParams.passengersCount || 1, passengers.length || 1);
     const resolvedPassengers: PassengerProfile[] = [];
     for (let i = 0; i < targetCount; i++) {
@@ -613,6 +611,31 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     }
 
+    const dynamicAllotments = allocatePassengerSeats(resolvedPassengers, selectedClassCode || '3A', pnr);
+    const baseWlSeat = Math.floor(4 + Math.random() * 8);
+
+    const seatAllotments = resolvedPassengers.map((p, idx) => {
+      if (isWaitlistTrain) {
+        return {
+          coach: 'GNWL',
+          seatNumber: baseWlSeat + idx,
+          berthType: `Waitlist Queue #${baseWlSeat + idx}`,
+        };
+      }
+      const allot = dynamicAllotments[idx];
+      return {
+        coach: allot?.coachCode || 'B4',
+        seatNumber: allot?.seatNumber || (16 + idx),
+        berthType: allot?.berthType || 'Lower Berth',
+      };
+    });
+
+    const primarySeatAllotment = seatAllotments[0] || {
+      coach: isWaitlistTrain ? 'GNWL' : 'B4',
+      seatNumber: isWaitlistTrain ? baseWlSeat : 16,
+      berthType: isWaitlistTrain ? `Waitlist Queue #${baseWlSeat}` : 'Lower Berth',
+    };
+
     const newTicket: TicketRecord = {
       ticketId: `tkt_${Date.now()}`,
       journeyId: attempt.journeyId || `j_${Date.now()}`,
@@ -621,13 +644,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       train: resolvedTrain,
       classCode: selectedClassCode || '3A',
       passengers: resolvedPassengers,
-      seatAllotments: resolvedPassengers.map((p, idx) => ({
-        coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: isWaitlistTrain ? baseSeat + idx : baseSeat + idx,
-        berthType: isWaitlistTrain
-          ? `Waitlist Queue #${baseSeat + idx}`
-          : (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? `${p.berthPreference} Berth` : (idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth')),
-      })),
+      seatAllotments,
       travelDate: searchParams.travelDate || 'Tomorrow, 27 Aug 2026',
       origin: searchParams.fromStation,
       destination: searchParams.toStation,
@@ -644,11 +661,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       trainName: resolvedTrain.trainName,
       classCode: selectedClassCode || '3A',
       status: isWaitlistTrain ? ('WAITLIST' as any) : 'CONFIRMED',
-      seatAllotment: {
-        coach: isWaitlistTrain ? 'GNWL' : coach,
-        seatNumber: baseSeat,
-        berthType: isWaitlistTrain ? `Waitlist Queue #${baseSeat}` : 'Lower Berth',
-      },
+      seatAllotment: primarySeatAllotment,
       createdAt: new Date().toISOString(),
     };
 

@@ -1475,10 +1475,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         }
         if (
           plannerResponse.intent === 'SYSTEM_ARCHITECTURE_PITCH' ||
-          safeQuery.toLowerCase().includes('architecture') ||
+          safeQuery.toLowerCase().includes('nirantar architecture') ||
           safeQuery.toLowerCase().includes('dev pitch') ||
+          safeQuery.toLowerCase().includes('developer pitch') ||
           safeQuery.toLowerCase().includes('underneath nirantar') ||
-          safeQuery.toLowerCase().includes('tech stack')
+          safeQuery.toLowerCase().includes('nirantar tech stack')
         ) {
           actionCard = {
             title: 'Nirantar 4-Layer System Architecture',
@@ -2090,17 +2091,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
                       {/* Travel Date Selector Strip */}
                       <div className="bg-purple-50/70 p-2.5 rounded-xl border border-purple-200 text-xs space-y-1.5">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-1">
                           <span className="font-black text-purple-950 flex items-center gap-1 text-[11px]">
                             <Calendar className="w-3.5 h-3.5 text-purple-700" />
                             <span>Booking Travel Date:</span>
-                            <span className="text-purple-800 font-bold ml-1">{searchParams.travelDate || 'Tomorrow'}</span>
+                            <span className="text-purple-800 font-bold ml-1 font-mono">{searchParams.travelDate || 'Tomorrow'}</span>
                           </span>
                           <span className="text-[10px] text-purple-700 font-bold bg-purple-100 px-1.5 py-0.2 rounded">
                             Required
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar text-[10px]">
+                        <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
                           <button
                             type="button"
                             onClick={() => {
@@ -2133,6 +2134,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                           >
                             📅 Day After
                           </button>
+                          <div className="flex items-center gap-1 bg-white border border-purple-200 px-2 py-0.5 rounded-lg shadow-2xs">
+                            <span className="text-[10px] font-bold text-slate-500">Pick:</span>
+                            <input
+                              type="date"
+                              min={new Date().toISOString().split('T')[0]}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  executeSearch({ travelDate: e.target.value });
+                                }
+                              }}
+                              className="text-[10px] font-bold text-purple-950 bg-transparent focus:outline-none cursor-pointer font-mono"
+                              aria-label="Pick custom travel date"
+                            />
+                          </div>
                         </div>
                       </div>
 

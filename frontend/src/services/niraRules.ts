@@ -8,6 +8,8 @@
  * - Zero external LLM or NVIDIA NIM API calls.
  */
 
+import { findRailwayTerm } from '../data/railwayTerms';
+
 export interface KnowledgeEntry {
   category: string;
   patterns: RegExp[];
@@ -20,10 +22,10 @@ export const RAILWAY_KNOWLEDGE_BASE: KnowledgeEntry[] = [
   {
     category: 'system_architecture_pitch',
     patterns: [
-      /\b(architecture|dev pitch|pitch|underneath nirantar|how it works|tech stack|4 layers|four layers|how you built|how i built|system design|welcome back)\b/i,
-      /\b(explain nirantar architecture|what happens underneath|tell me the pitch|one minute pitch)\b/i,
+      /\b(nirantar\s+architecture|nirantar\s+tech\s*stack|nirantar\s+system\s*design|nirantar\s+dev\s*pitch|four\s+architectural\s+layers|4\s+architectural\s+layers|explain\s+nirantar\s+architecture|what\s+happens\s+underneath\s+nirantar)\b/i,
+      /\b(tell\s+me\s+the\s+pitch|one\s+minute\s+dev\s+pitch|developer\s+pitch\s+for\s+nirantar)\b/i,
     ],
-    keywords: ['architecture', 'dev pitch', 'underneath nirantar', 'tech stack', '4 layers', 'how it works', 'welcome back'],
+    keywords: ['nirantar architecture', 'dev pitch', 'underneath nirantar', 'nirantar tech stack', '4 architectural layers'],
     reply: `"Welcome back! Now, as the developer, let's address what the user experienced underneath Nirantar:
 
 📊 **4 Core Architectural Layers:**
@@ -359,6 +361,22 @@ function tokenize(text: string): string[] {
 export function deterministicNiraReply(query: string, context = ''): string {
   const q = (query || '').trim();
   const lower = q.toLowerCase();
+
+  // 0. Dedicated Railway Glossary Terms & Jargon Decoder (RAC, GNWL, Tatkal, 3A, etc.)
+  const foundTerm = findRailwayTerm(q);
+  if (foundTerm) {
+    const title = foundTerm.short && foundTerm.short !== foundTerm.id
+      ? `${foundTerm.short} (${foundTerm.id})`
+      : foundTerm.id;
+    let resp = `💡 **${title}**\n\n📌 **Category**: ${foundTerm.category.toUpperCase()}\n\n📖 **What It Means**:\n${foundTerm.simple}`;
+    if (foundTerm.why_it_matters) {
+      resp += `\n\n✨ **Why It Matters to You**:\n${foundTerm.why_it_matters}`;
+    }
+    if (foundTerm.example) {
+      resp += `\n\n💡 **Example**:\n*${foundTerm.example}*`;
+    }
+    return resp;
+  }
 
   // 1. Direct Pattern Match against Knowledge Base
   for (const entry of RAILWAY_KNOWLEDGE_BASE) {

@@ -188,17 +188,15 @@ export class NiraPlanner {
 
     // ── 3D. 1-MINUTE DEV-SIDE PITCH & 4-LAYER SYSTEM ARCHITECTURE ──
     if (
-      lower.includes('architecture') ||
+      lower.includes('nirantar architecture') ||
       lower.includes('dev pitch') ||
-      lower.includes('pitch') ||
+      lower.includes('developer pitch') ||
       lower.includes('underneath nirantar') ||
-      lower.includes('how it works') ||
-      lower.includes('tech stack') ||
-      lower.includes('4 layers') ||
-      lower.includes('four layers') ||
-      lower.includes('how you built') ||
-      lower.includes('how i built') ||
-      lower.includes('system design')
+      lower.includes('nirantar tech stack') ||
+      lower.includes('4 architectural layers') ||
+      lower.includes('four architectural layers') ||
+      lower.includes('how you built nirantar') ||
+      lower.includes('system design of nirantar')
     ) {
       return {
         intent: 'SYSTEM_ARCHITECTURE_PITCH',

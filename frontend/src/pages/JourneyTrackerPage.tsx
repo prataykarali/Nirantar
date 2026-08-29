@@ -272,12 +272,53 @@ export const JourneyTrackerPage: React.FC = () => {
     return generateTrainCoaches(trainNumber, foundTrain?.trainType, foundTrain?.classes);
   }, [trainNumber, foundTrain]);
 
-  // Ensure selectedCoach is always valid
+  // Real booked passengers from Citizen profile / ticket database
+  const userPassengers = useMemo(() => {
+    if (!isUserBookedTrain) return [];
+    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
+      return issuedTicket.passengers;
+    }
+    if (passengers && passengers.length > 0) {
+      return passengers;
+    }
+    return [];
+  }, [isUserBookedTrain, issuedTicket, passengers]);
+
+  // User's allocated seats across specific coaches (e.g. Coach B2 for 3A, Coach A1 for 2A)
+  const allocatedSeats = useMemo(() => {
+    if (!isUserBookedTrain) return [];
+    if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.length > 0) {
+      return issuedTicket.seatAllotments.map((s, idx) => ({
+        coachCode: s.coach,
+        seatNumber: s.seatNumber,
+        berthType: s.berthType,
+        passengerName: issuedTicket.passengers?.[idx]?.name || (passengers[idx]?.name) || `Passenger ${idx + 1}`,
+      }));
+    }
+    if (bookingRecord?.seatAllotment) {
+      return [{
+        coachCode: bookingRecord.seatAllotment.coach,
+        seatNumber: bookingRecord.seatAllotment.seatNumber,
+        berthType: bookingRecord.seatAllotment.berthType,
+        passengerName: passengers[0]?.name || 'You',
+      }];
+    }
+    return allocatePassengerSeats(userPassengers, userBookedClass);
+  }, [isUserBookedTrain, issuedTicket, bookingRecord, userPassengers, userBookedClass, passengers]);
+
+  // Auto-focus user's booked coach by default
   useEffect(() => {
+    if (isUserBookedTrain && allocatedSeats.length > 0) {
+      const bookedCoach = allocatedSeats[0].coachCode;
+      if (bookedCoach && !bookedCoach.includes('WL') && trainCoaches.some((c) => c.code === bookedCoach)) {
+        setSelectedCoach(bookedCoach);
+        return;
+      }
+    }
     if (trainCoaches.length > 0 && !trainCoaches.some((c) => c.code === selectedCoach)) {
       setSelectedCoach(trainCoaches[0].code);
     }
-  }, [trainCoaches, selectedCoach]);
+  }, [isUserBookedTrain, allocatedSeats, trainCoaches]);
 
   const selectedCoachInfo = useMemo(() => {
     return trainCoaches.find((c) => c.code === selectedCoach) || trainCoaches[0] || {
@@ -292,32 +333,6 @@ export const JourneyTrackerPage: React.FC = () => {
   const coachInventory = useMemo(() => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
-
-  // Real booked passengers from Citizen profile / ticket database
-  const userPassengers = useMemo(() => {
-    if (!isUserBookedTrain) return [];
-    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
-      return issuedTicket.passengers;
-    }
-    if (passengers && passengers.length > 0) {
-      return passengers;
-    }
-    return [];
-  }, [isUserBookedTrain, issuedTicket, passengers]);
-
-  // User's allocated seats across specific coaches (e.g. Coach B4 for 3A, Coach S1 for SL)
-  const allocatedSeats = useMemo(() => {
-    if (!isUserBookedTrain) return [];
-    if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.length > 0) {
-      return issuedTicket.seatAllotments.map((s, idx) => ({
-        coachCode: s.coach,
-        seatNumber: s.seatNumber,
-        berthType: s.berthType,
-        passengerName: issuedTicket.passengers?.[idx]?.name || `Passenger ${idx + 1}`,
-      }));
-    }
-    return allocatePassengerSeats(userPassengers, userBookedClass);
-  }, [isUserBookedTrain, issuedTicket, userPassengers, userBookedClass]);
 
   // Passengers in this specific coach
   const passengersInThisCoach = useMemo(() => {
@@ -1373,24 +1388,28 @@ export const JourneyTrackerPage: React.FC = () => {
                         key={seat.num}
                         className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                           isUser
-                            ? 'bg-purple-600/70 border-purple-300 text-white ring-2 ring-purple-300 shadow-md shadow-purple-500/50 scale-105 z-10'
+                            ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/60 shadow-xl shadow-amber-500/50 scale-105 z-10'
                             : isRac
                             ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
                             : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                         }`}
                       >
-                        <span className="font-bold text-sm leading-none">{seat.num}</span>
-                        <span className="text-[9px] text-purple-200 mt-0.5">{seat.type}</span>
+                        <span className={`font-black text-sm leading-none ${isUser ? 'text-slate-950' : 'text-white'}`}>
+                          {seat.num}
+                        </span>
+                        <span className={`text-[9px] mt-0.5 font-bold ${isUser ? 'text-slate-900' : 'text-purple-200'}`}>
+                          {seat.type}
+                        </span>
                         <span
-                          className={`text-[8px] font-black uppercase px-1 rounded mt-0.5 truncate max-w-full ${
+                          className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded mt-0.5 truncate max-w-full ${
                             isUser
-                              ? 'bg-amber-300 text-slate-950 font-black'
+                              ? 'bg-slate-950 text-amber-300 shadow-xs'
                               : isRac
                               ? 'bg-amber-400 text-slate-950 font-bold'
                               : 'bg-emerald-400/20 text-emerald-300'
                           }`}
                         >
-                          {seat.label || 'CNF'}
+                          {isUser ? `★ ${seat.label || 'YOU'}` : (seat.label || 'CNF')}
                         </span>
                       </div>
                     );

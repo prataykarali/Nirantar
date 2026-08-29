@@ -37,6 +37,7 @@ export const BookingPage: React.FC = () => {
   const [autofillNotice, setAutofillNotice] = useState<string | null>(null);
   const [lockSeconds, setLockSeconds] = useState(585); // 09:45 min
   const [showPassengerConfirmModal, setShowPassengerConfirmModal] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   React.useEffect(() => {
     const t = setInterval(() => {
@@ -49,19 +50,18 @@ export const BookingPage: React.FC = () => {
     if (searchParams.passengersCount && searchParams.passengersCount > passengers.length) {
       const expanded = [...passengers];
       for (let i = passengers.length; i < searchParams.passengersCount; i++) {
-        const saved = savedPassengers?.[i];
         expanded.push({
           id: `p_${Date.now()}_${i + 1}`,
-          name: saved?.name || `Passenger ${i + 1}`,
-          age: saved?.age || (24 + i * 2),
-          gender: saved?.gender || (i % 2 === 0 ? 'M' : 'F'),
-          berthPreference: saved?.berthPreference || (i % 2 === 0 ? 'LOWER' : 'MIDDLE'),
-          assignedClassCode: selectedClassCode || '3A',
+          name: '',
+          age: 25,
+          gender: i % 2 === 0 ? 'M' : 'F',
+          berthPreference: 'NO_PREFERENCE',
+          assignedClassCode: selectedClassCode || '',
         });
       }
       setPassengers(expanded);
     }
-  }, [searchParams.passengersCount, passengers.length, selectedClassCode, setPassengers, savedPassengers]);
+  }, [searchParams.passengersCount, passengers.length, selectedClassCode, setPassengers]);
 
   const formatLockTimer = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -166,11 +166,32 @@ export const BookingPage: React.FC = () => {
 
   const handleContinueToPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    const emptyNames = passengers.filter((p) => !p.name || p.name.trim() === '');
-    if (emptyNames.length > 0) {
-      console.log('Please provide the full name for all passengers.');
+    setValidationError(null);
+
+    // 1. Validate Coach / Class Selection
+    if (!selectedClassCode || selectedClassCode.trim() === '') {
+      setValidationError('Please select a travel coach/class (e.g. 3A, 2A, 1A, SL) before proceeding to payment.');
       return;
     }
+
+    // 2. Validate Travel Date
+    if (!searchParams.travelDate || searchParams.travelDate.trim() === '') {
+      setValidationError('Please select your journey travel date before proceeding to payment.');
+      return;
+    }
+
+    // 3. Validate Passenger Details
+    if (!passengers || passengers.length === 0) {
+      setValidationError('Please add at least one passenger before proceeding to payment.');
+      return;
+    }
+
+    const emptyIdx = passengers.findIndex((p) => !p.name || p.name.trim() === '');
+    if (emptyIdx !== -1) {
+      setValidationError(`Please enter the full name for Passenger ${emptyIdx + 1} before proceeding to payment.`);
+      return;
+    }
+
     setShowPassengerConfirmModal(true);
   };
 
@@ -547,6 +568,14 @@ export const BookingPage: React.FC = () => {
                 <span className="text-base font-bold text-[#7C3AED]">₹{totalFare.toLocaleString('en-IN')}</span>
               </div>
             </div>
+
+            {/* Explicit Validation Error Alert Banner */}
+            {validationError && (
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold flex items-start gap-2 animate-in fade-in shadow-2xs">
+                <span className="w-4 h-4 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-black shrink-0 text-[11px] mt-0.5">⚠️</span>
+                <span className="leading-snug">{validationError}</span>
+              </div>
+            )}
 
             {/* Primary Action Button */}
             <div className="pt-1">

@@ -122,51 +122,98 @@ export interface PassengerSeatAllocation {
  */
 export function allocatePassengerSeats(
   passengers: Array<{ id?: string; name?: string; assignedClassCode?: string; berthPreference?: string }>,
-  primaryClass = '3A'
+  primaryClass = '3A',
+  bookingSeed?: string
 ): PassengerSeatAllocation[] {
-  // Map class to default primary coach
-  const classCoachMap: Record<string, string> = {
-    '1A': 'H1',
-    '2A': 'A1',
-    '3A': 'B4',
-    '3E': 'M1',
-    'SL': 'S1',
-    'CC': 'C1',
-    'EC': 'E1',
-    '2S': 'D1',
+  const classCoachesMap: Record<string, string[]> = {
+    '1A': ['H1'],
+    '2A': ['A1', 'A2'],
+    '3A': ['B1', 'B2', 'B3', 'B4', 'B5'],
+    '3E': ['M1', 'M2'],
+    'SL': ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'],
+    'CC': ['C1', 'C2', 'C3'],
+    'EC': ['E1', 'E2'],
+    '2S': ['D1', 'D2'],
   };
 
-  const coachSeatCounters: Record<string, number> = {};
+  const classCapacities: Record<string, number> = {
+    '1A': 24,
+    '2A': 46,
+    '3A': 64,
+    '3E': 72,
+    'SL': 72,
+    'CC': 72,
+    'EC': 40,
+    '2S': 108,
+  };
 
-  return passengers.map((p, idx) => {
+  if (!passengers || passengers.length === 0) return [];
+
+  const passengersByClass: Record<string, Array<{ p: typeof passengers[0]; idx: number }>> = {};
+  passengers.forEach((p, idx) => {
     const pClass = p.assignedClassCode || primaryClass || '3A';
-    const coachCode = classCoachMap[pClass] || 'B4';
-    
-    // Seed starting seat per coach (e.g. 14 for B4, 35 for S1, 7 for A1, 3 for H1)
-    const baseSeat = coachCode.startsWith('S') ? 35 : coachCode.startsWith('A') ? 7 : coachCode.startsWith('H') ? 3 : 14;
-    const currentOffset = coachSeatCounters[coachCode] || 0;
-    coachSeatCounters[coachCode] = currentOffset + 1;
-    const seatNumber = baseSeat + currentOffset;
-
-    // Berth type
-    let berthType = 'Lower';
-    if (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE') {
-      berthType = p.berthPreference.replace('_', ' ');
-    } else {
-      const defaultTypes = ['Upper', 'Middle', 'Lower', 'Side Lower', 'Side Upper'];
-      berthType = defaultTypes[idx % defaultTypes.length];
-    }
-
-    return {
-      passengerId: p.id || `p_${idx + 1}`,
-      passengerName: p.name || `Passenger ${idx + 1}`,
-      classCode: pClass,
-      coachCode,
-      coachLabel: `${coachCode} (${pClass})`,
-      seatNumber,
-      berthType,
-    };
+    if (!passengersByClass[pClass]) passengersByClass[pClass] = [];
+    passengersByClass[pClass].push({ p, idx });
   });
+
+  const result: PassengerSeatAllocation[] = new Array(passengers.length);
+
+  Object.entries(passengersByClass).forEach(([cls, group]) => {
+    const coachList = classCoachesMap[cls] || ['B4'];
+    const maxCapacity = classCapacities[cls] || 64;
+    
+    // Choose dynamic coach & starting seat based on seed or random
+    const seedVal = bookingSeed ? hash(`${bookingSeed}:${cls}`) : (Date.now() ^ Math.floor(Math.random() * 100000));
+    const coachCode = coachList[Math.abs(seedVal) % coachList.length];
+    
+    // Starting seat randomly distributed between 1 and (maxCapacity - group.length - 2)
+    const availableSpan = Math.max(1, maxCapacity - group.length - 3);
+    const startSeat = 1 + (Math.abs(seedVal >> 3) % availableSpan);
+
+    group.forEach(({ p, idx }, offset) => {
+      const seatNumber = startSeat + offset;
+      
+      // Compute authentic berth type based on seat number and class
+      let calculatedBerth = 'Lower Berth';
+      if (cls === '3A' || cls === 'SL' || cls === '3E') {
+        const mod = seatNumber % 8;
+        if (mod === 1 || mod === 4) calculatedBerth = 'Lower Berth';
+        else if (mod === 2 || mod === 5) calculatedBerth = 'Middle Berth';
+        else if (mod === 3 || mod === 6) calculatedBerth = 'Upper Berth';
+        else if (mod === 7) calculatedBerth = 'Side Lower';
+        else calculatedBerth = 'Side Upper';
+      } else if (cls === '2A') {
+        const mod = seatNumber % 6;
+        if (mod === 1 || mod === 3) calculatedBerth = 'Lower Berth';
+        else if (mod === 2 || mod === 4) calculatedBerth = 'Upper Berth';
+        else if (mod === 5) calculatedBerth = 'Side Lower';
+        else calculatedBerth = 'Side Upper';
+      } else if (cls === '1A') {
+        calculatedBerth = seatNumber % 2 === 1 ? 'Lower Berth' : 'Upper Berth';
+      } else if (cls === 'CC' || cls === 'EC') {
+        const mod = seatNumber % 5;
+        calculatedBerth = (mod === 1 || mod === 0) ? 'Window Seat' : (mod === 3) ? 'Middle Seat' : 'Aisle Seat';
+      }
+
+      // Respect explicit user preference if specified
+      let finalBerth = calculatedBerth;
+      if (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE') {
+        finalBerth = `${p.berthPreference.replace('_', ' ')} Berth`;
+      }
+
+      result[idx] = {
+        passengerId: p.id || `p_${idx + 1}`,
+        passengerName: p.name || `Passenger ${idx + 1}`,
+        classCode: cls,
+        coachCode,
+        coachLabel: `${coachCode} (${cls})`,
+        seatNumber,
+        berthType: finalBerth,
+      };
+    });
+  });
+
+  return result;
 }
 
 /**

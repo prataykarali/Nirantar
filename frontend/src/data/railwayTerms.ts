@@ -781,3 +781,27 @@ export function searchTerms(query: string): RailwayTerm[] {
       t.simple.toLowerCase().includes(lower)
   );
 }
+
+/** Finds a railway term matching a query text or acronym. */
+export function findRailwayTerm(queryText: string): RailwayTerm | undefined {
+  if (!queryText) return undefined;
+  const q = queryText.trim().toLowerCase();
+
+  // 1. Direct ID / short lookup
+  const direct = getRailwayTerm(queryText);
+  if (direct) return direct;
+
+  // 2. Scan all terms to see if the phrase mentions this term's id or short name
+  const allTerms = Object.values(RAILWAY_TERMS);
+  for (const t of allTerms) {
+    const idRegex = new RegExp(`\\b${t.id.replace(/_/g, '[\\s_]?')}\\b`, 'i');
+    const shortRegex = new RegExp(`\\b${t.short.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+    if (idRegex.test(q) || shortRegex.test(q)) {
+      return t;
+    }
+  }
+
+  // 3. Fallback search
+  const matches = searchTerms(queryText);
+  return matches.length > 0 ? matches[0] : undefined;
+}
