@@ -18,8 +18,8 @@
   }
 
   html.dark {
-    background-color: #0B0813;
-    color: #F3EEFA;
+    background-color: #000000;
+    color: #F4F4F5;
   }
 
   body {
@@ -29,8 +29,8 @@
   }
 
   html.dark body {
-    background-color: #0B0813;
-    color: #F3EEFA;
+    background-color: #000000;
+    color: #F4F4F5;
   }
 
   /* Accessible selection color */
@@ -40,9 +40,83 @@
   }
 
   html.dark ::selection {
-    background-color: #581C87;
-    color: #F3EEFA;
+    background-color: #7C3AED;
+    color: #FFFFFF;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PURE BLACK & UNIFIED DARK SURFACES
+   ═══════════════════════════════════════════════════════════════════ */
+html.dark [class*="bg-white"],
+html.dark [class*="bg-slate-50"],
+html.dark [class*="bg-purple-50"],
+html.dark [class*="bg-indigo-50"],
+html.dark [class*="bg-violet-50"],
+html.dark [class*="bg-emerald-50"],
+html.dark [class*="bg-pink-50"],
+html.dark [class*="bg-amber-50"],
+html.dark [class*="from-purple-50"],
+html.dark [class*="from-indigo-50"],
+html.dark [class*="from-pink-50"],
+html.dark [class*="to-purple-50"],
+html.dark [class*="to-indigo-50"],
+html.dark [class*="to-pink-50"] {
+  background-color: #121216 !important;
+  background-image: none !important;
+  color: #F4F4F5 !important;
+}
+
+html.dark [class*="border-purple-"],
+html.dark [class*="border-slate-"],
+html.dark [class*="border-indigo-"],
+html.dark [class*="border-emerald-"],
+html.dark [class*="border-pink-"] {
+  border-color: #24242A !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #18181E !important;
+  color: #F4F4F5 !important;
+  border-color: #2E2E38 !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark strong {
+  color: #F4F4F5 !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-purple-950,
+html.dark .text-purple-900 {
+  color: #F4F4F5 !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-purple-800 {
+  color: #D4D4D8 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-purple-700 {
+  color: #A1A1AA !important;
+}
+
+/* Ensure active primary buttons remain rich purple / violet */
+html.dark button.bg-purple-700,
+html.dark button.bg-purple-600,
+html.dark button[class*="bg-[#7C3AED]"],
+html.dark [class*="bg-purple-600"] button {
+  background-color: #7C3AED !important;
+  color: #FFFFFF !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

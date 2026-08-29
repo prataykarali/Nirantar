@@ -418,18 +418,18 @@ export const MyJourneysPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 select-none font-sans text-slate-800 animate-in fade-in duration-500 relative min-h-screen">
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 select-none font-sans text-slate-800 dark:text-zinc-100 animate-in fade-in duration-500 relative min-h-screen">
       {/* PAGE-LEVEL SUBTLE BACKGROUND DECORATIONS */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-gradient-to-br from-slate-50 via-purple-50/40 to-indigo-50/30">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/3 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-gradient-to-br from-slate-50 via-purple-50/40 to-indigo-50/30 dark:from-black dark:via-black dark:to-black">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300/20 dark:bg-purple-900/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-indigo-300/20 dark:bg-indigo-900/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-300/20 dark:bg-pink-900/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           1. HEADER HERO BANNER WITH SCENIC OVERLAY & MASCOTS
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-3xl p-6 sm:p-8 text-white shadow-[0_8px_30px_rgb(99,102,241,0.2)] border border-white/20 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#180B2E] via-[#2A104E] to-[#140A28] isolation-auto">
+      <div className="relative rounded-3xl p-6 sm:p-8 text-white shadow-[0_8px_30px_rgb(99,102,241,0.2)] border border-white/20 dark:border-zinc-800 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#180B2E] via-[#2A104E] to-[#140A28] dark:from-[#0A0A0E] dark:via-[#131318] dark:to-[#0A0A0E] isolation-auto">
         {/* Scenic Railway Platform Background */}
         <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden mix-blend-luminosity">
           <img

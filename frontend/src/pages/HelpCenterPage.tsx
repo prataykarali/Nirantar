@@ -150,7 +150,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
       {/* ═══════════════════════════════════════════════════════════════════
           1. SPACIOUS HERO & SEARCH BANNER WITH SCENIC OVERLAY
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#1A0B2E] via-[#2A114E] to-[#160B30] text-white shadow-xl border border-purple-500/20 overflow-hidden">
+      <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#1A0B2E] via-[#2A114E] to-[#160B30] dark:from-[#0A0A0E] dark:via-[#131318] dark:to-[#0A0A0E] text-white shadow-xl border border-purple-500/20 dark:border-zinc-800 overflow-hidden">
         {/* Scenic Railway Knowledge Background Overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden mix-blend-luminosity">
           <img

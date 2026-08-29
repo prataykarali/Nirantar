@@ -142,13 +142,13 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-[#0B0813] dark:via-[#110B22] dark:to-[#0B0813] -mx-4 -mt-4 p-3 sm:p-5 md:p-6 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-black dark:via-black dark:to-black -mx-4 -mt-4 p-3 sm:p-5 md:p-6 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-4 pb-12 select-none font-sans text-slate-800 dark:text-slate-100 animate-in fade-in duration-300">
         
         {/* ═══════════════════════════════════════════════════════════════════
             1. HERO BANNER - SLEEK, COMPACT & MODERN
             ═══════════════════════════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden flex items-center justify-between rounded-2xl p-4 sm:p-5 shadow-lg border border-purple-400/20 bg-gradient-to-r from-[#1A0B2E] via-[#2D1254] to-[#160B30] text-white">
+        <div className="relative overflow-hidden flex items-center justify-between rounded-2xl p-4 sm:p-5 shadow-lg border border-purple-400/20 dark:border-zinc-800 bg-gradient-to-r from-[#1A0B2E] via-[#2D1254] to-[#160B30] dark:from-[#0A0A0E] dark:via-[#131318] dark:to-[#0A0A0E] text-white">
           <div className="relative z-10 flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-bold shadow-md backdrop-blur-md shrink-0">
               <SettingsIcon className="w-5 h-5 text-purple-300" />
