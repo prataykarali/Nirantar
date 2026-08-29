@@ -152,7 +152,7 @@ interface RouteContext {
   missingTrainNumber?: boolean;
 }
 
-type ExampleCategory = 'booking' | 'tatkal' | 'tracking' | 'services';
+type ExampleCategory = 'booking' | 'tatkal' | 'tracking' | 'services' | 'features';
 
 export const getNiraAvatarAndMood = (
   text: string,
@@ -550,6 +550,38 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         label: 'How passenger details are used in this demo',
         query: 'How do passenger details work in this demo?',
         tag: 'Passenger details',
+      },
+    ],
+    features: [
+      {
+        icon: Navigation,
+        label: 'Track 12232 Waitlist clearance (WL 42 ➔ CNF)',
+        query: 'Track waitlist clearance probability for train 12232',
+        tag: 'Waitlist Radar',
+      },
+      {
+        icon: Zap,
+        label: 'View vacant berths & claim beside seat',
+        query: 'Show vacant seats in coach B4 for mid-journey shift',
+        tag: 'Vacant Shift',
+      },
+      {
+        icon: CreditCard,
+        label: 'Add balance to Nirantar Virtual Wallet',
+        query: 'Top up virtual wallet balance for instant booking',
+        tag: 'Wallet Top-Up',
+      },
+      {
+        icon: Ticket,
+        label: 'Manage & Cancel booked train ticket',
+        query: 'Cancel my booked train ticket with instant refund',
+        tag: 'Manage Ticket',
+      },
+      {
+        icon: Sparkles,
+        label: 'Show my active bookings & exact seats',
+        query: 'Show me my bookings with exact seat details and coach layout',
+        tag: 'My Bookings',
       },
     ],
   };
@@ -2059,7 +2091,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black text-purple-950 uppercase flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-              <span>25 Direct Input Test Examples</span>
+              <span>Direct Input Test Examples</span>
             </span>
             <button
               type="button"
@@ -2070,19 +2102,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             </button>
           </div>
 
-          {/* 4 Category Filter Pills */}
-          <div className="grid grid-cols-4 gap-1 p-0.5 rounded-xl bg-white border border-purple-100 text-[10px] font-bold">
+          {/* 5 Category Filter Pills */}
+          <div className="grid grid-cols-5 gap-1 p-0.5 rounded-xl bg-white border border-purple-100 text-[10px] font-bold">
             {[
               { id: 'booking' as ExampleCategory, label: '🚆 Book' },
               { id: 'tatkal' as ExampleCategory, label: '⚡ Tatkal' },
               { id: 'tracking' as ExampleCategory, label: '📍 Radar' },
               { id: 'services' as ExampleCategory, label: '🎫 PNR' },
+              { id: 'features' as ExampleCategory, label: '💺 WL & Shift' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveCategory(tab.id)}
-                className={`py-1 rounded-lg transition-all text-center cursor-pointer ${
+                className={`py-1 rounded-lg transition-all text-center cursor-pointer truncate px-0.5 ${
                   activeCategory === tab.id
                     ? 'bg-[#7C3AED] text-white shadow-2xs'
                     : 'text-slate-600 hover:text-purple-900'

@@ -505,8 +505,12 @@ export const MyJourneysPage: React.FC = () => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
             
             <div className="flex items-center gap-4 min-w-0 z-10">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-lg shadow-purple-900/25 border border-purple-400/30">
-                🚆
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-200 flex items-center justify-center overflow-hidden shadow-sm">
+                <img
+                  src="/assets/images/ananya_celebrating_transparent.png"
+                  alt="Ananya Bookings"
+                  className="w-full h-full object-contain drop-shadow-xs"
+                />
               </div>
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">

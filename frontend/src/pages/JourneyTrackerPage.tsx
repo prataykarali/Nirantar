@@ -993,6 +993,15 @@ export const JourneyTrackerPage: React.FC = () => {
       <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-purple-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-purple-500/10 to-transparent pointer-events-none" />
 
+        {/* Right Side Ananya Duo Avatar Cutout */}
+        <div className="hidden lg:flex absolute right-4 bottom-0 h-[85%] max-h-[120px] items-end pointer-events-none select-none z-0 opacity-80">
+          <img
+            src="/assets/images/characters/ananya_nira_duo.png"
+            alt="Ananya & Nira Radar"
+            className="h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
+          />
+        </div>
+
         <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
           {/* Train Identity */}
           <div className="space-y-1 sm:col-span-1">

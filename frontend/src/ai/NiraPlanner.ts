@@ -282,6 +282,26 @@ export class NiraPlanner {
       };
     }
 
+    // ── 7B. WALLET TOP-UP & VIRTUAL BALANCE ──
+    if (lower.includes('wallet') || lower.includes('top up') || lower.includes('add balance')) {
+      return {
+        intent: 'WALLET_TOPUP',
+        message: `💳 **Nirantar Citizen Virtual Wallet**:\nYour current wallet balance is **₹${context.payment.walletBalance.toLocaleString('en-IN')}**.\n\nYou can use your pre-funded wallet for instant 1-click booking with zero bank gateway delays, OTP skips, and instant refunds!`,
+        actionCue: { type: 'NAVIGATE', target: 'profile', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
+    // ── 7C. MID-JOURNEY VACANCY RADAR & BESIDE SEAT SHIFT ──
+    if (lower.includes('vacant') || lower.includes('shift') || lower.includes('beside seat')) {
+      return {
+        intent: 'VACANT_SEAT_RADAR',
+        message: `💺 **Mid-Journey Vacant Seat Shift Radar**:\nFor confirmed journeys, you can view real-time station-by-station vacant berths (highlighted in 🟢) and submit on-board shift requests directly from your **My Journeys** dashboard!`,
+        actionCue: { type: 'NAVIGATE', target: 'my-journeys', requiresConfirmation: false },
+        source: 'SAFE_ASSIST_DETERMINISTIC',
+      };
+    }
+
     // ── 8. MY JOURNEYS ──
     if (lower === 'my journeys' || lower === 'my bookings' || lower === 'ticket history') {
       return {
