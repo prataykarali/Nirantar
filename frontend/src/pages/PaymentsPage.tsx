@@ -21,6 +21,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 import { TicketInvoiceModal, InvoiceData } from '../components/journey/TicketInvoiceModal';
 import { TopUpWalletModal } from '../components/payment/TopUpWalletModal';
+import { SecurityArchitectureModal } from '../components/payment/SecurityArchitectureModal';
 
 type StatusFilter = 'ALL' | 'PAID' | 'REFUNDED' | 'PROCESSING';
 
@@ -36,11 +37,12 @@ interface PaymentItem {
 }
 
 export const PaymentsPage: React.FC = () => {
-  const { navigateTo, paymentAttempt, paymentHistory, issuedTicket, searchParams, walletBalance } = useJourney();
+  const { navigateTo, paymentAttempt, paymentHistory, issuedTicket, searchParams, walletBalance, addNotification } = useJourney();
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
+  const [showSecurityModal, setShowSecurityModal] = useState<boolean>(false);
 
   const dynamicHistoryPayments: PaymentItem[] = (paymentHistory || []).map((p) => ({
     id: p.id,
@@ -127,8 +129,14 @@ export const PaymentsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => alert('📄 Consolidated financial statement for 2026-2027 downloaded.')}
-              className="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-purple-200 cursor-pointer"
+              onClick={() =>
+                addNotification({
+                  type: 'info',
+                  title: 'Financial Statement Exported',
+                  body: '📄 Downloaded encrypted GST tax ledger and transaction history for FY 2026-2027.',
+                })
+              }
+              className="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-purple-200 cursor-pointer active:scale-98"
             >
               <Download className="w-3.5 h-3.5 text-purple-700" />
               <span>Export Statement</span>
@@ -363,10 +371,11 @@ export const PaymentsPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => alert('🔒 All financial transactions are verified via SHA-256 idempotency tokens.')}
-          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-center shrink-0"
+          onClick={() => setShowSecurityModal(true)}
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-center shrink-0 flex items-center gap-1.5 active:scale-98"
         >
-          Security Architecture →
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+          <span>Security Architecture →</span>
         </button>
       </div>
 
@@ -381,6 +390,12 @@ export const PaymentsPage: React.FC = () => {
       <TopUpWalletModal
         isOpen={showTopUpModal}
         onClose={() => setShowTopUpModal(false)}
+      />
+
+      {/* PAYMENT SECURITY & ZERO-DEDUCTION ARCHITECTURE MODAL */}
+      <SecurityArchitectureModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
       />
     </div>
   );
