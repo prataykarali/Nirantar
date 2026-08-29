@@ -1529,18 +1529,18 @@ export const JourneyTrackerPage: React.FC = () => {
                         key={seat.num}
                         className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                           isUser
-                            ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/70 shadow-xl shadow-amber-500/50 scale-105 z-10 font-black'
+                            ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/80 shadow-xl shadow-amber-500/50 scale-105 z-10 font-black'
                             : isVacant
-                            ? 'bg-[#064E3B] border-2 border-emerald-400 text-emerald-100 ring-1 ring-emerald-400/40 shadow-xs'
+                            ? 'bg-emerald-600 hover:bg-emerald-500 border-2 border-emerald-300 text-white ring-2 ring-emerald-400/50 shadow-md scale-102 z-10 font-bold'
                             : isRac
-                            ? 'bg-amber-950/70 border border-amber-500/60 text-amber-300'
-                            : 'bg-[#162232] border border-[#253A52] text-emerald-400'
+                            ? 'bg-amber-600 border border-amber-300 text-white'
+                            : 'bg-[#2D124D] hover:bg-[#3D1866] border border-purple-500/40 text-purple-100 shadow-xs'
                         }`}
                       >
-                        <span className={`font-black text-sm leading-none ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-100' : 'text-white'}`}>
+                        <span className={`font-black text-sm leading-none ${isUser ? 'text-slate-950' : 'text-white'}`}>
                           {seat.num}
                         </span>
-                        <span className={`text-[9px] mt-0.5 font-bold ${isUser ? 'text-slate-900' : isVacant ? 'text-emerald-300' : 'text-purple-200'}`}>
+                        <span className={`text-[9px] mt-0.5 font-bold ${isUser ? 'text-slate-900' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
                           {seat.type}
                         </span>
                         <span
@@ -1548,10 +1548,10 @@ export const JourneyTrackerPage: React.FC = () => {
                             isUser
                               ? 'bg-slate-950 text-amber-300 shadow-xs'
                               : isVacant
-                              ? 'bg-emerald-900 text-emerald-200 font-bold border border-emerald-500/50'
+                              ? 'bg-emerald-950 text-emerald-200 font-bold border border-emerald-400/60'
                               : isRac
-                              ? 'bg-amber-400 text-slate-950 font-bold'
-                              : 'bg-[#0C1929] text-emerald-400 border border-emerald-800/40'
+                              ? 'bg-amber-950 text-amber-200 font-bold'
+                              : 'bg-[#1A0A2E] text-purple-200 border border-purple-600/40'
                           }`}
                         >
                           {isUser ? `★ ${seat.label || 'YOU'}` : isVacant ? 'VACANT' : (seat.label || 'CNF')}
