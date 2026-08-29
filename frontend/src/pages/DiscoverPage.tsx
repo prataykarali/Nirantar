@@ -286,10 +286,10 @@ export const DiscoverPage: React.FC = () => {
           1. DISCOVER HERO BANNER (Distinct Modern IRCTC Station BG + Thinking Ananya)
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative rounded-2xl sm:rounded-[28px] overflow-hidden min-h-[170px] sm:min-h-[210px] lg:min-h-[225px] bg-gradient-to-r from-[#F7F4FD] via-[#F3EDFD] to-[#ECE2FE] shadow-[0_4px_25px_rgba(88,28,135,0.03)] border border-purple-100/50">
-        {/* Background Modern IRCTC Station Image with Ananya */}
+        {/* Clean Background Modern IRCTC Station Image */}
         <img
-          src="/assets/images/discover_hero_ref.png"
-          alt="IRCTC Modern Platform with Ananya"
+          src="/assets/images/discover_station_bg.jpg"
+          alt="IRCTC Modern Platform"
           className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none"
         />
 
@@ -312,6 +312,15 @@ export const DiscoverPage: React.FC = () => {
             <p className="text-[11px] sm:text-sm font-bold text-slate-600 pt-0.5 sm:pt-1">
               Speak or search routes across 8,000+ Indian Railway stations.
             </p>
+          </div>
+
+          {/* Right Side Transparent Girl Avatar Cutout (Ananya with Luggage) */}
+          <div className="hidden md:flex absolute right-6 lg:right-14 bottom-0 h-[92%] max-h-[220px] items-end pointer-events-none select-none z-10 animate-in fade-in slide-in-from-right-8 duration-700">
+            <img
+              src="/assets/images/characters/ananya_travel_luggage.png"
+              alt="Ananya Travel"
+              className="h-full object-contain drop-shadow-[0_15px_30px_rgba(88,28,135,0.22)]"
+            />
           </div>
         </div>
       </section>
