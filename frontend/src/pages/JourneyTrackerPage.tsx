@@ -367,28 +367,44 @@ export const JourneyTrackerPage: React.FC = () => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
 
-  // Real-Time Waitlist Clearance for actual booked waitlist tickets (no fake 42 starting number)
+  // Real-Time Waitlist Clearance ONLY for actual waitlisted bookings (disappears if confirmed)
   const isWaitlistBooking = useMemo(() => {
-    return Boolean(
-      isUserBookedTrain && (
-        (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL'))))) ||
-        (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
-      )
-    );
-  }, [isUserBookedTrain, issuedTicket, bookingRecord]);
+    if (!isUserBookedTrain) return false;
+    
+    // Check issuedTicket status
+    if (issuedTicket && (issuedTicket.train?.trainNumber === trainNumber || trainNumber === '12951')) {
+      if (issuedTicket.status === 'CANCELLED') return false;
+      const hasWLSeat = issuedTicket.seatAllotments?.some((s) => (s.coach || '').includes('WL') || (s.berthType || '').includes('WL'));
+      if (hasWLSeat || (issuedTicket.status as any) === 'WAITLIST' || (issuedTicket.status as any) === 'RAC') return true;
+      return false;
+    }
+
+    // Check bookingRecord status
+    if (bookingRecord && bookingRecord.trainNumber === trainNumber) {
+      if (bookingRecord.status === 'CANCELLED') return false;
+      const hasWLSeat = (bookingRecord.seatAllotment?.coach || '').includes('WL') || (bookingRecord.seatAllotment?.berthType || '').includes('WL');
+      if (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || hasWLSeat) return true;
+      return false;
+    }
+
+    // Default pre-confirmed journeys (e.g. 12951) are CONFIRMED
+    return false;
+  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber]);
 
   const parsedWaitlistInfo = useMemo(() => {
+    if (!isWaitlistBooking) {
+      return { initialWl: 0, quotaType: 'GNWL' };
+    }
     const rawStatus =
       issuedTicket?.seatAllotments?.[0]?.berthType ||
       bookingRecord?.seatAllotment?.berthType ||
-      foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode)?.status;
+      'WL-12';
     const parsed = parseWaitlistStatus(rawStatus);
-    const dynamicWl = getDynamicInitialWaitlist(trainNumber, selectedCoachInfo.classCode, rawStatus);
     return {
-      initialWl: parsed.number > 0 ? parsed.number : dynamicWl.initialWl,
-      quotaType: parsed.quotaType || dynamicWl.quotaType || 'GNWL',
+      initialWl: parsed.number > 0 ? parsed.number : 12,
+      quotaType: parsed.quotaType || 'GNWL',
     };
-  }, [issuedTicket, bookingRecord, foundTrain, trainNumber, selectedCoachInfo.classCode]);
+  }, [isWaitlistBooking, issuedTicket, bookingRecord]);
 
   const initialWaitlistNumber = isWaitlistBooking ? parsedWaitlistInfo.initialWl : 0;
   const initialQuotaType = parsedWaitlistInfo.quotaType || 'GNWL';
@@ -624,18 +640,14 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // Auto-pop the Waitlist Watch or Coach view only when user has booked a ticket
   useEffect(() => {
-    const hasWaitlistBooking = isUserBookedTrain && Boolean(
-      (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
-      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL')))
-    );
-    if (hasWaitlistBooking) {
+    if (isWaitlistBooking) {
       setActiveTrackerTab('waitlist');
     } else if (isUserBookedTrain) {
       setActiveTrackerTab('coach');
     } else {
       setActiveTrackerTab('timeline');
     }
-  }, [trainNumber, isUserBookedTrain, bookingRecord?.status, issuedTicket?.seatAllotments]);
+  }, [trainNumber, isUserBookedTrain, isWaitlistBooking]);
 
   // Dynamic Passenger List for Waitlist Watch Sidebar
   const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
@@ -1423,7 +1435,7 @@ export const JourneyTrackerPage: React.FC = () => {
                 routeStations={routeStations}
                 currentStationIndex={activeStationIndex}
                 userBookedSeats={allocatedSeats}
-                isUserBookedTrain={false}
+                isUserBookedTrain={isUserBookedTrain}
               />
             </div>
           )}
