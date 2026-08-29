@@ -313,6 +313,15 @@ export const DiscoverPage: React.FC = () => {
               Speak or search routes across 8,000+ Indian Railway stations.
             </p>
           </div>
+
+          {/* Right Side Girl Avatar Cutout (Ananya with Luggage) */}
+          <div className="hidden md:flex absolute right-6 lg:right-14 bottom-0 h-[92%] max-h-[220px] items-end pointer-events-none select-none z-10 animate-in fade-in slide-in-from-right-8 duration-700">
+            <img
+              src="/assets/images/characters/ananya_travel_luggage.png"
+              alt="Ananya Travel"
+              className="h-full object-contain drop-shadow-[0_15px_30px_rgba(88,28,135,0.25)]"
+            />
+          </div>
         </div>
       </section>
 

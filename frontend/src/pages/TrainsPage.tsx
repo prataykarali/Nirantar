@@ -607,6 +607,15 @@ export const TrainsPage: React.FC = () => {
         <div className="space-y-3">
           {/* 1. NIRA SUGGESTS CARD */}
           <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-2xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible">
+            {/* Top-right Ananya Avatar Cutout */}
+            <div className="absolute -top-7 -right-2 w-16 h-20 pointer-events-none select-none z-10 hidden sm:block">
+              <img
+                src="/assets/images/characters/citizen_confident.png"
+                alt="Nira Citizen Guide"
+                className="w-full h-full object-contain drop-shadow-md"
+              />
+            </div>
+
             {/* Header with Sparkle */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
