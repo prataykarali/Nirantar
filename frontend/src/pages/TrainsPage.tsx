@@ -611,21 +611,12 @@ export const TrainsPage: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
                 <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                <span>Nira Suggests</span>
+                <span>Nira Route Recommendation</span>
               </div>
             </div>
 
-            {/* Character Graphic without square cutout frame */}
-            <div className="absolute right-1 -top-8 w-24 h-32 pointer-events-none z-10 flex items-end justify-end">
-              <img
-                src="/assets/images/characters/citizen_thinking.png"
-                alt="Ananya AI Recommendation"
-                className="w-full h-full object-contain drop-shadow-sm"
-              />
-            </div>
-
             {/* Speech Bubble */}
-            <div className="bg-white rounded-xl p-2.5 shadow-sm border border-purple-100 mt-14 mb-2.5 relative z-20">
+            <div className="bg-white rounded-xl p-2.5 shadow-sm border border-purple-100 mb-2.5 relative z-20">
               <p className="text-xs font-semibold text-purple-950">
                 {filteredTrains.length > 0 ? (
                   <>

@@ -589,26 +589,17 @@ export const BookingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* MASCOT SAFE BOOKING CARD WITH PROMINENT BIGGER GIRL (ANANYA) */}
-          <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-2xl p-3 border border-purple-100 relative overflow-visible shadow-sm">
-            <div className="flex items-center justify-between mb-1">
+          {/* SAFE BOOKING CARD */}
+          <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-2xl p-3.5 border border-purple-100 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
-                <Sparkles className="w-3 h-3 text-purple-700" />
+                <Sparkles className="w-3.5 h-3.5 text-purple-700" />
                 <span>Nira Safe Verification</span>
               </div>
             </div>
 
-            {/* Prominent BIGGER Girl Cutout */}
-            <div className="absolute right-0.5 -top-12 w-32 h-36 pointer-events-none z-10 flex items-end justify-end">
-              <img
-                src="/assets/images/characters/citizen_thumbsup.png"
-                alt="Ananya Thumbs Up"
-                className="w-full h-full object-contain drop-shadow-lg"
-              />
-            </div>
-
             {/* Speech info */}
-            <div className="bg-white/95 rounded-xl p-2 shadow-sm border border-purple-100/80 mt-16 mb-2 relative z-20">
+            <div className="bg-white/95 rounded-xl p-2.5 shadow-sm border border-purple-100/80">
               <p className="text-[11px] text-purple-950 font-semibold leading-relaxed">
                 Details verified against IRCTC booking rules. Lower berth priority assigned!
               </p>

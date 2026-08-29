@@ -313,15 +313,6 @@ export const DiscoverPage: React.FC = () => {
               Speak or search routes across 8,000+ Indian Railway stations.
             </p>
           </div>
-
-          {/* RIGHT SIDE: Ananya Thinking Pose lowered down */}
-          <div className="hidden lg:block absolute right-10 -bottom-4 pointer-events-none">
-            <CitizenCharacter
-              size="xl"
-              pose="thinking"
-              showBadge={false}
-            />
-          </div>
         </div>
       </section>
 

@@ -27,7 +27,7 @@ import {
   RefreshCw,
   Calendar,
 } from 'lucide-react';
-import { useJourney, PassengerProfile } from '../context/JourneyContext';
+import { useJourney, PassengerProfile, TicketRecord } from '../context/JourneyContext';
 import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
@@ -339,6 +339,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     // ─── State-Aware Nira (Journey Orchestration) ───
     getSanitizedContext,
     bookingState,
+    setBookingState,
     emitUiEvent,
     taskStack,
     pushTask,
@@ -350,6 +351,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setNiraPendingQuery,
     trackQuery,
     issuedTicket,
+    setIssuedTicket,
     bookingRecord,
     getWaitlistProbability,
     payWithWallet,
@@ -1077,6 +1079,103 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       : null;
   };
 
+  const handleChatOneClickBook = async (promptData: NonNullable<ChatMessage['passengerConfirmPrompt']>) => {
+    setIsLoading(true);
+    const train = promptData.train;
+    const paxList = promptData.passengers && promptData.passengers.length > 0 ? promptData.passengers : (currentPassengers.length > 0 ? currentPassengers : [{ id: 'pax-def-1', name: 'Primary Passenger', age: 24, gender: 'M' as const, berthPreference: 'LOWER' as const }]);
+    const classCode = promptData.classCode || '3A';
+    const fare = promptData.fare;
+
+    setPassengers(paxList);
+    selectTrain(train, classCode);
+
+    const attempt = await payWithWallet(fare);
+    if (attempt) {
+      const remBal = Math.max(0, walletBalance - fare);
+      const trainNo = train.trainNumber;
+      const trainName = train.trainName;
+      const pnr = `2847 ${Math.floor(1000 + Math.random() * 9000)} ${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const originStation: Station = {
+        code: train.fromStationCode || searchParams.fromStation.code || 'CSMT',
+        name: train.fromStationName || searchParams.fromStation.name || 'Mumbai CSMT',
+        city: train.fromCity || searchParams.fromStation.city || 'Mumbai',
+        state: '',
+        aliases: [],
+      };
+      const destStation: Station = {
+        code: train.toStationCode || searchParams.toStation.code || 'NDLS',
+        name: train.toStationName || searchParams.toStation.name || 'New Delhi',
+        city: train.toCity || searchParams.toStation.city || 'Delhi',
+        state: '',
+        aliases: [],
+      };
+
+      const newTicket: TicketRecord = {
+        ticketId: `tkt_${Date.now()}`,
+        journeyId: `journey_${Date.now()}`,
+        bookingReference: `TXN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        pnrNumber: pnr,
+        train,
+        classCode,
+        passengers: paxList.map((p, idx) => ({
+          id: p.id || `pax-${idx + 1}`,
+          name: p.name,
+          age: p.age,
+          gender: p.gender,
+          berthPreference: p.berthPreference || 'LOWER',
+          assignedClassCode: classCode,
+        })),
+        seatAllotments: paxList.map((p, idx) => ({
+          passengerId: p.id || `pax-${idx + 1}`,
+          passengerName: p.name,
+          coach: classCode === '1A' ? 'H1' : classCode === '2A' ? 'A1' : 'B4',
+          seatNumber: 36 + idx,
+          berthType: p.berthPreference === 'LOWER' ? 'Lower Berth' : p.berthPreference === 'MIDDLE' ? 'Middle Berth' : 'Upper Berth',
+          status: 'CONFIRMED',
+        })),
+        travelDate: searchParams.travelDate || 'Tomorrow',
+        origin: originStation,
+        destination: destStation,
+        status: 'ACTIVE',
+        issuedAt: new Date().toISOString(),
+      };
+
+      setIssuedTicket(newTicket);
+      setBookingState('CONFIRMED');
+
+      const confirmedMsg = `🎉 **Ticket Confirmed & Issued Directly in Nira Chat!**\n\n🚆 **#${trainNo} • ${trainName}** (${train.fromCity} ➔ ${train.toCity})\n🎫 **PNR**: \`${pnr}\` • **Status**: **CONFIRMED**\n👥 **Passengers (${paxList.length})**:\n${paxList.map((p, idx) => `• ${p.name} (${p.age}y, ${p.gender}) ➔ **Coach ${classCode === '1A' ? 'H1' : classCode === '2A' ? 'A1' : 'B4'}, Seat #${36 + idx}**`).join('\n')}\n💳 **Payment**: **₹${fare.toLocaleString('en-IN')}** paid via **Citizen Virtual Wallet** (Bal: ₹${remBal.toLocaleString('en-IN')})\n\nYour official IRCTC / DigiLocker ticket is ready for download or live tracking below:`;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `nira-booked-${Date.now()}`,
+          sender: 'nira',
+          text: confirmedMsg,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          bookedTrainStatusCard: {
+            trainNumber: trainNo,
+            trainName: trainName,
+            pnrNumber: pnr,
+            fromCity: train.fromStationName || train.fromCity,
+            fromCode: train.fromStationCode || 'CSMT',
+            toCity: train.toStationName || train.toCity,
+            toCode: train.toStationCode || 'NDLS',
+            travelDate: searchParams.travelDate || 'Tomorrow',
+            status: 'CONFIRMED',
+            statusType: 'CONFIRMED' as const,
+            seatInfo: `Coach ${classCode === '1A' ? 'H1' : classCode === '2A' ? 'A1' : 'B4'}, Seat #36 (${paxList[0]?.berthPreference || 'Lower'})`,
+            currentSpeed: 98,
+            nextStation: 'Surat',
+            platform: 'Platform 1',
+            doorSide: 'RIGHT SIDE',
+          },
+        },
+      ]);
+    }
+    setIsLoading(false);
+  };
+
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
@@ -1524,11 +1623,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         ? `\n• **Travel Date**: **${activeTravelDate}**`
         : `\n\n📅 **Which date would you like to travel on?** (Select *Today*, *Tomorrow*, or choose below):`;
 
-      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${breakdownSnippet}${contactSnippet})${dateNotice} on the Passenger Workspace!\n\n**Please confirm**: Are the passenger details and travel date correct as entered?`;
-
-      if (activePage !== 'workspace' && activePage !== 'booking') {
-        navigateTo('workspace');
-      }
+      const confirmPromptText = `I have entered the passenger details for **${passengerNames}** (${extractedPassengers.length} passenger${extractedPassengers.length > 1 ? 's' : ''}${breakdownSnippet}${contactSnippet})${dateNotice}!\n\n**Please confirm**: Are the passenger details and travel date correct? You can complete booking with 1-click below:`;
 
       setIsLoading(false);
       setMessages((prev) =>
@@ -1671,9 +1766,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         const singleFare = matchedTrain.classes?.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes?.[0]?.fare || 1870;
         const totalFare = singleFare * autoPax.length;
 
-        navigateTo('workspace');
-
-        const confirmMsg = `⚡ **Auto-Booking Pre-Filled & Ready for Passenger Review!**\n\n🚆 **Train**: **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity})\n📅 **Travel Date**: **${effDate}** | **Class**: **${classCode}**${intentData.isTatkal ? ' • **Quota: Tatkal (TQ)**' : ''}\n👥 **Passengers (${autoPax.length})**:\n${autoPax.map((p, idx) => `• ${idx + 1}. **${p.name}** (${p.age}y, ${p.gender}) — **${p.berthPreference}**`).join('\n')}\n💳 **Total Fare**: **₹${totalFare.toLocaleString('en-IN')}** (includes IRCTC fees & taxes)\n\n**All details have been preloaded into your Passenger & Booking Workspace (Step 2). Please review passenger info, berth preferences, and contact details before proceeding to payment!**`;
+        const confirmMsg = `⚡ **Auto-Booking Pre-Filled & Ready for Confirmation!**\n\n🚆 **Train**: **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity})\n📅 **Travel Date**: **${effDate}** | **Class**: **${classCode}**${intentData.isTatkal ? ' • **Quota: Tatkal (TQ)**' : ''}\n👥 **Passengers (${autoPax.length})**:\n${autoPax.map((p, idx) => `• ${idx + 1}. **${p.name}** (${p.age}y, ${p.gender}) — **${p.berthPreference}**`).join('\n')}\n💳 **Total Fare**: **₹${totalFare.toLocaleString('en-IN')}** (includes IRCTC fees & taxes)\n\n**You can confirm and book your ticket directly with 1-click below using your ₹10,000 Citizen Wallet:**`;
 
         setIsLoading(false);
         setMessages((prev) =>
@@ -2594,50 +2687,52 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         </div>
                       </div>
 
-                      <p className="text-xs font-bold text-slate-800">
-                        Are these passenger details and booking date correct?
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                      <div className="space-y-2 pt-1">
+                        {/* 1-Click Wallet Booking Primary Action Directly In Chat */}
                         <button
                           type="button"
-                          onClick={() => {
-                            if (m.passengerConfirmPrompt?.train) {
-                              selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
-                            }
-                            navigateTo('trains');
-                          }}
-                          className="py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center active:scale-95 flex items-center justify-center gap-1"
+                          onClick={() => handleChatOneClickBook(m.passengerConfirmPrompt!)}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 text-center"
                         >
-                          <span>🚆 View Trains</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (m.passengerConfirmPrompt) {
-                              if (m.passengerConfirmPrompt.passengers && m.passengerConfirmPrompt.passengers.length > 0) {
-                                setPassengers(m.passengerConfirmPrompt.passengers);
-                              }
-                              if (m.passengerConfirmPrompt.train) {
-                                selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
-                              }
-                            }
-                            navigateTo('workspace');
-                            setMessages((prev) => [
-                              ...prev,
-                              {
-                                id: `nira-to-workspace-${Date.now()}`,
-                                sender: 'nira',
-                                text: 'Navigated to Passenger & Booking Workspace! Please review passenger names, age, berth preference, and contact details, then tap **Confirm & Pay** when ready.',
-                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              },
-                            ]);
-                          }}
-                          className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-center"
-                        >
-                          <span>📝 Review Details (Step 2)</span>
+                          <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+                          <span>⚡ 1-Click Confirm & Pay (₹10,000 Wallet)</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* Secondary Actions */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (m.passengerConfirmPrompt?.train) {
+                                selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
+                              }
+                              if (m.passengerConfirmPrompt?.passengers) {
+                                setPassengers(m.passengerConfirmPrompt.passengers);
+                              }
+                              navigateTo('payment');
+                            }}
+                            className="py-2 px-2.5 rounded-xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-950 font-bold text-[11px] transition-all cursor-pointer text-center flex items-center justify-center gap-1"
+                          >
+                            <CreditCard className="w-3 h-3 text-purple-700" />
+                            <span>💳 Pay via UPI / Cards</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (m.passengerConfirmPrompt?.train) {
+                                selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
+                              }
+                              if (m.passengerConfirmPrompt?.passengers) {
+                                setPassengers(m.passengerConfirmPrompt.passengers);
+                              }
+                              navigateTo('workspace');
+                            }}
+                            className="py-2 px-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-[11px] transition-all cursor-pointer text-center"
+                          >
+                            ✏️ Full Workspace
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

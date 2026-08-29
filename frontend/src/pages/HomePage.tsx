@@ -521,15 +521,6 @@ export const HomePage: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {/* RIGHT SIDE: Ananya Character Mascot holding Ticket */}
-          <div className="hidden lg:block absolute right-14 bottom-0 pointer-events-none">
-            <CitizenCharacter
-              size="2xl"
-              pose="booking"
-              showBadge={false}
-            />
-          </div>
         </div>
       </section>
 

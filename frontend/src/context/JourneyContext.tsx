@@ -17,7 +17,7 @@ import {
   createInitialJourneyState,
 } from '../types/journey';
 
-export type { PassengerProfile };
+export type { PassengerProfile, TicketRecord, BookingRecord };
 import {
   apiCreateJourney,
   apiSearchTrains,
@@ -175,6 +175,7 @@ export interface JourneyContextType {
 
   // Ticket & Booking
   issuedTicket: TicketRecord | null;
+  setIssuedTicket: React.Dispatch<React.SetStateAction<TicketRecord | null>>;
   bookingRecord: BookingRecord | null;
 
   // Error Recovery & State
@@ -1844,6 +1845,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         verifyPaymentStatus,
         triggerMockPaymentResult,
         issuedTicket,
+        setIssuedTicket,
         bookingRecord,
         error,
         setError,
