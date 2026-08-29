@@ -31,8 +31,7 @@ import { useJourney, PassengerProfile } from '../context/JourneyContext';
 import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
-import { speakNiraResponse, stopNiraSpeech, setNiraMuted } from '../services/voiceService';
-import { streamNiraChat, transcribeAudio } from '../services/niraApi';
+import { streamNiraChat } from '../services/niraApi';
 import { getTrainStoppages, KNOWN_TRAIN_NAMES, resolveTrainDetail } from '../data/trainStoppages';
 import { formatTrainGrounding, rankTrains, plainClass } from '../utils/rankTrains';
 import { NiraPlanner, NiraSanitizedContext } from '../ai/NiraPlanner';
@@ -199,8 +198,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [autoVoice, setAutoVoice] = useState(true);
   const [activeCategory, setActiveCategory] = useState<ExampleCategory>('booking');
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [routeCtx, setRouteCtx] = useState<RouteContext>({});
@@ -394,10 +391,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     }
   }, [messages, isLoading]);
 
-  // Stop audio speech when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      stopNiraSpeech();
       return;
     }
     // ─── STATE-AWARE GREETING: Nira knows what page the user is on ───
@@ -465,12 +460,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           },
         ];
       });
-
-      if (autoVoice) {
-        speakNiraResponse(greeting.message);
-      }
     }
-  }, [isOpen, activePage, autoVoice, getSanitizedContext]);
+  }, [isOpen, activePage, getSanitizedContext]);
 
   /**
    * Comprehensive Local Natural Language Extractor for Train/Route/Auto-Book/Track/Tatkal intents
@@ -948,7 +939,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       setMessages((prev) =>
         prev.map((m) => (m.id === botMsgId ? { ...m, text: invalidMsg, isStreaming: false } : m))
       );
-      if (autoVoice) speakNiraResponse('That is not a valid 5 digit train number. Please enter a 5 digit train number.');
       return;
     }
 
@@ -992,7 +982,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, text: notBookedMsg, isStreaming: false } : m))
         );
-        if (autoVoice) speakNiraResponse(`Train ${intentData.trainNumber} is not your booked train. Your booked train is ${userBookedTrainNo}.`);
         return;
       }
 
@@ -1067,9 +1056,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             : m
         )
       );
-      if (autoVoice) {
-        speakNiraResponse(`Your booked train is number ${trainNo} ${trainName}. Booking status is ${statusType}. Running right on time.`);
-      }
       return;
     }
 
@@ -1094,7 +1080,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, text: errorMsg, isStreaming: false } : m))
         );
-        if (autoVoice) speakNiraResponse('Insufficient wallet balance to complete this booking.');
         return;
       }
 
@@ -1123,7 +1108,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               : m
           )
         );
-        if (autoVoice) speakNiraResponse(`Booking confirmed for train number ${trainNo} ${trainName}. Fare of rupees ${fare} debited from your virtual wallet.`);
         navigateTo('ticket');
         return;
       }
@@ -1167,7 +1151,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       setMessages((prev) =>
         prev.map((m) => (m.id === botMsgId ? { ...m, text: trackReply, isStreaming: false, trackCard: trackCardData } : m))
       );
-      if (autoVoice) speakNiraResponse(`Live Radar active for train ${trainNo} ${matchedTrain.trainName}. Cruising at 118 kilometers per hour right on time.`);
       return;
     }
 
@@ -1197,7 +1180,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             : m
         )
       );
-      if (autoVoice) speakNiraResponse(`PNR status for ${formattedPnr} is confirmed. Coach B4 Berth 32 lower berth.`);
       return;
     }
 
@@ -1259,13 +1241,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             : m
         )
       );
-      if (autoVoice) {
-        speakNiraResponse(
-          activeTravelDate
-            ? `I have entered the passenger details for ${passengerNames} on ${activeTravelDate}. Please confirm if the details are correct.`
-            : `I have entered the passenger details for ${passengerNames}. Which date would you like to travel on?`
-        );
-      }
       return;
     }
 
@@ -1283,7 +1258,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, text: askWhereMsg, isStreaming: false } : m))
         );
-        if (autoVoice) speakNiraResponse('Where would you like to travel? Please tell me your origin and destination station or enter a 5 digit train number.');
         return;
       }
 
@@ -1317,7 +1291,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               : m
           )
         );
-        if (autoVoice) speakNiraResponse(`Found Train number ${matchedTrain.trainNumber}, ${matchedTrain.trainName}. Tap Yes Book Now to proceed.`);
         return;
       }
 
@@ -1367,7 +1340,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 : m
             )
           );
-          if (autoVoice) speakNiraResponse(`Found trains from ${fromSt.city} to ${toSt.city}. Select a train to proceed.`);
           return;
         } else {
           // Route recognised, but no direct train in local database
@@ -1401,7 +1373,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 : m
             )
           );
-          if (autoVoice) speakNiraResponse(`Found route from ${fromSt.city} to ${toSt.city}. Connecting trains available.`);
           return;
         }
       }
@@ -1429,9 +1400,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               : m
           )
         );
-        if (autoVoice) {
-          speakNiraResponse('Please provide your name, age, gender, and contact details to fill the form.');
-        }
       }, 300);
       return;
     }
@@ -1537,9 +1505,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 : m
             )
           );
-          if (autoVoice) {
-            speakNiraResponse(plannerResponse.message);
-          }
         }, 350);
         return;
       }
@@ -1559,14 +1524,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         streamResolved = true;
         const timeoutMsg = accumulated
           ? accumulated  // partial tokens arrived — show what we got
-          : "I can help with routes, booking, tracking, payments, journeys, voice controls, and the Page Guide. What would you like to do?";
+          : "I can help with routes, booking, tracking, payments, journeys, and the Page Guide. What would you like to do?";
         setIsLoading(false);
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, text: timeoutMsg, isStreaming: false } : m))
         );
-        if (autoVoice && timeoutMsg) {
-          speakNiraResponse(timeoutMsg);
-        }
       }
     }, 15000);
 
@@ -1588,9 +1550,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         setMessages((prev) =>
           prev.map((m) => (m.id === botMsgId ? { ...m, isStreaming: false } : m))
         );
-        if (autoVoice && accumulated) {
-          speakNiraResponse(accumulated);
-        }
       },
       async (_err: unknown) => {
         if (streamResolved) return;
@@ -1606,9 +1565,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           setMessages((prev) =>
             prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackText, isStreaming: false } : m))
           );
-          if (autoVoice) {
-            speakNiraResponse(fallbackText);
-          }
         } finally {
           setIsLoading(false);
         }
@@ -1632,33 +1588,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, feedbackGiven: feedback } : m))
     );
-  };
-
-  const toggleSpeech = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      console.log('Speech recognition is not supported in your browser.');
-      return;
-    }
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN';
-    recognition.interimResults = false;
-
-    if (!isListening) {
-      setIsListening(true);
-      recognition.start();
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setIsListening(false);
-        handleSend(transcript);
-      };
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-    } else {
-      recognition.stop();
-      setIsListening(false);
-    }
   };
 
   if (!isOpen) return null;
@@ -1718,9 +1647,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               };
               setMessages([resetMsg]);
-              if (autoVoice) {
-                speakNiraResponse("I have reset your journey state. Where would you like to travel?");
-              }
             }}
             className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
             title="Reset Journey State & Start New Search"
@@ -2063,9 +1989,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             };
                             setMessages((prev) => [...prev, confirmStep2Msg]);
-                            if (autoVoice) {
-                              speakNiraResponse(`Selected ${pTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
-                            }
                           }}
                           className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 text-center"
                         >
@@ -2466,9 +2389,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 };
                                 setMessages((prev) => [...prev, selectMsg]);
-                                if (autoVoice) {
-                                  speakNiraResponse(`Selected ${topTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
-                                }
                               }}
                               className="w-full py-2 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
                             >
@@ -2559,9 +2479,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             };
                             setMessages((prev) => [...prev, confirmStep2Msg]);
-                            if (autoVoice) {
-                              speakNiraResponse(`Selected ${abTrain.trainName}. Proceeding to Step 2. Please enter your passenger details.`);
-                            }
                           }}
                           className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
                         >
@@ -2668,9 +2585,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             };
                             setMessages((prev) => [...prev, filledMsg]);
-                            if (autoVoice) {
-                              speakNiraResponse(`I have filled the passenger details for ${pName}. Ready to proceed to payment.`);
-                            }
                             return;
                           }
 

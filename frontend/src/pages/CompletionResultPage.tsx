@@ -23,8 +23,6 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 
-import { speakNiraResponse } from '../services/voiceService';
-
 export const CompletionResultPage: React.FC = () => {
   const {
     searchParams,

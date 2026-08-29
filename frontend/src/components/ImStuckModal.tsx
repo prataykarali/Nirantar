@@ -9,13 +9,14 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  Volume2,
   CheckCircle2,
   Compass,
   AlertCircle,
+  PhoneCall,
+  Clock,
+  Train,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
-import { speakNiraResponse } from '../services/voiceService';
 
 interface ImStuckModalProps {
   isOpen: boolean;
@@ -51,9 +52,6 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
           body: 'Nira AI is analyzing direct express trains and quota options for you.',
           type: 'info',
         });
-        speakNiraResponse(
-          "I'm helping you find the best train. Let me know if you prefer the fastest, cheapest, or highest confirmation seats."
-        );
         break;
       }
 
@@ -67,9 +65,6 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
           body: 'Green spotlight arrows are pointing directly to passenger form fields.',
           type: 'info',
         });
-        speakNiraResponse(
-          "Here is your passenger details workspace. Follow the green arrows to enter names, berth preference, or click safe autofill."
-        );
         break;
       }
 
@@ -87,9 +82,6 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
           body: `₹${walletBalance.toLocaleString('en-IN')} Citizen Wallet available with Double-Verification Ghost Charge Protection.`,
           type: 'info',
         });
-        speakNiraResponse(
-          "Your payment is protected by Nirantar's Double-Verification Gate. You can also use your preloaded Citizen Wallet for instant checkout."
-        );
         break;
       }
 
@@ -115,97 +107,77 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
           body: 'All entered details, passenger profiles, and search parameters preserved with 0 data loss.',
           type: 'info',
         });
-        speakNiraResponse(
-          "Returned to the previous step. All your entered details and passenger selections are completely safe."
+        break;
+      }
+
+      case 'railway_sos': {
+        sendNiraQuery(
+          "🚨 RAILWAY EMERGENCY SOS: I need official Indian Railways emergency assistance (Medical helpline 139 / Security helpline 182 / RPF on duty / Coach attendant)."
         );
+        addNotification({
+          title: '🚨 Emergency Railway Helpline 139 / 182',
+          body: 'Dial 139 for 24x7 all-India medical/security emergency or RPF assistance.',
+          type: 'info',
+        });
+        break;
+      }
+
+      case 'wrong_booking': {
+        sendNiraQuery(
+          "I booked the wrong date / misspelled a passenger name. How do I change passenger name, date of journey, or boarding point under IRCTC rules?"
+        );
+        addNotification({
+          title: '🎫 Ticket Correction Guide',
+          body: 'Boarding point and passenger name transfers can be done up to 24h before chart preparation.',
+          type: 'info',
+        });
+        break;
+      }
+
+      case 'late_train': {
+        navigateTo('track');
+        sendNiraQuery(
+          "My train is running late. How do I track live delay, and how do I file a TDR for full refund if the train is delayed over 3 hours?"
+        );
+        addNotification({
+          title: '⏱️ Live Delay & TDR Refund Guide',
+          body: 'Full refund without cancellation charges is permitted if train runs > 3 hours late.',
+          type: 'info',
+        });
+        break;
+      }
+
+      case 'waitlist_status': {
+        navigateTo('track');
+        sendNiraQuery(
+          "How does waitlist confirmation and RAC chart preparation work on my ticket, and what is my confirmation probability?"
+        );
+        addNotification({
+          title: '📊 Waitlist & Charting Forecast',
+          body: 'Live berth clearance forecast and chart preparation rules active.',
+          type: 'info',
+        });
         break;
       }
 
       case 'explain_page': {
-        const pageExplanations: Record<string, { speech: string; chatQuery: string }> = {
-          home: {
-            speech:
-              'You are on the Home Page. Here you can search trains by typing or speaking, explore popular routes, or review your recent journeys.',
-            chatQuery:
-              'Please explain what features are on this Home Page and what action I should take next to book a train.',
-          },
-          discover: {
-            speech:
-              'You are on the Discover Hub. Here you can explore train schedules, check Tatkal opening times, and find alternative stations.',
-            chatQuery:
-              'What can I do on this Discover screen? Please explain the routes and quota options.',
-          },
-          trains: {
-            speech:
-              'You are on the Train Comparison page. You can sort trains by fastest or cheapest, check confirmation probability for waitlists, and pick your class.',
-            chatQuery:
-              'Please explain how to compare trains on this screen and what 1A, 2A, 3A, SL, and RAC confirmation odds mean.',
-          },
-          booking: {
-            speech:
-              'You are on the Passenger Booking Workspace. Here you enter passenger names, select berth preferences, and click safe autofill with zero PII leaks.',
-            chatQuery:
-              'How do I complete passenger details, select berth preferences, and verify IRCTC ID on this screen?',
-          },
-          workspace: {
-            speech:
-              'You are on the Passenger Booking Workspace. Here you enter passenger names, select berth preferences, and click safe autofill with zero PII leaks.',
-            chatQuery:
-              'How do I complete passenger details, select berth preferences, and verify IRCTC ID on this screen?',
-          },
-          payment: {
-            speech:
-              'You are on the Payment Bridge. This is a protected gateway with double verification. You can pay securely with UPI, cards, or your ₹10,000 Citizen Wallet.',
-            chatQuery:
-              'How does double-verification payment work here, and how can I pay with UPI or Citizen Wallet?',
-          },
-          completion: {
-            speech:
-              'Congratulations! Here is your confirmed digital e-ticket pass with PNR number, allocated coach and berth, and offline download.',
-            chatQuery:
-              'Please explain my confirmed ticket details, how to download the pass, and how to track this train.',
-          },
-          track: {
-            speech:
-              'You are on the Live GPS Train Tracker. You can monitor live train speed, platform number, delay estimates, and coach rake layout.',
-            chatQuery:
-              'Please explain how the live GPS tracker, platform number, and coach alignment map work on this screen.',
-          },
-          'my-journeys': {
-            speech:
-              'You are in your My Journeys Ticket Vault. Here you can view past and upcoming tickets, download GST invoices, and track refund claims.',
-            chatQuery:
-              'How do I manage my tickets, cancel a booking, or download invoices in this vault?',
-          },
-          payments: {
-            speech:
-              'You are in the Payments & Receipts ledger. You can inspect double-entry payment audits, bank transaction IDs, and refund status.',
-            chatQuery:
-              'Please explain the payment ledger, ghost charge prevention, and refund audit trail.',
-          },
-          help: {
-            speech:
-              'You are in the Help Center. Here you can search official railway rules, Tatkal guides, cancellation fees, and chat with Nira AI.',
-            chatQuery:
-              'What railway guides and assistance tools are available in this Help Center?',
-          },
-          profile: {
-            speech:
-              'You are on your Citizen Profile. Here you can manage your verified identity, switch profile avatars, and review linked passenger lists.',
-            chatQuery:
-              'Please explain my citizen profile, avatar options, and saved passenger database.',
-          },
+        const pageExplanations: Record<string, string> = {
+          home: 'Please explain what features are on this Home Page and what action I should take next to book a train.',
+          discover: 'What can I do on this Discover screen? Please explain the routes and quota options.',
+          trains: 'Please explain how to compare trains on this screen and what 1A, 2A, 3A, SL, and RAC confirmation odds mean.',
+          booking: 'How do I complete passenger details, select berth preferences, and verify IRCTC ID on this screen?',
+          workspace: 'How do I complete passenger details, select berth preferences, and verify IRCTC ID on this screen?',
+          payment: 'How does double-verification payment work here, and how can I pay with UPI or Citizen Wallet?',
+          completion: 'Please explain my confirmed ticket details, how to download the pass, and how to track this train.',
+          track: 'Please explain how the live GPS tracker, platform number, and coach alignment map work on this screen.',
+          'my-journeys': 'How do I manage my tickets, cancel a booking, or download invoices in this vault?',
+          payments: 'Please explain the payment ledger, ghost charge prevention, and refund audit trail.',
+          help: 'What railway guides and assistance tools are available in this Help Center?',
+          profile: 'Please explain my citizen profile, avatar options, and saved passenger database.',
         };
 
-        const currentExpl = pageExplanations[activePage] || {
-          speech:
-            'Nira is ready to guide you through your train journey step by step.',
-          chatQuery:
-            'What am I doing on this screen? Please explain what action I should take next.',
-        };
-
-        speakNiraResponse(currentExpl.speech);
-        sendNiraQuery(currentExpl.chatQuery);
+        const chatQuery = pageExplanations[activePage] || 'What am I doing on this screen? Please explain what action I should take next.';
+        sendNiraQuery(chatQuery);
         break;
       }
 
@@ -215,6 +187,16 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
   };
 
   const options = [
+    {
+      id: 'railway_sos',
+      title: '🚨 Emergency Railway Helpline (139 / 182 / RPF)',
+      subtitle: 'Medical assistance, security on train & immediate support',
+      icon: PhoneCall,
+      bg: 'bg-rose-50/80 hover:bg-rose-100/80',
+      border: 'border-rose-200',
+      iconBg: 'bg-rose-200/90 text-rose-950 font-black',
+      arrowColor: 'text-rose-600',
+    },
     {
       id: 'find_train',
       title: 'Finding the right train / route',
@@ -246,24 +228,54 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
       arrowColor: 'text-emerald-600',
     },
     {
-      id: 'go_back',
-      title: 'I want to change something / Go back',
-      subtitle: 'Return to previous step with 0 data loss',
-      icon: RotateCcw,
+      id: 'wrong_booking',
+      title: 'Booked wrong date / Passenger typo',
+      subtitle: 'Change boarding station or transfer passenger name',
+      icon: AlertCircle,
       bg: 'bg-amber-50/70 hover:bg-amber-100/70',
       border: 'border-amber-100',
       iconBg: 'bg-amber-200/80 text-amber-900',
       arrowColor: 'text-amber-600',
     },
     {
-      id: 'explain_page',
-      title: 'What does this page mean?',
-      subtitle: 'Nira explains current screen in simple words',
-      icon: HelpCircle,
+      id: 'late_train',
+      title: 'Train running late / File TDR refund',
+      subtitle: 'Track live delay & claim full refund if > 3h late',
+      icon: Clock,
+      bg: 'bg-sky-50/70 hover:bg-sky-100/70',
+      border: 'border-sky-100',
+      iconBg: 'bg-sky-200/80 text-sky-900',
+      arrowColor: 'text-sky-600',
+    },
+    {
+      id: 'waitlist_status',
+      title: 'Waitlist clearance & Charting odds',
+      subtitle: 'Real-time RAC / GNWL confirmation forecast',
+      icon: Train,
+      bg: 'bg-teal-50/70 hover:bg-teal-100/70',
+      border: 'border-teal-100',
+      iconBg: 'bg-teal-200/80 text-teal-900',
+      arrowColor: 'text-teal-600',
+    },
+    {
+      id: 'go_back',
+      title: 'I want to change something / Go back',
+      subtitle: 'Return to previous step with 0 data loss',
+      icon: RotateCcw,
       bg: 'bg-slate-50 hover:bg-slate-100',
       border: 'border-slate-200',
       iconBg: 'bg-slate-200 text-slate-800',
       arrowColor: 'text-slate-600',
+    },
+    {
+      id: 'explain_page',
+      title: 'What does this page mean?',
+      subtitle: 'Nira explains current screen in simple words',
+      icon: HelpCircle,
+      bg: 'bg-purple-50/40 hover:bg-purple-100/50',
+      border: 'border-purple-100',
+      iconBg: 'bg-purple-200 text-purple-900',
+      arrowColor: 'text-purple-700',
     },
   ];
 
@@ -303,18 +315,18 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
           </button>
         </div>
 
-        {/* Quick Voice SOS Help */}
+        {/* Quick Instant AI SOS Help */}
         <div className="p-2.5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center">
-              <Volume2 className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div>
               <span className="text-xs font-bold text-purple-950 block leading-tight">
-                Hands-Free Audio Help
+                Instant Step-by-Step AI Guidance
               </span>
               <span className="text-[10px] text-purple-700">
-                Listen to Nira explain what to do right now
+                Let Nira explain what to do on this screen
               </span>
             </div>
           </div>
@@ -323,7 +335,7 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
             onClick={() => handleAction('explain_page')}
             className="px-2.5 py-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0"
           >
-            Listen
+            Explain Screen
           </button>
         </div>
 

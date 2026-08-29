@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { Sparkles, ArrowRight, ArrowLeft, Volume2, X } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, X } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
-import { speakNiraResponse } from '../../services/voiceService';
 
 export interface SpotlightGuidanceProps {
   // Can be controlled globally via JourneyContext
@@ -27,13 +26,6 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
       setShowChatDrawer(true);
     }
   }, [guidanceActive, guidanceStepIndex, setShowChatDrawer]);
-
-  // Auto-speak Nira guidance message when step changes if guidance is active
-  useEffect(() => {
-    if (guidanceActive && currentStepData?.speech) {
-      speakNiraResponse(currentStepData.speech);
-    }
-  }, [guidanceActive, currentStepData?.id]);
 
   if (!guidanceActive || !currentStepData) return null;
 
@@ -103,21 +95,13 @@ export const SpotlightGuidance: React.FC<SpotlightGuidanceProps> = () => {
           </button>
         </div>
 
-        {/* Nira Speech Bubble */}
+        {/* Nira Guidance Bubble */}
         <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 text-slate-800 space-y-1.5 relative shadow-inner">
           <div className="flex items-center justify-between text-[11px] font-bold text-purple-900">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
               <span className="font-extrabold text-[#7C3AED]">Nira says:</span>
             </span>
-            <button
-              type="button"
-              onClick={() => speakNiraResponse(currentStepData.speech)}
-              className="flex items-center gap-1 text-[10px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100/70 hover:bg-purple-100 px-2.5 py-0.8 rounded-full border border-purple-200 shadow-2xs cursor-pointer transition-all"
-            >
-              <Volume2 className="w-3 h-3 text-[#7C3AED]" />
-              <span>Play Voice</span>
-            </button>
           </div>
           <p className="text-xs sm:text-sm font-semibold text-purple-950 leading-relaxed">
             "{currentStepData.speech}"

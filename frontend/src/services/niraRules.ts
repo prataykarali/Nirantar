@@ -352,6 +352,41 @@ Technically, we're not just building another railway frontend — we're connecti
     keywords: ['digilocker badge', 'confirmed digital ticket', 'verified e-ticket', 'digilocker ticket'],
     reply: "🎫 **DigiLocker Verified e-Ticket**:\n\nYour confirmed digital ticket is stored with a DigiLocker verification badge, ensuring it is:\n\n✅ **Digitally Signed** by IRCTC's certificate authority\n✅ **QR Code Verified** — scannable by TTE for instant validation\n✅ **Tamper-Proof** — any modifications invalidate the digital signature\n✅ **Offline Available** — downloaded PDF works without internet\n\n📄 Navigate to **My Journeys** or the **e-Ticket Screen** to view, download, or share your verified ticket with the official DigiLocker badge.",
   },
+
+  // ── 28. PASSENGER DETAILS IN DEMO ──
+  {
+    category: 'passenger_details_demo',
+    patterns: [
+      /\b(how do passenger details work|passenger details in this demo|how passengers work|passenger autofill work)\b/i,
+      /\b(demo passengers|passenger profiles demo)\b/i,
+    ],
+    keywords: ['passenger details demo', 'how passenger details work', 'passenger autofill demo'],
+    reply: "👥 **How Passenger Details Work in Nirantar**:\n\n1. **Zero-PII Local Vault**: In this demo, passenger profiles (Name, Age, Gender, Berth Preference) are stored strictly in client-side memory and local storage — zero personal data is uploaded to public servers.\n2. **1-Click Autofill**: When you select a train, you can either click 'Autofill Pratay Karali' or enter custom co-passengers. The system validates age thresholds (e.g. Senior Citizen concessions for 60+ yrs, free travel for <5 yrs).\n3. **Berth Allocation Engine**: Your requested berth preference (Lower, Middle, Upper, Side Lower) is dynamically matched against coach berth inventory.\n4. **Seamless Continuity**: If you go back to change dates or classes, passenger form states remain 100% intact.",
+  },
+
+  // ── 29. PLATFORM ARRIVAL AT NEW DELHI / TERMINALS ──
+  {
+    category: 'platform_arrival',
+    patterns: [
+      /\bwhich platform is.*(12951|12302|22436|12002).*arriving\b/i,
+      /\bplatform for (12951|12302|22436|12002)\b/i,
+      /\bplatform is train (12951|12302|22436|12002)\b/i,
+    ],
+    keywords: ['platform 12951', 'platform new delhi', 'which platform arriving', 'platform 12302'],
+    reply: "🚉 **Live Platform Assignment**:\n\n• Train **#12951 Mumbai Rajdhani Express** is scheduled to arrive at **Platform 3** at New Delhi (NDLS) / Platform 1 at Mumbai Central (MMCT).\n• **Coach Alignment**: Coach B4 aligns near Pillar 14 with doors opening on the RIGHT side.\n• **Status**: Running on time on satellite GPS radar.\n\nOpen the **Track** page to view live coach-to-platform mapping!",
+  },
+
+  // ── 30. LIVE SPEED AND NEXT STOP ──
+  {
+    category: 'live_speed_next_stop',
+    patterns: [
+      /\b(check|what is|live)\s+(speed|velocity).*(next stop|upcoming halt|stoppage).*(12302|12951|22436|12002)\b/i,
+      /\b(speed and next stop|next stop and speed)\b/i,
+      /\bcheck live speed and next stop\b/i,
+    ],
+    keywords: ['speed next stop 12302', 'live speed next stop', 'train speed upcoming halt'],
+    reply: "🛰️ **Live Telemetry & Stoppage for Train #12302 (Howrah Rajdhani)**:\n\n• **Current Speed**: 128 km/h (Superfast High-Speed Corridor)\n• **Next Stoppage**: **Prayagraj Junction (PRYJ)**\n• **Estimated Arrival**: In 42 mins (Platform 4)\n• **Delay**: 0 mins (Running exactly on schedule)\n• **Distance to Next Stop**: 68 km\n\nTrack real-time GPS movement and platform door indicators on the **Track** page.",
+  },
 ];
 
 function tokenize(text: string): string[] {

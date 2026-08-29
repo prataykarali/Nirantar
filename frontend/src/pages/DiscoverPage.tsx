@@ -52,19 +52,15 @@ export const DiscoverPage: React.FC = () => {
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [showToDropdown, setShowToDropdown] = useState(false);
 
-  // Conversational / Voice / SafeAssist States
+  // Conversational / SafeAssist States
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showDestinationsModal, setShowDestinationsModal] = useState(false);
   const [voiceQuery, setVoiceQuery] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [assistResult, setAssistResult] = useState<SafeAssistResult | null>(null);
   const [assistSource, setAssistSource] = useState<'nvidia' | 'safe_assist' | null>(null);
   const [assistLoading, setAssistLoading] = useState(false);
   const [serviceQuery, setServiceQuery] = useState('');
   const [serviceMatch, setServiceMatch] = useState<DiscoveryMatch | null>(null);
-
-  // Speech Recognition ref
-  const recognitionRef = useRef<any>(null);
 
   // Handle Autocomplete
   const handleFromChange = (val: string) => {
@@ -123,57 +119,15 @@ export const DiscoverPage: React.FC = () => {
     });
   };
 
-  // Speech Recognition Setup
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = 'en-IN';
-
-      rec.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join('');
-        setVoiceQuery(transcript);
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-      };
-
-      rec.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = rec;
-    }
-  }, []);
-
-  const handleToggleVoice = () => {
-    if (isListening) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      setVoiceQuery('');
-      setAssistResult(null);
-      setShowVoiceModal(true);
-      setIsListening(true);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          console.warn('SpeechRecognition error:', e);
-        }
-      }
-    }
+  const handleOpenAssistModal = () => {
+    setVoiceQuery('');
+    setAssistResult(null);
+    setShowVoiceModal(true);
   };
 
   // Local deterministic intent parsing.
   const handleProcessIntent = (text: string) => {
     if (!text.trim()) return;
-    setIsListening(false);
     setAssistLoading(true);
     const result = SafeAssistParser.parse(text);
     setAssistResult(result);
@@ -708,10 +662,10 @@ export const DiscoverPage: React.FC = () => {
                 <NiraRobot size="sm" expression="speaking" isFloating />
                 <div>
                   <h3 className="font-display font-black text-lg text-purple-950">
-                    What can I help you find?
+                    Natural Language Journey Finder
                   </h3>
                   <p className="text-xs text-slate-500 font-bold">
-                    Speak or type your journey naturally in simple language
+                    Type your journey naturally in simple English or Hinglish
                   </p>
                 </div>
               </div>
@@ -719,7 +673,6 @@ export const DiscoverPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setShowVoiceModal(false);
-                  setIsListening(false);
                 }}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
               >
@@ -727,15 +680,15 @@ export const DiscoverPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Conversational Input & Mic Banner */}
+            {/* Conversational Input Banner */}
             <div className="p-4 rounded-3xl bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white space-y-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-bold flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-rose-500 animate-ping' : 'bg-emerald-400'}`} />
-                  {isListening ? 'Listening via Speech Recognition...' : assistLoading ? 'Nira is interpreting…' : 'Nira ready'}
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  {assistLoading ? 'Nira is interpreting…' : 'Nira SafeAssist Ready'}
                 </span>
                 <span className="text-[10px] font-mono text-purple-300 font-bold bg-purple-900/80 px-2 py-0.5 rounded">
-                  Local guide
+                  Local AI parser
                 </span>
               </div>
 

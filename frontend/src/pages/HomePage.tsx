@@ -20,7 +20,6 @@ import {
   ChevronRight,
   Scale,
   CreditCard,
-  Volume2,
   LayoutGrid,
   GitFork,
   FileText,
@@ -35,7 +34,6 @@ import TypewriterText from '../components/smoothui/typewriter-text';
 import { parseNiraIntent } from '../services/niraApi';
 import { SafeAssistParser } from '../utils/SafeAssistParser';
 import { JargonHint } from '../components/JargonHint';
-import { speakNiraResponse } from '../services/voiceService';
 
 export const HomePage: React.FC = () => {
   const {
@@ -1010,18 +1008,6 @@ export const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 1 Discovery: Search express trains by typing natural sentences, station codes, or speaking directly in English or Hinglish."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-xs font-bold text-indigo-700 hover:bg-indigo-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>Audio Guide</span>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => navigateTo('discover')}
                       className="inline-flex items-center gap-1 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 cursor-pointer transition-all active:scale-95"
                     >
@@ -1038,7 +1024,7 @@ export const HomePage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                   <div className="p-3 rounded-2xl bg-white border border-indigo-100 space-y-1">
                     <span className="text-xs font-bold text-indigo-900 block">💬 <JargonHint term="natural language">Natural Language</JargonHint> Queries</span>
-                    <p className="text-[11px] text-slate-600">Type <em>“Delhi to Mumbai tomorrow”</em> or speak to find ranked trains.</p>
+                    <p className="text-[11px] text-slate-600">Type <em>“Delhi to Mumbai tomorrow”</em> or search with smart assist to find ranked trains.</p>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-indigo-100 space-y-1">
                     <span className="text-xs font-bold text-indigo-900 block">⚡ Instant <JargonHint term="Tatkal">Tatkal</JargonHint> Countdowns</span>
@@ -1070,18 +1056,6 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 2 Comparison: Review transparent fares across all AC and Sleeper classes with real-time confirmation probabilities."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-sky-200 text-xs font-bold text-sky-700 hover:bg-sky-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Audio Guide</span>
-                    </button>
                     <button
                       type="button"
                       onClick={() => navigateTo('trains')}
@@ -1134,18 +1108,6 @@ export const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 3 Booking: Save passenger profiles and berth choices once for lightning-fast 1-click checkouts with strict privacy."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-xs font-bold text-amber-700 hover:bg-amber-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Audio Guide</span>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => navigateTo('booking')}
                       className="inline-flex items-center gap-1 px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-md shadow-amber-600/20 cursor-pointer transition-all active:scale-95"
                     >
@@ -1194,18 +1156,6 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 4 Payment: Multi-channel payment gateway with double verification designed to prevent duplicate bank deductions."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Audio Guide</span>
-                    </button>
                     <button
                       type="button"
                       onClick={() => navigateTo('payment')}
@@ -1258,18 +1208,6 @@ export const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 5 Live Radar: Follow live train movement, platform updates, coach alignment, and plain-English PNR status."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-purple-200 text-xs font-bold text-purple-700 hover:bg-purple-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-purple-600" />
-                      <span>Audio Guide</span>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => navigateTo('track')}
                       className="inline-flex items-center gap-1 px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-md shadow-purple-600/20 cursor-pointer transition-all active:scale-95"
                     >
@@ -1318,18 +1256,6 @@ export const HomePage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        speakNiraResponse(
-                          "Step 6 Vault: Open confirmed e-tickets, manage upcoming trips, receipts, and travel history in one unified vault."
-                        )
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-xs font-bold text-rose-700 hover:bg-rose-50 cursor-pointer shadow-2xs"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Audio Guide</span>
-                    </button>
                     <button
                       type="button"
                       onClick={() => navigateTo('my-journeys')}
@@ -1666,18 +1592,6 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 sm:shrink-0">
-            <button
-              type="button"
-              onClick={() =>
-                speakNiraResponse(
-                  "Welcome to Nirantar Guide! From searching your route to comparing fares, safe autofill, double-verification payments, live GPS tracking, and our unified ticket vault, Nira is here to guide you every step of the way."
-                )
-              }
-              className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-purple-200 px-3 py-2 backdrop-blur-sm transition-all cursor-pointer"
-            >
-              <Volume2 className="h-3.5 w-3.5 text-purple-300" />
-              <span>Audio Overview</span>
-            </button>
             <button
               type="button"
               onClick={() => setShowChatDrawer(true)}
