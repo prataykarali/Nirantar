@@ -172,7 +172,7 @@ export const AppShell: React.FC = () => {
 
         {/* 3. CENTER: MAIN APPLICATION CONTENT */}
         <main className={`flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-2 pb-24 md:pb-6 transition-all duration-300 ${
-          showChatDrawer ? 'lg:mr-[490px] xl:mr-[530px]' : ''
+          showChatDrawer ? '2xl:mr-[420px]' : ''
         }`}>
           {renderActivePage()}
         </main>

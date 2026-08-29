@@ -241,6 +241,7 @@ export const JourneyTrackerPage: React.FC = () => {
     showChatDrawer,
     setShowChatDrawer,
     addNotification,
+    navigateTo,
   } = useJourney();
 
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12302';
@@ -621,15 +622,11 @@ export const JourneyTrackerPage: React.FC = () => {
     };
   }, [effectiveWl, initialWaitlistNumber, effectiveProb, toCity, initialQuotaType]);
 
-  // Auto-pop the Waitlist Watch or Coach view when user has booked a ticket
+  // Auto-pop the Waitlist Watch or Coach view only when user has booked a ticket
   useEffect(() => {
     const hasWaitlistBooking = isUserBookedTrain && Boolean(
       (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC')) ||
-      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL'))) ||
-      trainNumber === '12232' ||
-      trainNumber === '12863' ||
-      trainNumber === '12864' ||
-      trainNumber === '12245'
+      (issuedTicket && issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL') || (s.coach || '').includes('GNWL')))
     );
     if (hasWaitlistBooking) {
       setActiveTrackerTab('waitlist');
@@ -889,6 +886,43 @@ export const JourneyTrackerPage: React.FC = () => {
               Track
             </button>
           </form>
+        </div>
+      </div>
+
+      {/* Active Booked Train Banner & Quick Actions */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-3 rounded-2xl bg-purple-50 border border-purple-200 text-xs shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-900 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+            🎫
+          </div>
+          <div>
+            <span className="font-extrabold text-slate-900">
+              Active Booking: <strong>#12951 Mumbai Rajdhani Express</strong> (PNR: 2847 5896 1234)
+            </span>
+            <span className="text-[11px] text-slate-600 font-medium block">
+              Coach B4 • Berths #36 (Lower), #37 (Middle) • Departure: 17:00
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={() => selectTrainToTrack('12951')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              trainNumber === '12951'
+                ? 'bg-purple-900 text-white shadow-xs'
+                : 'bg-white hover:bg-purple-50 text-purple-950 border border-purple-200 shadow-2xs'
+            }`}
+          >
+            {trainNumber === '12951' ? '★ Tracking My Train' : 'Track My Train #12951 →'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateTo('my-journeys')}
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-bold border border-rose-200 text-xs transition-all cursor-pointer shadow-2xs"
+          >
+            Cancel / Manage ✕
+          </button>
         </div>
       </div>
 

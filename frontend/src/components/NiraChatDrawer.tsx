@@ -160,10 +160,10 @@ export const getNiraAvatarAndMood = (
 ): { src: string; mood: string; emoji: string } => {
   const t = text.toLowerCase().trim();
   if (isStreaming) {
-    return { src: '/assets/images/characters/nira_thinking.png', mood: 'Analyzing & Planning', emoji: '🤔' };
+    return { src: '/assets/images/characters/nira_thinking.png', mood: 'Nira', emoji: '✨' };
   }
   if (!t || t.length === 0) {
-    return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
+    return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 1. Success, Confirmation, Celebration
@@ -179,7 +179,7 @@ export const getNiraAvatarAndMood = (
     t.includes('done!') ||
     t.includes('cnf')
   ) {
-    return { src: '/assets/images/characters/nira_excited.png', mood: 'Super Excited', emoji: '🎉' };
+    return { src: '/assets/images/characters/nira_excited.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 2. Train tracking, Radar, GPS, Speed, Delay, Platform arrival
@@ -197,7 +197,7 @@ export const getNiraAvatarAndMood = (
     t.includes('which platform') ||
     t.includes('platform number')
   ) {
-    return { src: '/assets/images/characters/nira_explorer.png', mood: 'Live Radar Explorer', emoji: '🧭' };
+    return { src: '/assets/images/characters/nira_explorer.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 3. Booking, Reservation, Tatkal, Quota, Berth Autofill
@@ -212,7 +212,7 @@ export const getNiraAvatarAndMood = (
     t.includes('fare') ||
     t.includes('checkout')
   ) {
-    return { src: '/assets/images/characters/nira_robot_tablet.png', mood: 'Booking Master', emoji: '📋' };
+    return { src: '/assets/images/characters/nira_robot_tablet.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 4. Conductor, Train routes, Train numbers, Express trains
@@ -228,7 +228,7 @@ export const getNiraAvatarAndMood = (
     t.includes('express') ||
     /\b\d{5}\b/.test(t)
   ) {
-    return { src: '/assets/images/characters/nira_conductor.png', mood: 'Chief Conductor', emoji: '🚂' };
+    return { src: '/assets/images/characters/nira_conductor.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 5. Teacher & Guide, Rules, Jargon explanations, Architecture
@@ -250,7 +250,7 @@ export const getNiraAvatarAndMood = (
     t.includes('jargon') ||
     t.includes('digilocker')
   ) {
-    return { src: '/assets/images/characters/nira_guide_teacher.png', mood: 'Railway Guide & Teacher', emoji: '🎓' };
+    return { src: '/assets/images/characters/nira_guide_teacher.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 6. Travel, Vacation, Luggage, Station Amenities, Meals, e-Catering
@@ -267,7 +267,7 @@ export const getNiraAvatarAndMood = (
     t.includes('catering') ||
     t.includes('tourist')
   ) {
-    return { src: '/assets/images/characters/nira_traveler.png', mood: 'Travel Companion', emoji: '🧳' };
+    return { src: '/assets/images/characters/nira_traveler.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 7. Security, Settings, Password, PIN, Zero-PII, Vault
@@ -282,7 +282,7 @@ export const getNiraAvatarAndMood = (
     t.includes('vault') ||
     t.includes('language')
   ) {
-    return { src: '/assets/images/characters/nira_settings.png', mood: 'System & Security', emoji: '⚙️' };
+    return { src: '/assets/images/characters/nira_settings.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 8. Cancellation, Refund, Failed, Error, Empathy
@@ -297,7 +297,7 @@ export const getNiraAvatarAndMood = (
     t.includes('issue') ||
     t.includes('grievance')
   ) {
-    return { src: '/assets/images/characters/nira_sad.png', mood: 'Empathic Support', emoji: '💙' };
+    return { src: '/assets/images/characters/nira_sad.png', mood: 'Nira', emoji: '✨' };
   }
 
   // 9. Problem solver, Stuck, Idea, Alternative suggestion
@@ -310,11 +310,11 @@ export const getNiraAvatarAndMood = (
     t.includes('recommend') ||
     t.includes('tip')
   ) {
-    return { src: '/assets/images/characters/nira_idea.png', mood: 'Problem Solver', emoji: '💡' };
+    return { src: '/assets/images/characters/nira_idea.png', mood: 'Nira', emoji: '✨' };
   }
 
   // Default: Iconic friendly Nira mascot
-  return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
+  return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Nira', emoji: '✨' };
 };
 
 export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose }) => {
@@ -1268,7 +1268,107 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
-    // ─── 1B.1B: Pay with Predefined Citizen Wallet ───
+    // ─── 1B.1A: See My Bookings / Current Bookings Intent ───
+    const isMyBookingsQuery =
+      safeQuery.toLowerCase().includes('my booking') ||
+      safeQuery.toLowerCase().includes('my train') ||
+      safeQuery.toLowerCase().includes('my ticket') ||
+      safeQuery.toLowerCase().includes('current booking') ||
+      safeQuery.toLowerCase().includes('booked train') ||
+      safeQuery.toLowerCase().includes('see my') ||
+      safeQuery.toLowerCase().includes('show my ticket') ||
+      safeQuery.toLowerCase().includes('view booking');
+
+    if (isMyBookingsQuery) {
+      const activeTrainNo = issuedTicket?.train?.trainNumber || '12951';
+      const activeTrainName = issuedTicket?.train?.trainName || 'Mumbai Rajdhani Express';
+      const activePnr = issuedTicket?.pnrNumber || '2847 5896 1234';
+      const activeStatus = issuedTicket?.status || 'CONFIRMED';
+
+      const bookingsMsg = `🎫 **Your Current Train Bookings**\n\n🚆 **#${activeTrainNo} • ${activeTrainName}**\n🎫 **PNR**: \`${activePnr}\` • **Status**: **${activeStatus}**\n💺 **Berths**: **Coach B4, Seat #36 (Lower Berth)**\n📅 **Date**: **${searchParams.travelDate || 'Tomorrow'}** (Dep: 17:00 | Platform 3)\n\nWhat would you like to do with your booking?`;
+
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: bookingsMsg,
+                isStreaming: false,
+                bookedTrainStatusCard: {
+                  trainNumber: activeTrainNo,
+                  trainName: activeTrainName,
+                  pnrNumber: activePnr,
+                  fromCity: issuedTicket?.train?.fromStationName || 'Mumbai CSMT',
+                  fromCode: issuedTicket?.train?.fromStationCode || 'CSMT',
+                  toCity: issuedTicket?.train?.toStationName || 'New Delhi',
+                  toCode: issuedTicket?.train?.toStationCode || 'NDLS',
+                  travelDate: searchParams.travelDate || 'Tomorrow',
+                  status: activeStatus,
+                  statusType: 'CONFIRMED' as const,
+                  seatInfo: 'Coach B4, Seat #36 (Lower Berth)',
+                  currentSpeed: 95,
+                  nextStation: 'Surat',
+                  platform: 'Platform 1',
+                  doorSide: 'RIGHT SIDE',
+                },
+              }
+            : m
+        )
+      );
+      return;
+    }
+
+    // ─── 1B.1B: Cancel Train / Refund Intent ───
+    const isCancelTrainQuery =
+      safeQuery.toLowerCase().includes('cancel train') ||
+      safeQuery.toLowerCase().includes('cancel ticket') ||
+      safeQuery.toLowerCase().includes('cancel my') ||
+      safeQuery.toLowerCase().includes('how to cancel') ||
+      safeQuery.toLowerCase().includes('cancellation charge') ||
+      (safeQuery.toLowerCase().includes('cancel') && !safeQuery.toLowerCase().includes('rac') && !safeQuery.toLowerCase().includes('don\'t cancel'));
+
+    if (isCancelTrainQuery) {
+      const activeTrainNo = issuedTicket?.train?.trainNumber || '12951';
+      const activeTrainName = issuedTicket?.train?.trainName || 'Mumbai Rajdhani Express';
+      const activePnr = issuedTicket?.pnrNumber || '2847 5896 1234';
+      const activeStatus = issuedTicket?.status || 'CONFIRMED';
+
+      const cancelMsg = `❌ **Ticket Cancellation & Instant Refund**\n\n**Your Current Active Booking**:\n🚆 **#${activeTrainNo} • ${activeTrainName}**\n🎫 **PNR**: \`${activePnr}\` • **Status**: **${activeStatus}**\n\n**IRCTC Refund Rules & Safeguards**:\n• **48h+ before departure**: Flat clerkage deduction (₹60/passenger for 3A/SL), 100% remaining refunded.\n• **Instant Wallet Credit**: Refunded immediately to your **Citizen Virtual Wallet** (Zero bank turnaround delay).\n\nYou can review refund breakdown and confirm cancellation below:`;
+
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? {
+                ...m,
+                text: cancelMsg,
+                isStreaming: false,
+                bookedTrainStatusCard: {
+                  trainNumber: activeTrainNo,
+                  trainName: activeTrainName,
+                  pnrNumber: activePnr,
+                  fromCity: issuedTicket?.train?.fromStationName || 'Mumbai CSMT',
+                  fromCode: issuedTicket?.train?.fromStationCode || 'CSMT',
+                  toCity: issuedTicket?.train?.toStationName || 'New Delhi',
+                  toCode: issuedTicket?.train?.toStationCode || 'NDLS',
+                  travelDate: searchParams.travelDate || 'Tomorrow',
+                  status: activeStatus,
+                  statusType: 'CONFIRMED' as const,
+                  seatInfo: 'Coach B4, Seat #36 (Lower Berth)',
+                  currentSpeed: 95,
+                  nextStation: 'Surat',
+                  platform: 'Platform 1',
+                  doorSide: 'RIGHT SIDE',
+                },
+              }
+            : m
+        )
+      );
+      return;
+    }
+
+    // ─── 1B.1C: Pay with Predefined Citizen Wallet ───
     const isWalletPayQuery =
       safeQuery.toLowerCase().includes('pay with wallet') ||
       safeQuery.toLowerCase().includes('pay from wallet') ||
@@ -1528,18 +1628,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         const defaultProfiles = [
           { name: nextRouteCtx.passengerName || authState?.displayName || 'Primary Passenger', age: 24, gender: 'M' as const, berthPreference: 'LOWER' as const, phone: '8420773730', email: 'passenger@example.com' },
           { name: 'Ananya Sharma', age: 28, gender: 'F' as const, berthPreference: 'MIDDLE' as const, phone: '9876543210', email: 'ananya@gmail.com' },
-          { name: 'Rahul Verma', age: 32, gender: 'M' as const, berthPreference: 'UPPER' as const, phone: '9876543211', email: 'rahul@gmail.com' },
-          { name: 'Pooja Mehta', age: 25, gender: 'F' as const, berthPreference: 'SIDE_LOWER' as const, phone: '9876543212', email: 'pooja@gmail.com' },
-          { name: 'Vikram Singh', age: 45, gender: 'M' as const, berthPreference: 'SIDE_UPPER' as const, phone: '9876543213', email: 'vikram@gmail.com' },
+          { name: 'Sanjay Karali', age: 58, gender: 'M' as const, berthPreference: 'LOWER' as const, phone: '8420773730', email: 'sanjay@example.com' },
+          { name: 'Rekha Karali', age: 54, gender: 'F' as const, berthPreference: 'LOWER' as const, phone: '8420773730', email: 'rekha@example.com' },
         ];
 
-        const numPax = Math.min(6, Math.max(1, paxCount));
         const autoPax: PassengerProfile[] = [];
-        for (let i = 0; i < numPax; i++) {
+        for (let i = 0; i < Math.min(6, Math.max(1, paxCount)); i++) {
           const p = defaultProfiles[i % defaultProfiles.length];
           autoPax.push({
             id: `pax-auto-${Date.now()}-${i + 1}`,
-            name: (i === 0 && nextRouteCtx.passengerName) ? nextRouteCtx.passengerName : p.name,
+            name: p.name,
             age: p.age,
             gender: p.gender,
             berthPreference: p.berthPreference,
@@ -1552,11 +1650,16 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         emitUiEvent('PASSENGERS_UPDATED', { count: autoPax.length });
         selectTrain(matchedTrain, classCode);
 
-        const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
-        const searchOrigin = fromSt || { code: matchedTrain.fromStationCode, name: matchedTrain.fromStationName, city: matchedTrain.fromCity, state: '', aliases: [] };
-        const searchDest = toSt || { code: matchedTrain.toStationCode, name: matchedTrain.toStationName, city: matchedTrain.toCity, state: '', aliases: [] };
+        const searchOrigin = matchedTrain.fromStationCode
+          ? { code: matchedTrain.fromStationCode, name: matchedTrain.fromStationName || matchedTrain.fromCity, city: matchedTrain.fromCity, state: '', aliases: [] }
+          : fromSt || { code: 'NDLS', name: 'New Delhi', city: 'Delhi', state: '', aliases: [] };
+        const searchDest = matchedTrain.toStationCode
+          ? { code: matchedTrain.toStationCode, name: matchedTrain.toStationName || matchedTrain.toCity, city: matchedTrain.toCity, state: '', aliases: [] }
+          : toSt || { code: 'MMCT', name: 'Mumbai Central', city: 'Mumbai', state: '', aliases: [] };
 
-        executeSearch({
+        const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
+
+        setSearchParams({
           fromStation: searchOrigin,
           toStation: searchDest,
           travelDate: effDate,
@@ -1570,7 +1673,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
         navigateTo('workspace');
 
-        const confirmMsg = `⚡ **Auto-Booking Pre-Filled & Ready for Confirmation!**\n\n🚆 **Train**: **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity})\n📅 **Travel Date**: **${effDate}** | **Class**: **${classCode}**${intentData.isTatkal ? ' • **Quota: Tatkal (TQ)**' : ''}\n👥 **Passengers (${autoPax.length})**:\n${autoPax.map((p, idx) => `• ${idx + 1}. **${p.name}** (${p.age}y, ${p.gender}) — **${p.berthPreference}**`).join('\n')}\n💳 **Total Fare**: **₹${totalFare.toLocaleString('en-IN')}** (includes IRCTC fees & taxes)\n\n**All details have been auto-filled on your Passenger Workspace. Please review and tap 'Confirm & Pay' to complete your booking!**`;
+        const confirmMsg = `⚡ **Auto-Booking Pre-Filled & Ready for Passenger Review!**\n\n🚆 **Train**: **#${matchedTrain.trainNumber} ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity})\n📅 **Travel Date**: **${effDate}** | **Class**: **${classCode}**${intentData.isTatkal ? ' • **Quota: Tatkal (TQ)**' : ''}\n👥 **Passengers (${autoPax.length})**:\n${autoPax.map((p, idx) => `• ${idx + 1}. **${p.name}** (${p.age}y, ${p.gender}) — **${p.berthPreference}**`).join('\n')}\n💳 **Total Fare**: **₹${totalFare.toLocaleString('en-IN')}** (includes IRCTC fees & taxes)\n\n**All details have been preloaded into your Passenger & Booking Workspace (Step 2). Please review passenger info, berth preferences, and contact details before proceeding to payment!**`;
 
         setIsLoading(false);
         setMessages((prev) =>
@@ -1899,7 +2002,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       />
 
       <aside
-        className="fixed inset-x-2 bottom-2 top-8 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[480px] md:w-[520px] sm:h-[720px] max-h-[92vh] bg-white rounded-3xl sm:rounded-[32px] shadow-[0_20px_60px_rgba(88,28,135,0.28)] border-2 border-purple-200/80 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200 backdrop-blur-sm"
+        className="fixed inset-x-2 bottom-2 top-8 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[410px] md:w-[430px] sm:h-[700px] max-h-[92vh] bg-white rounded-3xl sm:rounded-[32px] shadow-[0_20px_60px_rgba(88,28,135,0.28)] border-2 border-purple-200/80 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200 backdrop-blur-sm"
         aria-label="Nira AI Chat Window"
       >
       {/* ═══════════════════════════════════════════════════════════════════
@@ -1908,17 +2011,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       {(() => {
         const latestBotMsg = [...messages].reverse().find((m) => m.sender === 'nira');
         const activeHeaderAvatar = isLoading
-          ? { src: '/assets/images/characters/nira_thinking.png', mood: 'Analyzing & Planning', emoji: '🤔' }
+          ? { src: '/assets/images/characters/nira_thinking.png', mood: 'Nira', emoji: '✨' }
           : input.trim().length > 1
           ? getNiraAvatarAndMood(input, false)
           : latestBotMsg
           ? getNiraAvatarAndMood(latestBotMsg.text, false)
-          : { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
+          : { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Nira', emoji: '✨' };
 
         return (
-          <div className="p-3.5 px-4.5 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
+          <div className="p-3 px-4 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-md border border-purple-200/80 bg-purple-50/50 shrink-0 transition-transform hover:scale-105">
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md border border-purple-200/80 bg-purple-50/50 shrink-0 transition-transform hover:scale-105">
                 <img
                   src={activeHeaderAvatar.src}
                   alt={activeHeaderAvatar.mood}
@@ -1927,14 +2030,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-black text-base text-slate-950 tracking-tight">Nira Copilot</h3>
+                  <h3 className="font-black text-base text-slate-950 tracking-tight">Nira AI</h3>
                   <span className="flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200/70 px-2 py-0.5 rounded-full transition-all">
-                    <span>{activeHeaderAvatar.emoji}</span>
-                    <span>{activeHeaderAvatar.mood}</span>
+                    <span>✨ Active</span>
                   </span>
                 </div>
                 <p className="text-[11px] font-medium text-slate-500">
-                  State-Aware Railway Assistant & Guide
+                  Your Intelligent Railway Assistant
                 </p>
               </div>
             </div>
@@ -2182,7 +2284,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                     <div className="max-w-[88%] space-y-1">
                       <div className="flex items-center gap-1.5 ml-1">
                         <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs">
-                          {expression?.emoji} {expression?.mood}
+                          ✨ Nira
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">{m.timestamp}</span>
                       </div>
@@ -2500,20 +2602,14 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         <button
                           type="button"
                           onClick={() => {
-                            navigateTo('workspace');
-                            setMessages((prev) => [
-                              ...prev,
-                              {
-                                id: `nira-edit-${Date.now()}`,
-                                sender: 'nira',
-                                text: 'You can edit the passenger details directly on the Passenger Workspace screen.',
-                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              },
-                            ]);
+                            if (m.passengerConfirmPrompt?.train) {
+                              selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
+                            }
+                            navigateTo('trains');
                           }}
-                          className="py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center active:scale-95"
+                          className="py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer text-center active:scale-95 flex items-center justify-center gap-1"
                         >
-                          ✏️ Edit Details
+                          <span>🚆 View Trains</span>
                         </button>
                         <button
                           type="button"
@@ -2526,20 +2622,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                                 selectTrain(m.passengerConfirmPrompt.train, m.passengerConfirmPrompt.classCode);
                               }
                             }
-                            navigateTo('payment');
+                            navigateTo('workspace');
                             setMessages((prev) => [
                               ...prev,
                               {
-                                id: `nira-to-pay-${Date.now()}`,
+                                id: `nira-to-workspace-${Date.now()}`,
                                 sender: 'nira',
-                                text: 'Passenger details confirmed! Proceeding directly to Payment Shield & ₹10,000 Citizen Wallet.',
+                                text: 'Navigated to Passenger & Booking Workspace! Please review passenger names, age, berth preference, and contact details, then tap **Confirm & Pay** when ready.',
                                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                               },
                             ]);
                           }}
-                          className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-center"
+                          className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#7C3AED] via-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-purple-600/30 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-center"
                         >
-                          <span>✅ Confirm & Pay</span>
+                          <span>📝 Review Details (Step 2)</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -2622,17 +2718,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
-                            onClick={() => navigateTo('ticket')}
+                            onClick={() => navigateTo('my-journeys')}
                             className="py-2 px-2.5 rounded-xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-purple-900 font-bold text-[11px] transition-all cursor-pointer text-center"
                           >
-                            🎫 View e-Ticket
+                            🎫 View / Download e-Ticket
                           </button>
                           <button
                             type="button"
                             onClick={() => navigateTo('my-journeys')}
-                            className="py-2 px-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-[11px] transition-all cursor-pointer text-center"
+                            className="py-2 px-2.5 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-900 font-bold text-[11px] transition-all cursor-pointer text-center"
                           >
-                            📋 My Journeys
+                            ❌ Cancel Ticket & Refund
                           </button>
                         </div>
                       </div>
