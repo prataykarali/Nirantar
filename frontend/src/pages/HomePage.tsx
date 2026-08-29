@@ -302,9 +302,6 @@ export const HomePage: React.FC = () => {
               <span className="font-bold text-xs sm:text-sm text-white block">
                 Want a Step-by-Step Guided Walkthrough?
               </span>
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider">
-                Live Spotlight Tour
-              </span>
             </div>
             <p className="text-[11px] text-purple-200 font-medium mt-0.5">
               Experience the full guided walkthrough with blurred overlays, live arrows, voice audio, and 1-tap booking!
@@ -843,32 +840,32 @@ export const HomePage: React.FC = () => {
         <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
           <button type="button" onClick={() => navigateTo('discover')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🔎</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Search your way</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">01</span>Search your way</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Type a route, station code, or natural-language request to find trains and availability.</p>
           </button>
           <button type="button" onClick={() => navigateTo('trains')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">⚖️</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Compare before you choose</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">02</span>Compare before you choose</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Review duration, class, seat status and recommendations before selecting a train.</p>
           </button>
           <button type="button" onClick={() => navigateTo('booking')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🧾</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Book with saved details</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">03</span>Book with saved details</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Add passengers, berth preferences and concessions once, then use them for faster future bookings.</p>
           </button>
           <button type="button" onClick={() => navigateTo('payment')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🛡️</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Pay with safeguards</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">04</span>Pay with safeguards</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Use <JargonHint term="UPI" />, cards or net banking with payment-status checks designed to prevent duplicate charges.</p>
           </button>
           <button type="button" onClick={() => navigateTo('track')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">📍</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Track and understand tickets</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">05</span>Track and understand tickets</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Follow live train movement, platform updates and <JargonHint term="PNR" /> status in language that is easy to act on.</p>
           </button>
           <button type="button" onClick={() => navigateTo('my-journeys')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🎫</span>
-            <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Keep every journey together</h3>
+            <h3 className="mt-1 flex items-center gap-1.5 text-xs font-black text-slate-900 group-hover:text-purple-800"><span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] text-purple-800">06</span>Keep every journey together</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Open confirmed e-tickets, manage upcoming trips, receipts and travel history in one place.</p>
           </button>
         </div>

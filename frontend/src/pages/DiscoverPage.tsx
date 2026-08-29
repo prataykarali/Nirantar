@@ -281,8 +281,8 @@ export const DiscoverPage: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-4 select-none">
-      {/* P0: deterministic service discovery. No model, API, or hidden search request. */}
-      <section aria-labelledby="service-discovery-title" className="rounded-3xl border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
+      {/* Optional service-discovery panel is intentionally hidden to keep this page focused on route search. */}
+      {serviceMatch && false && (<section aria-labelledby="service-discovery-title" className="rounded-3xl border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-700">Nirantar Discover</p>
@@ -310,23 +310,23 @@ export const DiscoverPage: React.FC = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">You want</p>
-                <h2 className="mt-0.5 text-sm font-black text-slate-950">{serviceMatch.service.icon} {serviceMatch.service.name}</h2>
-                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-700">{serviceMatch.service.summary}</p>
+                <h2 className="mt-0.5 text-sm font-black text-slate-950">{serviceMatch!.service.icon} {serviceMatch!.service.name}</h2>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-700">{serviceMatch!.service.summary}</p>
               </div>
               <button type="button" onClick={() => setServiceMatch(null)} className="self-start text-[11px] font-bold text-slate-500 hover:text-purple-800">Clear</button>
             </div>
             <div className="mt-3 grid gap-2 text-[11px] sm:grid-cols-2">
-              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">You’ll need: </span><span className="font-medium text-slate-600">{serviceMatch.service.needs}</span></div>
-              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">Nirantar can help: </span><span className="font-medium text-slate-600">{serviceMatch.service.nirantarHelp}</span></div>
+              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">You’ll need: </span><span className="font-medium text-slate-600">{serviceMatch!.service.needs}</span></div>
+              <div className="rounded-xl bg-white/80 p-2.5"><span className="font-black text-slate-900">Nirantar can help: </span><span className="font-medium text-slate-600">{serviceMatch!.service.nirantarHelp}</span></div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              {serviceMatch.service.officialUrl !== '#' && <a href={serviceMatch.service.officialUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#7C3AED] px-3 py-2 text-[11px] font-black text-white transition hover:bg-[#6D28D9]">Open {serviceMatch.service.officialName} ↗</a>}
-              {serviceMatch.service.internalRoute && <button type="button" onClick={() => navigateTo(serviceMatch.service.internalRoute!)} className="rounded-xl border border-purple-200 bg-white px-3 py-2 text-[11px] font-black text-purple-800 transition hover:bg-purple-50">Get Nirantar guidance →</button>}
+              {serviceMatch!.service.officialUrl !== '#' && <a href={serviceMatch!.service.officialUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#7C3AED] px-3 py-2 text-[11px] font-black text-white transition hover:bg-[#6D28D9]">Open {serviceMatch!.service.officialName} ↗</a>}
+              {serviceMatch!.service.internalRoute && <button type="button" onClick={() => navigateTo(serviceMatch!.service.internalRoute!)} className="rounded-xl border border-purple-200 bg-white px-3 py-2 text-[11px] font-black text-purple-800 transition hover:bg-purple-50">Get Nirantar guidance →</button>}
             </div>
             <p className="mt-2 text-[10px] font-medium text-slate-500">Nirantar guides; official railway services execute bookings, changes and complaints.</p>
           </div>
         )}
-      </section>
+      </section>)}
 
       {/* ═══════════════════════════════════════════════════════════════════
           1. DISCOVER HERO BANNER (Distinct Modern IRCTC Station BG + Thinking Ananya)
