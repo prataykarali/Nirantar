@@ -26,6 +26,12 @@ import {
   Sliders,
   Check,
   X,
+  Play,
+  Pause,
+  RotateCcw,
+  FastForward,
+  Activity,
+  TrendingUp,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
@@ -142,64 +148,82 @@ export const JourneyTrackerPage: React.FC = () => {
   const initialWaitlistNumber = useMemo(() => {
     if (!isWaitlistBooking) return 0;
     const seatNum = issuedTicket?.seatAllotments?.[0]?.seatNumber || bookingRecord?.seatAllotment?.seatNumber;
-    return typeof seatNum === 'number' && seatNum > 0 ? seatNum : 6;
+    return typeof seatNum === 'number' && seatNum > 0 ? seatNum : 42;
   }, [isWaitlistBooking, issuedTicket, bookingRecord]);
 
-  const [simulatedWl, setSimulatedWl] = useState<number>(() => initialWaitlistNumber || 0);
+  const [simulatedWl, setSimulatedWl] = useState<number>(() => (isWaitlistBooking ? 42 : 0));
   const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
   const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
+  const [isSimPaused, setIsSimPaused] = useState<boolean>(false);
+  const [simIndex, setSimIndex] = useState<number>(0);
+  const [simStatusMsg, setSimStatusMsg] = useState<string>('Corridor radar active: 3.4 cancels/hr baseline');
+
+  // Slower, highly realistic progressive telemetry sequence
+  const SIM_SEQUENCE = useMemo(() => [
+    { wl: 42, delay: 3600, msg: 'Corridor baseline active: 3.4 cancellations/hr for route' },
+    { wl: 34, delay: 4200, msg: '8 cancellations cleared in primary quota ahead 📉' },
+    { wl: 24, delay: 4500, msg: '10 intermediate drop-off berths absorbed • Velocity surging 🚀' },
+    { wl: 15, delay: 4500, msg: 'Corridor quota rebalancing: 9 positions cleared ✨' },
+    { wl: 6, delay: 4500, msg: 'Emergency & Tatkal unallocated quota buffers released 🟢' },
+    { wl: 2, delay: 4500, msg: 'RAC threshold crossed • Berth allocation assured! 🎫' },
+    { wl: 0, delay: 5000, msg: '🎉 100% CONFIRMED! Allocated Coach B4 Seat 36 & 37 🥳' },
+  ], []);
 
   useEffect(() => {
     if (!isWaitlistBooking || initialWaitlistNumber <= 0) {
       setSimulatedWl(0);
       return;
     }
-    setSimulatedWl(initialWaitlistNumber);
+
+    if (isSimPaused) return;
+    if (simIndex >= SIM_SEQUENCE.length) return;
+
+    const currentStage = SIM_SEQUENCE[simIndex];
+    setSimStatusMsg(currentStage.msg);
+
+    const timer = setTimeout(() => {
+      setSimulatedWl(currentStage.wl);
+      if (currentStage.wl === 0) {
+        setShowConfirmedCelebration(true);
+        setTimeout(() => {
+          setIsPoofingCelebration(true);
+          setTimeout(() => {
+            setShowConfirmedCelebration(false);
+            setIsPoofingCelebration(false);
+          }, 600);
+        }, 5000);
+      }
+      setSimIndex((prev) => prev + 1);
+    }, currentStage.delay);
+
+    return () => clearTimeout(timer);
+  }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE]);
+
+  const handleStepSim = () => {
+    const nextIdx = Math.min(SIM_SEQUENCE.length - 1, simIndex + 1);
+    setSimIndex(nextIdx);
+    setSimulatedWl(SIM_SEQUENCE[nextIdx].wl);
+    setSimStatusMsg(SIM_SEQUENCE[nextIdx].msg);
+    if (SIM_SEQUENCE[nextIdx].wl === 0) {
+      setShowConfirmedCelebration(true);
+    }
+  };
+
+  const handleResetSim = () => {
+    setSimIndex(0);
+    setSimulatedWl(42);
+    setSimStatusMsg(SIM_SEQUENCE[0].msg);
     setShowConfirmedCelebration(false);
     setIsPoofingCelebration(false);
+  };
 
-    // Fast, responsive progressive sequence
-    const sequence = [
-      { wl: Math.floor(initialWaitlistNumber * 0.75), delay: 600 },
-      { wl: Math.floor(initialWaitlistNumber * 0.5), delay: 650 },
-      { wl: Math.floor(initialWaitlistNumber * 0.25), delay: 600 },
-      { wl: 2, delay: 550 },
-      { wl: 1, delay: 500 },
-      { wl: 0, delay: 600 },
-    ];
-
-    let step = 0;
-    let timerId: any = null;
-
-    const tick = () => {
-      if (step < sequence.length) {
-        const next = sequence[step];
-        timerId = setTimeout(() => {
-          setSimulatedWl(next.wl);
-          if (next.wl === 0) {
-            setShowConfirmedCelebration(true);
-            setActiveTrackerTab('coach');
-            setSelectedCoach(userBookedClass?.includes('SL') ? 'S1' : userBookedClass?.includes('1') ? 'A1' : userBookedClass?.includes('2') ? 'A1' : 'B4');
-            setTimeout(() => {
-              setIsPoofingCelebration(true);
-              setTimeout(() => {
-                setShowConfirmedCelebration(false);
-                setIsPoofingCelebration(false);
-              }, 600);
-            }, 5000);
-          }
-          step += 1;
-          tick();
-        }, next.delay);
-      }
-    };
-
-    tick();
-
-    return () => {
-      if (timerId) clearTimeout(timerId);
-    };
-  }, [isWaitlistBooking, initialWaitlistNumber, userBookedClass]);
+  const handleFastForwardSim = () => {
+    const lastIdx = SIM_SEQUENCE.length - 1;
+    setSimIndex(lastIdx);
+    setSimulatedWl(0);
+    setSimStatusMsg(SIM_SEQUENCE[lastIdx].msg);
+    setShowConfirmedCelebration(true);
+  };
 
   const handlePoofCelebration = () => {
     setIsPoofingCelebration(true);
@@ -1471,16 +1495,16 @@ export const JourneyTrackerPage: React.FC = () => {
               {/* 1. CELEBRATORY "YEAH! CONFIRMED" BANNER WHEN WAITLIST CLEARS TO 0 */}
               {showConfirmedCelebration && (
                 <div
-                  className={`relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-2xl border-2 border-emerald-300 overflow-hidden transition-all duration-500 animate-in zoom-in-95 ${
+                  className={`relative rounded-3xl p-6 sm:p-7 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-2xl border-2 border-emerald-300 overflow-hidden transition-all duration-500 animate-in zoom-in-95 ${
                     isPoofingCelebration ? 'scale-90 opacity-0 blur-md pointer-events-none' : ''
                   }`}
                 >
-                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-5 sm:gap-6 justify-between">
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center text-4xl shadow-inner animate-bounce">
                         🎉
                       </div>
-                      <div>
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-900 text-[10px] font-black uppercase tracking-wider shadow-xs">
                             100% CONFIRMED
@@ -1489,7 +1513,7 @@ export const JourneyTrackerPage: React.FC = () => {
                             YEAH! Your Seats are Confirmed! 🥳
                           </span>
                         </div>
-                        <p className="text-xs sm:text-sm text-emerald-100 font-bold mt-1 leading-snug">
+                        <p className="text-xs sm:text-sm text-emerald-100 font-bold leading-snug">
                           All 42 waitlist positions cleared! Allocated Coach <span className="underline font-mono text-amber-200 font-black">B4</span> • Berth <span className="underline font-mono text-amber-200 font-black">36 (Lower) & 37 (Middle)</span>.
                         </p>
                       </div>
@@ -1498,7 +1522,7 @@ export const JourneyTrackerPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handlePoofCelebration}
-                      className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-white/30 shadow-md"
+                      className="px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-white/30 shadow-md active:scale-95"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Poof Off 💨</span>
@@ -1510,13 +1534,13 @@ export const JourneyTrackerPage: React.FC = () => {
               {/* 2. Mascot Floating Advice Card (When not in full confirmed celebration) */}
               {!showConfirmedCelebration && showNiraHappyBanner && (
                 <div
-                  className={`relative rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border-2 border-purple-400/40 overflow-hidden transition-all duration-500 ${
+                  className={`relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white shadow-xl border border-purple-400/30 overflow-hidden transition-all duration-500 ${
                     isPoofingOff ? 'scale-90 opacity-0 blur-md pointer-events-none' : ''
                   }`}
                 >
-                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between">
-                    <div className="flex items-center gap-3.5 shrink-0">
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-5 justify-between">
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
                         <img
                           src="/assets/images/characters/nira_happy_mascot.png"
                           alt="Nira Happy Mascot"
@@ -1531,15 +1555,15 @@ export const JourneyTrackerPage: React.FC = () => {
                           <Sparkles className="w-4 h-4 text-amber-300" />
                           <span className="font-extrabold text-sm text-amber-300">Nira Waitlist Copilot</span>
                         </div>
-                        <span className="text-[10px] text-purple-200 block font-medium">Real-Time Destination Intelligence</span>
+                        <span className="text-[11px] text-purple-200 block font-medium">Real-Time Destination Intelligence</span>
                       </div>
                     </div>
 
-                    <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/20 text-center sm:text-left space-y-1 transition-all">
-                      <p className="text-xs sm:text-sm font-bold text-white leading-relaxed animate-in fade-in key={effectiveWl}">
+                    <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 text-center sm:text-left space-y-1">
+                      <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
                         "{copilotDynamicAdvice.title}"
                       </p>
-                      <span className="text-[10px] text-purple-200 block font-medium">
+                      <span className="text-[11px] text-purple-200 block font-medium">
                         {copilotDynamicAdvice.subtitle}
                       </span>
                     </div>
@@ -1547,198 +1571,215 @@ export const JourneyTrackerPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handlePoofOff}
-                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xs flex items-center gap-1 shadow-md transition-all cursor-pointer shrink-0"
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1 border border-white/20 transition-all cursor-pointer shrink-0"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Poof Off 💨</span>
+                      <Sparkles className="w-3 h-3 text-amber-300" />
+                      <span>Dismiss</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* 3. Zero Seat Warning Alert vs Confirmed Status Banner */}
-              {isUserBookedTrain && (
-                effectiveWl === 0 ? (
-                  <div className="rounded-2xl border border-emerald-300 bg-emerald-50/95 p-3.5 text-emerald-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                        <CheckCircle2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
-                            BERTH ALLOCATED
-                          </span>
-                          <span className="text-xs font-black text-emerald-950">
-                            CONFIRMED: Coach B4 • Seat 36 (Lower) & Seat 37 (Middle)
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
-                          All 42 waitlist positions cleared! Your e-Ticket is fully confirmed for travel.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black font-mono shrink-0 shadow-xs">
-                      100% CNF
-                    </div>
-                  </div>
-                ) : (
-                  (seatInventory.status !== 'AVAILABLE' || primaryNoSeat) && (
-                    <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-3.5 text-rose-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                          <AlertCircle className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-black uppercase tracking-wider">
-                              Zero Seat Alert
-                            </span>
-                            <span className="text-xs font-black text-rose-950">
-                              NO SEATS AVAILABLE from {primaryNoSeat?.fromStation || fromCity} to {primaryNoSeat?.toStation || toCity}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-rose-800 font-medium mt-0.5">
-                            Occupancy at 100% capacity on this segment. Active Waitlist: {seatInventory.status} GNWL {effectiveWl} (Initial: 42).
-                          </p>
-                        </div>
-                      </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-900 text-xs font-bold shrink-0">
-                        Occupancy 100%
-                      </div>
-                    </div>
-                  )
-                )
-              )}
-
-              {/* 4. Real-Time Confirmation Probability & Clearance Meter */}
-              <div className="rounded-3xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/95 via-white to-indigo-50/95 p-4 sm:p-5 text-slate-900 shadow-md space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-100 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/25">
-                      <Sparkles className="w-5 h-5 text-amber-300" />
+              {/* 3. HERO PREDICTION & WAITLIST RADAR CARD (DE-CONGESTED & SPACIOUS) */}
+              <div className="rounded-3xl border border-purple-100 bg-white p-6 sm:p-7 text-slate-900 shadow-sm space-y-6">
+                {/* Header with Title & Telemetry Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-50 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
+                      <TrendingUp className="w-6 h-6 text-amber-300" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping" />
-                          LIVE CONFIRMATION RADAR
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1.5 border border-emerald-300/60">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          LIVE RADAR TELEMETRY
                         </span>
-                        <span className="text-xs font-black text-purple-950">
-                          Real-Time Waitlist Clearance & Confirmation Probability
+                        <span className="text-sm sm:text-base font-black text-slate-900">
+                          Waitlist Prediction & Probability
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                      <p className="text-xs text-slate-500 font-medium mt-1">
                         {effectiveWl === 0
-                          ? '🎉 All 42 waitlist positions cleared! Ticket successfully confirmed in Coach B4.'
-                          : `Dynamic queue clearance moved your ticket from GNWL 42 ➔ GNWL ${effectiveWl} (${effectiveCleared} cleared ahead in real-time).`}
+                          ? '🎉 All 42 positions cleared • Berth allocated in Coach B4'
+                          : `Monitoring corridor queue • Cleared ${effectiveCleared} positions ahead in real-time.`}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-start sm:self-center shrink-0 bg-white px-3.5 py-2 rounded-2xl border border-purple-200 shadow-2xs">
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Confirmation Odds</span>
-                      <span className="text-base font-black text-emerald-600 font-mono">{effectiveProb}%</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-300 shadow-2xs">
-                      {effectiveProb}%
-                    </div>
+                  {/* Simulation Controls Pill */}
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl self-start sm:self-center shrink-0">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1 hidden sm:inline">
+                      Sim:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSimPaused((p) => !p)}
+                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
+                      title={isSimPaused ? 'Resume Real-Time Telemetry' : 'Pause Simulation'}
+                    >
+                      {isSimPaused ? <Play className="w-3.5 h-3.5 fill-purple-900" /> : <Pause className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStepSim}
+                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
+                      title="Advance 1 Step Forward"
+                    >
+                      <FastForward className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetSim}
+                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
+                      title="Reset to Initial Queue (GNWL 42)"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Real-time Clearance Meter Bar */}
-                <div className="space-y-2 bg-white p-3.5 rounded-2xl border border-purple-100 shadow-2xs">
-                  <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-1">
-                    <span className="text-amber-700 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                      Initial Queue: GNWL 42
-                    </span>
-                    <span className="text-purple-700 font-mono font-black">
-                      Current Position: {effectiveWl === 0 ? 'CONFIRMED ✓' : `GNWL ${effectiveWl}`}
-                    </span>
-                    <span className="text-emerald-700 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Confirmed Berth Forecast ({effectiveProb}%)
-                    </span>
+                {/* Main Prediction Bar & Confirmation Dial */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-indigo-50/70 border border-purple-100 space-y-4">
+                  {/* Waypoints Row */}
+                  <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-amber-400 ring-4 ring-amber-100" />
+                      <span className="text-amber-800">Booking: <strong className="font-mono font-black">GNWL 42</strong></span>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-purple-200 shadow-2xs">
+                      <Activity className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
+                      <span className="text-purple-950 font-mono font-black">
+                        Current: {effectiveWl === 0 ? 'CONFIRMED ✓' : `GNWL ${effectiveWl}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+                      <span className="text-emerald-800">Target: <strong className="font-mono font-black">CNF Coach B4</strong></span>
+                    </div>
                   </div>
 
-                  <div className="w-full h-3.5 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
+                  {/* Spacious, Smooth Animated Progress Bar */}
+                  <div className="w-full h-4 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-purple-600 to-emerald-500 transition-all duration-700 ease-out shadow-xs"
-                      style={{ width: `${Math.min(100, Math.max(20, ((42 - effectiveWl) / 42) * 100))}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-500 transition-all duration-1000 ease-out shadow-xs"
+                      style={{ width: `${Math.min(100, Math.max(15, ((42 - effectiveWl) / 42) * 100))}%` }}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium flex-wrap gap-1">
-                    <span>⚡ Clearance velocity: 4.8 cancellations/hr</span>
-                    <span className="text-emerald-700 font-bold">✓ {effectiveCleared} cancellations & quota adjustments absorbed</span>
-                    <span>{effectiveWl === 0 ? 'Chart Prepared • Berths Allocated' : 'Chart Prep in ~3h 45m'}</span>
+                  {/* Status & Odds Summary */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 text-xs">
+                    <div className="flex items-center gap-2 text-slate-600 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-purple-600 animate-ping shrink-0" />
+                      <span>{simStatusMsg}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-purple-200 shadow-2xs self-start sm:self-center">
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                          Confirmation Odds
+                        </span>
+                        <span className="text-lg font-black text-emerald-600 font-mono leading-none">
+                          {effectiveProb}%
+                        </span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-300">
+                        {effectiveProb}%
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* 3 Interactive Telemetry Tiles */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Queue Position</span>
-                    <div className="font-black text-slate-900 flex items-center gap-1.5">
-                      <span className="font-mono text-purple-700 text-sm">
-                        {effectiveWl === 0 ? 'CNF (Confirmed)' : `GNWL ${effectiveWl}`}
-                      </span>
+                {/* 3 Spacious Telemetry Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+                  <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Clearance Velocity
+                    </span>
+                    <div className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                      <span className="font-mono text-purple-700 text-base">3.4 / hr</span>
                       <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">
-                        {effectiveWl === 0 ? 'Allocated ✓' : 'Fast Clearance'}
+                        High Speed
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500">Started at GNWL 42 at booking time</p>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Berth Allocation Forecast</span>
-                    <div className="font-black text-emerald-700 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{effectiveWl === 0 ? 'Coach B4 • Seat 36 & 37' : 'Berth Assured (Lower/Side)'}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      {effectiveWl === 0 ? 'Confirmed in reservation system' : 'Auto-assigned upon chart preparation'}
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                      Corridor cancellation rate active across Howrah & intermediate hubs.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-white border border-purple-100 space-y-1 shadow-2xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">AI Confidence Rating</span>
-                    <div className="font-black text-indigo-700 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>{effectiveWl === 0 ? '100% Confirmation' : '99.4% Model Precision'}</span>
+                  <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Chart Preparation Window
+                    </span>
+                    <div className="font-black text-emerald-700 text-sm flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{effectiveWl === 0 ? 'Chart Prepared • Berths Allocated' : 'In ~3h 45m'}</span>
                     </div>
-                    <p className="text-[10px] text-slate-500">Trained on 14,280 historic Northern Railway runs</p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                      {effectiveWl === 0 ? 'Confirmed in official Indian Railways system.' : 'Unallocated VIP & emergency quotas released to general queue.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      NOVA ML Precision
+                    </span>
+                    <div className="font-black text-indigo-700 text-sm flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span>99.4% Model Accuracy</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                      Calibrated Poisson queue trained on 14,280 historic Northern Railway runs.
+                    </p>
                   </div>
                 </div>
 
-                {/* HOW THE WAITLIST IS ANALYSED IN REAL TIME */}
-                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-3">
+                {/* 3-Step Clear Explainability Pipeline */}
+                <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-sm">AI</span>
-                      <h4 className="text-xs sm:text-sm font-black text-slate-900">HOW Your Waitlist is Analysed in Real Time (Destination Pipeline)</h4>
+                      <span className="w-6 h-6 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                        AI
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                        How Your Waitlist is Analyzed in Real-Time
+                      </h4>
                     </div>
-                    <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">Real-Time Model</span>
+                    <span className="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2.5 py-0.5 rounded-full">
+                      Corridor Pipeline
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
-                    <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
-                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900">Step 1</span>
-                      <span className="text-xs font-black text-slate-900 block">Destination Quota</span>
-                      <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor quota balanced for <strong>{toCity}</strong> vs intermediate drop-offs.</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-900">
+                        1. Quota Partition
+                      </span>
+                      <span className="font-bold text-slate-900 block text-xs mt-1">Corridor Balance</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                        Analyzes destination quota for {toCity} vs intermediate drop-offs.
+                      </p>
                     </div>
-                    <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Velocity</span></div>
-                    <div className="md:col-span-2 p-3 rounded-2xl bg-white border border-purple-200 shadow-xs space-y-1.5">
-                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">Step 2</span>
-                      <span className="text-xs font-black text-slate-900 block">Live Cancel Rate</span>
-                      <p className="text-[10px] text-slate-600 font-medium leading-tight">Corridor clears <strong>3.4 cancels/hr</strong> on average.</p>
+
+                    <div className="p-3.5 rounded-xl bg-white border border-purple-100 space-y-1">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-900">
+                        2. Velocity Modeling
+                      </span>
+                      <span className="font-bold text-slate-900 block text-xs mt-1">Poisson Clearance</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                        Tracks average cancellation velocity (3.4 / hr) in real-time.
+                      </p>
                     </div>
-                    <div className="hidden md:flex flex-col items-center justify-center text-purple-600 font-black text-lg animate-pulse"><span>➔</span><span className="text-[8px] font-bold text-slate-400">Algorithm</span></div>
-                    <div className="md:col-span-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 shadow-xs space-y-1.5">
-                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-2xs">Output</span>
-                      <span className="text-xs font-black text-emerald-950 block">Berth Confirmed</span>
-                      <p className="text-[10px] text-emerald-800 font-bold leading-tight">WL-{effectiveWl} ➔ RAC ➔ Confirmed Berth forecast ({effectiveProb}% odds).</p>
+
+                    <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 space-y-1">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-white">
+                        3. Berth Output
+                      </span>
+                      <span className="font-bold text-emerald-950 block text-xs mt-1">Confirmed Allocation</span>
+                      <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+                        WL-{effectiveWl} ➔ RAC ➔ Confirmed Lower/Middle berth forecast.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1752,22 +1793,22 @@ export const JourneyTrackerPage: React.FC = () => {
         <div className="space-y-3">
           {/* WHEN IN WAITLIST TAB: SHOW WAITLIST WATCH SIDEBAR & ACTIONS */}
           {activeTrackerTab === 'waitlist' && (
-            <div className="bg-white rounded-3xl p-4 border-2 border-purple-200 shadow-sm space-y-3 animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-purple-50 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
                     🟢
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">
+                    <h4 className="text-sm font-black text-slate-900 leading-none">
                       Waitlist Watch
                     </h4>
-                    <span className="text-[10px] font-bold text-purple-700">
+                    <span className="text-[11px] font-bold text-purple-700 mt-0.5 block">
                       WL {wlWatch.initialWl} → WL {wlWatch.currentWl}
                     </span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase tracking-wider">
                   Active Watch
                 </span>
               </div>
@@ -1776,16 +1817,16 @@ export const JourneyTrackerPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowExplainTicketModal(true)}
-                className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-[#7C3AED] hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-[#7C3AED] hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-black shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                <Sparkles className="w-4 h-4 text-yellow-300" />
                 <span>✨ Explain My Ticket in Plain English</span>
               </button>
 
               {/* Probability & Movement with Explain */}
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-100 space-y-1.5">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-purple-50/70 border border-purple-100 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                     <span>Confirmation Probability</span>
                     <Explain
                       term="CONFIRMATION_PROBABILITY"
@@ -1800,19 +1841,19 @@ export const JourneyTrackerPage: React.FC = () => {
                     {wlWatch.confirmationProbability}%
                   </span>
                 </div>
-                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700"
                     style={{ width: `${wlWatch.confirmationProbability}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-slate-600 font-medium">
+                <p className="text-[11px] text-slate-600 font-medium">
                   {wlWatch.trendText}
                 </p>
               </div>
 
               {/* Per-Passenger Waitlist Status Breakdown */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Passenger Status ({passengerEntries.length}):
@@ -1828,28 +1869,28 @@ export const JourneyTrackerPage: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {passengerEntries.map((p, idx) => (
                     <div
                       key={idx}
-                      className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1"
+                      className="p-3 rounded-2xl bg-slate-50/90 border border-slate-200/80 text-xs space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-900 text-[11px]">
+                        <span className="font-bold text-slate-900 text-xs">
                           {privacyMode ? p.displayName : p.name}
                         </span>
-                        <span className="font-mono text-purple-900 font-bold text-[11px] flex items-center gap-1">
+                        <span className="font-mono text-purple-900 font-bold text-xs flex items-center gap-1">
                           {p.quotaType} {p.initialWl} → {p.quotaType} {p.currentWl}
                         </span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-slate-200/70 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700"
                           style={{ width: `${p.probability}%` }}
                         />
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                        <span>{p.positionsCleared} cleared</span>
+                        <span>{p.positionsCleared} positions cleared</span>
                         <span className="text-emerald-700 font-bold">{p.probability}% est.</span>
                       </div>
                     </div>
@@ -1858,7 +1899,7 @@ export const JourneyTrackerPage: React.FC = () => {
               </div>
 
               {/* Comfort Window Tabs */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Select Your Comfort Window:
                 </label>
@@ -1872,14 +1913,14 @@ export const JourneyTrackerPage: React.FC = () => {
                       key={tab.id}
                       type="button"
                       onClick={() => setComfortLevel(tab.id)}
-                      className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
                         comfortLevel === tab.id
                           ? 'bg-purple-900 text-white border-purple-900 shadow-xs'
                           : 'bg-purple-50/50 text-slate-700 border-purple-100 hover:bg-purple-100'
                       }`}
                     >
-                      <span className="block">{tab.label}</span>
-                      <span className={`text-[9px] block ${comfortLevel === tab.id ? 'text-purple-200' : 'text-slate-400'}`}>
+                      <span className="block text-xs">{tab.label}</span>
+                      <span className={`text-[9px] block mt-0.5 ${comfortLevel === tab.id ? 'text-purple-200' : 'text-slate-400'}`}>
                         {tab.hint}
                       </span>
                     </button>
@@ -1888,11 +1929,11 @@ export const JourneyTrackerPage: React.FC = () => {
               </div>
 
               {/* Nira Reassuring Insight Bubble */}
-              <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-start gap-2 text-xs">
+              <div className="p-3.5 rounded-2xl bg-purple-50/80 border border-purple-200 flex items-start gap-2.5 text-xs">
                 <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-purple-950 font-bold block">Nira says:</strong>
-                  <p className="text-slate-700 text-[11px] font-medium leading-relaxed">
+                  <strong className="text-purple-950 font-bold block">Nira Copilot:</strong>
+                  <p className="text-slate-700 text-[11px] font-medium leading-relaxed mt-0.5">
                     "{wlWatch.niraSpeech}"
                   </p>
                 </div>
