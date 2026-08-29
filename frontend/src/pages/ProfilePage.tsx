@@ -18,13 +18,99 @@ import {
   Trash2,
   KeyRound,
   ExternalLink,
+  Camera,
+  X,
+  Check,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import { JargonHint } from '../components/JargonHint';
+
+export interface CitizenAvatar {
+  id: string;
+  name: string;
+  role: string;
+  badge: string;
+  url: string;
+}
+
+export const CITIZEN_AVATARS: CitizenAvatar[] = [
+  {
+    id: 'avatar_1',
+    name: 'Aarav',
+    role: 'Student & Youth Explorer',
+    badge: 'Student',
+    url: '/assets/images/avatars/avatar_1_student.svg',
+  },
+  {
+    id: 'avatar_2',
+    name: 'Sharma Ji',
+    role: 'Senior Citizen Veteran',
+    badge: 'Senior 60+',
+    url: '/assets/images/avatars/avatar_2_senior.svg',
+  },
+  {
+    id: 'avatar_3',
+    name: 'Ananya',
+    role: 'Software Engineer & AI Enthusiast',
+    badge: 'Tech Professional',
+    url: '/assets/images/avatars/avatar_3_techie.svg',
+  },
+  {
+    id: 'avatar_4',
+    name: 'Rohan',
+    role: 'Daily Intercity Express Commuter',
+    badge: 'Daily Commuter',
+    url: '/assets/images/avatars/avatar_4_commuter.svg',
+  },
+  {
+    id: 'avatar_5',
+    name: 'Pooja',
+    role: 'Family Vacation Planner',
+    badge: 'Family Travel',
+    url: '/assets/images/avatars/avatar_5_family.svg',
+  },
+  {
+    id: 'avatar_6',
+    name: 'Kabir',
+    role: 'Travel Blogger & Lensman',
+    badge: 'Creator',
+    url: '/assets/images/avatars/avatar_6_photographer.svg',
+  },
+  {
+    id: 'avatar_7',
+    name: 'Dr. Meera',
+    role: 'Medical & Healthcare Professional',
+    badge: 'Doctor',
+    url: '/assets/images/avatars/avatar_7_doctor.svg',
+  },
+  {
+    id: 'avatar_8',
+    name: 'Vikram',
+    role: 'Startup Founder & Business Nomad',
+    badge: 'Entrepreneur',
+    url: '/assets/images/avatars/avatar_8_entrepreneur.svg',
+  },
+  {
+    id: 'avatar_9',
+    name: 'Tanvi',
+    role: 'Railway Heritage Explorer',
+    badge: 'Rail Enthusiast',
+    url: '/assets/images/avatars/avatar_9_rail_enthusiast.svg',
+  },
+  {
+    id: 'avatar_10',
+    name: 'Nira Pilot',
+    role: 'AI-Assisted Co-Pilot Passenger',
+    badge: 'AI Guide',
+    url: '/assets/images/avatars/avatar_10_nira_guide.svg',
+  },
+];
 
 export const ProfilePage: React.FC = () => {
-  const { navigateTo, authState, setAuthState, walletBalance, savedPassengers } = useJourney();
+  const { navigateTo, authState, setAuthState, walletBalance, savedPassengers, addNotification } = useJourney();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'GOOGLE' | 'DIGILOCKER'>('LOGIN');
 
@@ -45,6 +131,19 @@ export const ProfilePage: React.FC = () => {
   const [modalAadhaar, setModalAadhaar] = useState('');
   const [authMessage, setAuthMessage] = useState<string | null>(null);
 
+  const handleSelectAvatar = (avatarUrl: string, avatarName?: string) => {
+    setAuthState((prev) => ({
+      ...prev,
+      avatarUrl,
+    }));
+    setShowAvatarModal(false);
+    addNotification({
+      title: '👤 Profile Avatar Updated',
+      body: `Avatar updated to ${avatarName || 'Selected Citizen Persona'}.`,
+      type: 'info',
+    });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
@@ -54,6 +153,11 @@ export const ProfilePage: React.FC = () => {
       email: profile.email,
       phone: profile.phoneNumber,
     }));
+    addNotification({
+      title: '✓ Profile Details Saved',
+      body: 'Citizen profile changes successfully persisted.',
+      type: 'info',
+    });
   };
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
@@ -78,7 +182,7 @@ export const ProfilePage: React.FC = () => {
           displayName: data.displayName,
           email: data.email,
           phone: modalPhone,
-          avatarUrl: data.avatarUrl,
+          avatarUrl: data.avatarUrl || '/assets/images/avatars/avatar_1_student.svg',
           isAuthenticated: true,
           failureReason: null,
         });
@@ -98,13 +202,20 @@ export const ProfilePage: React.FC = () => {
       // Fallback local update
       setAuthState({
         status: 'READY',
-        userId: `usr_${Date.now()}`,
+        userId: `user_${Date.now()}`,
         displayName: modalName || 'New Citizen',
-        email: modalEmail,
-        phone: modalPhone,
+        email: modalEmail || 'citizen@nirantar.gov.in',
+        phone: modalPhone || '9876543210',
+        avatarUrl: '/assets/images/avatars/avatar_1_student.svg',
         isAuthenticated: true,
         failureReason: null,
       });
+      setProfile((prev) => ({
+        ...prev,
+        fullName: modalName || prev.fullName,
+        email: modalEmail || prev.email,
+        phoneNumber: modalPhone || prev.phoneNumber,
+      }));
       setShowAuthModal(false);
     }
   };
@@ -120,7 +231,7 @@ export const ProfilePage: React.FC = () => {
           email,
           name,
           google_id: `google_${Date.now()}`,
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`,
+          avatar_url: '/assets/images/avatars/avatar_3_techie.svg',
         }),
       });
       if (res.ok) {
@@ -172,6 +283,9 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const currentAvatar =
+    authState.avatarUrl || '/assets/images/avatars/avatar_1_student.svg';
+
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-6 select-none font-sans text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
@@ -192,7 +306,7 @@ export const ProfilePage: React.FC = () => {
               <span>My Profile & Customer Database</span>
             </h1>
             <p className="text-xs font-medium text-slate-500">
-              Persistent SQL database isolation for tickets, wallet & passenger profiles
+              Persistent database isolation for tickets, <JargonHint term="citizen wallet">Citizen Wallet</JargonHint> & passenger profiles
             </p>
           </div>
         </div>
@@ -212,7 +326,7 @@ export const ProfilePage: React.FC = () => {
 
           <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>DigiLocker Verified</span>
+            <span><JargonHint term="DigiLocker">DigiLocker</JargonHint> Verified</span>
           </span>
         </div>
       </div>
@@ -223,47 +337,92 @@ export const ProfilePage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {/* LEFT / CENTER: PROFILE DETAILS CARD (2 Cols) */}
         <div className="md:col-span-2 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 space-y-6">
-          {/* Avatar Section */}
-          <div className="flex items-center gap-5 pb-4 border-b border-purple-50">
-            <div className="relative group">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-purple-300 shadow-md bg-purple-50">
-                <img
-                  src={authState.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=pratay'}
-                  alt="Profile Avatar"
-                  className="w-full h-full object-cover"
-                />
+          {/* Avatar Section with 10 Personas Trigger */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-4 border-b border-purple-50">
+            <div className="flex items-center gap-4">
+              <div className="relative group shrink-0">
+                <div
+                  onClick={() => setShowAvatarModal(true)}
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-purple-300 shadow-md bg-purple-50 p-1 cursor-pointer group-hover:ring-4 group-hover:ring-purple-200 transition-all"
+                >
+                  <img
+                    src={currentAvatar}
+                    alt="Profile Avatar"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(true)}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-purple-700 hover:bg-purple-800 text-white flex items-center justify-center shadow-md border-2 border-white transition-all cursor-pointer"
+                  title="Choose from 10 Avatars"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsEditing(!isEditing)}
-                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-700 hover:bg-purple-800 text-white flex items-center justify-center shadow-md border-2 border-white transition-all cursor-pointer"
-                title="Edit avatar"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
+
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">
+                    {profile.fullName}
+                  </h2>
+                  <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                    Citizen #IN-84920
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium truncate">
+                  {profile.email}
+                </p>
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 pt-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>Aadhaar Verified ({profile.aadhaarNumber})</span>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                  {profile.fullName}
-                </h2>
-                <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Citizen #IN-84920
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                {profile.email}
-              </p>
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 pt-0.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Aadhaar Verified ({profile.aadhaarNumber})</span>
-              </div>
+            <button
+              type="button"
+              onClick={() => setShowAvatarModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold transition-all shadow-2xs cursor-pointer shrink-0 self-start sm:self-center"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>Choose Avatar (10)</span>
+            </button>
+          </div>
+
+          {/* Quick Avatar Strip Preview */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              10 Citizen Persona Avatars
+            </span>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1">
+              {CITIZEN_AVATARS.map((av) => {
+                const isSelected = currentAvatar === av.url;
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => handleSelectAvatar(av.url, av.name)}
+                    className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl shrink-0 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-100 ring-2 ring-purple-600 scale-105 shadow-sm'
+                        : 'bg-slate-50 hover:bg-purple-50 border border-slate-200/80 hover:scale-102'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-white p-0.5">
+                      <img src={av.url} alt={av.name} className="w-full h-full object-contain" />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                      {av.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Form Fields */}
-          <form onSubmit={handleSave} className="space-y-4 text-xs">
+          <form onSubmit={handleSave} className="space-y-4 text-xs pt-2">
             {/* Full Name */}
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -355,7 +514,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-5 text-white shadow-md border border-purple-800 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-purple-300 font-bold uppercase tracking-wider text-[10px]">
-                Citizen Virtual Wallet
+                <JargonHint term="citizen wallet">Citizen Virtual Wallet</JargonHint>
               </span>
               <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-bold px-2 py-0.2 rounded-full">
                 Active Balance
@@ -377,7 +536,7 @@ export const ProfilePage: React.FC = () => {
               className="w-full p-2.5 rounded-xl hover:bg-purple-50 hover:text-purple-900 flex items-center gap-3 transition-colors text-left cursor-pointer"
             >
               <KeyRound className="w-4 h-4 text-purple-700" />
-              <span>Transaction Records</span>
+              <span><JargonHint term="payment ledger">Payment Ledger & Receipts</JargonHint></span>
             </button>
             <button
               type="button"
@@ -385,14 +544,84 @@ export const ProfilePage: React.FC = () => {
               className="w-full p-2.5 rounded-xl hover:bg-purple-50 hover:text-purple-900 flex items-center gap-3 transition-colors text-left cursor-pointer"
             >
               <Users className="w-4 h-4 text-purple-700" />
-              <span>My Booked Tickets</span>
+              <span><JargonHint term="e-ticket">My Booked Tickets Vault</JargonHint></span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. REAL OAUTH & SIGNUP / LOGIN POPUP MODAL
+          3. CITIZEN AVATAR PICKER MODAL (10 PERSONAS)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showAvatarModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-purple-100 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-purple-50 pb-3">
+              <div>
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                  <span>Choose Your Citizen Avatar</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                    10 Personas
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Select an identity style that matches your travel persona
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAvatarModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+              {CITIZEN_AVATARS.map((av) => {
+                const isSelected = currentAvatar === av.url;
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => handleSelectAvatar(av.url, av.name)}
+                    className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer group ${
+                      isSelected
+                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-400 shadow-md'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-purple-100/50 p-1 shrink-0 group-hover:scale-105 transition-transform">
+                      <img src={av.url} alt={av.name} className="w-full h-full object-contain" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-900 block truncate">
+                          {av.name}
+                        </span>
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-purple-700 block">
+                        {av.badge}
+                      </span>
+                      <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                        {av.role}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          4. REAL OAUTH & SIGNUP / LOGIN POPUP MODAL
           ═══════════════════════════════════════════════════════════════════ */}
       {showAuthModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -450,51 +679,58 @@ export const ProfilePage: React.FC = () => {
             {/* Manual Form */}
             <form onSubmit={handleSignupSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Full Name (e.g. Pratay Karali)
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                  Full Name
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Enter full name"
                   value={modalName}
                   onChange={(e) => setModalName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-purple-600"
+                  placeholder="e.g. Ananya Roy"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-purple-600 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">
                   Email Address
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="name@email.com"
                   value={modalEmail}
                   onChange={(e) => setModalEmail(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-purple-600"
+                  placeholder="ananya@example.com"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-purple-600 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Mobile Number
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                  Phone Number
                 </label>
                 <input
                   type="tel"
-                  placeholder="10-digit mobile"
+                  required
                   value={modalPhone}
                   onChange={(e) => setModalPhone(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-purple-600"
+                  placeholder="9876543210"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-purple-600 focus:outline-none"
                 />
               </div>
 
+              {authMessage && (
+                <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-900 text-[11px] font-bold">
+                  {authMessage}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-extrabold text-xs shadow-md shadow-purple-600/20 transition-all cursor-pointer"
               >
-                Save & Authenticate to Database
+                {authMode === 'SIGNUP' ? 'Create Account & Switch Profile' : 'Sign In'}
               </button>
             </form>
           </div>

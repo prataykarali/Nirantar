@@ -11,8 +11,10 @@ import {
   Save,
   CheckCircle2,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import { JargonHint } from '../components/JargonHint';
 
 export const SettingsPage: React.FC = () => {
   const { navigateTo } = useJourney();
@@ -50,15 +52,25 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-6 select-none font-sans text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. HEADER WITH TITLE
+          1. HEADER WITH TITLE & SETTINGS BACKGROUND GRAPHIC
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-purple-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-            <SettingsIcon className="w-5 h-5" />
+      <div className="relative overflow-hidden flex items-center justify-between bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-purple-100">
+        {/* Ambient Settings Background Illustration */}
+        <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden">
+          <img
+            src="/assets/images/settings_bg.png"
+            alt="Settings Background"
+            className="w-full h-full object-cover object-right"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-purple-50/60 pointer-events-none" />
+
+        <div className="relative z-10 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-md shadow-purple-600/20">
+            <SettingsIcon className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
               Settings
             </h1>
             <p className="text-xs font-medium text-slate-500">
@@ -68,7 +80,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {saveSuccess && (
-          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in">
+          <span className="relative z-10 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Settings Saved!</span>
           </span>
@@ -109,15 +121,15 @@ export const SettingsPage: React.FC = () => {
 
           {/* Mascot Info Box */}
           <div className="pt-4 border-t border-purple-50">
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 flex items-center gap-3">
+            <div className="relative overflow-hidden p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-pink-50 border border-purple-100 flex items-center gap-3 shadow-2xs">
               <div className="w-12 h-12 shrink-0">
                 <img
-                  src="/assets/images/characters/nira_idea.png"
-                  alt="Nira Settings"
+                  src="/assets/images/characters/nira_guide_clean.svg"
+                  alt="Nira Settings Mascot"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <div className="text-[11px]">
+              <div className="text-[11px] relative z-10">
                 <strong className="text-purple-950 block font-bold">Local-First Storage</strong>
                 <span className="text-slate-500">Preferences stay securely on your browser.</span>
               </div>
@@ -126,12 +138,26 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* ── RIGHT COLUMN: GENERAL FORM CONTROLS (8 Cols) ── */}
-        <div className="md:col-span-8 bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-purple-100 space-y-5">
-          <h2 className="text-sm font-black text-slate-900 tracking-tight pb-2 border-b border-purple-50">
-            General
-          </h2>
+        <div className="relative overflow-hidden md:col-span-8 bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-purple-100 space-y-5">
+          {/* Subtle Panel Background Graphic */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+            <img
+              src="/assets/images/settings_bg.png"
+              alt="Settings Graphic"
+              className="w-full h-full object-cover object-bottom"
+            />
+          </div>
 
-          <form onSubmit={handleSave} className="space-y-4 text-xs font-semibold text-slate-700">
+          <div className="relative z-10 flex items-center justify-between pb-2 border-b border-purple-50">
+            <h2 className="text-sm font-black text-slate-900 tracking-tight">
+              General Settings
+            </h2>
+            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+              Zero-PII Local Storage
+            </span>
+          </div>
+
+          <form onSubmit={handleSave} className="relative z-10 space-y-4 text-xs font-semibold text-slate-700">
             {/* 1. Theme */}
             <div className="flex items-center justify-between gap-4 py-1">
               <div>
@@ -141,7 +167,7 @@ export const SettingsPage: React.FC = () => {
               <select
                 value={settings.theme}
                 onChange={(e) => setSettings({ ...settings, theme: e.target.value })}
-                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
               >
                 <option value="Light">Light</option>
                 <option value="Dark">Dark</option>
@@ -160,7 +186,7 @@ export const SettingsPage: React.FC = () => {
               <select
                 value={settings.fontSize}
                 onChange={(e) => setSettings({ ...settings, fontSize: e.target.value })}
-                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
               >
                 <option value="Small">Small</option>
                 <option value="Medium">Medium</option>
@@ -179,7 +205,7 @@ export const SettingsPage: React.FC = () => {
               <select
                 value={settings.appLanguage}
                 onChange={(e) => setSettings({ ...settings, appLanguage: e.target.value })}
-                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
               >
                 <option value="English">English</option>
                 <option value="Hindi">हिन्दी (Hindi)</option>
@@ -199,7 +225,7 @@ export const SettingsPage: React.FC = () => {
               <select
                 value={settings.defaultJourneyClass}
                 onChange={(e) => setSettings({ ...settings, defaultJourneyClass: e.target.value })}
-                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer"
               >
                 <option value="AC 3 Tier">AC 3 Tier (3A)</option>
                 <option value="AC 2 Tier">AC 2 Tier (2A)</option>

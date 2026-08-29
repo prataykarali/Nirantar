@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg10" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#9333EA"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="visor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg10)"/>
+  <circle cx="60" cy="60" r="52" fill="#FAF5FF" stroke="#E9D5FF" stroke-width="2"/>
+  <!-- Body / Cyber Hoodie -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#6B21A8"/>
+  <path d="M48 76 L60 90 L72 76 Z" fill="#A855F7"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="54" rx="22" ry="24" fill="#FED7AA"/>
+  <!-- Cyber / High-Tech Hair -->
+  <path d="M38 48 C36 28, 48 18, 60 18 C74 18, 84 28, 82 48 C76 34, 64 30, 48 34 C42 36, 38 42, 38 48 Z" fill="#581C87"/>
+  <!-- AI Visor / Smart AR Glasses -->
+  <rect x="40" y="46" width="40" height="13" rx="6.5" fill="url(#visor)" stroke="#4C1D95" stroke-width="1.8"/>
+  <line x1="46" y1="52" x2="74" y2="52" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="48" cy="52" r="2.5" fill="#FFFFFF"/>
+  <circle cx="72" cy="52" r="2.5" fill="#FFFFFF"/>
+  <!-- Smart Smile -->
+  <path d="M53 66 Q60 72 67 66" stroke="#7E22CE" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Antennas / Ear Comm -->
+  <circle cx="36" cy="52" r="3" fill="#06B6D4"/>
+  <circle cx="84" cy="52" r="3" fill="#06B6D4"/>
+</svg>

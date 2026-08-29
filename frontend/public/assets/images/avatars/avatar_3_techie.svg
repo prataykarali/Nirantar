@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg3)"/>
+  <circle cx="60" cy="60" r="52" fill="#FDF2F8" stroke="#FBCFE8" stroke-width="2"/>
+  <!-- Hair Back -->
+  <path d="M34 52 C30 75, 34 95, 38 102 C42 102, 78 102, 82 102 C86 95, 90 75, 86 52 Z" fill="#312E81"/>
+  <!-- Body / Blazer -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#4338CA"/>
+  <path d="M50 76 L60 92 L70 76 Z" fill="#F43F5E"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="52" rx="21" ry="23" fill="#FDE68A"/>
+  <!-- Hair Front (Chic Bob) -->
+  <path d="M38 48 C36 32, 48 20, 60 20 C74 20, 84 30, 82 46 C74 38, 54 36, 42 46 Z" fill="#312E81"/>
+  <!-- Eyes -->
+  <ellipse cx="50" cy="50" rx="3.5" ry="4" fill="#1E1B4B"/>
+  <ellipse cx="70" cy="50" rx="3.5" ry="4" fill="#1E1B4B"/>
+  <circle cx="51.5" cy="48.5" r="1.2" fill="#FFFFFF"/>
+  <circle cx="71.5" cy="48.5" r="1.2" fill="#FFFFFF"/>
+  <!-- Cheeks -->
+  <circle cx="43" cy="56" r="3" fill="#FDA4AF" opacity="0.6"/>
+  <circle cx="77" cy="56" r="3" fill="#FDA4AF" opacity="0.6"/>
+  <!-- Confident Smile -->
+  <path d="M52 62 Q60 68 68 62" stroke="#BE185D" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Earring -->
+  <circle cx="36" cy="56" r="2.5" fill="#F59E0B"/>
+  <circle cx="84" cy="56" r="2.5" fill="#F59E0B"/>
+</svg>

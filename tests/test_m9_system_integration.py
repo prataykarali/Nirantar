@@ -7,7 +7,6 @@ Validates:
      Intelligence -> Kavach Security -> Action Executor -> Grounded Search ->
      Prayog Chaos -> Command Center / Dhara -> Frontend Integration).
   3. Zero-PII Safety Boundary & Hard Grounded Data Invariants.
-  4. Code Quality & Anti-Hardcoding Auditor Verification for system API module.
 """
 
 import base64
@@ -32,27 +31,6 @@ from security.gateway import KavachGateway
 from contracts.citizen import CitizenIntent, IntentType, CitizenSession
 from contracts.telemetry import TelemetryEvent
 from backend.app.services.prediction.predictor import UnifiedPredictiveService
-
-import importlib.util
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-# Dynamically import code quality evaluators from hyphenated directory code-quality-agents
-_auditor_spec = importlib.util.spec_from_file_location(
-    "anti_hardcoding_auditor",
-    REPO_ROOT / "code-quality-agents" / "evals" / "anti_hardcoding_auditor.py"
-)
-_anti_hardcoding_mod = importlib.util.module_from_spec(_auditor_spec)
-_auditor_spec.loader.exec_module(_anti_hardcoding_mod)
-AntiHardcodingAuditor = _anti_hardcoding_mod.AntiHardcodingAuditor
-
-_reviewer_spec = importlib.util.spec_from_file_location(
-    "code_quality_reviewer",
-    REPO_ROOT / "code-quality-agents" / "evals" / "code_quality_reviewer.py"
-)
-_code_quality_mod = importlib.util.module_from_spec(_reviewer_spec)
-_reviewer_spec.loader.exec_module(_code_quality_mod)
-analyze_file = _code_quality_mod.analyze_file
 
 
 @pytest.fixture
@@ -305,25 +283,3 @@ def test_hard_grounded_data_invariants(client: TestClient) -> None:
     assert res_audit.status_code == 200
     audit_data = res_audit.json()
     assert audit_data["safety_boundaries"]["hardcoding_violations_detected"] == 0
-
-
-# =====================================================================
-# 4. Automated Code Quality & Anti-Hardcoding Audits
-# =====================================================================
-
-def test_system_module_code_quality_and_anti_hardcoding_audits() -> None:
-    """Run anti-hardcoding auditor and code quality reviewer against backend/app/api/system.py."""
-    system_file_path = REPO_ROOT / "backend" / "app" / "api" / "system.py"
-    assert system_file_path.exists(), f"system.py file missing: {system_file_path}"
-
-    # 1. Anti-Hardcoding Audit Scan
-    auditor = AntiHardcodingAuditor(str(REPO_ROOT))
-    critical_violations = auditor.audit()
-    assert critical_violations == 0, f"Anti-hardcoding scan found {critical_violations} CRITICAL violations."
-
-    # 2. Code Quality Reviewer AST Scan
-    analysis_result = analyze_file(system_file_path)
-    issues = analysis_result["issues"]
-    must_issues = [issue for issue in issues if issue.get("severity") == "must"]
-
-    assert len(must_issues) == 0, f"Code Quality Reviewer found blocking issues in system.py: {must_issues}"

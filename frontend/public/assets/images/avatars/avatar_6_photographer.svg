@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg6)"/>
+  <circle cx="60" cy="60" r="52" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="2"/>
+  <!-- Beanie / Cap -->
+  <path d="M38 42 C38 20, 82 20, 82 42 Z" fill="#F59E0B"/>
+  <rect x="36" y="38" width="48" height="7" rx="3" fill="#D97706"/>
+  <!-- Body / Jacket with Camera Strap -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#065F46"/>
+  <line x1="38" y1="78" x2="82" y2="106" stroke="#1E293B" stroke-width="4"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="54" rx="21" ry="22" fill="#FED7AA"/>
+  <!-- Stubble -->
+  <path d="M44 56 C46 68, 74 68, 76 56 C78 68, 68 76, 60 76 C52 76, 42 68, 44 56 Z" fill="#475569" opacity="0.6"/>
+  <!-- Eyes -->
+  <circle cx="50" cy="51" r="2.8" fill="#0F172A"/>
+  <circle cx="70" cy="51" r="2.8" fill="#0F172A"/>
+  <!-- Smirk / Grin -->
+  <path d="M53 62 Q61 68 67 62" stroke="#9A3412" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+</svg>

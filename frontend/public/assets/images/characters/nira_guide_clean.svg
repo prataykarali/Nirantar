@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="niraHead" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="niraScreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <linearGradient id="niraEye" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <!-- Glow halo -->
+  <circle cx="50" cy="50" r="46" fill="#F3E8FF" opacity="0.6"/>
+  <!-- Antennas -->
+  <line x1="50" y1="20" x2="50" y2="10" stroke="#7C3AED" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="50" cy="9" r="4.5" fill="#F59E0B"/>
+  <circle cx="50" cy="9" r="2" fill="#FEF08A"/>
+  <!-- Ear Nodes -->
+  <rect x="18" y="42" width="6" height="18" rx="3" fill="#A855F7"/>
+  <rect x="76" y="42" width="6" height="18" rx="3" fill="#A855F7"/>
+  <!-- Head Chassis -->
+  <rect x="22" y="22" width="56" height="54" rx="20" fill="url(#niraHead)" stroke="#DDD6FE" stroke-width="2"/>
+  <!-- Visor / Screen -->
+  <rect x="28" y="32" width="44" height="34" rx="12" fill="url(#niraScreen)"/>
+  <!-- Friendly Glowing Eyes -->
+  <ellipse cx="40" cy="46" rx="5" ry="6" fill="url(#niraEye)"/>
+  <ellipse cx="60" cy="46" rx="5" ry="6" fill="url(#niraEye)"/>
+  <circle cx="42" cy="44" r="1.8" fill="#FFFFFF"/>
+  <circle cx="62" cy="44" r="1.8" fill="#FFFFFF"/>
+  <!-- Cute Digital Smile -->
+  <path d="M44 56 Q50 61 56 56" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Cheeks -->
+  <circle cx="34" cy="54" r="2" fill="#F472B6" opacity="0.8"/>
+  <circle cx="66" cy="54" r="2" fill="#F472B6" opacity="0.8"/>
+  <!-- Body -->
+  <path d="M34 76 C34 76, 36 88, 50 88 C64 88, 66 76, 66 76 Z" fill="#6D28D9"/>
+  <!-- Sparkles / Live indicator -->
+  <circle cx="76" cy="24" r="3" fill="#10B981"/>
+</svg>

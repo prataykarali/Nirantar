@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0F766E"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg4)"/>
+  <circle cx="60" cy="60" r="52" fill="#F0F9FF" stroke="#BAE6FD" stroke-width="2"/>
+  <!-- Body / Formal Shirt with Tie -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#0369A1"/>
+  <polygon points="56,76 64,76 66,96 60,102 54,96" fill="#F59E0B"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="52" rx="22" ry="24" fill="#FED7AA"/>
+  <!-- Short Trimmed Hair -->
+  <path d="M38 46 C36 28, 50 20, 60 20 C72 20, 84 28, 82 46 C76 34, 62 30, 46 34 C40 36, 38 40, 38 46 Z" fill="#0F172A"/>
+  <!-- Neat Beard / Stubble -->
+  <path d="M44 58 C46 72, 74 72, 76 58 C78 68, 70 76, 60 76 C50 76, 42 68, 44 58 Z" fill="#334155" opacity="0.8"/>
+  <!-- Eyes -->
+  <circle cx="49" cy="49" r="3" fill="#0F172A"/>
+  <circle cx="71" cy="49" r="3" fill="#0F172A"/>
+  <!-- Confident Smile -->
+  <path d="M53 62 Q60 67 67 62" stroke="#9A3412" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

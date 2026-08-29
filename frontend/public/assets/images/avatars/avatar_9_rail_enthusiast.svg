@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg9" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg9)"/>
+  <circle cx="60" cy="60" r="52" fill="#FFFBEB" stroke="#FDE68A" stroke-width="2"/>
+  <!-- Curly Volume Hair Back -->
+  <circle cx="40" cy="46" r="14" fill="#3F2212"/>
+  <circle cx="80" cy="46" r="14" fill="#3F2212"/>
+  <circle cx="60" cy="30" r="16" fill="#3F2212"/>
+  <!-- Body / Denim Explorer Jacket -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#1E40AF"/>
+  <circle cx="60" cy="88" r="4" fill="#F59E0B"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="54" rx="21" ry="23" fill="#FDE68A"/>
+  <!-- Curly Bangs -->
+  <path d="M38 46 C42 38, 52 36, 60 38 C68 36, 78 38, 82 46 C76 42, 68 40, 60 42 C52 40, 44 42, 38 46 Z" fill="#3F2212"/>
+  <!-- Eyes -->
+  <ellipse cx="49" cy="51" rx="3.5" ry="4" fill="#3F2212"/>
+  <ellipse cx="71" cy="51" rx="3.5" ry="4" fill="#3F2212"/>
+  <circle cx="50.5" cy="49.5" r="1.2" fill="#FFFFFF"/>
+  <circle cx="72.5" cy="49.5" r="1.2" fill="#FFFFFF"/>
+  <!-- Smile -->
+  <path d="M53 64 Q60 70 67 64" stroke="#B45309" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

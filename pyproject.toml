@@ -53,7 +53,7 @@ cloud-llm = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["backend*", "contracts*", "m0_digital_twin*", "modules*", "security*", "services*", "simulation*", "observability*", "orchestrator*", "api*"]
-exclude = ["tests*", "frontend*", "frontend.*", "docs*", "plans*", "scripts*", "web_pages*", ".codex*", "*node_modules*", "dist*"]
+exclude = ["tests*", "frontend*", "frontend.*", "docs*", "plans*", "scripts*", "web_pages*", "*node_modules*", "dist*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

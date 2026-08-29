@@ -237,8 +237,18 @@ export const CompletionResultPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
           <div
             onClick={handleMascotTap}
-            className="relative w-full max-w-lg bg-white rounded-[32px] p-6 sm:p-7 shadow-[0_24px_80px_rgba(124,58,237,0.35)] border-2 border-purple-300 text-center space-y-4 cursor-pointer transform hover:scale-[1.01] transition-all group ring-8 ring-purple-100/80"
+            className="relative w-full max-w-lg bg-white overflow-hidden rounded-[32px] p-6 sm:p-7 shadow-[0_24px_80px_rgba(124,58,237,0.35)] border-2 border-purple-300 text-center space-y-4 cursor-pointer transform hover:scale-[1.01] transition-all group ring-8 ring-purple-100/80"
           >
+            {/* Waitlist Dedicated PNG Background Image Layer */}
+            <div className="absolute inset-0 pointer-events-none opacity-35 overflow-hidden">
+              <img
+                src="/assets/images/waitlist_bg.png"
+                alt="Waitlist Radar Background"
+                className="w-full h-full object-cover object-center"
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-white/92 via-white/82 to-purple-50/75 pointer-events-none" />
+
             {/* Top Close / Dismiss */}
             <button
               type="button"
@@ -246,13 +256,13 @@ export const CompletionResultPage: React.FC = () => {
                 e.stopPropagation();
                 setShowWaitlistPopup(false);
               }}
-              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+              className="relative z-10 absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors shadow-xs"
             >
               ✕
             </button>
 
             {/* 3D Robot Mascot (Sad jumping -> Happy on tap) */}
-            <div className="relative w-36 h-36 mx-auto -mt-16 flex items-center justify-center">
+            <div className="relative z-10 w-36 h-36 mx-auto -mt-16 flex items-center justify-center">
               {mascotReaction === 'SAD' ? (
                 <div className="relative w-full h-full flex items-center justify-center animate-bounce duration-700">
                   <img
@@ -279,7 +289,7 @@ export const CompletionResultPage: React.FC = () => {
             </div>
 
             {/* Title & Speech Bubble */}
-            <div className="space-y-2.5">
+            <div className="relative z-10 space-y-2.5">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-xs font-black shadow-2xs">
                   <span>⚠️ Waiting List Allocated</span>
@@ -290,11 +300,11 @@ export const CompletionResultPage: React.FC = () => {
 
               <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
                 {mascotReaction === 'SAD'
-                  ? 'Waiting list status allocated for this route'
+                  ? 'Oh no! It seems you are under waiting list'
                   : 'Opening Real-Time Waitlist Radar...'}
               </h3>
 
-              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-purple-50 border border-purple-200 text-slate-700 text-xs font-medium space-y-2.5 text-left shadow-xs">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50/90 via-white/95 to-amber-50/80 border border-purple-200 text-slate-700 text-xs font-medium space-y-2.5 text-left shadow-xs backdrop-blur-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
@@ -305,19 +315,19 @@ export const CompletionResultPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-slate-700 text-xs sm:text-sm font-semibold leading-relaxed">
-                  "Your booking for <strong>#{train.trainNumber} {train.trainName}</strong> is assigned to <strong className="text-amber-800 font-mono">GNWL-{initialWaitlistNum}</strong>. Tap below to track real-time queue clearance and confirmation updates!"
+                  "Your booking for <strong>#{train.trainNumber} {train.trainName}</strong> is assigned to <strong className="text-amber-800 font-mono">GNWL-{initialWaitlistNum}</strong>. Tap below to analyse real-time cancellation velocity and live confirmation odds on the Tracking Radar!"
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 pt-1 border-t border-purple-100 text-center text-[10px]">
-                  <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
+                  <div className="p-2 rounded-xl bg-white/90 border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Initial Position</span>
                     <strong className="text-amber-700 font-mono text-xs">GNWL {initialWaitlistNum}</strong>
                   </div>
-                  <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
+                  <div className="p-2 rounded-xl bg-white/90 border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Initial Odds</span>
                     <strong className="text-purple-700 font-mono text-xs">{liveProb}% Probable</strong>
                   </div>
-                  <div className="p-2 rounded-xl bg-white border border-purple-100 shadow-2xs">
+                  <div className="p-2 rounded-xl bg-white/90 border border-purple-100 shadow-2xs">
                     <span className="text-slate-400 block font-bold">Live Radar</span>
                     <strong className="text-emerald-600 font-mono text-xs">Ready to Track</strong>
                   </div>
@@ -329,11 +339,11 @@ export const CompletionResultPage: React.FC = () => {
             <button
               type="button"
               onClick={handleMascotTap}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+              className="relative z-10 w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
             >
               <span>🔍 Tap to Analyse Waitlist & Track Live ➔</span>
             </button>
-            <p className="text-[10px] text-slate-400 font-medium">
+            <p className="relative z-10 text-[10px] text-slate-400 font-medium">
               (Tap anywhere on this card to switch to real-time seat analysis & tracking)
             </p>
           </div>

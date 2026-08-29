@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg5)"/>
+  <circle cx="60" cy="60" r="52" fill="#FFFBEB" stroke="#FDE68A" stroke-width="2"/>
+  <!-- Hair Bun Behind -->
+  <circle cx="60" cy="24" r="14" fill="#18181B"/>
+  <!-- Body / Traditional Kurti with Scarf -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#D97706"/>
+  <path d="M38 78 C42 90, 78 90, 82 78 L86 106 L34 106 Z" fill="#DC2626"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="53" rx="21" ry="23" fill="#FDE68A"/>
+  <!-- Hair Front (Parted with Bindi) -->
+  <path d="M38 48 C38 32, 48 24, 60 26 C72 24, 82 32, 82 48 C76 36, 66 32, 60 36 C54 32, 44 36, 38 48 Z" fill="#18181B"/>
+  <!-- Bindi -->
+  <circle cx="60" cy="42" r="2" fill="#DC2626"/>
+  <!-- Expressive Eyes -->
+  <ellipse cx="49" cy="50" rx="3.5" ry="4" fill="#18181B"/>
+  <ellipse cx="71" cy="50" rx="3.5" ry="4" fill="#18181B"/>
+  <circle cx="50.5" cy="48.5" r="1.2" fill="#FFFFFF"/>
+  <circle cx="72.5" cy="48.5" r="1.2" fill="#FFFFFF"/>
+  <!-- Cheerful Warm Smile -->
+  <path d="M52 63 Q60 69 68 63" stroke="#B45309" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Jhumka Earrings -->
+  <circle cx="36" cy="56" r="2.5" fill="#F59E0B"/>
+  <polygon points="34,58 38,58 36,63" fill="#F59E0B"/>
+  <circle cx="84" cy="56" r="2.5" fill="#F59E0B"/>
+  <polygon points="82,58 86,58 84,63" fill="#F59E0B"/>
+</svg>

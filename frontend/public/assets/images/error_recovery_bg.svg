@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" fill="none">
+  <defs>
+    <linearGradient id="errBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF1F2"/>
+      <stop offset="50%" stop-color="#FAF5FF"/>
+      <stop offset="100%" stop-color="#F0F9FF"/>
+    </linearGradient>
+    <radialGradient id="glowErr" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDA4AF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FDA4AF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="400" rx="24" fill="url(#errBg)"/>
+  <circle cx="400" cy="200" r="180" fill="url(#glowErr)"/>
+  
+  <!-- Calming railway track illustration -->
+  <path d="M-50 320 C150 280, 250 360, 450 320 C650 280, 750 340, 850 310" stroke="#E2E8F0" stroke-width="6" stroke-dasharray="14 10" fill="none"/>
+  <path d="M-50 332 C150 292, 250 372, 450 332 C650 292, 750 352, 850 322" stroke="#CBD5E1" stroke-width="6" stroke-dasharray="14 10" fill="none"/>
+
+  <!-- Protective shield geometry -->
+  <path d="M400 80 L490 120 V210 C490 280, 400 330, 400 330 C400 330, 310 280, 310 210 V120 Z" fill="#FFFFFF" fill-opacity="0.6" stroke="#F43F5E" stroke-width="3" stroke-dasharray="6 6"/>
+
+  <!-- Gentle restorative icon in center -->
+  <circle cx="400" cy="190" r="46" fill="#FEE2E2" stroke="#FECDD3" stroke-width="2"/>
+  <path d="M386 190 H414 M400 176 V204" stroke="#E11D48" stroke-width="5" stroke-linecap="round"/>
+</svg>

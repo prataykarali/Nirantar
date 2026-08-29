@@ -17,6 +17,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import { JargonHint } from '../components/JargonHint';
 
 interface FAQItem {
   question: string;
@@ -98,30 +99,55 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
       category: 'booking',
     },
     {
-      question: 'How long do refunds take to process upon cancellation?',
+      question: 'Can RAC passengers board the train legally?',
       answer:
-        'When using the ₹10,000 Citizen Travel Wallet, refunds are instant (0 seconds). For UPI payments, refunds settle in 2 to 4 hours. Net Banking and Card refunds reflect within 2-3 working days.',
+        'YES! RAC (Reservation Against Cancellation) passengers have a guaranteed legal right to board. Two RAC passengers share one side-lower berth as seating until a full berth clears upon cancellation.',
+      category: 'booking',
+    },
+    {
+      question: 'How does the ₹10,000 Citizen Virtual Wallet work?',
+      answer:
+        'NIRANTAR provides a pre-funded ₹10,000 virtual balance for every citizen account. It enables instant 1-click checkout with zero payment gateway failure rates, eliminating bank OTP latency.',
       category: 'payments',
+    },
+    {
+      question: 'How do refunds work on cancelled tickets?',
+      answer:
+        'When you cancel a ticket, NIRANTAR immediately recalculates the refund based on official Indian Railways cancellation slabs and logs the transaction in your Payment Ledger with bank ARN tracking.',
+      category: 'payments',
+    },
+    {
+      question: 'How does DigiLocker document verification work?',
+      answer:
+        'Your verified citizen ID is linked through DigiLocker OAuth. It automatically populates passenger age and identity details for quick verification without manual document uploads.',
+      category: 'account',
     },
   ];
 
-  const filteredFaqs = faqs.filter((item) => {
-    const matchesCategory = activeCategory === 'popular' || item.category === activeCategory;
+  const filteredFaqs = faqs.filter((f) => {
+    const matchesCategory = activeCategory === 'popular' || f.category === activeCategory;
     const matchesSearch =
-      searchQuery === '' ||
-      item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.answer.toLowerCase().includes(searchQuery.toLowerCase());
+      !searchQuery.trim() ||
+      f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.answer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12 select-none font-sans text-slate-800 animate-in fade-in duration-200">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12 font-sans select-none text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. CLEAN & AIRY HERO BANNER WITH SUBTLE ATMOSPHERIC GLOW
+          1. CLEAN & AIRY HERO BANNER WITH ILLUSTRATION BACKGROUND
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-[32px] p-6 sm:p-8 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-xl overflow-hidden border border-purple-500/20">
-        <div className="absolute -right-10 -bottom-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/4 -top-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+      <div className="relative rounded-[32px] p-6 sm:p-8 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-xl overflow-hidden border border-purple-500/30">
+        {/* Background Banner Illustration */}
+        <div className="absolute inset-0 pointer-events-none opacity-45 overflow-hidden">
+          <img
+            src="/assets/images/help_center_banner.png"
+            alt="Help Center Banner"
+            className="w-full h-full object-cover object-right"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-950/90 via-purple-950/60 to-transparent pointer-events-none" />
 
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-purple-200 text-xs font-mono font-bold backdrop-blur-md">
@@ -133,8 +159,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             How can we help you?
           </h1>
 
-          <p className="text-xs sm:text-sm text-purple-200/80 font-medium">
-            Search answers about railway bookings, GPS tracking, zero-PII security, or ask Nira Copilot.
+          <p className="text-xs sm:text-sm text-purple-200/90 font-medium leading-relaxed">
+            Search answers about railway bookings, <JargonHint term="GPS">GPS live tracking</JargonHint>, <JargonHint term="zero PII">zero-PII</JargonHint> security, <JargonHint term="Tatkal">Tatkal quotas</JargonHint>, or ask Nira Copilot.
           </p>
 
           {/* Clean Search Input */}
@@ -145,7 +171,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search help topics (e.g. 'I\'m Stuck', 'Payment Failed', 'Tatkal', 'GPS')..."
-              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-purple-300/30 text-white placeholder-purple-300/60 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-400/50 transition-all backdrop-blur-md"
+              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/15 hover:bg-white/20 focus:bg-white/25 border border-purple-300/40 text-white placeholder-purple-300/70 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-400/60 transition-all backdrop-blur-md shadow-inner"
             />
           </div>
         </div>
@@ -166,6 +192,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             return (
               <button
                 key={cat.id}
+                type="button"
                 onClick={() => {
                   setActiveCategory(cat.id);
                   setExpandedIndex(0);
@@ -188,6 +215,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           {/* Quick Page Diagram Trigger */}
           <div className="pt-2 border-t border-purple-50">
             <button
+              type="button"
               onClick={() => setShowVisualDiagram(true)}
               className="w-full p-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-950 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer border border-purple-200/60"
             >
@@ -217,6 +245,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                   className="bg-white rounded-2xl border border-purple-100/70 shadow-2xs overflow-hidden transition-all hover:border-purple-200"
                 >
                   <button
+                    type="button"
                     onClick={() => setExpandedIndex(isExpanded ? null : idx)}
                     className="w-full p-4 text-left flex items-center justify-between gap-3 hover:bg-purple-50/30 transition-colors cursor-pointer"
                   >
@@ -266,6 +295,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
         </div>
 
         <button
+          type="button"
           onClick={() => {
             if (onOpenNiraChat) onOpenNiraChat();
             else sendNiraQuery("I need help with my journey.");

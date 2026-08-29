@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg8" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg8)"/>
+  <circle cx="60" cy="60" r="52" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <!-- Body / Navy Suit with Pocket Square -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#0F172A"/>
+  <polygon points="56,76 64,76 60,94" fill="#F43F5E"/>
+  <polygon points="72,86 78,86 76,82" fill="#38BDF8"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="52" rx="22" ry="24" fill="#FED7AA"/>
+  <!-- Modern Pompadour Haircut -->
+  <path d="M38 44 C36 24, 46 16, 60 16 C76 16, 84 24, 82 44 C76 28, 54 26, 38 44 Z" fill="#18181B"/>
+  <!-- Trimmed Beard -->
+  <path d="M42 56 C44 74, 76 74, 78 56 C80 68, 70 77, 60 77 C50 77, 40 68, 42 56 Z" fill="#18181B"/>
+  <!-- Sharp Eyes -->
+  <circle cx="49" cy="49" r="3" fill="#0F172A"/>
+  <circle cx="71" cy="49" r="3" fill="#0F172A"/>
+  <!-- Confident Smile -->
+  <path d="M53 62 Q60 67 67 62" stroke="#9A3412" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

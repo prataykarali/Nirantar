@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="setGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5F3FF" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#EDE9FE" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#F3E8FF" stop-opacity="0.8" />
+    </linearGradient>
+    <linearGradient id="setPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#4F46E5" stop-opacity="0.08" />
+    </linearGradient>
+    <linearGradient id="setCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0.05" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Light Mesh Background -->
+  <rect width="1000" height="600" fill="url(#setGrad1)" />
+
+  <!-- Futuristic Settings Flow Lines & Nodes -->
+  <path d="M-50,150 Q300,50 600,200 T1100,100" fill="none" stroke="url(#setPurple)" stroke-width="3" stroke-dasharray="10 8" />
+  <path d="M-50,300 Q400,450 750,280 T1100,420" fill="none" stroke="url(#setCyan)" stroke-width="2.5" />
+  <path d="M-50,480 Q250,320 650,500 T1100,350" fill="none" stroke="url(#setPurple)" stroke-width="2" stroke-dasharray="6 6" opacity="0.6" />
+
+  <!-- Precision Gear 1 (Top Right) -->
+  <g transform="translate(860, 110)" opacity="0.25">
+    <circle r="65" fill="none" stroke="#7C3AED" stroke-width="4" />
+    <circle r="40" fill="none" stroke="#7C3AED" stroke-width="2" stroke-dasharray="6 4" />
+    <circle r="18" fill="#7C3AED" opacity="0.3" />
+    <circle r="6" fill="#7C3AED" />
+    <!-- Gear Cogs -->
+    <path d="M-8,-75 L8,-75 L6,-63 L-6,-63 Z" fill="#7C3AED" />
+    <path d="M-8,75 L8,75 L6,63 L-6,63 Z" fill="#7C3AED" />
+    <path d="M-75,-8 L-75,8 L-63,6 L-63,-6 Z" fill="#7C3AED" />
+    <path d="M75,-8 L75,8 L63,6 L63,-6 Z" fill="#7C3AED" />
+    <path d="M-52,-52 L-41,-41 L-45,-33 L-56,-44 Z" fill="#7C3AED" />
+    <path d="M52,52 L41,41 L45,33 L56,44 Z" fill="#7C3AED" />
+    <path d="M52,-52 L41,-41 L33,-45 L44,-56 Z" fill="#7C3AED" />
+    <path d="M-52,52 L-41,41 L-33,45 L-44,56 Z" fill="#7C3AED" />
+  </g>
+
+  <!-- Precision Gear 2 (Bottom Left) -->
+  <g transform="translate(120, 480)" opacity="0.2">
+    <circle r="50" fill="none" stroke="#6366F1" stroke-width="3" />
+    <circle r="30" fill="none" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="4 4" />
+    <circle r="12" fill="#6366F1" opacity="0.4" />
+    <circle r="4" fill="#6366F1" />
+    <!-- Gear Cogs -->
+    <path d="M-6,-58 L6,-58 L4,-48 L-4,-48 Z" fill="#6366F1" />
+    <path d="M-6,58 L6,58 L4,48 L-4,48 Z" fill="#6366F1" />
+    <path d="M-58,-6 L-58,6 L-48,4 L-48,-4 Z" fill="#6366F1" />
+    <path d="M58,-6 L58,6 L48,4 L48,-4 Z" fill="#6366F1" />
+  </g>
+
+  <!-- Connectivity Slider / Toggle Symbols -->
+  <g transform="translate(480, 160)" opacity="0.3">
+    <rect x="0" y="0" width="70" height="28" rx="14" fill="#DDD6FE" stroke="#7C3AED" stroke-width="1.5" />
+    <circle cx="56" cy="14" r="10" fill="#7C3AED" />
+  </g>
+
+  <g transform="translate(680, 420)" opacity="0.25">
+    <rect x="0" y="0" width="60" height="24" rx="12" fill="#E0E7FF" stroke="#6366F1" stroke-width="1.5" />
+    <circle cx="16" cy="12" r="8" fill="#6366F1" />
+  </g>
+
+  <!-- Floating Sparkles & Soft Glowing Stars -->
+  <g fill="#7C3AED" opacity="0.4">
+    <polygon points="320,80 322,86 328,88 322,90 320,96 318,90 312,88 318,86" />
+    <polygon points="760,240 761,244 765,245 761,246 760,250 759,246 755,245 759,244" />
+    <polygon points="210,340 212,344 216,346 212,348 210,352 208,348 204,346 208,344" />
+  </g>
+</svg>

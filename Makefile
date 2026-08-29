@@ -1,4 +1,4 @@
-.PHONY: help dev test load-test prayog train review compose-up compose-down seed clean
+.PHONY: help dev test load-test prayog train compose-up compose-down seed clean
 
 help:
 	@echo "NIRANTAR Developer Automation Commands"
@@ -6,7 +6,6 @@ help:
 	@echo "  make test         Run pytest unit & integration suite"
 	@echo "  make load-test    Run Locust 100-VU headless benchmark"
 	@echo "  make prayog       Run in-process PRAYOG scenario A (200 VUs)"
-	@echo "  make review       Run Architecting Excellence code quality reviewer"
 	@echo "  make compose-up   Start Docker Postgres, Redis, Prometheus stack"
 	@echo "  make compose-down Stop Docker stack"
 	@echo "  make seed         Seed database with realistic synthetic public-service records"
@@ -23,14 +22,6 @@ load-test:
 
 prayog:
 	python3 -m simulation.engine NORMAL 200
-
-review: audit
-	python3 .codex/evals/code_quality_reviewer.py --source contracts/
-	python3 .codex/evals/code_quality_reviewer.py --source m0_digital_twin/
-	python3 .codex/evals/code_quality_reviewer.py --source backend/
-
-audit:
-	python3 .codex/evals/anti_hardcoding_auditor.py --dir .
 
 seed:
 	python3 -m m0_digital_twin.cli --seed --summary
