@@ -244,7 +244,7 @@ export const JourneyTrackerPage: React.FC = () => {
     navigateTo,
   } = useJourney();
 
-  const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12302';
+  const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12951';
   const userBookedClass = selectedClassCode || selectedTrain?.classes?.[0]?.classCode || '3A';
 
   // ─── STATE HOOKS (Declared at Top) ───
@@ -272,7 +272,7 @@ export const JourneyTrackerPage: React.FC = () => {
   const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
 
   // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
-  const trainNumber = activeTrainNumber.trim() || '12302';
+  const trainNumber = activeTrainNumber.trim() || '12951';
   const foundTrain = useMemo(() => resolveTrainDetail(trainNumber), [trainNumber]);
   const routeStations: StationStop[] = useMemo(() => {
     return getTrainStoppages(trainNumber, foundTrain);

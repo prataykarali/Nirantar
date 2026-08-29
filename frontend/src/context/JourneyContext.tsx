@@ -1722,16 +1722,16 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...reallocationData,
         id: `REALOC-${Date.now().toString().slice(-6)}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        approvedBy: 'Chief On-Board Conductor (TTE #IR-77492)',
-        status: 'APPROVED',
+        approvedBy: 'On-Board Train Conductor (TTE Manifest Verification)',
+        status: 'PENDING',
       };
 
       setActiveReallocations((prev) => [newRecord, ...prev.filter((r) => r.passengerName !== newRecord.passengerName)]);
 
       // Push a confirmation notification
       addNotification({
-        title: '⚡ Mid-Journey Berth Upgrade Approved!',
-        body: `Your request to occupy vacant Berth ${newRecord.toSeat} (${newRecord.toBerthType}) in Coach ${newRecord.toCoach} from ${newRecord.effectiveFromStation} has been verified and endorsed by the Conductor.`,
+        title: '⚡ Vacant Berth Shift Requested (Pending TTE Confirmation)',
+        body: `Your request to occupy vacant Berth ${newRecord.toSeat} (${newRecord.toBerthType}) from ${newRecord.effectiveFromStation} has been logged at ₹0 (NO Extra Cost). Status: REQUESTED - NOT APPROVED YET (Pending on-board TTE sign-off).`,
         type: 'ticket',
       });
 

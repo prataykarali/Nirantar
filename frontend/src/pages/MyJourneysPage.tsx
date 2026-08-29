@@ -84,7 +84,7 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers } = useJourney();
+  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers, activeReallocations } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
@@ -733,9 +733,20 @@ export const MyJourneysPage: React.FC = () => {
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">ALLOTMENT</span>
                     <span className="font-bold text-sm text-purple-900 block">{j.coach}</span>
-                    <span className="text-xs text-slate-500 font-medium block">
-                      Seat {j.seat} • {j.passengers.length} Pax
-                    </span>
+                    {activeReallocations && activeReallocations.length > 0 && j.status === 'CONFIRMED' ? (
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-mono font-black text-amber-900 block">
+                          Seat {j.seat.split(' ')[0]} + {activeReallocations[0].toSeat}
+                        </span>
+                        <span className="text-[10px] font-black text-amber-700 block">
+                          ⚡ Shift Requested (₹0 Free)
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-medium block">
+                        Seat {j.seat} • {j.passengers.length} Pax
+                      </span>
+                    )}
                   </div>
 
                   {/* Action Buttons */}

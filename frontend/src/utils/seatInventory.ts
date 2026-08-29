@@ -927,8 +927,8 @@ export function getCoachSegmentBays(
 
   // Helper to construct a single berth
   const buildBerth = (seatNum: number, typeCode: string, fullType: string, bayIdx: number): SegmentBerth => {
-    // Check if reallocated by user
-    const reallocatedItem = activeReallocations.find((r) => r.toSeat === seatNum && r.status === 'APPROVED');
+    // Check if reallocated / requested by user
+    const reallocatedItem = activeReallocations.find((r) => r.toSeat === seatNum);
     if (reallocatedItem) {
       return {
         num: seatNum,

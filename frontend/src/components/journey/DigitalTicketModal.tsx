@@ -147,25 +147,40 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
           </tr>
         </thead>
         <tbody>
-          ${ticket.passengers.map((p, idx) => `
+          ${ticket.passengers.map((p, idx) => {
+            const hasRealloc = activeRealloc && (activeRealloc.passengerName?.toLowerCase() === p.name?.toLowerCase() || idx === 0);
+            return `
             <tr>
               <td>${idx + 1}</td>
               <td><strong>${p.name}</strong> (${p.age}y, ${p.gender})</td>
               <td><strong style="color: #7c3aed;">Coach ${p.coach}</strong></td>
-              <td><strong>Seat ${p.seatNumber}</strong> (${p.berthType})</td>
-              <td><span class="badge">${p.status}</span></td>
+              <td>
+                <strong>Seat ${hasRealloc ? `${p.seatNumber} + ${activeRealloc.toSeat}` : p.seatNumber}</strong> (${p.berthType})
+                ${hasRealloc ? `<br><span style="font-size:10px; color:#b45309; font-weight:bold;">From Station: ${activeRealloc.effectiveFromStation} • Seat #${activeRealloc.toSeat} taken by ${activeRealloc.passengerName} • ₹0 (NO Extra Cost)</span>` : ''}
+              </td>
+              <td>
+                <span class="badge" style="${hasRealloc ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : ''}">
+                  ${hasRealloc ? 'REQUESTED NOT APPROVED' : p.status}
+                </span>
+              </td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     </div>
 
     ${activeRealloc ? `
-    <div class="reallocation">
-      <div class="reallocation-title">⚡ OFFICIAL MID-JOURNEY SEAT REALLOCATION (TTE VERIFIED)</div>
-      <div><strong>Reallocated Berth:</strong> Coach ${activeRealloc.toCoach} • Seat #${activeRealloc.toSeat} (${activeRealloc.toBerthType})</div>
-      <div><strong>Effective From:</strong> ${activeRealloc.effectiveFromStation} (${activeRealloc.effectiveFromStationCode}) onwards</div>
-      <div><strong>Endorsement Ref:</strong> ${activeRealloc.id} • ${activeRealloc.approvedBy}</div>
+    <div class="reallocation" style="background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 12px; padding: 14px; margin-top: 16px; font-size: 12px;">
+      <div class="reallocation-title" style="color: #92400e; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
+        ⚡ MID-JOURNEY VACANT BERTH REQUEST • ₹0 (NO EXTRA COST) [STATUS: REQUESTED NOT APPROVED]
+      </div>
+      <div><strong>Original Reservation:</strong> Coach ${activeRealloc.fromCoach} • Seat #${activeRealloc.fromSeat} (${activeRealloc.fromBerthType})</div>
+      <div><strong>Requested Vacant Berth:</strong> Coach ${activeRealloc.toCoach} • Seat #${activeRealloc.toSeat} (${activeRealloc.toBerthType}) taken by ${activeRealloc.passengerName}</div>
+      <div><strong>From Station:</strong> ${activeRealloc.effectiveFromStation} (${activeRealloc.effectiveFromStationCode}) onwards</div>
+      <div><strong>Fare Adjustment:</strong> ₹0.00 (NO Extra Cost)</div>
+      <div><strong>Status:</strong> REQUESTED NOT APPROVED (Pending on-board TTE physical chart verification)</div>
+      <div><strong>Request Reference:</strong> ${activeRealloc.id} • ${activeRealloc.approvedBy}</div>
     </div>
     ` : ''}
 
@@ -332,89 +347,132 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
             </h4>
 
             <div className="space-y-2">
-              {ticket.passengers.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50 border border-slate-100 text-xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-900 font-bold flex items-center justify-center text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{p.name}</span>
-                        <span className="text-[10px] text-slate-500">
-                          {p.age} yrs • {p.gender}
-                        </span>
-                        {p.concession && (
-                          <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-bold">
-                            {p.concession}
+              {ticket.passengers.map((p, idx) => {
+                const reallocForPassenger = activeReallocations?.find(
+                  (r) => r.passengerName?.toLowerCase() === p.name?.toLowerCase() || (idx === 0 && activeReallocations.length > 0)
+                );
+
+                return (
+                  <div
+                    key={idx}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl border text-xs gap-2 transition-all ${
+                      reallocForPassenger
+                        ? 'bg-amber-50/90 border-amber-300 ring-1 ring-amber-300/60 shadow-xs'
+                        : 'bg-slate-50 border-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-900 font-bold flex items-center justify-center text-[10px] shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-slate-900 text-sm">{p.name}</span>
+                          <span className="text-[10px] text-slate-500">
+                            {p.age} yrs • {p.gender}
+                          </span>
+                          {p.concession && (
+                            <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-bold">
+                              {p.concession}
+                            </span>
+                          )}
+                          {reallocForPassenger && (
+                            <span className="text-[9px] bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded-full border border-amber-400">
+                              ⚡ VACANT BERTH REQUESTED
+                            </span>
+                          )}
+                        </div>
+                        {reallocForPassenger ? (
+                          <div className="text-[11px] text-amber-900 mt-1 font-medium space-y-0.5">
+                            <span className="block font-bold text-slate-800">
+                              From Station: <strong>{reallocForPassenger.effectiveFromStation} ({reallocForPassenger.effectiveFromStationCode})</strong> • Seat #{reallocForPassenger.toSeat} ({reallocForPassenger.toBerthType}) requested by <strong>{reallocForPassenger.passengerName}</strong>
+                            </span>
+                            <span className="text-emerald-700 font-black flex items-center gap-1">
+                              <span>✓ ₹0 (NO Extra Cost - Mid-Journey Vacant Berth Allotment)</span>
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-emerald-700 font-semibold block">
+                            Aadhaar Verified Citizen • No PII Exposed to AI
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-emerald-700 font-semibold block">
-                        Aadhaar Verified Citizen • No PII Exposed to AI
-                      </span>
+                    </div>
+
+                    <div className="text-left sm:text-right shrink-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-amber-200/60">
+                      {reallocForPassenger ? (
+                        <div>
+                          <span className="font-mono font-black text-sm text-amber-950 block">
+                            Coach {p.coach} • Seat {p.seatNumber} + {reallocForPassenger.toSeat}
+                          </span>
+                          <span className="text-[9px] font-black uppercase text-amber-900 px-2 py-0.5 rounded-full bg-amber-200/80 border border-amber-300 inline-block mt-0.5">
+                            REQUESTED NOT APPROVED
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-mono font-black text-xs text-purple-900 block">
+                            Coach {p.coach} • Seat {p.seatNumber}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {p.berthType} Berth ({p.status})
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    <span className="font-mono font-black text-xs text-purple-900 block">
-                      Coach {p.coach} • Seat {p.seatNumber}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      {p.berthType} Berth ({p.status})
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Mid-Journey Berth Upgrade / Reallocation Endorsement */}
           {activeReallocations && activeReallocations.length > 0 && (
-            <div className="border border-emerald-300 rounded-2xl p-4 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/60 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="border border-amber-300 rounded-2xl p-4 bg-gradient-to-r from-amber-50 via-white to-amber-50/60 shadow-xs space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="p-1 rounded-lg bg-emerald-600 text-white">
+                  <span className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">
                     <Zap className="w-4 h-4" />
                   </span>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5">
-                      <span>Official Mid-Journey Seat Reallocation Endorsement</span>
-                      <span className="px-2 py-0.2 rounded-full bg-emerald-200 text-emerald-900 text-[9px] font-black">
-                        TTE VERIFIED
+                    <h4 className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-2 flex-wrap">
+                      <span>Mid-Journey Vacant Berth Request (₹0 NO Extra Cost)</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 text-[9px] font-black border border-amber-400">
+                        REQUESTED NOT APPROVED
                       </span>
                     </h4>
-                    <p className="text-[10px] text-emerald-800 font-medium">
-                      Authorized by on-board train conductor upon co-passenger deboarding.
+                    <p className="text-[10px] text-amber-800 font-medium">
+                      Subject to on-board conductor chart verification after departure from {activeReallocations[0].effectiveFromStation}.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-[10px] font-mono font-bold text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-200">
                   {activeReallocations[0].id}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2.5 rounded-xl bg-white border border-emerald-200 space-y-0.5">
+                <div className="p-2.5 rounded-xl bg-white border border-amber-200 space-y-0.5">
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">ORIGINAL RESERVATION</span>
                   <strong className="text-slate-700 block">
                     Coach {activeReallocations[0].fromCoach} • Seat #{activeReallocations[0].fromSeat} ({activeReallocations[0].fromBerthType})
                   </strong>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-100/70 border border-emerald-300 space-y-0.5">
-                  <span className="text-[9px] uppercase font-bold text-emerald-800 block">APPROVED MID-JOURNEY BERTH</span>
-                  <strong className="text-emerald-950 block text-sm">
+                <div className="p-2.5 rounded-xl bg-amber-100/80 border border-amber-300 space-y-0.5">
+                  <span className="text-[9px] uppercase font-bold text-amber-900 block">REQUESTED VACANT BERTH (₹0)</span>
+                  <strong className="text-amber-950 block text-sm">
                     Coach {activeReallocations[0].toCoach} • Seat #{activeReallocations[0].toSeat} ({activeReallocations[0].toBerthType})
                   </strong>
+                  <span className="text-[10px] text-slate-700 block font-sans">
+                    Taken by passenger: <strong>{activeReallocations[0].passengerName}</strong>
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-emerald-900 font-medium pt-1 border-t border-emerald-200/60 flex-wrap gap-2">
-                <span>Effective from: <strong>{activeReallocations[0].effectiveFromStation} ({activeReallocations[0].effectiveFromStationCode})</strong> onwards</span>
-                <span>Endorsed by: <strong>{activeReallocations[0].approvedBy}</strong></span>
+              <div className="flex items-center justify-between text-[10px] text-amber-950 font-medium pt-1.5 border-t border-amber-200/80 flex-wrap gap-2">
+                <span>From Station: <strong>{activeReallocations[0].effectiveFromStation} ({activeReallocations[0].effectiveFromStationCode})</strong> onwards</span>
+                <span className="text-emerald-700 font-black">Fare Adjustment: ₹0.00 (NO Extra Cost)</span>
+                <span>Approval Status: <strong>REQUESTED - NOT APPROVED YET</strong></span>
               </div>
             </div>
           )}
