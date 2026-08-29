@@ -402,37 +402,52 @@ export const MyJourneysPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 pb-8 select-none font-sans text-slate-800 animate-in fade-in duration-300">
-      {/* ═══════════════════════════════════════════════════════════════════
-          1. HEADER & PASS HERO BANNER WITH SCENIC BACKGROUND & MASCOTS
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-3xl p-5 sm:p-6 text-white shadow-lg border border-purple-400/30 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Scenic Railway Platform Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-40 overflow-hidden">
-          <img
-            src="/assets/images/banners/scenic_railway_banner.png"
-            alt="Scenic Railway Platform"
-            className="w-full h-full object-cover object-center"
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/95 via-[#230E40]/85 to-[#160B30]/75 pointer-events-none" />
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 select-none font-sans text-slate-800 animate-in fade-in duration-500 relative min-h-screen">
+      {/* PAGE-LEVEL SUBTLE BACKGROUND DECORATIONS */}
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-gradient-to-br from-slate-50 via-purple-50/40 to-indigo-50/30">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+      </div>
 
-        <div className="space-y-1.5 text-center sm:text-left z-10 max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-200 text-xs font-bold backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+      {/* ═══════════════════════════════════════════════════════════════════
+          1. HEADER HERO BANNER
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="relative rounded-3xl p-6 sm:p-8 text-white shadow-[0_8px_30px_rgb(99,102,241,0.2)] border border-white/20 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-br from-indigo-900 via-purple-800 to-[#160B30] isolation-auto">
+        {/* CSS Animated Decorative Elements & Tracks */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 left-10 w-48 h-48 bg-pink-500/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <svg className="absolute top-0 right-1/4 w-full h-full opacity-10" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <path d="M-100,50 Q200,150 500,50 T1000,50" fill="none" stroke="white" strokeWidth="2" strokeDasharray="10 10"/>
+            <path d="M-100,80 Q200,180 500,80 T1000,80" fill="none" stroke="white" strokeWidth="2" strokeDasharray="10 10"/>
+            <path d="M-100,150 Q300,250 600,150 T1200,150" fill="none" stroke="white" strokeWidth="1" strokeDasharray="5 5"/>
+          </svg>
+        </div>
+
+        <div className="space-y-4 text-center sm:text-left z-10 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-purple-100 text-xs font-bold backdrop-blur-md shadow-lg">
+            <Sparkles className="w-4 h-4 text-pink-300" />
             <span>Active Citizen Journey Vault • DigiLocker Verified</span>
           </div>
-          <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
-            My Booked Journeys & Tickets
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
+            My Booked Journeys
           </h1>
-          <p className="text-xs sm:text-sm text-purple-200/90 font-medium leading-relaxed">
+          <p className="text-sm sm:text-base text-purple-100/90 font-medium leading-relaxed max-w-lg">
             All your confirmed seats, coach allotments, live GPS telemetry, and passenger itineraries in one secure ledger.
           </p>
         </div>
 
-        {/* Mascot Duo Illustration */}
-        <div className="hidden md:flex items-center gap-3 z-10 shrink-0">
-          <div className="w-28 h-28 overflow-hidden rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-1 shadow-inner">
+        {/* Mascot Illustrations */}
+        <div className="hidden md:flex items-center gap-4 z-10 shrink-0">
+          <div className="w-40 h-40 overflow-hidden rounded-2xl shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
+            <img
+              src="/assets/images/characters/nira_conductor.jpg"
+              alt="Nira Conductor"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="w-32 h-32 overflow-hidden rounded-2xl shadow-lg transform -rotate-6 hover:rotate-0 transition-transform mt-8">
             <img
               src="/assets/images/characters/ananya_nira_duo.png"
               alt="Ananya & Nira Mascot Duo"
@@ -448,38 +463,39 @@ export const MyJourneysPage: React.FC = () => {
       {journeys.find((j) => j.status === 'CONFIRMED') && (() => {
         const topJourney = journeys.find((j) => j.status === 'CONFIRMED')!;
         return (
-          <div className="bg-gradient-to-r from-purple-50 via-white to-pink-50 rounded-3xl p-4 sm:p-5 border-2 border-purple-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-16 h-16 shrink-0 rounded-2xl overflow-hidden bg-purple-100 p-1 border border-purple-200">
+          <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center justify-between gap-5 overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
+            <div className="flex items-center gap-4 min-w-0 z-10">
+              <div className="w-24 h-24 shrink-0 overflow-hidden rounded-2xl shadow-lg">
                 <img
                   src="/assets/images/characters/ananya_holding_map.png"
                   alt="Ananya with Route Map"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain drop-shadow-md"
                 />
               </div>
-              <div className="space-y-0.5 min-w-0">
+              <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shadow-sm">
                     ✓ Next Up Confirmed
                   </span>
-                  <span className="font-mono text-xs font-bold text-slate-500">#{topJourney.trainNumber}</span>
+                  <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">#{topJourney.trainNumber}</span>
                 </div>
-                <h3 className="font-black text-sm sm:text-base text-slate-900 truncate">
+                <h3 className="font-black text-lg sm:text-xl text-slate-900 truncate">
                   {topJourney.trainName} ({topJourney.fromCode} ➔ {topJourney.toCode})
                 </h3>
-                <p className="text-xs text-slate-600 font-medium">
+                <p className="text-sm text-slate-600 font-medium">
                   {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
+            <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto z-10">
               <button
                 type="button"
                 onClick={() => openTicketModal(topJourney)}
-                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-4 h-4" />
                 <span>View Full e-Ticket</span>
               </button>
               <button
@@ -488,9 +504,9 @@ export const MyJourneysPage: React.FC = () => {
                   setTrackQuery(topJourney.trainNumber);
                   navigateTo('track');
                 }}
-                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-4 py-3 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-sm shadow-sm transition-colors flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                <MapPin className="w-4 h-4 text-purple-600" />
                 <span>Track Live</span>
               </button>
             </div>
@@ -501,22 +517,22 @@ export const MyJourneysPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           2. BOOKINGS LEDGER TAB BAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl p-3 border border-purple-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Train className="w-4 h-4 text-purple-700" />
-          <span className="font-bold text-xs sm:text-sm text-slate-900">
+      <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-2 sm:p-3 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-4 z-30">
+        <div className="flex items-center gap-2 px-2">
+          <Train className="w-5 h-5 text-purple-700" />
+          <span className="font-bold text-sm sm:text-base text-slate-900">
             Bookings Ledger
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl self-start sm:self-center">
+        <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-xl self-start sm:self-center border border-slate-200/50">
           <button
             type="button"
             onClick={() => setActiveTab('upcoming')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'upcoming'
-                ? 'bg-[#7C3AED] text-white shadow-xs'
-                : 'text-slate-600 hover:text-purple-900'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
             Upcoming ({journeys.filter((j) => j.status === 'CONFIRMED').length})
@@ -524,10 +540,10 @@ export const MyJourneysPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('completed')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'completed'
-                ? 'bg-[#7C3AED] text-white shadow-xs'
-                : 'text-slate-600 hover:text-purple-900'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
             Completed ({journeys.filter((j) => j.status === 'COMPLETED').length})
@@ -535,10 +551,10 @@ export const MyJourneysPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('cancelled')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'cancelled'
-                ? 'bg-[#7C3AED] text-white shadow-xs'
-                : 'text-slate-600 hover:text-purple-900'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
             Cancelled ({journeys.filter((j) => j.status === 'CANCELLED').length})
@@ -549,285 +565,321 @@ export const MyJourneysPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           3. JOURNEY CARDS WITH PASSENGERS, REVIEWS & DIGITAL TICKET MODAL
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="space-y-3.5">
-        {filteredJourneys.map((j) => {
+      <div className="space-y-4">
+        {filteredJourneys.map((j, index) => {
           const isExpanded = expandedJourneyId === j.id;
 
           return (
-            <div
-              key={j.id}
-              className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm hover:shadow-md transition-all space-y-3"
-            >
-              {/* Top Meta Line: Train Name, PNR, Status */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-purple-50">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-                    <Train className="w-4 h-4" />
+            <React.Fragment key={j.id}>
+              <div
+                className="relative bg-white/80 backdrop-blur-md rounded-3xl p-5 sm:p-6 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(124,58,237,0.1)] transition-all duration-300 space-y-4 group overflow-hidden"
+              >
+                {/* Subtle background gradient on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none -z-10"></div>
+                
+                {j.status === 'COMPLETED' && (
+                  <div className="absolute top-4 right-4 w-20 h-20 overflow-hidden rounded-2xl shadow-lg z-10 hidden sm:block">
+                     <img src="/assets/images/characters/nira_excited.jpg" alt="Excited Nira" className="w-full h-full object-contain" />
                   </div>
-                  <div>
-                    <h3 className="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
-                      <span>{j.trainNumber} • {j.trainName}</span>
-                    </h3>
-                    <span className="font-mono text-[10px] text-slate-500 font-bold block">
-                      PNR: {j.pnr}
+                )}
+
+                {/* Top Meta Line: Train Name, PNR, Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-50/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50">
+                      <Train className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                        <span>{j.trainNumber} • {j.trainName}</span>
+                      </h3>
+                      <span className="font-mono text-xs text-slate-500 font-bold block bg-slate-100/50 px-2 py-0.5 rounded-md inline-block mt-1">
+                        PNR: {j.pnr}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-center">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-mono font-black border shadow-sm ${
+                        j.status === 'CONFIRMED'
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                          : j.status === 'COMPLETED'
+                          ? 'bg-purple-50 border-purple-300 text-purple-900'
+                          : 'bg-red-50 border-red-300 text-red-800'
+                      }`}
+                    >
+                      {j.status}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-100/80 border border-slate-200 text-slate-700 text-xs font-bold">
+                      {j.classCode}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-center">
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black border ${
-                      j.status === 'CONFIRMED'
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                        : j.status === 'COMPLETED'
-                        ? 'bg-purple-50 border-purple-300 text-purple-900'
-                        : 'bg-red-50 border-red-300 text-red-800'
-                    }`}
-                  >
-                    {j.status}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold">
-                    {j.classCode}
-                  </span>
-                </div>
-              </div>
-
-              {/* Middle Row: Origin/Dest, Dates, Allotment & Action Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
-                {/* From / To */}
-                <div className="space-y-0.5">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">FROM / TO</span>
-                  <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                    <span>{j.fromCode}</span>
-                    <span className="text-purple-600">→</span>
-                    <span>{j.toCode}</span>
+                {/* Middle Row: Origin/Dest, Dates, Allotment & Action Buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                  {/* From / To */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">FROM / TO</span>
+                    <div className="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                      <span>{j.fromCode}</span>
+                      <span className="text-purple-600 bg-purple-50 w-6 h-6 flex items-center justify-center rounded-full text-xs">→</span>
+                      <span>{j.toCode}</span>
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium block truncate">
+                      {j.fromCity} to {j.toCity}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-medium block truncate">
-                    {j.fromCity} to {j.toCity}
-                  </span>
+
+                  {/* Date & Departure */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">DATE & DEPARTURE</span>
+                    <span className="font-bold text-sm text-slate-900 block">{j.date}</span>
+                    <span className="text-xs text-slate-500 font-medium block bg-slate-50 inline-block px-1.5 py-0.5 rounded mt-0.5">
+                      {j.depTime} hrs ({j.duration})
+                    </span>
+                  </div>
+
+                  {/* Allotment & Passengers */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">ALLOTMENT</span>
+                    <span className="font-bold text-sm text-purple-900 block">{j.coach}</span>
+                    <span className="text-xs text-slate-500 font-medium block">
+                      Seat {j.seat} • {j.passengers.length} Pax
+                    </span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 justify-end">
+                    {j.status === 'CONFIRMED' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrackQuery(j.trainNumber);
+                            navigateTo('track');
+                          }}
+                          className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                        >
+                          <Train className="w-4 h-4" />
+                          <span>Track Train</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCancellingJourney(j)}
+                          className="w-full py-2 px-4 rounded-xl bg-red-50/80 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                        >
+                          <XCircle className="w-4 h-4 text-red-600" />
+                          <span>Cancel & Refund</span>
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => openTicketModal(j)}
+                      className="w-full py-2 px-4 rounded-xl bg-purple-50/80 hover:bg-purple-100 border border-purple-200 text-purple-900 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Download className="w-4 h-4 text-purple-700" />
+                      <span>Download E-Ticket</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Date & Departure */}
-                <div className="space-y-0.5">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">DATE & DEPARTURE</span>
-                  <span className="font-bold text-xs text-slate-900 block">{j.date}</span>
-                  <span className="text-[10px] text-slate-500 font-medium block">
-                    {j.depTime} hrs ({j.duration})
-                  </span>
-                </div>
-
-                {/* Allotment & Passengers */}
-                <div className="space-y-0.5">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">ALLOTMENT</span>
-                  <span className="font-bold text-xs text-purple-900 block">{j.coach}</span>
-                  <span className="text-[10px] text-slate-500 font-medium block">
-                    Seat {j.seat} • {j.passengers.length} Pax
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row md:flex-col gap-1.5 justify-end">
-                  {j.status === 'CONFIRMED' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTrackQuery(j.trainNumber);
-                          navigateTo('track');
-                        }}
-                        className="w-full py-1.5 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <Train className="w-3.5 h-3.5" />
-                        <span>Track Train</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCancellingJourney(j)}
-                        className="w-full py-1.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                      >
-                        <XCircle className="w-3.5 h-3.5 text-red-600" />
-                        <span>Cancel Ticket & Refund</span>
-                      </button>
-                    </>
-                  )}
-
+                {/* Expand / Collapse Trip Info Accordion Toggle */}
+                <div className="pt-3 border-t border-purple-50/80 flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => openTicketModal(j)}
-                    className="w-full py-1.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => setExpandedJourneyId(isExpanded ? null : j.id)}
+                    className="text-sm font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 cursor-pointer transition-colors bg-purple-50 px-3 py-1.5 rounded-lg"
                   >
-                    <Download className="w-3.5 h-3.5 text-purple-700" />
-                    <span>Download E-Ticket</span>
+                    <span>{isExpanded ? 'Hide Trip Details' : 'View Passengers, Stoppages & Reviews'}</span>
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
-                </div>
-              </div>
 
-              {/* Expand / Collapse Trip Info Accordion Toggle */}
-              <div className="pt-2 border-t border-purple-50 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setExpandedJourneyId(isExpanded ? null : j.id)}
-                  className="text-xs font-bold text-purple-700 hover:text-purple-950 flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <span>{isExpanded ? 'Hide Trip Details & Reviews' : 'View Passengers, Stoppages & Reviews'}</span>
-                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{j.rating}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({j.reviewCount})</span>
+                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                    <div className="flex items-center gap-1 text-amber-500 text-sm font-bold">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <span>{j.rating}</span>
+                      <span className="text-[10px] text-slate-400 font-normal">({j.reviewCount})</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-300"></div>
+                    <span className="text-xs font-mono font-black text-slate-700">Total: ₹{j.fare}</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-slate-400">Total: ₹{j.fare}</span>
                 </div>
-              </div>
 
-              {/* ── EXPANDABLE TRIP DETAILS & PASSENGER MANIFEST & REVIEWS ── */}
-              {isExpanded && (
-                <div className="pt-3 space-y-3 bg-purple-50/40 rounded-2xl p-3 sm:p-4 border border-purple-100 animate-in fade-in duration-200">
-                  {/* 1. Stoppage Arrival & Departure Timeline */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-purple-700" />
-                      <span>First & Last Stoppage Schedule</span>
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
-                        <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded font-mono">
-                          FIRST STOPPAGE (DEPARTURE)
-                        </span>
-                        <div className="font-bold text-slate-900">
-                          {j.fromCity} ({j.fromCode}) • {j.fromPlatform}
+                {/* ── EXPANDABLE TRIP DETAILS & PASSENGER MANIFEST & REVIEWS ── */}
+                {isExpanded && (
+                  <div className="pt-4 space-y-4 bg-gradient-to-b from-purple-50/40 to-white/40 rounded-2xl p-4 sm:p-5 border border-purple-100/60 animate-in fade-in duration-300 mt-2">
+                    {/* 1. Stoppage Arrival & Departure Timeline */}
+                    <div className="space-y-2">
+                      <span className="text-xs uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-purple-700" />
+                        <span>First & Last Stoppage Schedule</span>
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-100/80 shadow-sm space-y-1 hover:shadow-md transition-shadow">
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md font-mono inline-block mb-1">
+                            FIRST STOPPAGE (DEPARTURE)
+                          </span>
+                          <div className="font-bold text-slate-900 text-base">
+                            {j.fromCity} ({j.fromCode}) • {j.fromPlatform}
+                          </div>
+                          <div className="text-xs text-slate-500 bg-slate-50 inline-block px-2 py-1 rounded">
+                            Scheduled: {j.depTime} hrs ({j.date})
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-500">
-                          Scheduled: {j.depTime} hrs ({j.date})
-                        </div>
-                      </div>
 
-                      <div className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
-                        <span className="text-[9px] font-bold text-purple-800 bg-purple-50 px-1.5 py-0.2 rounded font-mono">
-                          LAST STOPPAGE (ARRIVAL)
-                        </span>
-                        <div className="font-bold text-slate-900">
-                          {j.toCity} ({j.toCode}) • {j.toPlatform}
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          Expected: {j.arrTime} hrs ({j.arrivalDate})
+                        <div className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-100/80 shadow-sm space-y-1 hover:shadow-md transition-shadow">
+                          <span className="text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md font-mono inline-block mb-1">
+                            LAST STOPPAGE (ARRIVAL)
+                          </span>
+                          <div className="font-bold text-slate-900 text-base">
+                            {j.toCity} ({j.toCode}) • {j.toPlatform}
+                          </div>
+                          <div className="text-xs text-slate-500 bg-slate-50 inline-block px-2 py-1 rounded">
+                            Expected: {j.arrTime} hrs ({j.arrivalDate})
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 2. Passenger Manifest */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1">
-                      <User className="w-3 h-3 text-purple-700" />
-                      <span>Verified Passenger Details ({j.passengers.length})</span>
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {j.passengers.map((p, pIdx) => (
-                        <div
-                          key={pIdx}
-                          className="p-2.5 rounded-xl bg-white border border-purple-100 text-xs flex items-center justify-between"
-                        >
-                          <div>
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                              <span>{p.name}</span>
-                              <span className="text-[10px] text-slate-500">
-                                ({p.age}y, {p.gender[0]})
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                              <ShieldCheck className="w-3 h-3" />
-                              <span>Verified Citizen • {p.concession || 'Standard Quota'}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-mono font-black text-xs text-purple-900 block">
-                              Coach {p.coach}
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              Seat {p.seatNumber} ({p.berthType})
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 3. On-Board Amenities */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-bold text-slate-500 mr-1">Amenities:</span>
-                    {j.amenities.map((am, amIdx) => (
-                      <span
-                        key={amIdx}
-                        className="px-2 py-0.5 rounded-full bg-white border border-purple-100 text-purple-900 text-[10px] font-bold flex items-center gap-1 shadow-2xs"
-                      >
-                        <Sparkles className="w-2.5 h-2.5 text-[#7C3AED]" />
-                        <span>{am}</span>
+                    {/* 2. Passenger Manifest */}
+                    <div className="space-y-2">
+                      <span className="text-xs uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1.5">
+                        <User className="w-4 h-4 text-purple-700" />
+                        <span>Verified Passenger Details ({j.passengers.length})</span>
                       </span>
-                    ))}
-                  </div>
-
-                  {/* 4. Traveler Reviews */}
-                  {j.reviews.length > 0 && (
-                    <div className="space-y-1.5 pt-1 border-t border-purple-100">
-                      <span className="text-[10px] uppercase font-bold text-purple-900 tracking-wider">
-                        Verified Traveler Reviews & Rating
-                      </span>
-                      <div className="space-y-1.5">
-                        {j.reviews.map((rev, rIdx) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {j.passengers.map((p, pIdx) => (
                           <div
-                            key={rIdx}
-                            className="p-2.5 rounded-xl bg-white border border-purple-100 text-xs space-y-1"
+                            key={pIdx}
+                            className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-100/80 shadow-sm text-sm flex items-center justify-between hover:border-purple-300 transition-colors"
                           >
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-bold text-slate-900">{rev.author}</span>
-                              <div className="flex items-center gap-1 text-amber-500 font-bold">
-                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                <span>{rev.rating}.0</span>
+                            <div>
+                              <div className="font-bold text-slate-900 flex items-center gap-2">
+                                <span>{p.name}</span>
+                                <span className="text-[11px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                  {p.age}y, {p.gender[0]}
+                                </span>
+                              </div>
+                              <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1 mt-1">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>Verified Citizen • {p.concession || 'Standard'}</span>
                               </div>
                             </div>
-                            <p className="text-[11px] text-slate-600 italic">"{rev.comment}"</p>
+                            <div className="text-right">
+                              <span className="font-mono font-black text-sm text-purple-900 block bg-purple-50 px-2 py-0.5 rounded-md">
+                                Coach {p.coach}
+                              </span>
+                              <span className="text-xs text-slate-600 font-medium block mt-1">
+                                Seat {p.seatNumber} ({p.berthType})
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
+
+                    {/* 3. On-Board Amenities */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <span className="text-xs font-bold text-slate-500 mr-1">Amenities:</span>
+                      {j.amenities.map((am, amIdx) => (
+                        <span
+                          key={amIdx}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-purple-100/80 text-purple-900 text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <Sparkles className="w-3 h-3 text-[#7C3AED]" />
+                          <span>{am}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* 4. Traveler Reviews */}
+                    {j.reviews.length > 0 && (
+                      <div className="space-y-2 pt-3 border-t border-purple-100/80">
+                        <span className="text-xs uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1.5">
+                          <Star className="w-4 h-4 text-purple-700" />
+                          <span>Verified Traveler Reviews & Rating</span>
+                        </span>
+                        <div className="space-y-2">
+                          {j.reviews.map((rev, rIdx) => (
+                            <div
+                              key={rIdx}
+                              className="p-3.5 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-100/80 shadow-sm text-sm space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded">{rev.author}</span>
+                                <div className="flex items-center gap-1 text-amber-500 font-bold bg-amber-50 px-2 py-0.5 rounded">
+                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  <span>{rev.rating}.0</span>
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-600 italic leading-relaxed">"{rev.comment}"</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Decorative train track line pattern between journey cards */}
+              {index < filteredJourneys.length - 1 && (
+                <div className="flex justify-center py-1 opacity-60">
+                  <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="12" y1="0" x2="12" y2="32" stroke="#d8b4fe" strokeWidth="2" strokeDasharray="4 4" />
+                    <circle cx="12" cy="16" r="4" fill="#a855f7" />
+                  </svg>
                 </div>
               )}
-            </div>
+            </React.Fragment>
           );
         })}
 
         {filteredJourneys.length === 0 && (
-          <div className="bg-white rounded-3xl p-8 border border-purple-100 shadow-sm text-center flex flex-col items-center justify-center space-y-4">
-            <div className="w-28 h-28 overflow-hidden rounded-2xl bg-purple-50 p-2">
-              <img
-                src="/assets/images/characters/ananya_travel_luggage.png"
-                alt="No Journeys"
-                className="w-full h-full object-contain"
-              />
+          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-10 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/40 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="flex items-center justify-center gap-6 z-10">
+              <div className="w-40 h-40 overflow-hidden rounded-2xl shadow-lg transform -rotate-6">
+                <img
+                  src="/assets/images/characters/nira_traveler.jpg"
+                  alt="Nira Traveler"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="w-32 h-32 overflow-hidden rounded-2xl shadow-lg transform rotate-12 mt-8">
+                <img
+                  src="/assets/images/characters/ananya_travel_luggage.png"
+                  alt="No Journeys"
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
-            <div className="space-y-1 max-w-sm">
-              <h3 className="font-black text-base text-slate-900 capitalize">
+
+            <div className="space-y-2 max-w-md z-10">
+              <h3 className="font-black text-xl text-slate-900 capitalize">
                 No {activeTab} journeys found
               </h3>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-sm text-slate-500 font-medium leading-relaxed">
                 {activeTab === 'cancelled'
                   ? 'Great news! You have no cancelled journeys on your citizen record.'
                   : 'Ready to explore India by rail? Search and book your next trip with 1-click zero-PIN checkout.'}
               </p>
             </div>
+            
             {activeTab !== 'cancelled' && (
               <button
                 type="button"
                 onClick={() => navigateTo('home')}
-                className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-purple-500/30 transition-all cursor-pointer active:scale-95 z-10 flex items-center gap-2"
               >
-                Find & Book Trains ➔
+                <span>Find & Book Trains</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -837,16 +889,17 @@ export const MyJourneysPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           4. PAYMENTS & TAX RECEIPTS LEDGER BANNER
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-            <CreditCard className="w-5 h-5" />
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative overflow-hidden">
+        <div className="absolute top-1/2 -translate-y-1/2 right-20 w-48 h-48 bg-emerald-200/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
+        <div className="flex items-center gap-4 z-10">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 shadow-inner">
+            <CreditCard className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+            <h4 className="font-bold text-base text-slate-900">
               Payments & Tax Receipts Ledger
             </h4>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-sm text-slate-500 font-medium">
               View bank UTRs, GST invoices, and double-verified transaction audits.
             </p>
           </div>
@@ -855,10 +908,10 @@ export const MyJourneysPage: React.FC = () => {
         <button
           type="button"
           onClick={() => navigateTo('payments')}
-          className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs border border-purple-200 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-center shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-sm border border-emerald-200 shadow-sm flex items-center gap-2 transition-all cursor-pointer self-start sm:self-center shrink-0 active:scale-95 z-10"
         >
           <span>Open Payments Ledger</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
@@ -899,11 +952,11 @@ export const MyJourneysPage: React.FC = () => {
         };
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-3.5 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
-              <div className="flex items-start justify-between border-b border-red-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 p-1 flex items-center justify-center shrink-0">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
+              <div className="flex items-start justify-between border-b border-red-100 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 overflow-hidden rounded-2xl shadow-lg shrink-0">
                     <img
                       src="/assets/images/characters/nira_robot_tablet.png"
                       alt="Nira Security Audit"
@@ -911,11 +964,11 @@ export const MyJourneysPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900">
-                      Security PIN Verification
+                    <h3 className="text-lg font-black text-slate-900">
+                      Security Verification
                     </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      PNR #{cancellingJourney.pnr} • Cancel & Instant Refund
+                    <p className="text-sm text-slate-500 font-medium">
+                      PNR #{cancellingJourney.pnr} • Cancel Ticket
                     </p>
                   </div>
                 </div>
@@ -927,32 +980,32 @@ export const MyJourneysPage: React.FC = () => {
                     setCancelTrainNumberInput('');
                     setCancelPinInput('');
                   }}
-                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-sm">
                 <div className="flex justify-between text-slate-700">
                   <span>Train:</span>
                   <strong className="text-slate-900">#{cancellingJourney.trainNumber} • {cancellingJourney.trainName}</strong>
                 </div>
                 <div className="flex justify-between text-slate-700">
                   <span>Journey:</span>
-                  <span>{cancellingJourney.fromCity} ➔ {cancellingJourney.toCity} ({cancellingJourney.date})</span>
+                  <span>{cancellingJourney.fromCity} ➔ {cancellingJourney.toCity}</span>
                 </div>
-                <div className="border-t border-slate-200 pt-1.5 flex justify-between text-emerald-700 font-black">
+                <div className="border-t border-slate-200 pt-2 flex justify-between text-emerald-700 font-black text-base mt-1">
                   <span>Instant Wallet Refund:</span>
-                  <span className="font-mono text-sm">₹{refundAmount.toLocaleString('en-IN')}.00</span>
+                  <span className="font-mono">₹{refundAmount.toLocaleString('en-IN')}.00</span>
                 </div>
               </div>
 
               {/* SECURITY FORM */}
-              <form onSubmit={handleVerifyAndCancel} className="space-y-3">
+              <form onSubmit={handleVerifyAndCancel} className="space-y-4 pt-1">
                 {/* 1. Train Number Input */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-700 block">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">
                     1. Confirm Train Number to Cancel:
                   </label>
                   <input
@@ -964,17 +1017,17 @@ export const MyJourneysPage: React.FC = () => {
                       setCancelError(null);
                     }}
                     placeholder={`Enter train #${cancellingJourney.trainNumber}`}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-purple-200 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-purple-200 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition-colors"
                   />
                 </div>
 
                 {/* 2. Personal Security PIN Input with Eye Toggle */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-slate-700 block">
+                    <label className="text-xs font-bold text-slate-700 block">
                       2. Enter Personal Security PIN:
                     </label>
-                    <span className="text-[10px] text-purple-700 font-bold">Default: {securityPin || '2026'}</span>
+                    <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-md">Default: {securityPin || '2026'}</span>
                   </div>
                   <div className="relative">
                     <input
@@ -987,37 +1040,37 @@ export const MyJourneysPage: React.FC = () => {
                         setCancelError(null);
                       }}
                       placeholder="••••"
-                      className="w-full pl-3 pr-10 py-2 rounded-xl bg-slate-50 border border-purple-200 text-xs font-mono font-bold text-slate-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                      className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-50 border border-purple-200 text-sm font-mono font-bold text-slate-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowCancelPin(!showCancelPin)}
-                      className="absolute right-2.5 top-2 text-slate-400 hover:text-purple-700 cursor-pointer p-0.5"
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-purple-700 cursor-pointer p-0.5 transition-colors"
                     >
-                      {showCancelPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showCancelPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
 
                 {/* Error Banner */}
                 {cancelError && (
-                  <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700 flex items-center gap-1.5 animate-in fade-in">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                     <span>{cancelError}</span>
                   </div>
                 )}
 
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-900 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
                   <span>
                     Secured by <strong>Zero-PII PIN Boundary</strong>. Your ticket is cancelled and ₹{refundAmount.toLocaleString('en-IN')} is refunded instantly.
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
+                    className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer active:scale-95"
                   >
                     Authorize & Cancel Ticket
                   </button>
@@ -1029,7 +1082,7 @@ export const MyJourneysPage: React.FC = () => {
                       setCancelTrainNumberInput('');
                       setCancelPinInput('');
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-colors cursor-pointer"
                   >
                     Keep Ticket
                   </button>
