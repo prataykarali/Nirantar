@@ -85,9 +85,147 @@ const KNOWN_TRAIN_NAMES: Record<string, string> = {
   '12618': 'Mangala Lakshadweep Express',
   '12723': 'Telangana Superfast Express',
   '12953': 'August Kranti Tejas Rajdhani',
-  '12123': 'Deccan Queen Superfast',
-  '12259': 'Sealdah AC Duronto',
 };
+
+// ─── CUSTOM TRAIN SVGS ───
+const VandeBharatSvg: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M2.5 14.5C2.5 10 5.5 7 11.5 7H18.5C20.5 7 21.5 8.5 21.5 11V15C21.5 17 20 18 18 18H4.5C3.4 18 2.5 17.1 2.5 16V14.5Z" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 10H19C19.8 10 20.5 10.7 20.5 11.5V13H15V10Z" fill="currentColor"/>
+    <path d="M6.5 10H11.5V13H6.5V10Z" fill="currentColor"/>
+    <circle cx="6.5" cy="18" r="1.5" fill="currentColor"/>
+    <circle cx="17.5" cy="18" r="1.5" fill="currentColor"/>
+    <path d="M11 4L13.5 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const RajdhaniSvg: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect x="2.5" y="6.5" width="19" height="10.5" rx="2.5" fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M2.5 12H21.5" stroke="currentColor" strokeWidth="1.2"/>
+    <rect x="5" y="8" width="3" height="2.5" rx="0.5" fill="currentColor"/>
+    <rect x="16" y="8" width="3" height="2.5" rx="0.5" fill="currentColor"/>
+    <circle cx="6.5" cy="17" r="1.5" fill="currentColor"/>
+    <circle cx="17.5" cy="17" r="1.5" fill="currentColor"/>
+    <path d="M8.5 3.5L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M15.5 3.5L13.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const ExpressLocoSvg: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M3.5 15.5V8.5C3.5 7.4 4.4 6.5 5.5 6.5H16.5C17.6 6.5 18.5 7.4 18.5 8.5V15.5H3.5Z" fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="1.8"/>
+    <rect x="6" y="8.5" width="3.5" height="3" rx="0.5" fill="currentColor"/>
+    <rect x="12.5" y="8.5" width="3.5" height="3" rx="0.5" fill="currentColor"/>
+    <path d="M1.5 18.5H22.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="7" cy="15.5" r="1.5" fill="currentColor"/>
+    <circle cx="15" cy="15.5" r="1.5" fill="currentColor"/>
+  </svg>
+);
+
+interface RadarTrainPreset {
+  number: string;
+  name: string;
+  category: 'Vande Bharat' | 'Rajdhani' | 'Shatabdi' | 'Superfast';
+  fromCity: string;
+  fromCode: string;
+  toCity: string;
+  toCode: string;
+  tag?: string;
+}
+
+const RADAR_TRAIN_PRESETS: RadarTrainPreset[] = [
+  {
+    number: '12863',
+    name: 'Howrah - SMVB SF',
+    category: 'Superfast',
+    fromCity: 'Howrah',
+    fromCode: 'HWH',
+    toCity: 'Bengaluru',
+    toCode: 'SMVB',
+    tag: 'WL Watch',
+  },
+  {
+    number: '12232',
+    name: 'Chandigarh - Lucknow SF',
+    category: 'Superfast',
+    fromCity: 'Chandigarh',
+    fromCode: 'CDG',
+    toCity: 'Lucknow',
+    toCode: 'LKO',
+    tag: 'WL Watch',
+  },
+  {
+    number: '12302',
+    name: 'Howrah Rajdhani',
+    category: 'Rajdhani',
+    fromCity: 'New Delhi',
+    fromCode: 'NDLS',
+    toCity: 'Howrah',
+    toCode: 'HWH',
+    tag: 'Fastest',
+  },
+  {
+    number: '12951',
+    name: 'Mumbai Rajdhani',
+    category: 'Rajdhani',
+    fromCity: 'Mumbai',
+    fromCode: 'MMCT',
+    toCity: 'New Delhi',
+    toCode: 'NDLS',
+    tag: 'High Speed',
+  },
+  {
+    number: '22436',
+    name: 'Varanasi Vande Bharat',
+    category: 'Vande Bharat',
+    fromCity: 'New Delhi',
+    fromCode: 'NDLS',
+    toCity: 'Varanasi',
+    toCode: 'BSB',
+    tag: 'Top Rated',
+  },
+  {
+    number: '12002',
+    name: 'Bhopal Shatabdi',
+    category: 'Shatabdi',
+    fromCity: 'New Delhi',
+    fromCode: 'NDLS',
+    toCity: 'Bhopal',
+    toCode: 'RKMP',
+    tag: 'Express',
+  },
+  {
+    number: '20835',
+    name: 'Puri Vande Bharat',
+    category: 'Vande Bharat',
+    fromCity: 'Puri',
+    fromCode: 'PURI',
+    toCity: 'Rourkela',
+    toCode: 'ROU',
+    tag: 'Vande Bharat',
+  },
+  {
+    number: '12115',
+    name: 'Siddheshwar SF',
+    category: 'Superfast',
+    fromCity: 'Mumbai',
+    fromCode: 'CSMT',
+    toCity: 'Solapur',
+    toCode: 'SUR',
+    tag: 'Overnight',
+  },
+  {
+    number: '22692',
+    name: 'Bengaluru Rajdhani',
+    category: 'Rajdhani',
+    fromCity: 'Delhi',
+    fromCode: 'NZM',
+    toCity: 'Bengaluru',
+    toCode: 'SBC',
+    tag: 'Superfast',
+  },
+];
 
 export const JourneyTrackerPage: React.FC = () => {
   const {
@@ -755,125 +893,90 @@ export const JourneyTrackerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Express Trains Radar Switcher */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="text-[11px] font-bold text-slate-400 shrink-0">Live Radar Trains:</span>
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12863')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12863'
-              ? 'bg-[#7C3AED] text-white shadow-sm ring-2 ring-purple-300'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Zap className="w-3.5 h-3.5 text-amber-300" />
-          <span>#12863 Howrah - Bengaluru (WL Watch)</span>
-        </button>
+      {/* Active Express Trains Radar Switcher with SVGs & From-To Routes */}
+      <div className="space-y-1.5 pt-1">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Train className="w-3.5 h-3.5 text-purple-700" />
+            <span>Select Live Radar Train:</span>
+          </span>
+          <span className="text-[10px] font-bold text-purple-700">
+            {RADAR_TRAIN_PRESETS.length} Trains on Satellite Radar
+          </span>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12232')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12232'
-              ? 'bg-[#7C3AED] text-white shadow-sm ring-2 ring-purple-300'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Zap className="w-3.5 h-3.5 text-amber-300" />
-          <span>#12232 Chandigarh - Lucknow (WL Watch)</span>
-        </button>
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-2 text-xs scrollbar-thin scrollbar-thumb-purple-200">
+          {RADAR_TRAIN_PRESETS.map((tr) => {
+            const isSelected = trainNumber === tr.number;
+            return (
+              <button
+                key={tr.number}
+                type="button"
+                onClick={() => selectTrainToTrack(tr.number)}
+                className={`p-2.5 rounded-2xl flex flex-col gap-1.5 transition-all shrink-0 cursor-pointer text-left border ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white shadow-md ring-2 ring-purple-300 border-purple-500 scale-[1.02]'
+                    : 'bg-white text-slate-700 border-purple-100 hover:bg-purple-50/90 hover:border-purple-200 shadow-2xs'
+                }`}
+              >
+                {/* Top Row: SVG + Train # + Name + Badge */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : tr.category === 'Vande Bharat'
+                        ? 'bg-purple-100 text-purple-800'
+                        : tr.category === 'Rajdhani'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-indigo-100 text-indigo-800'
+                    }`}
+                  >
+                    {tr.category === 'Vande Bharat' ? (
+                      <VandeBharatSvg className="w-4 h-4" />
+                    ) : tr.category === 'Rajdhani' ? (
+                      <RajdhaniSvg className="w-4 h-4" />
+                    ) : (
+                      <ExpressLocoSvg className="w-4 h-4" />
+                    )}
+                  </div>
 
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12302')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12302'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Train className="w-3.5 h-3.5" />
-          <span>#12302 Howrah Rajdhani</span>
-        </button>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`font-mono font-black text-xs ${isSelected ? 'text-amber-200' : 'text-purple-900'}`}>
+                      #{tr.number}
+                    </span>
+                    <span className="font-extrabold text-xs truncate max-w-[140px]">
+                      {tr.name}
+                    </span>
+                  </div>
 
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12951')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12951'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Zap className="w-3.5 h-3.5 text-amber-400" />
-          <span>#12951 Mumbai Rajdhani</span>
-        </button>
+                  {tr.tag && (
+                    <span
+                      className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
+                        isSelected
+                          ? 'bg-white/20 text-amber-200 border border-white/30'
+                          : 'bg-purple-50 text-purple-800 border border-purple-200'
+                      }`}
+                    >
+                      {tr.tag}
+                    </span>
+                  )}
+                </div>
 
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('22436')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '22436'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-          <span>#22436 Varanasi Vande Bharat</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12002')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12002'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5 text-emerald-500" />
-          <span>#12002 Bhopal Shatabdi</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('20835')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '20835'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Navigation className="w-3.5 h-3.5 text-blue-500" />
-          <span>#20835 Puri Vande Bharat</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('12115')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '12115'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Train className="w-3.5 h-3.5 text-amber-500" />
-          <span>#12115 Siddheshwar SF</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => selectTrainToTrack('22692')}
-          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-            trainNumber === '22692'
-              ? 'bg-[#7C3AED] text-white shadow-sm'
-              : 'bg-white text-slate-700 border border-purple-100 hover:bg-purple-50'
-          }`}
-        >
-          <Train className="w-3.5 h-3.5 text-purple-500" />
-          <span>#22692 Bengaluru Rajdhani</span>
-        </button>
+                {/* Bottom Row: From Where to Where Route */}
+                <div
+                  className={`flex items-center gap-1.5 text-[11px] font-semibold pl-9 ${
+                    isSelected ? 'text-purple-100' : 'text-slate-500'
+                  }`}
+                >
+                  <span className="truncate">{tr.fromCity} ({tr.fromCode})</span>
+                  <span className={`font-bold ${isSelected ? 'text-amber-300' : 'text-[#7C3AED]'}`}>➔</span>
+                  <span className="truncate">{tr.toCity} ({tr.toCode})</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════

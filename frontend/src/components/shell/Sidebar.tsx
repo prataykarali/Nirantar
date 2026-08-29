@@ -47,8 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const coreNavItems = [
     { id: 'home', label: 'Home', icon: Home, subtitle: 'Overview & Intent' },
     { id: 'discover', label: 'Discover', icon: Compass, subtitle: 'Find Railway Services' },
-    { id: 'booking', label: 'Book & Act', icon: Ticket, subtitle: 'Assisted Booking' },
-    { id: 'my-journeys', label: 'My Journey', icon: MapPin, subtitle: 'Tickets & Live Track' },
+    { id: 'track', label: 'Track Train', icon: MapPin, subtitle: 'Live GPS Running Status' },
+    { id: 'my-journeys', label: 'My Journey', icon: Ticket, subtitle: 'Tickets & History' },
   ];
 
   const assistNavItems = [
@@ -146,8 +146,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 const Icon = item.icon;
                 const isActive =
                   activePage === item.id ||
-                  (item.id === 'booking' && (activePage === 'trains' || activePage === 'results' || activePage === 'workspace')) ||
-                  (item.id === 'my-journeys' && (activePage === 'track' || activePage === 'ticket' || activePage === 'completion'));
+                  (item.id === 'track' && (activePage === 'track' || activePage === 'tracker')) ||
+                  (item.id === 'discover' && (activePage === 'trains' || activePage === 'results' || activePage === 'booking' || activePage === 'workspace')) ||
+                  (item.id === 'my-journeys' && (activePage === 'ticket' || activePage === 'completion'));
 
                 return (
                   <button
