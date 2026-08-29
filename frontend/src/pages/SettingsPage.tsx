@@ -52,39 +52,50 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-6 select-none font-sans text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. HEADER WITH TITLE & SETTINGS BACKGROUND GRAPHIC
+          1. HEADER WITH TITLE & SCENIC SETTINGS BACKGROUND GRAPHIC
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden flex items-center justify-between bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-purple-100">
+      <div className="relative overflow-hidden flex items-center justify-between rounded-3xl p-5 sm:p-6 shadow-md border border-purple-200/50 bg-gradient-to-r from-[#1A0B2E] via-[#260E45] to-[#160B30] text-white">
         {/* Ambient Settings Background Illustration */}
-        <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-35 overflow-hidden">
           <img
-            src="/assets/images/settings_bg.png"
+            src="/assets/images/banners/scenic_railway_banner.png"
             alt="Settings Background"
-            className="w-full h-full object-cover object-right"
+            className="w-full h-full object-cover object-center"
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-purple-50/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/90 via-[#260E45]/80 to-transparent pointer-events-none" />
 
         <div className="relative z-10 flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-md shadow-purple-600/20">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-200 flex items-center justify-center font-bold shadow-md shadow-purple-950/40 backdrop-blur-xs">
             <SettingsIcon className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              Settings
+            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
+              Settings & Customization
             </h1>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-purple-200/90">
               Customize your citizen preferences, accessibility, and app options
             </p>
           </div>
         </div>
 
-        {saveSuccess && (
-          <span className="relative z-10 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in shadow-2xs">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Settings Saved!</span>
-          </span>
-        )}
+        {/* Mascot Avatar */}
+        <div className="relative z-10 hidden sm:flex items-center gap-2">
+          {saveSuccess ? (
+            <span className="bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in backdrop-blur-md">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Settings Saved!</span>
+            </span>
+          ) : (
+            <div className="w-14 h-14 overflow-hidden rounded-2xl bg-white/10 p-1 border border-white/20 backdrop-blur-xs shadow-inner">
+              <img
+                src="/assets/images/characters/nira_robot_thumbsup.png"
+                alt="Nira Mascot"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -122,9 +133,9 @@ export const SettingsPage: React.FC = () => {
           {/* Mascot Info Box */}
           <div className="pt-4 border-t border-purple-50">
             <div className="relative overflow-hidden p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-pink-50 border border-purple-100 flex items-center gap-3 shadow-2xs">
-              <div className="w-12 h-12 shrink-0">
+              <div className="w-14 h-14 shrink-0 overflow-hidden rounded-xl bg-purple-100/60 p-1 border border-purple-200">
                 <img
-                  src="/assets/images/characters/nira_guide_clean.svg"
+                  src="/assets/images/characters/nira_robot_map.png"
                   alt="Nira Settings Mascot"
                   className="w-full h-full object-contain"
                 />
@@ -140,11 +151,11 @@ export const SettingsPage: React.FC = () => {
         {/* ── RIGHT COLUMN: CATEGORY-SPECIFIC SETTINGS CONTROLS (8 Cols) ── */}
         <div className="relative overflow-hidden md:col-span-8 bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-purple-100 space-y-5">
           {/* Subtle Panel Background Graphic */}
-          <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none opacity-10 overflow-hidden">
             <img
-              src="/assets/images/settings_bg.png"
+              src="/assets/images/banners/scenic_railway_banner.png"
               alt="Settings Graphic"
-              className="w-full h-full object-cover object-bottom"
+              className="w-full h-full object-cover object-center"
             />
           </div>
 

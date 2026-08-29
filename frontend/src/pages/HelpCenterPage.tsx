@@ -159,8 +159,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             {/* Row 1 */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
               <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                <div className="w-6 h-6 rounded-full bg-purple-100 overflow-hidden shrink-0 flex items-center justify-center border border-purple-200">
+                  <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-slate-700 font-medium text-[10px] truncate">"I recommend the best option!"</span>
               </div>
@@ -173,8 +173,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             {/* Row 2 */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
               <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                <div className="w-6 h-6 rounded-full bg-purple-100 overflow-hidden shrink-0 flex items-center justify-center border border-purple-200">
+                  <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-slate-700 font-medium text-[10px] truncate">"Good choice! Let's continue."</span>
               </div>
@@ -187,8 +187,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             {/* Row 3 */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
               <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                <div className="w-6 h-6 rounded-full bg-purple-100 overflow-hidden shrink-0 flex items-center justify-center border border-purple-200">
+                  <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-slate-700 font-medium text-[10px] truncate">"Track train in real-time here."</span>
               </div>
@@ -205,8 +205,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             {/* Row 4 */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
               <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                <div className="w-6 h-6 rounded-full bg-purple-100 overflow-hidden shrink-0 flex items-center justify-center border border-purple-200">
+                  <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-slate-700 font-medium text-[10px] truncate">"Need help? I'm right here!"</span>
               </div>
@@ -219,8 +219,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             {/* Row 5 */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-purple-50/50 hover:bg-purple-50 transition-colors">
               <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-purple-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira" className="w-full h-full object-contain" />
+                <div className="w-6 h-6 rounded-full bg-purple-100 overflow-hidden shrink-0 flex items-center justify-center border border-purple-200">
+                  <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-slate-700 font-medium text-[10px] truncate">"Your payment is 100% safe."</span>
               </div>
@@ -236,8 +236,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
         <div className="bg-white rounded-3xl p-4 shadow-sm border border-purple-100 flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full overflow-hidden bg-purple-100 p-0.5 shrink-0">
-                <img src="/assets/images/characters/nira_guide_clean.svg" alt="Nira Mascot" className="w-full h-full object-contain" />
+              <div className="w-8 h-8 rounded-xl overflow-hidden bg-purple-100 p-0.5 shrink-0 border border-purple-200">
+                <img src="/assets/images/characters/nira_robot_thumbsup.png" alt="Nira Mascot" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h2 className="text-xs font-black text-slate-900 leading-none">Tips from Nira</h2>
@@ -271,8 +271,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           </div>
 
           <div className="flex items-center justify-center pt-1">
-            <div className="w-14 h-14">
-              <img src="/assets/images/characters/nira_idea.png" alt="Nira Idea" className="w-full h-full object-contain" />
+            <div className="w-24 h-24 overflow-hidden rounded-2xl bg-purple-50/60 p-1 border border-purple-100">
+              <img src="/assets/images/characters/nira_robot_map.png" alt="Nira Railway Map Guide" className="w-full h-full object-contain" />
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Step list */}
             <div className="space-y-1.5 flex-1 text-[11px] font-bold text-slate-700">
               <div className="flex items-center gap-2">
@@ -328,16 +328,16 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                 <span className="w-3.5 h-3.5 rounded-full bg-purple-700 text-white text-[9px] flex items-center justify-center font-bold shrink-0">5</span>
                 <div>
                   <span className="text-purple-950 font-bold block text-[10px]">5. e-Ticket</span>
-                  <span className="text-[9px] text-purple-700 font-medium">Download QR boarding pass</span>
+                  <span className="text-[9px] text-purple-700 font-medium">Download QR pass</span>
                 </div>
               </div>
             </div>
 
             {/* Character Illustration holding ticket */}
-            <div className="w-20 h-28 shrink-0 overflow-hidden">
+            <div className="w-24 h-32 shrink-0 overflow-hidden rounded-2xl bg-purple-50/50 p-1 border border-purple-100">
               <img
-                src="/assets/images/characters/citizen_ticket.png"
-                alt="Citizen Holding Ticket"
+                src="/assets/images/characters/ananya_holding_map.png"
+                alt="Citizen Traveler with Route Map"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -348,13 +348,23 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
       {/* ═══════════════════════════════════════════════════════════════════
           2. SEARCH & KNOWLEDGE BASE
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-3xl p-5 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-md overflow-hidden border border-purple-500/30">
+      <div className="relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 text-white shadow-md overflow-hidden border border-purple-500/30">
+        {/* Scenic Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden">
+          <img
+            src="/assets/images/banners/scenic_railway_banner.png"
+            alt="Scenic Station"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-950/90 via-purple-950/70 to-indigo-950/80 pointer-events-none" />
+
         <div className="relative z-10 max-w-2xl space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
               Search Citizen Knowledge Base
             </h3>
-            <span className="text-[10px] font-mono text-purple-300 bg-white/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-mono text-purple-300 bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-xs">
               Instant AI Lookup
             </span>
           </div>
@@ -474,17 +484,21 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. CLEAN 24x7 ASSISTANCE STRIP (MINIMAL & SLEEK)
+          3. 24x7 ASSISTANCE STRIP WITH MASCOT DUO
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-slate-900 text-white shadow-md border border-purple-500/20 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">
-            <PhoneCall className="w-5 h-5" />
+      <div className="p-4 sm:p-5 rounded-3xl bg-slate-900 text-white shadow-md border border-purple-500/20 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/30 overflow-hidden p-0.5 shrink-0 flex items-center justify-center">
+            <img
+              src="/assets/images/characters/ananya_nira_duo.png"
+              alt="Ananya & Nira 24x7 Support"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h4 className="font-bold text-xs sm:text-sm text-white">Railway Helpline & Nira Copilot</h4>
             <p className="text-[11px] text-slate-400">
-              Dial <strong>139</strong> for Railway emergency support or ask Nira anything.
+              Dial <strong>139</strong> for Railway emergency support or ask Nira anything anytime.
             </p>
           </div>
         </div>
@@ -495,7 +509,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             if (onOpenNiraChat) onOpenNiraChat();
             else sendNiraQuery("I need help with my journey.");
           }}
-          className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+          className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all cursor-pointer shadow-sm flex items-center gap-1.5 active:scale-98"
         >
           <Bot className="w-4 h-4" />
           <span>Ask Nira Copilot</span>

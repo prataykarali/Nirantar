@@ -404,36 +404,99 @@ export const MyJourneysPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-8 select-none font-sans text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. HEADER & PASS HERO BANNER WITH CHARACTER MASCOT
+          1. HEADER & PASS HERO BANNER WITH SCENIC BACKGROUND & MASCOTS
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-r from-[#200A40] via-[#1A0C38] to-[#12162E] rounded-3xl p-4 sm:p-5 text-white shadow-sm border border-purple-400/20 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1 text-center sm:text-left z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold">
-            <Sparkles className="w-3 h-3 text-purple-300" />
-            <span>Active Citizen Pass</span>
+      <div className="relative rounded-3xl p-5 sm:p-6 text-white shadow-lg border border-purple-400/30 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Scenic Railway Platform Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-40 overflow-hidden">
+          <img
+            src="/assets/images/banners/scenic_railway_banner.png"
+            alt="Scenic Railway Platform"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/95 via-[#230E40]/85 to-[#160B30]/75 pointer-events-none" />
+
+        <div className="space-y-1.5 text-center sm:text-left z-10 max-w-xl">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-200 text-xs font-bold backdrop-blur-md">
+            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+            <span>Active Citizen Journey Vault • DigiLocker Verified</span>
           </div>
-          <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-            My Journeys & Activity
+          <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
+            My Booked Journeys & Tickets
           </h1>
-          <p className="text-xs text-purple-200 font-medium max-w-md">
-            View verified bookings, track running trains live, and view digital e-tickets.
+          <p className="text-xs sm:text-sm text-purple-200/90 font-medium leading-relaxed">
+            All your confirmed seats, coach allotments, live GPS telemetry, and passenger itineraries in one secure ledger.
           </p>
         </div>
 
-        {/* Character Illustration */}
-        <div className="hidden sm:flex items-center gap-2 z-10 shrink-0">
-          <img
-            src="/assets/images/characters/citizen_ticket.png"
-            alt="Citizen Travel Pass"
-            className="w-14 h-16 object-contain drop-shadow-md"
-          />
-          <img
-            src="/assets/images/characters/nira_happy.png"
-            alt="Nira AI"
-            className="w-12 h-14 object-contain drop-shadow-md"
-          />
+        {/* Mascot Duo Illustration */}
+        <div className="hidden md:flex items-center gap-3 z-10 shrink-0">
+          <div className="w-28 h-28 overflow-hidden rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-1 shadow-inner">
+            <img
+              src="/assets/images/characters/ananya_nira_duo.png"
+              alt="Ananya & Nira Mascot Duo"
+              className="w-full h-full object-contain"
+            />
+          </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          1B. QUICK BOOKED TICKETS & PASSENGER MANIFEST SUMMARY CARD
+          ═══════════════════════════════════════════════════════════════════ */}
+      {journeys.find((j) => j.status === 'CONFIRMED') && (() => {
+        const topJourney = journeys.find((j) => j.status === 'CONFIRMED')!;
+        return (
+          <div className="bg-gradient-to-r from-purple-50 via-white to-pink-50 rounded-3xl p-4 sm:p-5 border-2 border-purple-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-16 h-16 shrink-0 rounded-2xl overflow-hidden bg-purple-100 p-1 border border-purple-200">
+                <img
+                  src="/assets/images/characters/ananya_holding_map.png"
+                  alt="Ananya with Route Map"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    ✓ Next Up Confirmed
+                  </span>
+                  <span className="font-mono text-xs font-bold text-slate-500">#{topJourney.trainNumber}</span>
+                </div>
+                <h3 className="font-black text-sm sm:text-base text-slate-900 truncate">
+                  {topJourney.trainName} ({topJourney.fromCode} ➔ {topJourney.toCode})
+                </h3>
+                <p className="text-xs text-slate-600 font-medium">
+                  {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
+              <button
+                type="button"
+                onClick={() => openTicketModal(topJourney)}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>View Full e-Ticket</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrackQuery(topJourney.trainNumber);
+                  navigateTo('track');
+                }}
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                <span>Track Live</span>
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
           2. BOOKINGS LEDGER TAB BAR
@@ -738,6 +801,37 @@ export const MyJourneysPage: React.FC = () => {
             </div>
           );
         })}
+
+        {filteredJourneys.length === 0 && (
+          <div className="bg-white rounded-3xl p-8 border border-purple-100 shadow-sm text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-28 h-28 overflow-hidden rounded-2xl bg-purple-50 p-2">
+              <img
+                src="/assets/images/characters/ananya_travel_luggage.png"
+                alt="No Journeys"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="space-y-1 max-w-sm">
+              <h3 className="font-black text-base text-slate-900 capitalize">
+                No {activeTab} journeys found
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {activeTab === 'cancelled'
+                  ? 'Great news! You have no cancelled journeys on your citizen record.'
+                  : 'Ready to explore India by rail? Search and book your next trip with 1-click zero-PIN checkout.'}
+              </p>
+            </div>
+            {activeTab !== 'cancelled' && (
+              <button
+                type="button"
+                onClick={() => navigateTo('home')}
+                className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Find & Book Trains ➔
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -808,16 +902,20 @@ export const MyJourneysPage: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-3.5 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
               <div className="flex items-start justify-between border-b border-red-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center font-bold">
-                    <Lock className="w-5 h-5" />
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 p-1 flex items-center justify-center shrink-0">
+                    <img
+                      src="/assets/images/characters/nira_robot_tablet.png"
+                      alt="Nira Security Audit"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">
-                      Security Verification: Cancel Ticket
+                      Security PIN Verification
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
-                      PNR #{cancellingJourney.pnr} • Anti-Scam Protection
+                      PNR #{cancellingJourney.pnr} • Cancel & Instant Refund
                     </p>
                   </div>
                 </div>
