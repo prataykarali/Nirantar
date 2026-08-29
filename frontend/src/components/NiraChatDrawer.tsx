@@ -373,7 +373,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ═══════════════════════════════════════════════════════════════════
-  // 25 DIRECT TEST QUERY EXAMPLES (CATEGORIZED FOR JUDGES & REVIEWERS)
+  // 30 DIRECT TEST QUERY EXAMPLES (CATEGORIZED FOR JUDGES & REVIEWERS)
   // ═══════════════════════════════════════════════════════════════════
   const EXAMPLE_QUERIES: Record<ExampleCategory, Array<{ label: string; query: string; icon: any; tag?: string }>> = {
     booking: [
@@ -412,24 +412,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         label: 'Find cheapest train from Mumbai to Pune',
         query: 'Find cheapest train from Mumbai to Pune tomorrow',
         tag: 'Best Value',
-      },
-      {
-        icon: Train,
-        label: 'Auto book Kolkata to Bangalore (WL Watch)',
-        query: 'Auto book train 12863 from Kolkata to Bangalore tomorrow in 3A',
-        tag: 'WL Clearance',
-      },
-      {
-        icon: Zap,
-        label: 'Book train from Delhi to NJP',
-        query: 'Book a train from Delhi to NJP tomorrow in CC',
-        tag: 'North Bengal',
-      },
-      {
-        icon: Search,
-        label: 'Book Delhi to Lucknow Gomti Express',
-        query: 'Book Delhi to Lucknow Gomti Express in CC class',
-        tag: 'Chair Car',
       },
     ],
     tatkal: [
@@ -545,12 +527,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         query: "Welcome back! Now, as the developer, let's address what the user experienced underneath Nirantar:",
         tag: '1-Min Dev Pitch & Tech Stack',
       },
-      {
-        icon: ShieldCheck,
-        label: 'How passenger details are used in this demo',
-        query: 'How do passenger details work in this demo?',
-        tag: 'Passenger details',
-      },
     ],
     features: [
       {
@@ -582,6 +558,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         label: 'Show my active bookings & exact seats',
         query: 'Show me my bookings with exact seat details and coach layout',
         tag: 'My Bookings',
+      },
+      {
+        icon: ShieldCheck,
+        label: 'Verify DigiLocker identity & pass security',
+        query: 'Verify my DigiLocker identity and passenger details',
+        tag: 'DigiLocker Pass',
       },
     ],
   };
@@ -2039,15 +2021,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* 20 Examples Drawer Toggle */}
+              {/* 30 Examples Drawer Toggle */}
               <button
                 type="button"
                 onClick={() => setShowExamplesModal(!showExamplesModal)}
                 className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                title="Open 20 Test Examples"
+                title="Open 30 Test Examples"
               >
                 <ListFilter className="w-3.5 h-3.5" />
-                <span>20 Demos</span>
+                <span>30 Demos</span>
               </button>
 
               {/* Reset Journey State Button */}
@@ -2084,14 +2066,14 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          POPUP MODAL: 25 CATEGORIZED DIRECT TEST EXAMPLES
+          POPUP MODAL: 30 CATEGORIZED DIRECT TEST EXAMPLES
           ═══════════════════════════════════════════════════════════════════ */}
       {showExamplesModal && (
         <div className="p-3 bg-purple-50/90 border-b border-purple-200 space-y-2.5 animate-in slide-in-from-top-3 duration-150">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black text-purple-950 uppercase flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-              <span>20 Direct Input Test Examples</span>
+              <span>30 Direct Input Test Examples</span>
             </span>
             <button
               type="button"
@@ -2222,7 +2204,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                   Tap to test flagship features:
                 </span>
                 <span className="text-[10px] font-bold text-purple-700 cursor-pointer hover:underline" onClick={() => setShowExamplesModal(true)}>
-                  All 20 Demos ➔
+                  All 30 Demos ➔
                 </span>
               </div>
               <div className="space-y-1.5">
