@@ -119,7 +119,7 @@ export const AppShell: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F8F6FC] font-sans antialiased text-slate-900 relative">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F8F6FC] dark:bg-[#0B0813] font-sans antialiased text-slate-900 dark:text-slate-100 relative transition-colors duration-300">
       {/* 1. DESKTOP: PERSISTENT REUSABLE SIDEBAR */}
       <Sidebar
         className="hidden md:flex"

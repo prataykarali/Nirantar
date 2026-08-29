@@ -201,6 +201,11 @@ export interface JourneyContextType {
   showChatDrawer: boolean;
   setShowChatDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 
+  // Theme & Dark Mode
+  theme: 'light' | 'dark';
+  setTheme: (t: 'light' | 'dark') => void;
+  toggleTheme: () => void;
+
   // Sanitized Context Builder
   getSanitizedContext: () => NiraSanitizedContext;
 
@@ -398,6 +403,42 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('nirantar_auth_user', JSON.stringify(authState));
     } catch {}
   }, [authState]);
+
+  // ── Global Theme (Light & Dark Mode) with Glow Engine ──
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch {}
+    return 'light';
+  });
+
+  const setTheme = useCallback((newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+    try {
+      localStorage.setItem('nirantar_theme', newTheme);
+    } catch {}
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Payment & Ticket Records with LocalStorage Sync
   const [paymentAttempt, setPaymentAttempt] = useState<PaymentAttempt | null>(null);
@@ -1746,6 +1787,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setShowAgenticAuth,
         triggerAgenticAuth,
         getWaitlistProbability,
+        // ─── Theme & Dark Mode ───
+        theme,
+        setTheme,
+        toggleTheme,
         // ─── Sanitized Context ───
         getSanitizedContext,
         resetJourney,

@@ -464,20 +464,13 @@ export const MyJourneysPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Mascot Illustrations */}
-        <div className="hidden md:flex items-center gap-4 z-10 shrink-0">
-          <div className="w-36 h-36 flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
+        {/* Mascot Illustration */}
+        <div className="hidden md:flex items-center gap-3 z-10 shrink-0">
+          <div className="w-36 h-36 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
             <img
               src="/assets/images/characters/nira_conductor.png"
               alt="Nira Conductor"
-              className="w-full h-full object-contain drop-shadow-xl"
-            />
-          </div>
-          <div className="w-28 h-28 flex items-center justify-center transform -rotate-6 hover:rotate-0 transition-transform mt-6">
-            <img
-              src="/assets/images/characters/ananya_nira_duo.png"
-              alt="Ananya & Nira Mascot Duo"
-              className="w-full h-full object-contain drop-shadow-lg"
+              className="w-full h-full object-contain drop-shadow-2xl"
             />
           </div>
         </div>

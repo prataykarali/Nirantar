@@ -10,6 +10,8 @@ import {
   LogOut,
   CheckCircle2,
   Menu,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
 import { OAuthLoginModal } from '../auth/OAuthLoginModal';
@@ -41,6 +43,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     setShowVisualDiagram,
     notifications,
     markNotificationsRead,
+    theme,
+    toggleTheme,
   } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -161,11 +165,26 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           type="button"
           onClick={() => setShowVisualDiagram(true)}
-          className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer shrink-0"
+          className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800 text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer shrink-0"
           title="Open interactive visual diagram of this specific screen"
         >
           <span className="text-sm">🧭</span>
           <span className="hidden md:inline">Page Guide</span>
+        </button>
+
+        {/* 🌓 LIGHT / DARK MODE TOGGLE */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 dark:bg-purple-950/80 hover:bg-white dark:hover:bg-purple-900 shadow-sm flex items-center justify-center text-purple-800 dark:text-yellow-300 border border-purple-100 dark:border-purple-700/60 transition-all hover:scale-105 cursor-pointer"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          aria-label="Toggle light and dark theme"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />
+          ) : (
+            <Moon className="w-4 h-4 text-purple-800" />
+          )}
         </button>
 
         {/* 1. GIFT ICON BUTTON & REWARDS POPOVER */}

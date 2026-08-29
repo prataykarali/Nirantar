@@ -69,18 +69,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`w-64 lg:w-72 bg-white/95 backdrop-blur-sm border-r border-purple-100 flex flex-col h-screen select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden ${className}`}
+      className={`w-64 lg:w-72 bg-white/95 dark:bg-[#0E091B]/95 backdrop-blur-sm border-r border-purple-100 dark:border-purple-900/40 flex flex-col h-screen select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden transition-colors duration-300 ${className}`}
     >
       {/* 1. TOP BRAND LOGO & NAVIGATION */}
       <div className="space-y-3">
         {/* MOBILE CLOSE BUTTON (IF IN DRAWER MODE) */}
         {isMobileDrawer && (
-          <div className="flex items-center justify-between pb-1 border-b border-purple-50">
-            <span className="text-xs font-black text-purple-950 uppercase tracking-wider">Navigation Menu</span>
+          <div className="flex items-center justify-between pb-1 border-b border-purple-50 dark:border-purple-900/40">
+            <span className="text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wider">Navigation Menu</span>
             <button
               type="button"
               onClick={onCloseDrawer}
-              className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center cursor-pointer transition-colors"
+              className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-900 dark:text-purple-200 flex items-center justify-center cursor-pointer transition-colors"
               aria-label="Close navigation menu"
             >
               <X className="w-4 h-4" />
@@ -103,10 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full h-full object-contain drop-shadow-sm"
             />
           </div>
-          <h1 className="font-display font-black text-xl tracking-tight text-slate-900 leading-none">
+          <h1 className="font-display font-black text-xl tracking-tight text-slate-900 dark:text-white leading-none">
             Nirantar
           </h1>
-          <p className="text-[10px] font-extrabold text-[#7C3AED] mt-0.5 tracking-wide">
+          <p className="text-[10px] font-extrabold text-[#7C3AED] dark:text-purple-400 mt-0.5 tracking-wide">
             The Railway Journey That Explains Itself
           </p>
         </div>
@@ -119,18 +119,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               resumeTask();
               if (isMobileDrawer && onCloseDrawer) onCloseDrawer();
             }}
-            className="w-full p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-center justify-between text-left hover:bg-amber-500/20 transition-all cursor-pointer shadow-xs animate-pulse"
+            className="w-full p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-center justify-between text-left hover:bg-amber-500/20 transition-all cursor-pointer shadow-xs animate-pulse"
           >
             <div className="flex items-center gap-2">
-              <RotateCcw className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <RotateCcw className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
               <div>
                 <span className="text-[11px] font-black block">Resume Booking</span>
-                <span className="text-[10px] text-amber-800 truncate block max-w-[130px]">
+                <span className="text-[10px] text-amber-800 dark:text-amber-300 truncate block max-w-[130px]">
                   {taskStack[0].title}
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-black text-amber-700 bg-amber-200/80 px-1.5 py-0.5 rounded">➔</span>
+            <span className="text-[10px] font-black text-amber-700 bg-amber-200/80 dark:bg-amber-900/60 dark:text-amber-200 px-1.5 py-0.5 rounded">➔</span>
           </button>
         )}
 
@@ -138,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-3 pt-1">
           {/* GROUP 1: CORE JOURNEY */}
           <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-1 block">
               Core Journey
             </span>
             <nav className="space-y-0.5">
@@ -157,14 +157,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleNavClick(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
                       isActive
-                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
-                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                        ? 'bg-[#F2EBFF] dark:bg-purple-900/50 text-[#6B21A8] dark:text-purple-300 font-black shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-purple-50/60 dark:hover:bg-purple-950/50 hover:text-purple-900 dark:hover:text-purple-200 font-bold'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                          isActive ? 'text-[#6B21A8] dark:text-purple-300' : 'text-slate-500 dark:text-slate-400 group-hover:text-purple-800 dark:group-hover:text-purple-300'
                         }`}
                       />
                       <span className="text-xs truncate">{item.label}</span>
@@ -177,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* GROUP 2: ASSIST & EXPLAIN */}
           <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-1 block">
               Assistance & Guide
             </span>
             <nav className="space-y-0.5">
@@ -191,14 +191,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleNavClick(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
                       isActive
-                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
-                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                        ? 'bg-[#F2EBFF] dark:bg-purple-900/50 text-[#6B21A8] dark:text-purple-300 font-black shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-purple-50/60 dark:hover:bg-purple-950/50 hover:text-purple-900 dark:hover:text-purple-200 font-bold'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                          isActive ? 'text-[#6B21A8] dark:text-purple-300' : 'text-slate-500 dark:text-slate-400 group-hover:text-purple-800 dark:group-hover:text-purple-300'
                         }`}
                       />
                       <span className="text-xs truncate">{item.label}</span>
@@ -211,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* GROUP 3: ACCOUNT & PREFERENCES */}
           <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-1 block">
               Account & Settings
             </span>
             <nav className="space-y-0.5">
@@ -225,14 +225,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleNavClick(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
                       isActive
-                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
-                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                        ? 'bg-[#F2EBFF] dark:bg-purple-900/50 text-[#6B21A8] dark:text-purple-300 font-black shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-purple-50/60 dark:hover:bg-purple-950/50 hover:text-purple-900 dark:hover:text-purple-200 font-bold'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                          isActive ? 'text-[#6B21A8] dark:text-purple-300' : 'text-slate-500 dark:text-slate-400 group-hover:text-purple-800 dark:group-hover:text-purple-300'
                         }`}
                       />
                       <span className="text-xs truncate">{item.label}</span>
@@ -245,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. BOTTOM NIRA ROBOT ASSISTANT CARD (Elevated & never cropped) */}
+      {/* 2. BOTTOM NIRA ROBOT ASSISTANT CARD */}
       <div className="relative pt-10 mt-2">
         {/* Dynamic Nira 3D Mascot Peeking Out */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 w-24 h-24 pointer-events-none flex items-center justify-center z-10">
@@ -277,12 +277,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Card Container */}
-        <div className="pt-10 pb-3 px-3 rounded-[24px] bg-white border-2 border-purple-100 shadow-[0_6px_20px_rgba(88,28,135,0.06)] flex flex-col items-center text-center space-y-2">
+        <div className="pt-10 pb-3 px-3 rounded-[24px] bg-white dark:bg-[#140D27] border-2 border-purple-100 dark:border-purple-900/50 shadow-[0_6px_20px_rgba(88,28,135,0.06)] flex flex-col items-center text-center space-y-2">
           <div className="space-y-0.5">
-            <h3 className="font-display font-black text-base text-slate-900 tracking-tight">
+            <h3 className="font-display font-black text-base text-slate-900 dark:text-white tracking-tight">
               Hi, I'm Nira!
             </h3>
-            <p className="text-[11px] text-slate-500 font-semibold px-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold px-1">
               Your AI travel assistant
             </p>
           </div>

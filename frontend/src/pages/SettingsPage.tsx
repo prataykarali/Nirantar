@@ -28,7 +28,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 
 export const SettingsPage: React.FC = () => {
-  const { navigateTo, citizenProfile, setCitizenProfile } = useJourney();
+  const { navigateTo, citizenProfile, setCitizenProfile, theme, setTheme } = useJourney();
   const [activeTab, setActiveTab] = useState('general');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeThemeBg, setActiveThemeBg] = useState('/assets/images/settings_bg.png');
@@ -142,81 +142,47 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 -mx-4 -mt-4 p-4 sm:p-6 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6 pb-12 select-none font-sans text-slate-800 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-[#0B0813] dark:via-[#110B22] dark:to-[#0B0813] -mx-4 -mt-4 p-3 sm:p-5 md:p-6 transition-colors duration-300">
+      <div className="max-w-6xl mx-auto space-y-4 pb-12 select-none font-sans text-slate-800 dark:text-slate-100 animate-in fade-in duration-300">
         
         {/* ═══════════════════════════════════════════════════════════════════
-            1. HERO BANNER WITH SCENIC BACKGROUND & MASCOTS
+            1. HERO BANNER - SLEEK, COMPACT & MODERN
             ═══════════════════════════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden flex flex-col sm:flex-row items-center sm:justify-between rounded-[2rem] p-6 sm:p-8 shadow-2xl border border-purple-300/30 bg-gradient-to-br from-[#1A0B2E] via-[#2D1254] to-[#160B30] text-white">
-          {/* Scenic Background Image Layer */}
-          <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden mix-blend-luminosity transition-all duration-700">
-            <img
-              src={activeThemeBg}
-              alt="Settings Background"
-              className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-700"
-            />
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/90 via-[#2D1254]/75 to-transparent pointer-events-none" />
-
-          {/* Animated Decorative Gears */}
-          <div className="absolute top-0 right-28 opacity-15 animate-[spin_20s_linear_infinite] pointer-events-none">
-            <SettingsIcon className="w-32 h-32 text-purple-300" />
-          </div>
-          <div className="absolute -bottom-10 right-56 opacity-10 animate-[spin_25s_linear_infinite_reverse] pointer-events-none">
-            <SettingsIcon className="w-48 h-48 text-violet-300" />
-          </div>
-
-          <div className="relative z-10 flex items-center gap-5 w-full sm:w-auto">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-bold shadow-xl backdrop-blur-md shrink-0">
-              <SettingsIcon className="w-8 h-8" />
+        <div className="relative overflow-hidden flex items-center justify-between rounded-2xl p-4 sm:p-5 shadow-lg border border-purple-400/20 bg-gradient-to-r from-[#1A0B2E] via-[#2D1254] to-[#160B30] text-white">
+          <div className="relative z-10 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-bold shadow-md backdrop-blur-md shrink-0">
+              <SettingsIcon className="w-5 h-5 text-purple-300" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-bold mb-1 backdrop-blur-md">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold tracking-wide uppercase backdrop-blur-md">
                 <Sparkles className="w-3 h-3 text-purple-300" />
-                <span>Preferences & Privacy Vault</span>
+                <span>Preferences & Vault</span>
               </div>
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-white mt-0.5">
                 Settings & Preferences
               </h1>
-              <p className="text-xs sm:text-sm font-medium text-purple-200/90 mt-0.5">
-                Personalize your citizen avatar, audio chimes, accessibility, and zero-PII security
-              </p>
             </div>
           </div>
 
-          {/* Mascot Avatars */}
-          <div className="relative z-10 hidden sm:flex items-center gap-4 mt-4 sm:mt-0 shrink-0">
+          {/* Compact Mini Mascot & Save Indicator */}
+          <div className="relative z-10 flex items-center gap-3 shrink-0">
             {saveSuccess ? (
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 p-2 pr-5 rounded-full shadow-lg animate-in fade-in slide-in-from-right-4">
-                <div className="w-16 h-16 flex items-center justify-center">
-                  <img
-                    src="/assets/images/characters/nira_excited.png"
-                    alt="Saved"
-                    className="w-full h-full object-contain drop-shadow-md"
-                  />
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full shadow-md animate-in fade-in">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <img src="/assets/images/characters/nira_excited.png" alt="Saved" className="w-full h-full object-contain drop-shadow-xs" />
                 </div>
-                <span className="text-emerald-300 font-bold flex items-center gap-1.5 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Saved!
+                <span className="text-emerald-300 font-bold text-xs flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Saved
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <div className="w-28 h-28 transform rotate-2 hover:rotate-0 transition-transform flex items-center justify-center">
-                  <img
-                    src="/assets/images/characters/nira_settings.png"
-                    alt="Nira Settings"
-                    className="w-full h-full object-contain drop-shadow-xl"
-                  />
-                </div>
-                <div className="w-22 h-22 transform -rotate-3 hover:rotate-0 transition-transform flex items-center justify-center">
-                  <img
-                    src="/assets/images/characters/ananya_nira_duo.png"
-                    alt="Ananya & Nira"
-                    className="w-full h-full object-contain drop-shadow-lg"
-                  />
-                </div>
+              <div className="w-11 h-11 flex items-center justify-center">
+                <img
+                  src="/assets/images/characters/nira_settings.png"
+                  alt="Nira Settings"
+                  className="w-full h-full object-contain drop-shadow-md"
+                />
               </div>
             )}
           </div>
@@ -342,31 +308,34 @@ export const SettingsPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#16102A] border border-purple-100 dark:border-purple-900/50 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
                         <div>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Interface Theme</span>
-                          <span className="text-xs text-slate-500 font-medium">Appearance mode</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block mb-0.5">Interface Theme</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Appearance & glow mode</span>
                         </div>
                         <select
-                          value={settings.theme}
-                          onChange={(e) => setSettings({ ...settings, theme: e.target.value })}
-                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
+                          value={theme === 'dark' ? 'Dark' : 'Light'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTheme(val === 'Dark' ? 'dark' : 'light');
+                            setSettings({ ...settings, theme: val });
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/80 text-xs font-bold text-purple-950 dark:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
                         >
-                          <option value="Light">Light Mode</option>
-                          <option value="Dark">Dark Mode</option>
-                          <option value="System">System Default</option>
+                          <option value="Light">☀️ Light Mode</option>
+                          <option value="Dark">🌙 Dark Mode (Glow)</option>
                         </select>
                       </div>
 
-                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#16102A] border border-purple-100 dark:border-purple-900/50 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
                         <div>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Default Class</span>
-                          <span className="text-xs text-slate-500 font-medium">Preselected coach tier</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block mb-0.5">Default Class</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Preselected coach tier</span>
                         </div>
                         <select
                           value={settings.defaultJourneyClass}
                           onChange={(e) => setSettings({ ...settings, defaultJourneyClass: e.target.value })}
-                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
+                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/80 text-xs font-bold text-purple-950 dark:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
                         >
                           <option value="AC 3 Tier">AC 3 Tier (3A)</option>
                           <option value="AC 2 Tier">AC 2 Tier (2A)</option>

@@ -17,10 +17,20 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html.dark {
+    background-color: #0B0813;
+    color: #F3EEFA;
+  }
+
   body {
     background-color: #F8F6FC;
     color: #1E1B4B;
     overflow-x: hidden;
+  }
+
+  html.dark body {
+    background-color: #0B0813;
+    color: #F3EEFA;
   }
 
   /* Accessible selection color */
@@ -28,6 +38,26 @@
     background-color: #E9D5FF;
     color: #581C87;
   }
+
+  html.dark ::selection {
+    background-color: #581C87;
+    color: #F3EEFA;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE GLOWING AVATARS, MASCOTS & IMAGES
+   ═══════════════════════════════════════════════════════════════════ */
+html.dark img,
+html.dark svg.avatar-icon,
+html.dark .avatar-glow {
+  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.75)) drop-shadow(0 0 22px rgba(139, 92, 246, 0.45));
+  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark img:hover,
+html.dark .avatar-glow:hover {
+  filter: drop-shadow(0 0 16px rgba(192, 132, 252, 0.95)) drop-shadow(0 0 32px rgba(168, 85, 247, 0.7));
 }
 
 /* Global railway glossary: dotted underline with smooth interactive hover/focus states */
