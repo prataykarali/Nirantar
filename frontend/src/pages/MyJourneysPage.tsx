@@ -374,11 +374,23 @@ export const MyJourneysPage: React.FC = () => {
     },
   ];
 
-  // Filter journeys by active tab
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter journeys by active tab and search query
   const filteredJourneys = journeys.filter((j) => {
-    if (activeTab === 'upcoming') return j.status === 'CONFIRMED';
-    if (activeTab === 'completed') return j.status === 'COMPLETED';
-    if (activeTab === 'cancelled') return j.status === 'CANCELLED';
+    if (activeTab === 'upcoming' && j.status !== 'CONFIRMED') return false;
+    if (activeTab === 'completed' && j.status !== 'COMPLETED') return false;
+    if (activeTab === 'cancelled' && j.status !== 'CANCELLED') return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTrainNo = j.trainNumber.toLowerCase().includes(q);
+      const matchTrainName = j.trainName.toLowerCase().includes(q);
+      const matchPnr = j.pnr.toLowerCase().replace(/\s+/g, '').includes(q.replace(/\s+/g, ''));
+      const matchFrom = j.fromCity.toLowerCase().includes(q) || j.fromCode.toLowerCase().includes(q);
+      const matchTo = j.toCity.toLowerCase().includes(q) || j.toCode.toLowerCase().includes(q);
+      const matchPax = j.passengers.some((p) => p.name.toLowerCase().includes(q));
+      return matchTrainNo || matchTrainName || matchPnr || matchFrom || matchTo || matchPax;
+    }
     return true;
   });
 
@@ -490,37 +502,34 @@ export const MyJourneysPage: React.FC = () => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
             
             <div className="flex items-center gap-4 min-w-0 z-10">
-              <div className="w-24 h-24 shrink-0 overflow-hidden rounded-2xl shadow-lg">
-                <img
-                  src="/assets/images/characters/ananya_holding_map.png"
-                  alt="Ananya with Route Map"
-                  className="w-full h-full object-contain drop-shadow-md"
-                />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-lg shadow-purple-900/25 border border-purple-400/30">
+                🚆
               </div>
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shadow-sm">
-                    ✓ Next Up Confirmed
+                    ✓ Active Confirmed Booking
                   </span>
                   <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">#{topJourney.trainNumber}</span>
+                  <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">PNR: {topJourney.pnr}</span>
                 </div>
                 <h3 className="font-black text-lg sm:text-xl text-slate-900 truncate">
                   {topJourney.trainName} ({topJourney.fromCode} ➔ {topJourney.toCode})
                 </h3>
                 <p className="text-sm text-slate-600 font-medium">
-                  {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')}
+                  {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')} • {topJourney.date}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto z-10">
+            <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto z-10 flex-wrap">
               <button
                 type="button"
                 onClick={() => openTicketModal(topJourney)}
-                className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Eye className="w-4 h-4" />
-                <span>View Full e-Ticket</span>
+                <span>View / Download e-Ticket</span>
               </button>
               <button
                 type="button"
@@ -528,10 +537,18 @@ export const MyJourneysPage: React.FC = () => {
                   setTrackQuery(topJourney.trainNumber);
                   navigateTo('track');
                 }}
-                className="px-4 py-3 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-sm shadow-sm transition-colors flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <MapPin className="w-4 h-4 text-purple-600" />
                 <span>Track Live</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCancellingJourney(topJourney)}
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-bold border border-rose-200 text-xs sm:text-sm transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              >
+                <XCircle className="w-4 h-4 text-rose-600" />
+                <span>Cancel / Delete</span>
               </button>
             </div>
           </div>
@@ -539,23 +556,46 @@ export const MyJourneysPage: React.FC = () => {
       })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. BOOKINGS LEDGER TAB BAR
+          2. BOOKINGS LEDGER TAB BAR & SEARCH QUERY FILTER
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-2 sm:p-3 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-4 z-30">
-        <div className="flex items-center gap-2 px-2">
-          <Train className="w-5 h-5 text-purple-700" />
-          <span className="font-bold text-sm sm:text-base text-slate-900">
-            Bookings Ledger
-          </span>
+      <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-2 sm:p-3 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-4 z-30">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 px-2">
+            <Train className="w-5 h-5 text-purple-700" />
+            <span className="font-bold text-sm sm:text-base text-slate-900">
+              Bookings Ledger
+            </span>
+          </div>
+
+          {/* Search Query Input */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search train #, PNR, name..."
+              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-xl self-start sm:self-center border border-slate-200/50">
+        <div className="flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-xl self-start md:self-center border border-slate-200/50 flex-wrap">
           <button
             type="button"
             onClick={() => setActiveTab('upcoming')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'upcoming'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105'
                 : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
@@ -564,9 +604,9 @@ export const MyJourneysPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('completed')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'completed'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105'
                 : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
@@ -575,9 +615,9 @@ export const MyJourneysPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('cancelled')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${
               activeTab === 'cancelled'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105'
                 : 'text-slate-600 hover:text-purple-900 hover:bg-white'
             }`}
           >
