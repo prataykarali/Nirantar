@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { DigitalTicketModal, TicketDetails } from '../components/journey/DigitalTicketModal';
-import { CoachSegmentShowcase } from '../components/journey/CoachSegmentShowcase';
 import { getTrainStoppages } from '../data/trainStoppages';
 
 type JourneyTab = 'upcoming' | 'completed' | 'cancelled';
@@ -85,26 +84,13 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers, niraPendingQuery } = useJourney();
+  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [cancellingJourney, setCancellingJourney] = useState<JourneyRecord | null>(null);
   const [cancelledPnrList, setCancelledPnrList] = useState<string[]>([]);
-  const [coachShowcaseJourneyId, setCoachShowcaseJourneyId] = useState<string | null>('j1');
-
-  // Auto-expand Coach & Vacant Berths if user asked Nira about vacant seats / coach shift
-  useEffect(() => {
-    if (niraPendingQuery && (niraPendingQuery.toLowerCase().includes('vacant') || niraPendingQuery.toLowerCase().includes('shift') || niraPendingQuery.toLowerCase().includes('coach'))) {
-      setExpandedJourneyId('j1');
-      setCoachShowcaseJourneyId('j1');
-      setTimeout(() => {
-        const el = document.getElementById('coach-showcase-j1');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
-    }
-  }, [niraPendingQuery]);
 
   // Cancel Ticket Security Verification States
   const [cancelTrainNumberInput, setCancelTrainNumberInput] = useState('');
@@ -544,20 +530,6 @@ export const MyJourneysPage: React.FC = () => {
             <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto z-10 flex-wrap">
               <button
                 type="button"
-                onClick={() => {
-                  setExpandedJourneyId(topJourney.id);
-                  setCoachShowcaseJourneyId(topJourney.id);
-                  setTimeout(() => {
-                    const el = document.getElementById(`coach-showcase-${topJourney.id}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }, 120);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-950 border border-purple-300 font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <span>💺 Vacant Berth Radar</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => openTicketModal(topJourney)}
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
@@ -773,21 +745,6 @@ export const MyJourneysPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setExpandedJourneyId(j.id);
-                            setCoachShowcaseJourneyId(j.id);
-                            setTimeout(() => {
-                              const el = document.getElementById(`coach-showcase-${j.id}`);
-                              if (el) el.scrollIntoView({ behavior: 'smooth' });
-                            }, 120);
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-950 font-bold text-xs border border-purple-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
-                        >
-                          <span>💺 View Coach & Vacants</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
                             setTrackQuery(j.trainNumber);
                             navigateTo('track');
                           }}
@@ -936,52 +893,7 @@ export const MyJourneysPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* 3b. Coach Layout & Vacant Seat Requests (CONFIRMED only) */}
-                    {j.status === 'CONFIRMED' && (
-                      <div className="space-y-3 pt-3 border-t border-purple-100/80">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1.5">
-                            <Train className="w-4 h-4 text-purple-700" />
-                            <span>Coach Layout & Vacant Seat Requests</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setCoachShowcaseJourneyId(coachShowcaseJourneyId === j.id ? null : j.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                              coachShowcaseJourneyId === j.id
-                                ? 'bg-purple-900 text-white shadow-sm'
-                                : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200'
-                            }`}
-                          >
-                            {coachShowcaseJourneyId === j.id ? 'Hide Coach View ✕' : 'View Coach Layout →'}
-                          </button>
-                        </div>
 
-                        {coachShowcaseJourneyId === j.id && (() => {
-                          const routeStations = getTrainStoppages(j.trainNumber);
-                          const userSeats = j.passengers.map((p) => ({
-                            seatNumber: typeof p.seatNumber === 'number' ? p.seatNumber : parseInt(String(p.seatNumber)) || 36,
-                            passengerName: p.name,
-                            berthType: p.berthType,
-                            coachCode: p.coach,
-                          }));
-
-                          return (
-                            <div id={`coach-showcase-${j.id}`} className="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm animate-in fade-in">
-                              <CoachSegmentShowcase
-                                trainNumber={j.trainNumber}
-                                trainName={j.trainName}
-                                availableClasses={[{ classCode: j.classCode, className: j.className }]}
-                                routeStations={routeStations}
-                                currentStationIndex={0}
-                                userBookedSeats={userSeats}
-                                isUserBookedTrain={true}
-                              />
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
 
                     {/* 4. Traveler Reviews */}
                     {j.reviews.length > 0 && (
