@@ -87,7 +87,7 @@ export interface GuidanceStep {
   onAction?: () => void;
 }
 
-export type AppTheme = 'lavender' | 'midnight' | 'amber' | 'emerald';
+export type AppTheme = 'lavender' | 'amber' | 'emerald';
 
 export interface ThemeOption {
   id: AppTheme;
@@ -97,44 +97,33 @@ export interface ThemeOption {
   previewBg: string;
   cardBg: string;
   accentColor: string;
-  isDark?: boolean;
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'lavender',
     name: 'Royal Iris',
-    subtitle: 'Soft lavender canvas & royal violet',
+    subtitle: 'Deep imperial violet & soft lavender canvas',
     icon: '🌸',
-    previewBg: '#F8F6FD',
+    previewBg: '#F3E8FF',
     cardBg: '#FFFFFF',
     accentColor: '#7C3AED',
   },
   {
-    id: 'midnight',
-    name: 'Midnight Slate',
-    subtitle: 'Gentle night slate & soft glowing indigo',
-    icon: '🌌',
-    previewBg: '#0F172A',
-    cardBg: '#1E293B',
-    accentColor: '#818CF8',
-    isDark: true,
-  },
-  {
     id: 'amber',
     name: 'Warm Sunset',
-    subtitle: 'Cozy cream & golden horizon',
+    subtitle: 'Rich golden amber & terracotta dusk',
     icon: '🌅',
-    previewBg: '#FAF7F2',
+    previewBg: '#FEF3C7',
     cardBg: '#FFFFFF',
     accentColor: '#D97706',
   },
   {
     id: 'emerald',
     name: 'Mint Express',
-    subtitle: 'Fresh pine tint & eco emerald',
+    subtitle: 'Deep forest emerald & refreshing sage',
     icon: '🍃',
-    previewBg: '#F2F9F6',
+    previewBg: '#DCFCE7',
     cardBg: '#FFFFFF',
     accentColor: '#059669',
   },
@@ -458,35 +447,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
   }, [authState]);
 
-  // ── Global Curated Colour Palettes (Lavender, Midnight Slate, Warm Amber, Mint Express) ──
+  // ── Global Deep Curated Colour Palettes (Royal Iris, Warm Sunset, Mint Express) ──
   const [theme, setThemeState] = useState<AppTheme>(() => {
     try {
       const saved = localStorage.getItem('nirantar_theme');
-      if (saved === 'lavender' || saved === 'midnight' || saved === 'amber' || saved === 'emerald') {
+      if (saved === 'lavender' || saved === 'amber' || saved === 'emerald') {
         return saved as AppTheme;
       }
-      if (saved === 'dark') return 'midnight';
-      if (saved === 'light') return 'lavender';
     } catch {}
     return 'lavender';
   });
 
   const applyThemeToDOM = useCallback((th: AppTheme) => {
     document.documentElement.setAttribute('data-theme', th);
-    if (th === 'midnight') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.remove('dark');
   }, []);
 
-  const setTheme = useCallback((newTheme: AppTheme | 'light' | 'dark') => {
+  const setTheme = useCallback((newTheme: AppTheme | string) => {
     let resolved: AppTheme = 'lavender';
-    if (newTheme === 'dark') resolved = 'midnight';
-    else if (newTheme === 'light') resolved = 'lavender';
-    else if (['lavender', 'midnight', 'amber', 'emerald'].includes(newTheme as AppTheme)) {
-      resolved = newTheme as AppTheme;
-    }
+    if (newTheme === 'amber') resolved = 'amber';
+    else if (newTheme === 'emerald') resolved = 'emerald';
+    else resolved = 'lavender';
+
     setThemeState(resolved);
     try {
       localStorage.setItem('nirantar_theme', resolved);
@@ -495,15 +477,15 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [applyThemeToDOM]);
 
   const cycleNextTheme = useCallback(() => {
-    const list: AppTheme[] = ['lavender', 'midnight', 'amber', 'emerald'];
+    const list: AppTheme[] = ['lavender', 'amber', 'emerald'];
     const currIdx = list.indexOf(theme);
     const nextTheme = list[(currIdx + 1) % list.length];
     setTheme(nextTheme);
   }, [theme, setTheme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme(theme === 'midnight' ? 'lavender' : 'midnight');
-  }, [theme, setTheme]);
+    cycleNextTheme();
+  }, [cycleNextTheme]);
 
   useEffect(() => {
     applyThemeToDOM(theme);

@@ -322,10 +322,9 @@ export const SettingsPage: React.FC = () => {
                           }}
                           className="px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-600 bg-purple-50/50 dark:bg-slate-700 text-xs font-bold text-purple-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
                         >
-                          <option value="lavender">🌸 Royal Iris (Soft Lavender)</option>
-                          <option value="midnight">🌌 Midnight Slate (Soft Dark)</option>
-                          <option value="amber">🌅 Warm Sunset (Cozy Amber)</option>
-                          <option value="emerald">🍃 Mint Express (Calm Pine)</option>
+                          <option value="lavender">🌸 Royal Iris (Deep Violet & Lavender)</option>
+                          <option value="amber">🌅 Warm Sunset (Golden Amber & Terracotta)</option>
+                          <option value="emerald">🍃 Mint Express (Forest Emerald & Sage)</option>
                         </select>
                       </div>
 

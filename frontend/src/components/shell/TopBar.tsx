@@ -190,28 +190,28 @@ export const TopBar: React.FC<TopBarProps> = ({
               setShowNotifications(false);
               setShowDropdown(false);
             }}
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 shadow-sm flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border border-purple-100 dark:border-slate-700 transition-all hover:scale-105 cursor-pointer"
-            title="Curated Colour Themes (Lavender, Midnight Slate, Sunset Amber, Mint)"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-full bg-white hover:bg-white/90 shadow-sm flex items-center gap-1.5 text-xs font-bold text-slate-800 border border-purple-100 transition-all hover:scale-105 cursor-pointer"
+            title="Curated Colour Themes (Royal Iris, Warm Sunset, Mint Express)"
             aria-label="Select Theme Palette"
           >
-            <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-indigo-400" />
+            <Palette className="w-3.5 h-3.5 text-purple-600" />
             <span className="text-sm">
-              {theme === 'midnight' ? '🌌' : theme === 'amber' ? '🌅' : theme === 'emerald' ? '🍃' : '🌸'}
+              {theme === 'amber' ? '🌅' : theme === 'emerald' ? '🍃' : '🌸'}
             </span>
             <span className="hidden lg:inline text-[11px] font-semibold">
-              {theme === 'midnight' ? 'Midnight' : theme === 'amber' ? 'Sunset' : theme === 'emerald' ? 'Mint' : 'Iris'}
+              {theme === 'amber' ? 'Sunset' : theme === 'emerald' ? 'Mint' : 'Iris'}
             </span>
           </button>
 
           {showThemePalette && (
-            <div className="absolute right-0 top-12 w-64 bg-white dark:bg-slate-800 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-purple-100 dark:border-slate-700 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-purple-50 dark:border-slate-700 pb-2 px-1">
-                <span className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-indigo-400" />
+            <div className="absolute right-0 top-12 w-64 bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-2 px-1">
+                <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-purple-600" />
                   <span>Curated Themes</span>
                 </span>
-                <span className="text-[10px] font-semibold text-purple-600 dark:text-indigo-400">
-                  4 Palettes
+                <span className="text-[10px] font-semibold text-purple-600">
+                  3 Palettes
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-1.5">
