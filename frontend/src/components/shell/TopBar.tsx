@@ -146,6 +146,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* RIGHT: TOP ACTION BUTTONS */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
+        {/* 🛡️ TRUST LAYER STATUS BADGE */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Zero-PII Safe</span>
+        </div>
+
         {/* 🆘 CITIZEN "I'M STUCK" BUTTON */}
         <button
           type="button"

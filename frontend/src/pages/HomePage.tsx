@@ -275,36 +275,53 @@ export const HomePage: React.FC = () => {
     });
   };
 
-  // 4 Feature Cards (exact match to reference mockup, clean & unboxed)
+  // 4 Intent-First Action Hubs (Discover, Understand, Act, Recover)
   const featureCards = [
     {
-      id: 'find-trains',
-      title: 'Find Trains',
+      id: 'discover-services',
+      title: 'Find a Service',
+      subtitle: 'Where do I check PNR, Tatkal rules & refunds?',
+      pillar: '🧭 DISCOVER',
       image: '/assets/images/cards/card_find_trains.png',
-      alt: 'Find Trains 3D Illustration',
+      alt: 'Find Railway Services',
       onClick: () => navigateTo('discover'),
     },
     {
-      id: 'pnr-status',
-      title: 'PNR Status',
-      image: '/assets/images/cards/card_pnr_status.png',
-      alt: 'PNR Status 3D Ticket',
-      onClick: () => navigateTo('my-journeys'),
+      id: 'understand-jargon',
+      title: 'Understand Jargon',
+      subtitle: 'What does RAC 27, GNWL or 3E mean for me?',
+      pillar: '🧠 UNDERSTAND',
+      image: '/assets/images/cards/card_train_schedule.png',
+      alt: 'Nirantar Explain Jargon',
+      onClick: () => navigateTo('help'),
     },
     {
-      id: 'live-trains',
-      title: 'Live Trains',
+      id: 'assisted-booking',
+      title: 'Book with Nira',
+      subtitle: 'Voice & text booking with safe PII-free autofill',
+      pillar: '🤖 ACT',
+      image: '/assets/images/cards/card_pnr_status.png',
+      alt: 'Assisted Booking',
+      onClick: () => {
+        executeSearch({
+          fromStation: POPULAR_STATIONS[0],
+          toStation: POPULAR_STATIONS[1],
+          travelDate: tomorrowStr,
+          passengersCount: 1,
+          classType: 'All Classes',
+          quota: 'General (GN)',
+        });
+      },
+    },
+    {
+      id: 'live-track-recover',
+      title: 'Track & Recover',
+      subtitle: 'Live GPS radar, delays & resume interrupted trips',
+      pillar: '🛡️ RECOVER',
       image: '/assets/images/cards/card_live_trains.png',
-      alt: 'Live Trains 3D Map Pin',
+      alt: 'Live Radar and Recovery',
       badge: 'LIVE',
       onClick: () => navigateTo('track'),
-    },
-    {
-      id: 'train-schedule',
-      title: 'Train Schedule',
-      image: '/assets/images/cards/card_train_schedule.png',
-      alt: 'Train Schedule 3D Calendar',
-      onClick: () => navigateTo('discover'),
     },
   ];
 
@@ -517,43 +534,64 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. 4 UNBOXED FEATURE CARDS (2 Columns on mobile, 4 on desktop)
+          2. 4 INTENT-FIRST PILLAR CARDS (What are you trying to do?)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        {featureCards.map((card) => (
-          <button
-            key={card.id}
-            type="button"
-            onClick={card.onClick}
-            className="relative bg-white rounded-2xl sm:rounded-[28px] p-3 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-40 sm:h-56 text-left group cursor-pointer"
-          >
-            {/* LIVE Tag for Live Trains card */}
-            {card.badge && (
-              <span className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-[#00B074] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-md uppercase tracking-wider shadow-xs z-10">
-                {card.badge}
-              </span>
-            )}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+            What are you trying to do?
+          </span>
+          <span className="text-[11px] font-bold text-purple-700">
+            Nirantar routes you to the exact service
+          </span>
+        </div>
 
-            {/* Transparent Circular 3D Illustration */}
-            <div className="w-full flex-1 flex items-center justify-center">
-              <img
-                src={card.image}
-                alt={card.alt}
-                className="w-20 h-20 sm:w-28 sm:h-28 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
-              />
-            </div>
-
-            {/* Bottom Row: Title + Arrow Action Button */}
-            <div className="flex items-center justify-between pt-1">
-              <span className="font-display font-black text-xs sm:text-base text-slate-900 group-hover:text-[#7C3AED] transition-colors truncate">
-                {card.title}
-              </span>
-              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-purple-200 text-[#7C3AED] flex items-center justify-center group-hover:bg-[#7C3AED] group-hover:text-white group-hover:border-[#7C3AED] transition-all shadow-xs shrink-0 ml-1">
-                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {featureCards.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={card.onClick}
+              className="relative bg-white rounded-2xl sm:rounded-[28px] p-3.5 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-48 sm:h-60 text-left group cursor-pointer border border-purple-50"
+            >
+              {/* Top: Pillar Badge + Live Tag */}
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[9px] sm:text-[10px] font-black text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider border border-purple-100/80">
+                  {card.pillar}
+                </span>
+                {card.badge && (
+                  <span className="bg-[#00B074] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider shadow-xs">
+                    {card.badge}
+                  </span>
+                )}
               </div>
-            </div>
-          </button>
-        ))}
+
+              {/* Transparent Circular 3D Illustration */}
+              <div className="w-full flex-1 flex items-center justify-center py-1">
+                <img
+                  src={card.image}
+                  alt={card.alt}
+                  className="w-16 h-16 sm:w-24 sm:h-24 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                />
+              </div>
+
+              {/* Bottom: Title + Subtitle + Action Button */}
+              <div className="space-y-1 pt-1 border-t border-slate-50">
+                <div className="flex items-center justify-between">
+                  <span className="font-display font-black text-xs sm:text-base text-slate-900 group-hover:text-[#7C3AED] transition-colors truncate">
+                    {card.title}
+                  </span>
+                  <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border border-purple-200 text-[#7C3AED] flex items-center justify-center group-hover:bg-[#7C3AED] group-hover:text-white group-hover:border-[#7C3AED] transition-all shadow-xs shrink-0 ml-1">
+                    <ArrowRight className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
+                  </div>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium line-clamp-2 leading-tight">
+                  {card.subtitle}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
       </section>
 
       {/* The previous three decorative panels are retained below only as a reference

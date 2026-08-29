@@ -1,18 +1,23 @@
+import React from 'react';
 import {
   Home,
-  Search,
-  Train,
+  Compass,
+  Ticket,
   MapPin,
-  CreditCard,
-  HelpCircle,
+  BookOpen,
+  User,
   Settings,
   Send,
   X,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
+import { useJourney } from '../../context/JourneyContext';
 
 export type NavPageId =
   | 'home'
   | 'discover'
+  | 'booking'
   | 'my-journeys'
   | 'track'
   | 'payments'
@@ -37,14 +42,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileDrawer = false,
   onCloseDrawer,
 }) => {
-  const navItems: Array<{ id: string; label: string; icon: React.ElementType }> = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'discover', label: 'Discover', icon: Search },
-    { id: 'my-journeys', label: 'My Journeys', icon: Train },
-    { id: 'track', label: 'Track', icon: MapPin },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'help', label: 'Help Center', icon: HelpCircle },
-    { id: 'settings', label: 'Settings', icon: Settings },
+  const { taskStack, resumeTask } = useJourney();
+
+  const coreNavItems = [
+    { id: 'home', label: 'Home', icon: Home, subtitle: 'Overview & Intent' },
+    { id: 'discover', label: 'Discover', icon: Compass, subtitle: 'Find Railway Services' },
+    { id: 'booking', label: 'Book & Act', icon: Ticket, subtitle: 'Assisted Booking' },
+    { id: 'my-journeys', label: 'My Journey', icon: MapPin, subtitle: 'Tickets & Live Track' },
+  ];
+
+  const assistNavItems = [
+    { id: 'help', label: 'Nirantar Guide', icon: BookOpen, subtitle: 'Jargon & Rules' },
+  ];
+
+  const accountNavItems = [
+    { id: 'profile', label: 'Profile', icon: User, subtitle: 'Citizen Identity' },
+    { id: 'settings', label: 'Settings', icon: Settings, subtitle: 'Languages & Config' },
   ];
 
   const handleNavClick = (page: string) => {
@@ -93,42 +106,142 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <h1 className="font-display font-black text-xl tracking-tight text-slate-900 leading-none">
             Nirantar
           </h1>
-          <p className="text-[11px] font-bold text-[#8B5CF6] mt-0.5 tracking-wide">
-            Your journey, simplified.
+          <p className="text-[10px] font-extrabold text-[#7C3AED] mt-0.5 tracking-wide">
+            The Railway Journey That Explains Itself
           </p>
         </div>
 
-        {/* NAVIGATION LINKS */}
-        <nav className="space-y-0.5 pt-0.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              activePage === item.id ||
-              (item.id === 'discover' && (activePage === 'trains' || activePage === 'results')) ||
-              (item.id === 'my-journeys' && (activePage === 'ticket' || activePage === 'completion')) ||
-              (item.id === 'payments' && activePage === 'payment');
+        {/* CONTEXTUAL TASKSTACK RESUME BANNER (If interrupted) */}
+        {taskStack.length > 0 && activePage !== 'booking' && activePage !== 'payment' && (
+          <button
+            type="button"
+            onClick={() => {
+              resumeTask();
+              if (isMobileDrawer && onCloseDrawer) onCloseDrawer();
+            }}
+            className="w-full p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-center justify-between text-left hover:bg-amber-500/20 transition-all cursor-pointer shadow-xs animate-pulse"
+          >
+            <div className="flex items-center gap-2">
+              <RotateCcw className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <div>
+                <span className="text-[11px] font-black block">Resume Booking</span>
+                <span className="text-[10px] text-amber-800 truncate block max-w-[130px]">
+                  {taskStack[0].title}
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-amber-700 bg-amber-200/80 px-1.5 py-0.5 rounded">➔</span>
+          </button>
+        )}
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
-                  isActive
-                    ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
-                    : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 transition-colors ${
-                    isActive ? 'text-[#6B21A8] fill-current' : 'text-slate-600 group-hover:text-purple-800'
-                  }`}
-                />
-                <span className="text-sm tracking-tight">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+        {/* NAVIGATION GROUPS */}
+        <div className="space-y-3 pt-1">
+          {/* GROUP 1: CORE JOURNEY */}
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+              Core Journey
+            </span>
+            <nav className="space-y-0.5">
+              {coreNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  activePage === item.id ||
+                  (item.id === 'booking' && (activePage === 'trains' || activePage === 'results' || activePage === 'workspace')) ||
+                  (item.id === 'my-journeys' && (activePage === 'track' || activePage === 'ticket' || activePage === 'completion'));
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleNavClick(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
+                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                        }`}
+                      />
+                      <span className="text-xs truncate">{item.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* GROUP 2: ASSIST & EXPLAIN */}
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+              Assistance & Guide
+            </span>
+            <nav className="space-y-0.5">
+              {assistNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activePage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleNavClick(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
+                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                        }`}
+                      />
+                      <span className="text-xs truncate">{item.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* GROUP 3: ACCOUNT & PREFERENCES */}
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-3 mb-1 block">
+              Account & Settings
+            </span>
+            <nav className="space-y-0.5">
+              {accountNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activePage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleNavClick(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-[#F2EBFF] text-[#6B21A8] font-black shadow-xs'
+                        : 'text-slate-700 hover:bg-purple-50/60 hover:text-purple-900 font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          isActive ? 'text-[#6B21A8]' : 'text-slate-500 group-hover:text-purple-800'
+                        }`}
+                      />
+                      <span className="text-xs truncate">{item.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
       </div>
 
       {/* 2. BOTTOM NIRA ROBOT ASSISTANT CARD (Elevated & never cropped) */}

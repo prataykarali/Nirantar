@@ -92,7 +92,7 @@ export const DemoModePanel: React.FC = () => {
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div className="flex items-center gap-1.5 text-xs font-black text-purple-300">
               <Zap className="w-3.5 h-3.5 text-purple-400" />
-              <span>Judge / Demo Fast-Forward</span>
+              <span>Evaluator & Demo Fast-Forward</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -102,12 +102,16 @@ export const DemoModePanel: React.FC = () => {
             </button>
           </div>
 
+          <div className="text-[9px] font-bold uppercase tracking-wider text-purple-400/80 px-1">
+            [Developer Tooling — Safe Boundary]
+          </div>
+
           {/* LIVE NIRA CONTEXT TELEMETRY */}
           <div className="p-2 rounded-xl bg-slate-950/90 border border-purple-500/20 text-[10px] font-mono space-y-1">
             <div className="flex items-center justify-between text-purple-300 font-bold border-b border-slate-800 pb-1">
-              <span>NIRA ACTIVE</span>
+              <span>CONTEXT ENGINE</span>
               <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                SafeMode ON
+                Zero-PII Active
               </span>
             </div>
             <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-slate-300 pt-0.5">
@@ -118,77 +122,72 @@ export const DemoModePanel: React.FC = () => {
             </div>
           </div>
 
+          {/* 4 PILLAR PRESENTATION SEQUENCE */}
           <div className="space-y-1.5 text-xs">
-            {/* Reset */}
+            {/* 1. Hook: Discover */}
             <button
-              onClick={handleReset}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
+              onClick={() => {
+                navigateTo('discover');
+                setShowChatDrawer(true);
+              }}
+              className="w-full py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left border border-slate-700"
             >
-              <span className="flex items-center gap-1.5">
-                <RotateCcw className="w-3 h-3 text-slate-400" />
-                <span>Reset Journey State</span>
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="text-indigo-400">1.</span>
+                <span>Discover ("Tatkal rules?")</span>
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">Clean</span>
+              <span className="text-[9px] text-indigo-300 font-mono">Hook</span>
             </button>
 
-            {/* Aha sequence */}
+            {/* 2. UX Diff: Understand */}
+            <button
+              onClick={() => {
+                navigateTo('help');
+                setShowChatDrawer(true);
+              }}
+              className="w-full py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left border border-slate-700"
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="text-purple-400">2.</span>
+                <span>Understand (RAC 27 Explain)</span>
+              </span>
+              <span className="text-[9px] text-purple-300 font-mono">UX Diff</span>
+            </button>
+
+            {/* 3. AI Intent: Act */}
             <button
               onClick={handleAhaSequence}
               className="w-full py-1.5 px-2.5 rounded-lg bg-purple-950/80 hover:bg-purple-900/80 border border-purple-500/30 text-purple-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
             >
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                <span>90s "Aha" Demo Jump</span>
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="text-amber-400">3.</span>
+                <span>Act (Nira Assisted Booking)</span>
               </span>
-              <span className="text-[10px] text-purple-400 font-mono">NDLS→CSMT</span>
+              <span className="text-[9px] text-amber-300 font-mono">AI Safe</span>
             </button>
 
-            {/* Fail payment */}
-            <button
-              onClick={handleSimulatePaymentFail}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/60 border border-rose-500/30 text-rose-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
-            >
-              <span className="flex items-center gap-1.5">
-                <AlertTriangle className="w-3 h-3 text-rose-400" />
-                <span>Simulate Payment Fail</span>
-              </span>
-              <span className="text-[10px] text-rose-400 font-mono">Preserves</span>
-            </button>
-
-            {/* Unknown payment */}
+            {/* 4. Engineering Depth: Recover */}
             <button
               onClick={handleSimulatePaymentUnknown}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 border border-amber-500/30 text-amber-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
+              className="w-full py-1.5 px-2.5 rounded-lg bg-amber-950/70 hover:bg-amber-900/70 border border-amber-500/30 text-amber-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
             >
-              <span className="flex items-center gap-1.5">
-                <HelpCircle className="w-3 h-3 text-amber-400" />
-                <span>Simulate Payment Unknown</span>
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="text-emerald-400">4.</span>
+                <span>Recover (Timeout & Don't Pay Twice)</span>
               </span>
-              <span className="text-[10px] text-amber-400 font-mono">Unclear</span>
+              <span className="text-[9px] text-amber-300 font-mono">Depth</span>
             </button>
 
-            {/* Interrupt */}
+            {/* Reset */}
             <button
-              onClick={handleInterruptBooking}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/30 text-blue-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
+              onClick={handleReset}
+              className="w-full py-1 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 flex items-center justify-between text-[11px] font-medium transition-all cursor-pointer text-left pt-2 border-t border-slate-800"
             >
               <span className="flex items-center gap-1.5">
-                <PauseCircle className="w-3 h-3 text-blue-400" />
-                <span>Interrupt Booking → Track</span>
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>Reset Journey State</span>
               </span>
-              <span className="text-[10px] text-blue-400 font-mono">Pause</span>
-            </button>
-
-            {/* Resume */}
-            <button
-              onClick={handleResumeTask}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-200 flex items-center justify-between font-semibold transition-all cursor-pointer text-left"
-            >
-              <span className="flex items-center gap-1.5">
-                <PlayCircle className="w-3 h-3 text-emerald-400" />
-                <span>Resume Interrupted Task</span>
-              </span>
-              <span className="text-[10px] text-emerald-400 font-mono">Restore</span>
+              <span className="text-[9px] text-slate-500 font-mono">Clean</span>
             </button>
           </div>
 

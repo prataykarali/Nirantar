@@ -33,7 +33,7 @@ export const Explain: React.FC<ExplainProps> = ({
   iconSize = 14,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeLevel, setActiveLevel] = useState<1 | 2 | 3>(1);
+  const [activeLevel, setActiveLevel] = useState<1 | 2 | 3 | 4>(1);
 
   const fullContext: ExplainContext = {
     term,
@@ -137,22 +137,23 @@ export const Explain: React.FC<ExplainProps> = ({
               </div>
 
               {/* Progressive Tabs (3 Levels) */}
-              <div className="grid grid-cols-3 gap-1.5 mt-3.5 bg-white/10 p-1 rounded-xl text-[11px] font-bold text-center">
+              {/* Level Selector Tabs */}
+              <div className="grid grid-cols-4 gap-1 mt-3.5 bg-white/10 p-1 rounded-xl text-[10px] sm:text-[11px] font-bold text-center">
                 <button
                   type="button"
                   onClick={() => setActiveLevel(1)}
-                  className={`py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 1
                       ? 'bg-white text-purple-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  1. Quick Definition
+                  1. Meaning
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLevel(2)}
-                  className={`py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 2
                       ? 'bg-white text-purple-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
@@ -162,14 +163,25 @@ export const Explain: React.FC<ExplainProps> = ({
                 </button>
                 <button
                   type="button"
+                  onClick={() => setActiveLevel(4)}
+                  className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
+                    activeLevel === 4
+                      ? 'bg-white text-purple-950 shadow-sm font-black'
+                      : 'text-purple-100 hover:text-white'
+                  }`}
+                >
+                  3. What Next?
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveLevel(3)}
-                  className={`py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 3
                       ? 'bg-white text-purple-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  3. Deep Dive
+                  4. Deep Dive
                 </button>
               </div>
             </div>
@@ -247,6 +259,37 @@ export const Explain: React.FC<ExplainProps> = ({
 
                   <button
                     type="button"
+                    onClick={() => setActiveLevel(4)}
+                    className="w-full py-2.5 px-3 rounded-xl bg-purple-100/70 hover:bg-purple-200/70 text-purple-900 font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>What happens next in this journey?</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* LEVEL 4: What Happens Next? */}
+              {activeLevel === 4 && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/70 space-y-2.5">
+                    <div className="flex items-center gap-1.5 text-emerald-900 font-black text-xs">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{explanation.whatNext.heading}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {explanation.whatNext.steps.map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-2 bg-white/70 p-2 rounded-xl text-slate-800 text-xs font-medium border border-emerald-100">
+                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span className="leading-relaxed">{step.replace(/^\d+\.\s*/, '')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
                     onClick={() => setActiveLevel(3)}
                     className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
                   >
@@ -299,12 +342,17 @@ export const Explain: React.FC<ExplainProps> = ({
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
-              <span className="flex items-center gap-1 font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Deterministic Verified Knowledge</span>
-              </span>
+            {/* Footer with Verified Source & Freshness */}
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 shrink-0">
+              <div className="flex flex-col">
+                <span className="flex items-center gap-1 font-bold text-emerald-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{explanation.sourceAttribution}</span>
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">
+                  {explanation.sourceFreshness}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
