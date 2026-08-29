@@ -184,6 +184,49 @@ export const AppShell: React.FC = () => {
         onOpenMenu={() => setMobileMenuOpen(true)}
       />
 
+      {/* 4B. FLOATING INTERACTIVE NIRA MASCOT COPILOT (FAB) */}
+      {!showChatDrawer && (
+        <aside
+          aria-label="Ask Nira Copilot Floating Trigger"
+          className="fixed bottom-20 md:bottom-6 right-4 md:right-7 z-40 flex items-center gap-3 group animate-in fade-in slide-in-from-bottom-3 duration-300"
+        >
+          {/* Animated Tooltip Bubble */}
+          <div
+            onClick={() => setShowChatDrawer(true)}
+            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-purple-200/80 text-slate-800 text-xs font-bold cursor-pointer hover:border-purple-400 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+          >
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-purple-950 font-extrabold">Ask Nira AI</span>
+            <span className="text-[10px] text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full font-bold">25 Demos ➔</span>
+          </div>
+
+          {/* Floating Mascot Avatar Button */}
+          <button
+            type="button"
+            onClick={() => setShowChatDrawer(true)}
+            className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 p-1 shadow-[0_10px_35px_rgba(109,40,217,0.45)] hover:shadow-[0_12px_45px_rgba(109,40,217,0.6)] transform hover:scale-108 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white"
+            title="Open Nira AI Assistant"
+            aria-label="Open Nira AI Assistant"
+          >
+            <div className="w-full h-full rounded-full overflow-hidden bg-white/90 p-0.5 flex items-center justify-center">
+              <img
+                src="/assets/images/characters/nira_happy_mascot.png"
+                alt="Nira AI"
+                className="w-full h-full object-contain animate-bounce-gentle"
+              />
+            </div>
+            {/* Pulsing Status Dot */}
+            <span className="absolute top-0 right-0 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-xs" />
+            </span>
+          </button>
+        </aside>
+      )}
+
       {/* 5. CHAT SIDE BAR SMALL WINDOW (MATCHING REFERENCE IMAGE 3) */}
       <NiraChatDrawer
         isOpen={showChatDrawer}

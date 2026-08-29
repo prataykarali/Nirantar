@@ -97,6 +97,22 @@ export const MyJourneysPage: React.FC = () => {
   const [showCancelPin, setShowCancelPin] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  const getRouteLandmarkBanner = (fromCode: string, toCode: string) => {
+    if ((fromCode === 'NDLS' && toCode === 'MMCT') || (fromCode === 'MMCT' && toCode === 'NDLS')) return '/assets/images/landmarks/delhi_mumbai.png';
+    if ((fromCode === 'NDLS' && toCode === 'BSB') || (fromCode === 'BSB' && toCode === 'NDLS')) return '/assets/images/landmarks/delhi_bangalore.png';
+    if ((fromCode === 'MAS' && toCode === 'SBC') || (fromCode === 'SBC' && toCode === 'MAS')) return '/assets/images/landmarks/mumbai_pune.png';
+    if (fromCode === 'HWH' || toCode === 'HWH') return '/assets/images/landmarks/kolkata_puri.png';
+    return '/assets/images/trip_summary_train_banner.png';
+  };
+
+  const getPassengerAvatar = (name: string, age: number, gender: string, concession?: string) => {
+    if (concession?.toLowerCase().includes('senior') || age >= 60) return '/assets/images/avatars/avatar_2_senior.svg';
+    if (concession?.toLowerCase().includes('student') || age < 24) return '/assets/images/avatars/avatar_1_student.svg';
+    if (gender.toLowerCase().startsWith('f')) return '/assets/images/avatars/avatar_11_ananya.svg';
+    if (name.toLowerCase().includes('pratay')) return '/assets/images/avatars/avatar_1_student.svg';
+    return '/assets/images/avatars/avatar_3_techie.svg';
+  };
+
   // Dynamic ticket generated from active session
   const dynamicUpcoming: JourneyRecord[] = issuedTicket ? [
     {
@@ -592,23 +608,42 @@ export const MyJourneysPage: React.FC = () => {
                 {/* Subtle background gradient on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none -z-10"></div>
                 
-                {j.status === 'COMPLETED' && (
-                  <div className="absolute top-4 right-4 w-20 h-20 overflow-hidden rounded-2xl shadow-lg z-10 hidden sm:block">
-                     <img src="/assets/images/characters/nira_excited.jpg" alt="Excited Nira" className="w-full h-full object-contain" />
+                {/* Scenic Route Landmark Banner Strip */}
+                <div className="h-24 sm:h-28 -mx-5 sm:-mx-6 -mt-5 sm:-mt-6 rounded-t-3xl relative overflow-hidden bg-slate-900 mb-2">
+                  <img
+                    src={getRouteLandmarkBanner(j.fromCode, j.toCode)}
+                    alt={`${j.fromCity} to ${j.toCity}`}
+                    className="w-full h-full object-cover object-center opacity-75 group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
+                  <div className="absolute top-3 left-4 flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-md text-[10px] font-mono font-bold tracking-wider uppercase border border-white/20 shadow-xs">
+                      🚆 #{j.trainNumber} {j.trainName}
+                    </span>
                   </div>
-                )}
+                  <div className="absolute bottom-2.5 left-4 right-4 flex items-center justify-between text-white">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-black drop-shadow-sm">
+                      <span>{j.fromCity} ({j.fromCode})</span>
+                      <span className="text-purple-300">➔</span>
+                      <span>{j.toCity} ({j.toCode})</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-purple-200 bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                      {j.distanceKm} km • {j.duration}
+                    </span>
+                  </div>
+                </div>
 
-                {/* Top Meta Line: Train Name, PNR, Status */}
+                {/* Top Meta Line: PNR, Coach, Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-50/80">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50 shadow-2xs">
                       <Train className="w-5 h-5" />
                     </div>
                     <div>
                       <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2">
-                        <span>{j.trainNumber} • {j.trainName}</span>
+                        <span>{j.trainName}</span>
                       </h3>
-                      <span className="font-mono text-xs text-slate-500 font-bold block bg-slate-100/50 px-2 py-0.5 rounded-md inline-block mt-1">
+                      <span className="font-mono text-xs text-slate-500 font-bold block bg-slate-100/70 px-2 py-0.5 rounded-md inline-block mt-0.5">
                         PNR: {j.pnr}
                       </span>
                     </div>
@@ -768,33 +803,41 @@ export const MyJourneysPage: React.FC = () => {
                         <span>Verified Passenger Details ({j.passengers.length})</span>
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {j.passengers.map((p, pIdx) => (
-                          <div
-                            key={pIdx}
-                            className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-100/80 shadow-sm text-sm flex items-center justify-between hover:border-purple-300 transition-colors"
-                          >
-                            <div>
-                              <div className="font-bold text-slate-900 flex items-center gap-2">
-                                <span>{p.name}</span>
-                                <span className="text-[11px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                                  {p.age}y, {p.gender[0]}
+                        {j.passengers.map((p, pIdx) => {
+                          const avatarSrc = getPassengerAvatar(p.name, p.age, p.gender, p.concession);
+                          return (
+                            <div
+                              key={pIdx}
+                              className="p-3 rounded-2xl bg-white/90 backdrop-blur-sm border border-purple-100/90 shadow-sm text-sm flex items-center justify-between hover:border-purple-300 transition-colors gap-3"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-11 h-11 rounded-xl overflow-hidden bg-purple-50 p-0.5 border border-purple-200 shrink-0 shadow-2xs">
+                                  <img src={avatarSrc} alt={p.name} className="w-full h-full object-contain" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 flex items-center gap-1.5 truncate">
+                                    <span className="truncate">{p.name}</span>
+                                    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded shrink-0">
+                                      {p.age}y, {p.gender[0]}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1 mt-0.5 truncate">
+                                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">DigiLocker Verified • {p.concession || 'Standard'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-mono font-black text-xs text-purple-900 block bg-purple-100/80 px-2 py-0.5 rounded-md">
+                                  Coach {p.coach}
+                                </span>
+                                <span className="text-[11px] text-slate-600 font-medium block mt-0.5">
+                                  Seat {p.seatNumber} ({p.berthType})
                                 </span>
                               </div>
-                              <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1 mt-1">
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                <span>Verified Citizen • {p.concession || 'Standard'}</span>
-                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="font-mono font-black text-sm text-purple-900 block bg-purple-50 px-2 py-0.5 rounded-md">
-                                Coach {p.coach}
-                              </span>
-                              <span className="text-xs text-slate-600 font-medium block mt-1">
-                                Seat {p.seatNumber} ({p.berthType})
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 

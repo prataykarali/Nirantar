@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bg12" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#bg12)"/>
+  <circle cx="60" cy="60" r="52" fill="#F0F9FF" stroke="#BAE6FD" stroke-width="2"/>
+  <!-- Uniform Coat -->
+  <path d="M28 106 C28 84, 42 76, 60 76 C78 76, 92 84, 92 106 Z" fill="#0C4A6E"/>
+  <path d="M46 76 L60 92 L74 76 Z" fill="#0284C7"/>
+  <circle cx="60" cy="85" r="3" fill="#F59E0B"/>
+  <circle cx="60" cy="95" r="3" fill="#F59E0B"/>
+  <!-- Face -->
+  <ellipse cx="60" cy="56" rx="22" ry="22" fill="#FDE68A"/>
+  <!-- Moustache -->
+  <path d="M48 64 C52 61, 58 64, 60 62 C62 64, 68 61, 72 64 C68 67, 52 67, 48 64 Z" fill="#1E293B"/>
+  <!-- Eyes -->
+  <circle cx="50" cy="52" r="2.5" fill="#1E293B"/>
+  <circle cx="70" cy="52" r="2.5" fill="#1E293B"/>
+  <!-- Railway Conductor Cap -->
+  <path d="M36 44 C36 32, 84 32, 84 44 Z" fill="#0C4A6E"/>
+  <path d="M32 44 L88 44 L84 49 L36 49 Z" fill="#1E293B"/>
+  <!-- Golden IRCTC Emblem on Cap -->
+  <circle cx="60" cy="38" r="4" fill="#F59E0B"/>
+  <path d="M58 38 L62 38 M60 36 L60 40" stroke="#78350F" stroke-width="1.5"/>
+</svg>

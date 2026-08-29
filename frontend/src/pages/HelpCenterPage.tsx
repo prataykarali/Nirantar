@@ -387,8 +387,103 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             className="w-full py-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs flex items-center justify-center gap-2 border border-purple-200/60 transition-all cursor-pointer"
           >
             <Compass className="w-4 h-4 text-purple-700" />
-            <span>View Full Journey Architecture Flow ➔</span>
+            <span>View Full Architecture Flow ➔</span>
           </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          2B. INTERACTIVE VISUAL JARGON DECODER & ODDS METER
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-purple-100/80 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+              <Sparkles className="w-5 h-5 text-purple-700" />
+            </div>
+            <div>
+              <h3 className="font-black text-base text-slate-900">Railway Jargon & Confirmation Probability Matrix</h3>
+              <p className="text-xs text-slate-500 font-medium">Understand quota types, priority rankings, and boarding rights</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">
+            Commercial Standards
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+          {[
+            {
+              term: 'Tatkal (CK)',
+              title: 'Emergency Quota',
+              odds: '95% Speed Required',
+              oddsColor: 'text-amber-600 bg-amber-50 border-amber-200',
+              barWidth: 'w-11/12 bg-amber-500',
+              rule: 'Opens 10 AM (AC) & 11 AM (Non-AC) 1 day prior.',
+              tip: 'Use Safe Autofill & Citizen Virtual Wallet for sub-30s checkout.',
+              avatar: '/assets/images/characters/nira_robot_tablet.png',
+            },
+            {
+              term: 'RAC',
+              title: 'Guaranteed Boarding',
+              odds: '100% Boarding Right',
+              oddsColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+              barWidth: 'w-full bg-emerald-500',
+              rule: 'Legal right to travel. 2 passengers share 1 Side-Lower berth.',
+              tip: 'Berths automatically upgrade to CNF as confirmed seats cancel.',
+              avatar: '/assets/images/characters/nira_conductor.jpg',
+            },
+            {
+              term: 'GNWL',
+              title: 'General Waitlist',
+              odds: '85% Highest Clear Rate',
+              oddsColor: 'text-purple-700 bg-purple-50 border-purple-200',
+              barWidth: 'w-4/5 bg-purple-600',
+              rule: 'Origin station quota. Always prioritized over remote quotas.',
+              tip: 'First in line when RAC passengers convert to confirmed.',
+              avatar: '/assets/images/characters/nira_guide_teacher.jpg',
+            },
+            {
+              term: 'RLWL / PQWL',
+              title: 'Remote / Pooled Waitlist',
+              odds: '30% Moderate to Low',
+              oddsColor: 'text-rose-700 bg-rose-50 border-rose-200',
+              barWidth: 'w-1/3 bg-rose-500',
+              rule: 'Intermediate station quota with limited cancellations.',
+              tip: 'Consider booking from originating station for better clearance.',
+              avatar: '/assets/images/characters/nira_explorer.jpg',
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="p-4 rounded-2xl bg-gradient-to-b from-purple-50/40 via-white to-purple-50/20 border border-purple-100 hover:border-purple-300 transition-all space-y-2.5 shadow-2xs hover:shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-xs font-black text-slate-900 block">{item.term}</span>
+                  <span className="text-[11px] font-bold text-purple-700">{item.title}</span>
+                </div>
+                <div className="w-8 h-8 rounded-xl overflow-hidden shadow-2xs shrink-0 bg-white border border-purple-100">
+                  <img src={item.avatar} alt={item.term} className="w-full h-full object-contain" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span className="text-slate-500">Clearance Likelihood:</span>
+                  <span className={`px-2 py-0.2 rounded-full border text-[10px] ${item.oddsColor}`}>{item.odds}</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className={`h-full rounded-full ${item.barWidth}`} />
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-600 font-medium leading-relaxed space-y-1 pt-1 border-t border-purple-50">
+                <p><strong>Rule:</strong> {item.rule}</p>
+                <p className="text-purple-900 font-semibold">💡 {item.tip}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

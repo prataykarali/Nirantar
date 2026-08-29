@@ -158,19 +158,15 @@ export const getNiraAvatarAndMood = (
   text: string,
   isStreaming?: boolean
 ): { src: string; mood: string; emoji: string } => {
-  const t = text.toLowerCase();
+  const t = text.toLowerCase().trim();
   if (isStreaming) {
-    return { src: '/assets/images/characters/nira_thinking.png', mood: 'Thinking', emoji: '🤔' };
+    return { src: '/assets/images/characters/nira_thinking.png', mood: 'Analyzing & Planning', emoji: '🤔' };
   }
-  if (
-    t.includes('where in india do you want to go') ||
-    t.includes("i'm nira") ||
-    t.includes('hi,') ||
-    t.includes('hello') ||
-    t.includes('welcome')
-  ) {
+  if (!t || t.length === 0) {
     return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
   }
+
+  // 1. Success, Confirmation, Celebration
   if (
     t.includes('congratulations') ||
     t.includes('confirmed') ||
@@ -179,10 +175,46 @@ export const getNiraAvatarAndMood = (
     t.includes('success') ||
     t.includes('verified') ||
     t.includes('yay') ||
-    t.includes('done!')
+    t.includes('done!') ||
+    t.includes('cnf')
   ) {
-    return { src: '/assets/images/characters/nira_excited.jpg', mood: 'Excited', emoji: '🎉' };
+    return { src: '/assets/images/characters/nira_excited.jpg', mood: 'Super Excited', emoji: '🎉' };
   }
+
+  // 2. Train tracking, Radar, GPS, Speed, Delay, Platform arrival
+  if (
+    t.includes('track') ||
+    t.includes('radar') ||
+    t.includes('where is') ||
+    t.includes('gps') ||
+    t.includes('delay') ||
+    t.includes('speed') ||
+    t.includes('route') ||
+    t.includes('km/h') ||
+    t.includes('live train') ||
+    t.includes('running status') ||
+    t.includes('which platform') ||
+    t.includes('platform number')
+  ) {
+    return { src: '/assets/images/characters/nira_explorer.jpg', mood: 'Live Radar Explorer', emoji: '🧭' };
+  }
+
+  // 3. Booking, Reservation, Tatkal, Quota, Berth Autofill
+  if (
+    t.includes('tatkal') ||
+    t.includes('autofill') ||
+    t.includes('quota') ||
+    t.includes('book') ||
+    t.includes('reserve') ||
+    t.includes('pnr') ||
+    t.includes('ticket') ||
+    t.includes('fare') ||
+    t.includes('checkout')
+  ) {
+    return { src: '/assets/images/characters/nira_robot_tablet.png', mood: 'Booking Master', emoji: '📋' };
+  }
+
+  // 4. Conductor, Train routes, Train numbers, Express trains
   if (
     t.includes('train') ||
     t.includes('rajdhani') ||
@@ -192,10 +224,13 @@ export const getNiraAvatarAndMood = (
     t.includes('coach') ||
     t.includes('platform') ||
     t.includes('berth') ||
-    t.includes('express')
+    t.includes('express') ||
+    /\b\d{5}\b/.test(t)
   ) {
-    return { src: '/assets/images/characters/nira_conductor.jpg', mood: 'Conductor', emoji: '🚂' };
+    return { src: '/assets/images/characters/nira_conductor.jpg', mood: 'Chief Conductor', emoji: '🚂' };
   }
+
+  // 5. Teacher & Guide, Rules, Jargon explanations, Architecture
   if (
     t.includes('how to') ||
     t.includes('explain') ||
@@ -203,23 +238,21 @@ export const getNiraAvatarAndMood = (
     t.includes('guide') ||
     t.includes('understand') ||
     t.includes('architecture') ||
-    t.includes('tatkal') ||
-    t.includes('why')
+    t.includes('why') ||
+    t.includes('rac') ||
+    t.includes('wl') ||
+    t.includes('waitlist') ||
+    t.includes('gnwl') ||
+    t.includes('rlwl') ||
+    t.includes('tqwl') ||
+    t.includes('pqwl') ||
+    t.includes('jargon') ||
+    t.includes('digilocker')
   ) {
-    return { src: '/assets/images/characters/nira_guide_teacher.jpg', mood: 'Teacher & Guide', emoji: '🎓' };
+    return { src: '/assets/images/characters/nira_guide_teacher.jpg', mood: 'Railway Guide & Teacher', emoji: '🎓' };
   }
-  if (
-    t.includes('track') ||
-    t.includes('radar') ||
-    t.includes('where is') ||
-    t.includes('gps') ||
-    t.includes('delay') ||
-    t.includes('speed') ||
-    t.includes('route') ||
-    t.includes('km/h')
-  ) {
-    return { src: '/assets/images/characters/nira_explorer.jpg', mood: 'Radar Explorer', emoji: '🧭' };
-  }
+
+  // 6. Travel, Vacation, Luggage, Station Amenities, Meals, e-Catering
   if (
     t.includes('pack') ||
     t.includes('travel') ||
@@ -227,10 +260,16 @@ export const getNiraAvatarAndMood = (
     t.includes('luggage') ||
     t.includes('holiday') ||
     t.includes('vacation') ||
-    t.includes('adventure')
+    t.includes('adventure') ||
+    t.includes('food') ||
+    t.includes('meal') ||
+    t.includes('catering') ||
+    t.includes('tourist')
   ) {
-    return { src: '/assets/images/characters/nira_traveler.jpg', mood: 'Travel Ready', emoji: '😎' };
+    return { src: '/assets/images/characters/nira_traveler.jpg', mood: 'Travel Companion', emoji: '🧳' };
   }
+
+  // 7. Security, Settings, Password, PIN, Zero-PII, Vault
   if (
     t.includes('security') ||
     t.includes('pin') ||
@@ -238,20 +277,42 @@ export const getNiraAvatarAndMood = (
     t.includes('setting') ||
     t.includes('config') ||
     t.includes('wallet') ||
-    t.includes('refund') ||
-    t.includes('payment')
+    t.includes('privacy') ||
+    t.includes('vault') ||
+    t.includes('language')
   ) {
-    return { src: '/assets/images/characters/nira_settings.jpg', mood: 'Config & Security', emoji: '🔧' };
+    return { src: '/assets/images/characters/nira_settings.jpg', mood: 'System & Security', emoji: '⚙️' };
   }
+
+  // 8. Cancellation, Refund, Failed, Error, Empathy
+  if (
+    t.includes('cancel') ||
+    t.includes('refund') ||
+    t.includes('tdr') ||
+    t.includes('compensation') ||
+    t.includes('sad') ||
+    t.includes('failed') ||
+    t.includes('error') ||
+    t.includes('issue') ||
+    t.includes('grievance')
+  ) {
+    return { src: '/assets/images/characters/nira_sad.png', mood: 'Empathic Support', emoji: '💙' };
+  }
+
+  // 9. Problem solver, Stuck, Idea, Alternative suggestion
   if (
     t.includes('stuck') ||
-    t.includes('error') ||
+    t.includes('idea') ||
     t.includes('problem') ||
-    t.includes('failed') ||
-    t.includes('help')
+    t.includes('help') ||
+    t.includes('suggest') ||
+    t.includes('recommend') ||
+    t.includes('tip')
   ) {
     return { src: '/assets/images/characters/nira_idea.png', mood: 'Problem Solver', emoji: '💡' };
   }
+
+  // Default: Iconic friendly Nira mascot
   return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
 };
 
@@ -293,6 +354,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     payWithWallet,
     setShowVisualDiagram,
     goBack,
+    citizenProfile,
   } = useJourney();
 
   const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
@@ -1840,34 +1902,34 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         aria-label="Nira AI Chat Window"
       >
       {/* ═══════════════════════════════════════════════════════════════════
-          1. TOP BAR HEADER (Larger Animated Avatar + Status)
+          1. TOP BAR HEADER (Dynamic Reactive Animated Avatar + Status)
           ═══════════════════════════════════════════════════════════════════ */}
       {(() => {
         const latestBotMsg = [...messages].reverse().find((m) => m.sender === 'nira');
-        const activeHeaderAvatar = latestBotMsg
-          ? getNiraAvatarAndMood(latestBotMsg.text, isLoading).src
-          : '/assets/images/characters/nira_happy_mascot.png';
+        const activeHeaderAvatar = isLoading
+          ? { src: '/assets/images/characters/nira_thinking.png', mood: 'Analyzing & Planning', emoji: '🤔' }
+          : input.trim().length > 1
+          ? getNiraAvatarAndMood(input, false)
+          : latestBotMsg
+          ? getNiraAvatarAndMood(latestBotMsg.text, false)
+          : { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
 
         return (
           <div className="p-3.5 px-4.5 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm shrink-0 transition-transform hover:scale-105">
+              <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-md border border-purple-200/80 bg-purple-50/50 shrink-0 transition-transform hover:scale-105">
                 <img
-                  src={
-                    isLoading
-                      ? '/assets/images/characters/nira_thinking.png'
-                      : activeHeaderAvatar
-                  }
-                  alt="Nira"
-                  className="w-full h-full object-contain animate-bounce-gentle"
+                  src={activeHeaderAvatar.src}
+                  alt={activeHeaderAvatar.mood}
+                  className="w-full h-full object-contain animate-bounce-gentle transition-all duration-300"
                 />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-black text-base text-slate-950 tracking-tight">Nira Copilot</h3>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live AI
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200/70 px-2 py-0.5 rounded-full transition-all">
+                    <span>{activeHeaderAvatar.emoji}</span>
+                    <span>{activeHeaderAvatar.mood}</span>
                   </span>
                 </div>
                 <p className="text-[11px] font-medium text-slate-500">
@@ -2092,10 +2154,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           return (
             <div key={m.id} className="space-y-2 animate-in fade-in duration-200">
               {isUser ? (
-                /* USER MESSAGE (PURPLE BUBBLE) */
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] p-3.5 rounded-2xl rounded-br-sm bg-[#7C3AED] text-white text-xs font-bold shadow-xs">
+                /* USER MESSAGE (PURPLE BUBBLE WITH USER AVATAR) */
+                <div className="flex justify-end items-start gap-2.5">
+                  <div className="max-w-[82%] p-3.5 rounded-2xl rounded-tr-sm bg-gradient-to-r from-purple-600 to-[#7C3AED] text-white text-xs font-bold shadow-sm leading-relaxed">
                     {m.text}
+                  </div>
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shadow-xs border border-purple-200 shrink-0 mt-0.5 bg-purple-100">
+                    <img
+                      src={citizenProfile?.avatar || '/assets/images/avatars/avatar_1_student.svg'}
+                      alt="You"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
               ) : (

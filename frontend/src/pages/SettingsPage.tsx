@@ -16,13 +16,24 @@ import {
   ChevronRight,
   Shield,
   Zap,
+  Volume2,
+  VolumeX,
+  Eye,
+  Layers,
+  Image as ImageIcon,
+  Check,
+  Play,
+  RotateCcw,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 
 export const SettingsPage: React.FC = () => {
-  const { navigateTo } = useJourney();
+  const { navigateTo, citizenProfile, setCitizenProfile } = useJourney();
   const [activeTab, setActiveTab] = useState('general');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeThemeBg, setActiveThemeBg] = useState('/assets/images/settings_bg.png');
+  const [activeAudioTest, setActiveAudioTest] = useState<string | null>(null);
+  const [redactionInput, setRedactionInput] = useState('My IRCTC password is secret123 and phone is 9876543210');
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -33,23 +44,109 @@ export const SettingsPage: React.FC = () => {
     autoSaveJourneys: true,
     showRecommendedTrains: true,
     dataSaverMode: false,
+    highContrast: false,
+    stationChimes: true,
+    whatsappAlerts: true,
+    scenicWallpaper: 'Vande Bharat Sunrise',
   });
 
   const categories = [
-    { id: 'general', label: 'General', icon: SettingsIcon },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'Privacy & Security', icon: Lock },
-    { id: 'payments', label: 'Payment Methods', icon: CreditCard },
-    { id: 'language', label: 'Language', icon: Globe },
-    { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
+    { id: 'general', label: 'General & Wallpaper', icon: SettingsIcon },
+    { id: 'profile', label: 'Avatar & Profile', icon: User },
+    { id: 'notifications', label: 'Alerts & Chimes', icon: Bell },
+    { id: 'privacy', label: 'Zero-PII Vault', icon: Lock },
+    { id: 'payments', label: 'Citizen Wallet', icon: CreditCard },
+    { id: 'language', label: 'Languages (10)', icon: Globe },
+    { id: 'accessibility', label: 'Easy Accessibility', icon: Accessibility },
     { id: 'about', label: 'About Nirantar', icon: Info },
   ];
+
+  const AVATARS = [
+    { id: 'student', name: 'Ankit', role: 'Student Explorer', path: '/assets/images/avatars/avatar_1_student.svg' },
+    { id: 'senior', name: 'Ramachandran', role: 'Senior Citizen Priority', path: '/assets/images/avatars/avatar_2_senior.svg' },
+    { id: 'techie', name: 'Vikram', role: 'Tech Professional', path: '/assets/images/avatars/avatar_3_techie.svg' },
+    { id: 'commuter', name: 'Suresh', role: 'Daily Commuter', path: '/assets/images/avatars/avatar_4_commuter.svg' },
+    { id: 'family', name: 'Verma Family', role: 'Family Vacationer', path: '/assets/images/avatars/avatar_5_family.svg' },
+    { id: 'photographer', name: 'Priya', role: 'Travel Photographer', path: '/assets/images/avatars/avatar_6_photographer.svg' },
+    { id: 'doctor', name: 'Dr. Meera', role: 'Medical Officer', path: '/assets/images/avatars/avatar_7_doctor.svg' },
+    { id: 'entrepreneur', name: 'Amitav', role: 'Business Executive', path: '/assets/images/avatars/avatar_8_entrepreneur.svg' },
+    { id: 'rail_enthusiast', name: 'Rohan', role: 'Rail Fan & Spotter', path: '/assets/images/avatars/avatar_9_rail_enthusiast.svg' },
+    { id: 'nira_guide', name: 'Nira Copilot', role: 'AI Assistant Edition', path: '/assets/images/avatars/avatar_10_nira_guide.svg' },
+    { id: 'ananya', name: 'Ananya', role: 'Digital Rail Navigator', path: '/assets/images/avatars/avatar_11_ananya.svg' },
+    { id: 'conductor', name: 'Chief Conductor', role: 'TTE Conductor Edition', path: '/assets/images/avatars/avatar_12_conductor.svg' },
+  ];
+
+  const SCENIC_THEMES = [
+    { id: 'vande_bharat', name: 'Vande Bharat Sunrise', path: '/assets/images/settings_bg.png', tag: 'High-Speed Violet' },
+    { id: 'himalayan', name: 'Himalayan Mountain Pass', path: '/assets/images/banners/scenic_railway_banner.png', tag: 'Kalka-Shimla Mist' },
+    { id: 'konkan', name: 'Konkan Coastal Green', path: '/assets/images/booking_scenic_bg.jpg', tag: 'Western Ghats Viaduct' },
+    { id: 'csmt_heritage', name: 'CSMT Heritage Glow', path: '/assets/images/hero_station_bg.jpg', tag: 'Golden Terminus' },
+    { id: 'cyber_radar', name: 'Cyber Station Radar', path: '/assets/images/discover_station_bg.jpg', tag: 'Night Matrix' },
+  ];
+
+  const playAudioSimulation = (toneName: string) => {
+    setActiveAudioTest(toneName);
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (toneName === 'gong') {
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(440.0, ctx.currentTime + 0.3); // A4
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.2);
+      } else if (toneName === 'fanfare') {
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+        osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.3); // G5
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.9);
+      } else {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(440, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.8);
+      }
+    } catch {}
+
+    setTimeout(() => {
+      setActiveAudioTest(null);
+    }, 1500);
+  };
+
+  const handleSelectAvatar = (avatarPath: string, roleName: string) => {
+    if (setCitizenProfile && citizenProfile) {
+      const updated = { ...citizenProfile, avatar: avatarPath, role: roleName };
+      setCitizenProfile(updated);
+      try {
+        localStorage.setItem('nirantar_citizen_profile', JSON.stringify(updated));
+      } catch {}
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
+  };
+
+  const getRedactedPreview = (raw: string) => {
+    return raw
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[REDACTED_EMAIL]')
+      .replace(/\b(?:\+91|0)?[6-9]\d{9}\b/g, '[REDACTED_PHONE]')
+      .replace(/(?:password|pwd|pin|secret|otp)\s*(?:is|=|:)?\s*([^\s,]+)/gi, 'password is [PROTECTED_CREDENTIAL]')
+      .replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g, '[REDACTED_AADHAAR]');
   };
 
   return (
@@ -61,11 +158,11 @@ export const SettingsPage: React.FC = () => {
             ═══════════════════════════════════════════════════════════════════ */}
         <div className="relative overflow-hidden flex flex-col sm:flex-row items-center sm:justify-between rounded-[2rem] p-6 sm:p-8 shadow-2xl border border-purple-300/30 bg-gradient-to-br from-[#1A0B2E] via-[#2D1254] to-[#160B30] text-white">
           {/* Scenic Background Image Layer */}
-          <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden mix-blend-luminosity">
+          <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden mix-blend-luminosity transition-all duration-700">
             <img
-              src="/assets/images/settings_bg.png"
+              src={activeThemeBg}
               alt="Settings Background"
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-700"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/90 via-[#2D1254]/75 to-transparent pointer-events-none" />
@@ -91,7 +188,7 @@ export const SettingsPage: React.FC = () => {
                 Settings & Customization
               </h1>
               <p className="text-xs sm:text-sm font-medium text-purple-200/90 mt-0.5">
-                Customize your preferences, accessibility, and app options
+                Personalize your avatar, scenic wallpapers, accessibility, and zero-PII security
               </p>
             </div>
           </div>
@@ -114,14 +211,14 @@ export const SettingsPage: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-28 h-28 overflow-hidden rounded-2xl shadow-xl transform rotate-2 hover:rotate-0 transition-transform">
+                <div className="w-28 h-28 overflow-hidden rounded-2xl shadow-xl transform rotate-2 hover:rotate-0 transition-transform bg-purple-900/40 p-1 border border-purple-400/20">
                   <img
                     src="/assets/images/characters/nira_settings.jpg"
                     alt="Nira Settings"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="w-20 h-20 overflow-hidden rounded-2xl shadow-md transform -rotate-3 hover:rotate-0 transition-transform">
+                <div className="w-20 h-20 overflow-hidden rounded-2xl shadow-md transform -rotate-3 hover:rotate-0 transition-transform bg-purple-900/40 p-1 border border-purple-400/20">
                   <img
                     src="/assets/images/characters/ananya_nira_duo.png"
                     alt="Ananya & Nira"
@@ -134,7 +231,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            2. TWO-COLUMN LAYOUT: CATEGORIES + GENERAL OPTIONS
+            2. TWO-COLUMN LAYOUT: CATEGORIES + CONTROLS
             ═══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
           
@@ -143,26 +240,26 @@ export const SettingsPage: React.FC = () => {
             
             {/* User Avatar Header Card with Real Citizen Photo */}
             <div 
-              onClick={() => navigateTo('profile')}
+              onClick={() => setActiveTab('profile')}
               className="p-3.5 rounded-3xl bg-gradient-to-r from-purple-100/90 via-indigo-50/90 to-pink-50/90 border border-purple-200/60 flex items-center gap-3.5 shadow-sm hover:shadow-md cursor-pointer transition-all group"
             >
-              <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md shrink-0 transition-transform group-hover:scale-105">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md shrink-0 transition-transform group-hover:scale-105 bg-white p-0.5 border border-purple-200">
                 <img
-                  src="/assets/images/characters/citizen_confident.png"
+                  src={citizenProfile?.avatar || '/assets/images/avatars/avatar_1_student.svg'}
                   alt="Citizen Profile"
                   className="w-full h-full object-contain"
                 />
               </div>
               <div className="min-w-0">
                 <div className="font-black text-slate-900 text-sm truncate group-hover:text-purple-900 transition-colors">
-                  Pratay Karali
+                  {citizenProfile?.name || 'Pratay Karali'}
                 </div>
-                <div className="text-xs text-purple-700 font-bold flex items-center gap-1 mt-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>DigiLocker Verified</span>
+                <div className="text-xs text-purple-700 font-bold flex items-center gap-1 mt-0.5 truncate">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate">{citizenProfile?.role || 'Citizen Explorer'}</span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 ml-auto text-purple-400 group-hover:text-purple-700 transition-colors" />
+              <ChevronRight className="w-4 h-4 ml-auto text-purple-400 group-hover:text-purple-700 transition-colors shrink-0" />
             </div>
 
             <div className="space-y-1.5 px-1">
@@ -173,13 +270,7 @@ export const SettingsPage: React.FC = () => {
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => {
-                      if (cat.id === 'profile') {
-                        navigateTo('profile');
-                      } else {
-                        setActiveTab(cat.id);
-                      }
-                    }}
+                    onClick={() => setActiveTab(cat.id)}
                     className={`group w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                       isActive
                         ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
@@ -203,7 +294,7 @@ export const SettingsPage: React.FC = () => {
             {/* Mascot Guide Info Box */}
             <div className="pt-3 pb-1 px-1">
               <div className="relative overflow-hidden p-4 rounded-3xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100 shadow-sm flex items-center gap-3.5 group hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 shrink-0 overflow-hidden rounded-2xl shadow-md transition-transform group-hover:scale-105">
+                <div className="w-16 h-16 shrink-0 overflow-hidden rounded-2xl shadow-md transition-transform group-hover:scale-105 bg-white/80 p-0.5">
                   <img
                     src="/assets/images/characters/nira_guide_teacher.jpg"
                     alt="Guide"
@@ -212,7 +303,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="relative z-10 leading-tight min-w-0">
                   <strong className="text-purple-900 block font-black text-xs mb-0.5">Local Storage First</strong>
-                  <span className="text-slate-600 text-[11px] font-medium">Preferences stay securely on your browser.</span>
+                  <span className="text-slate-600 text-[11px] font-medium">Preferences & avatar stay securely on your browser.</span>
                 </div>
               </div>
             </div>
@@ -229,96 +320,117 @@ export const SettingsPage: React.FC = () => {
                 <div className="w-2 h-7 bg-gradient-to-b from-purple-600 to-indigo-600 rounded-full" />
                 <h2 className="text-lg font-black text-slate-900 tracking-tight capitalize">
                   {activeTab === 'general'
-                    ? 'General Settings'
+                    ? 'General Settings & Scenic Wallpapers'
+                    : activeTab === 'profile'
+                    ? 'Citizen Avatar Picker & Identity'
                     : activeTab === 'notifications'
-                    ? 'Notification Preferences'
+                    ? 'Alerts & Station Audio Chimes'
                     : activeTab === 'privacy'
-                    ? 'Privacy & Security Controls'
+                    ? 'Zero-PII Isolation Ring & Security'
                     : activeTab === 'payments'
-                    ? 'Payment Methods & Citizen Wallet'
+                    ? 'Citizen Virtual Wallet & Payments'
                     : activeTab === 'language'
-                    ? 'Language & Regional Localization'
+                    ? 'Multilingual Indian Localization (10)'
                     : activeTab === 'accessibility'
-                    ? 'Accessibility & Easy Mode'
-                    : 'About Nirantar System'}
+                    ? 'Accessibility & Visual Easy Mode'
+                    : 'About Nirantar Master Architecture'}
                 </h2>
               </div>
               <span className="flex items-center gap-1.5 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full shadow-2xs">
                 <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                Live Verified Storage
+                Live Verified
               </span>
             </div>
 
             <form onSubmit={handleSave} className="relative z-10 flex-1 flex flex-col">
-              <div className="flex-1 space-y-4 text-xs sm:text-sm font-semibold text-slate-700">
-                {/* ── TAB 1: GENERAL ── */}
+              <div className="flex-1 space-y-5 text-xs sm:text-sm font-semibold text-slate-700">
+                
+                {/* ── TAB 1: GENERAL & SCENIC WALLPAPERS ── */}
                 {activeTab === 'general' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                    {/* Visual Banner Header with Mascot */}
-                    <div className="relative rounded-2xl p-4 overflow-hidden border border-purple-200/60 bg-gradient-to-r from-purple-100/70 via-indigo-50/70 to-pink-50/70 flex items-center justify-between shadow-2xs">
-                      <div className="space-y-0.5">
-                        <h4 className="font-black text-sm text-slate-900">Application Preferences</h4>
-                        <p className="text-xs text-slate-600 font-medium">Fine-tune appearance, scaling, and train recommendations.</p>
+                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+                    
+                    {/* SCENIC THEMES SELECTOR */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-purple-700" />
+                          <span>Scenic Indian Railway Wallpapers</span>
+                        </label>
+                        <span className="text-[11px] text-purple-700 font-bold">5 Available</span>
                       </div>
-                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0">
-                        <img src="/assets/images/characters/nira_settings.jpg" alt="Settings Mascot" className="w-full h-full object-contain" />
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {SCENIC_THEMES.map((theme) => {
+                          const isSelected = activeThemeBg === theme.path;
+                          return (
+                            <div
+                              key={theme.id}
+                              onClick={() => {
+                                setActiveThemeBg(theme.path);
+                                setSettings({ ...settings, scenicWallpaper: theme.name });
+                              }}
+                              className={`relative rounded-2xl overflow-hidden cursor-pointer border-2 transition-all p-1 group shadow-xs ${
+                                isSelected ? 'border-purple-600 ring-2 ring-purple-400/40 shadow-md scale-[1.02]' : 'border-purple-100 hover:border-purple-300'
+                              }`}
+                            >
+                              <div className="h-20 sm:h-24 rounded-xl overflow-hidden relative bg-slate-900">
+                                <img src={theme.path} alt={theme.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                                <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
+                                  <span className="text-[10px] font-black text-white truncate">{theme.name}</span>
+                                  {isSelected && (
+                                    <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0">
+                                      <Check className="w-2.5 h-2.5" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Setting Rows */}
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Interface Theme</span>
-                        <span className="text-xs text-slate-500 font-medium">Appearance mode of the application</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Interface Theme</span>
+                          <span className="text-xs text-slate-500 font-medium">Appearance mode</span>
+                        </div>
+                        <select
+                          value={settings.theme}
+                          onChange={(e) => setSettings({ ...settings, theme: e.target.value })}
+                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
+                        >
+                          <option value="Light">Light Mode</option>
+                          <option value="Dark">Dark Mode</option>
+                          <option value="System">System Default</option>
+                        </select>
                       </div>
-                      <select
-                        value={settings.theme}
-                        onChange={(e) => setSettings({ ...settings, theme: e.target.value })}
-                        className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
-                      >
-                        <option value="Light">Light Mode</option>
-                        <option value="Dark">Dark Mode</option>
-                        <option value="System">System Default</option>
-                      </select>
+
+                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Default Class</span>
+                          <span className="text-xs text-slate-500 font-medium">Preselected coach tier</span>
+                        </div>
+                        <select
+                          value={settings.defaultJourneyClass}
+                          onChange={(e) => setSettings({ ...settings, defaultJourneyClass: e.target.value })}
+                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
+                        >
+                          <option value="AC 3 Tier">AC 3 Tier (3A)</option>
+                          <option value="AC 2 Tier">AC 2 Tier (2A)</option>
+                          <option value="AC 1st Class">AC 1st Class (1A)</option>
+                          <option value="Sleeper">Sleeper (SL)</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
                       <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Typography Scale</span>
-                        <span className="text-xs text-slate-500 font-medium">Text scaling and readability size</span>
-                      </div>
-                      <select
-                        value={settings.fontSize}
-                        onChange={(e) => setSettings({ ...settings, fontSize: e.target.value })}
-                        className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
-                      >
-                        <option value="Small">Small</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Large">Large</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Default Journey Class</span>
-                        <span className="text-xs text-slate-500 font-medium">Preselected coach tier on search</span>
-                      </div>
-                      <select
-                        value={settings.defaultJourneyClass}
-                        onChange={(e) => setSettings({ ...settings, defaultJourneyClass: e.target.value })}
-                        className="px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
-                      >
-                        <option value="AC 3 Tier">AC 3 Tier (3A)</option>
-                        <option value="AC 2 Tier">AC 2 Tier (2A)</option>
-                        <option value="AC 1st Class">AC 1st Class (1A)</option>
-                        <option value="Sleeper">Sleeper (SL)</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Auto Save Journeys</span>
-                        <span className="text-xs text-slate-500 font-medium">Retain incomplete bookings in TaskStack</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Auto Save Journeys to TaskStack</span>
+                        <span className="text-xs text-slate-500 font-medium">Retain incomplete bookings when navigating pages</span>
                       </div>
                       <button
                         type="button"
@@ -334,106 +446,158 @@ export const SettingsPage: React.FC = () => {
                         />
                       </button>
                     </div>
-
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Recommended Trains</span>
-                        <span className="text-xs text-slate-500 font-medium">Highlight fastest and safest train options</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSettings({ ...settings, showRecommendedTrains: !settings.showRecommendedTrains })}
-                        className={`w-12 h-6 rounded-full transition-all relative p-0.5 cursor-pointer shadow-inner ${
-                          settings.showRecommendedTrains ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-slate-200'
-                        }`}
-                      >
-                        <div
-                          className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-                            settings.showRecommendedTrains ? 'translate-x-6' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
                   </div>
                 )}
 
-                {/* ── TAB 2: NOTIFICATIONS ── */}
-                {activeTab === 'notifications' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="relative rounded-2xl p-4 overflow-hidden border border-purple-200/60 bg-gradient-to-r from-indigo-100/70 via-purple-50/70 to-pink-50/70 flex items-center justify-between shadow-2xs">
+                {/* ── TAB 2: AVATAR & PROFILE PICKER ── */}
+                {activeTab === 'profile' && (
+                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-100/80 via-indigo-50/80 to-pink-50/80 border border-purple-200/80 flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <h4 className="font-black text-sm text-slate-900">Real-Time Alerts & Chimes</h4>
-                        <p className="text-xs text-slate-600 font-medium">Stay updated on train running status, RAC clearance, and arrival chimes.</p>
+                        <h4 className="font-black text-sm text-purple-950">Citizen Avatar Gallery (12 Characters)</h4>
+                        <p className="text-xs text-slate-600 font-medium">Select your preferred avatar for tickets, copilot chats, and profile identity.</p>
                       </div>
-                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0">
-                        <img src="/assets/images/bell.png" alt="Notifications Bell" className="w-full h-full object-contain" />
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white p-0.5 border border-purple-200 shadow-sm shrink-0">
+                        <img src={citizenProfile?.avatar || '/assets/images/avatars/avatar_1_student.svg'} alt="Active Avatar" className="w-full h-full object-contain" />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Journey Reminders</span>
-                        <span className="text-xs text-slate-500 font-medium">Get notified 2 hours before train departure</span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">Enabled</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Waitlist Movement Alerts</span>
-                        <span className="text-xs text-slate-500 font-medium">Instant alerts when your RAC/WL clears</span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">Enabled</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Station Arrival Chime</span>
-                        <span className="text-xs text-slate-500 font-medium">Play authentic Indian Railways 4-tone chime</span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold">Audio Active</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {AVATARS.map((av) => {
+                        const isSelected = citizenProfile?.avatar === av.path;
+                        return (
+                          <div
+                            key={av.id}
+                            onClick={() => handleSelectAvatar(av.path, av.role)}
+                            className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center text-center space-y-2 group shadow-2xs ${
+                              isSelected
+                                ? 'bg-purple-50 border-purple-600 ring-2 ring-purple-400/40 shadow-md scale-102'
+                                : 'bg-white border-purple-100 hover:border-purple-300 hover:bg-purple-50/40'
+                            }`}
+                          >
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white shadow-xs p-1 border border-purple-200 transition-transform group-hover:scale-108 relative">
+                              <img src={av.path} alt={av.name} className="w-full h-full object-contain" />
+                              {isSelected && (
+                                <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                  <Check className="w-2.5 h-2.5" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 w-full">
+                              <strong className="text-xs font-black text-slate-900 block truncate">{av.name}</strong>
+                              <span className="text-[10px] text-purple-700 font-bold block truncate">{av.role}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* ── TAB 3: PRIVACY & SECURITY ── */}
+                {/* ── TAB 3: NOTIFICATIONS & AUDIO SOUNDBOARD ── */}
+                {activeTab === 'notifications' && (
+                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+                    
+                    {/* Audio Soundboard */}
+                    <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-900 to-indigo-950 text-white shadow-lg space-y-3 border border-purple-400/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="w-5 h-5 text-yellow-400" />
+                          <h4 className="font-black text-sm">Station Audio Preview Soundboard</h4>
+                        </div>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full font-bold text-purple-200">Interactive Chimes</span>
+                      </div>
+                      <p className="text-xs text-purple-200/90 leading-relaxed font-medium">
+                        Preview the authentic acoustic chimes synthesized in NIRANTAR for announcements, booking confirmations, and arrival alarms.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => playAudioSimulation('gong')}
+                          className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                            activeAudioTest === 'gong' ? 'bg-yellow-400 text-slate-950 border-yellow-300 scale-102' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          <span>🔔 4-Tone Station Gong</span>
+                          <Play className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => playAudioSimulation('fanfare')}
+                          className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                            activeAudioTest === 'fanfare' ? 'bg-emerald-400 text-slate-950 border-emerald-300 scale-102' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          <span>🎉 DigiLocker Fanfare</span>
+                          <Play className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => playAudioSimulation('alarm')}
+                          className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                            activeAudioTest === 'alarm' ? 'bg-purple-400 text-slate-950 border-purple-300 scale-102' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          <span>⏰ Destination Alarm</span>
+                          <Play className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
+                      <div>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">WhatsApp Verified e-Ticket Push</span>
+                        <span className="text-xs text-slate-500 font-medium">Send QR-verified PDF directly to registered mobile</span>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">Active</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── TAB 4: ZERO-PII VAULT ── */}
                 {activeTab === 'privacy' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
                     <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 flex items-start gap-4 shadow-sm">
-                      <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm shrink-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm shrink-0 bg-white p-1">
                         <img src="/assets/images/safety_shield.png" alt="Safety Shield" className="w-full h-full object-contain" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <ShieldCheck className="w-4 h-4 text-purple-700" />
-                          <span className="font-black text-sm text-purple-950">Zero-PII Isolation Ring</span>
+                          <span className="font-black text-sm text-purple-950">Zero-PII Isolation Ring & Sanitizer</span>
                         </div>
                         <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                          Passwords, OTPs, CVVs, and Aadhaar numbers are never sent to external AI servers. All sensitive credentials remain protected locally.
+                          Passwords, OTPs, CVVs, card numbers, and Aadhaar identifiers are redacted before reaching external AI models. All sensitive credentials stay protected on device.
                         </p>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Personal Security PIN</span>
-                        <span className="text-xs text-slate-500 font-medium">Required for cancelling tickets and sensitive wallet actions</span>
+
+                    {/* Interactive Redaction Simulator */}
+                    <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs space-y-2">
+                      <label className="text-xs font-bold text-slate-900 block">
+                        Live PII Redaction Simulator (Test What Nira Sees)
+                      </label>
+                      <input
+                        type="text"
+                        value={redactionInput}
+                        onChange={(e) => setRedactionInput(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                        placeholder="Type text with phone or password..."
+                      />
+                      <div className="p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] space-y-1">
+                        <div className="text-[10px] text-slate-400 uppercase tracking-widest font-sans font-bold">Sanitized AI Payload:</div>
+                        <div>{getRedactedPreview(redactionInput)}</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => navigateTo('profile')}
-                        className="px-4 py-2 rounded-xl bg-purple-100 text-purple-900 text-xs font-bold hover:bg-purple-200 transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        Manage in Profile <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* ── TAB 4: PAYMENT METHODS ── */}
+                {/* ── TAB 5: CITIZEN WALLET ── */}
                 {activeTab === 'payments' && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-                    {/* Metallic Card with Scenic Backdrop */}
                     <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white relative overflow-hidden shadow-xl border border-purple-500/30">
                       <div className="absolute top-0 right-0 w-32 h-32 opacity-20 pointer-events-none">
                         <img src="/assets/images/payments.png" alt="Wallet Background" className="w-full h-full object-contain" />
@@ -450,76 +614,79 @@ export const SettingsPage: React.FC = () => {
                         <p className="text-xs text-purple-200/80 font-medium">Zero-PIN instant booking with 100% gateway resilience.</p>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Payment Receipts & Ledger</span>
-                        <span className="text-xs text-slate-500 font-medium">Download GST invoices, bank UTRs, and refund audits</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => navigateTo('payments')}
-                        className="px-4 py-2 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold hover:bg-purple-100 transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        Open Ledger <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
                   </div>
                 )}
 
-                {/* ── TAB 5: LANGUAGE ── */}
+                {/* ── TAB 6: LANGUAGES (10 INDIAN REGIONAL SCRIPTS) ── */}
                 {activeTab === 'language' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-4 p-4 rounded-2xl bg-purple-50 border border-purple-100">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0 bg-white p-0.5">
                         <img src="/assets/images/characters/nira_guide_teacher.jpg" alt="Language Guide" className="w-full h-full object-contain" />
                       </div>
                       <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Multilingual Indian Support</span>
-                        <span className="text-xs text-slate-600 font-medium">Nira responds naturally in your preferred regional dialect.</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Multilingual Indian Regional Localization</span>
+                        <span className="text-xs text-slate-600 font-medium">Nira understands and assists in 10 official Indian languages.</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      {['English', 'हिन्दी (Hindi)', 'বাংলা (Bengali)', 'தமிழ் (Tamil)'].map((lang) => (
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                      {[
+                        { code: 'en', name: 'English', native: 'English', greeting: 'Happy Journey' },
+                        { code: 'hi', name: 'Hindi', native: 'हिन्दी', greeting: 'शुभ यात्रा' },
+                        { code: 'bn', name: 'Bengali', native: 'বাংলা', greeting: 'শুভ যাত্রা' },
+                        { code: 'ta', name: 'Tamil', native: 'தமிழ்', greeting: 'இனிய பயணம்' },
+                        { code: 'te', name: 'Telugu', native: 'తెలుగు', greeting: 'శుభ ప్రయాణం' },
+                        { code: 'mr', name: 'Marathi', native: 'मराठी', greeting: 'आनंददायी प्रवास' },
+                        { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', greeting: 'સુખદ પ્રવાસ' },
+                        { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', greeting: 'ಶುಭ ಪ್ರಯಾಣ' },
+                        { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', greeting: 'ਸੁਖਦ ਯਾਤਰਾ' },
+                        { code: 'ml', name: 'Malayalam', native: 'മലയാളം', greeting: 'ശുഭയാത്ര' },
+                      ].map((lang) => (
                         <button
-                          key={lang}
+                          key={lang.code}
                           type="button"
-                          onClick={() => setSettings({ ...settings, appLanguage: lang.split(' ')[0] })}
-                          className={`p-4 rounded-2xl border text-xs sm:text-sm font-bold text-left transition-all cursor-pointer shadow-2xs ${
-                            settings.appLanguage === lang.split(' ')[0]
+                          onClick={() => setSettings({ ...settings, appLanguage: lang.name })}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs space-y-0.5 ${
+                            settings.appLanguage === lang.name
                               ? 'bg-purple-700 text-white border-purple-700 shadow-md shadow-purple-700/20'
                               : 'bg-white text-slate-700 border-purple-100 hover:bg-purple-50'
                           }`}
                         >
-                          {lang}
+                          <div className="text-xs font-black">{lang.native}</div>
+                          <div className={`text-[10px] font-medium ${settings.appLanguage === lang.name ? 'text-purple-200' : 'text-slate-500'}`}>{lang.name} • {lang.greeting}</div>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* ── TAB 6: ACCESSIBILITY ── */}
+                {/* ── TAB 7: ACCESSIBILITY ── */}
                 {activeTab === 'accessibility' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
                       <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Citizen Easy Mode</span>
-                        <span className="text-xs text-slate-500 font-medium">Enlarged touch targets and simplified railway terminology</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">High Contrast Mode</span>
+                        <span className="text-xs text-slate-500 font-medium">Sharp contrasting borders and text for sunlight legibility</span>
                       </div>
-                      <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">Standard</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:border-purple-200 transition-all">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Visual Spotlight Guidance</span>
-                        <span className="text-xs text-slate-500 font-medium">Interactive green arrows and screen dimming</span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">Always On</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettings({ ...settings, highContrast: !settings.highContrast })}
+                        className={`w-12 h-6 rounded-full transition-all relative p-0.5 cursor-pointer shadow-inner ${
+                          settings.highContrast ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-slate-200'
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                            settings.highContrast ? 'translate-x-6' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* ── TAB 7: ABOUT ── */}
+                {/* ── TAB 8: ABOUT ── */}
                 {activeTab === 'about' && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
                     <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-950 via-[#2A114E] to-slate-950 text-white shadow-xl relative overflow-hidden border border-purple-500/20">
@@ -537,21 +704,6 @@ export const SettingsPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="p-4 bg-purple-50/80 rounded-2xl border border-purple-100 space-y-1">
-                        <strong className="text-xs font-black text-purple-900 block">4 Pillars Architecture</strong>
-                        <span className="text-[11px] text-slate-600 font-medium">Discover → Understand → Act → Recover</span>
-                      </div>
-                      <div className="p-4 bg-purple-50/80 rounded-2xl border border-purple-100 space-y-1">
-                        <strong className="text-xs font-black text-purple-900 block">Zero-PII Trust Layer</strong>
-                        <span className="text-[11px] text-slate-600 font-medium">Sanitizer Ring & Fair Access Telemetry</span>
-                      </div>
-                      <div className="p-4 bg-purple-50/80 rounded-2xl border border-purple-100 space-y-1">
-                        <strong className="text-xs font-black text-purple-900 block">Commercial Rules</strong>
-                        <span className="text-[11px] text-slate-600 font-medium">Deterministic Commercial Rules & NTES</span>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -563,7 +715,7 @@ export const SettingsPage: React.FC = () => {
                   className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
+                  <span>Save All Settings</span>
                 </button>
               </div>
             </form>
@@ -586,3 +738,4 @@ export const SettingsPage: React.FC = () => {
 };
 
 export default SettingsPage;
+
