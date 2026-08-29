@@ -411,9 +411,19 @@ export const MyJourneysPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          1. HEADER HERO BANNER
+          1. HEADER HERO BANNER WITH SCENIC OVERLAY & MASCOTS
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative rounded-3xl p-6 sm:p-8 text-white shadow-[0_8px_30px_rgb(99,102,241,0.2)] border border-white/20 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-br from-indigo-900 via-purple-800 to-[#160B30] isolation-auto">
+      <div className="relative rounded-3xl p-6 sm:p-8 text-white shadow-[0_8px_30px_rgb(99,102,241,0.2)] border border-white/20 overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#180B2E] via-[#2A104E] to-[#140A28] isolation-auto">
+        {/* Scenic Railway Platform Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden mix-blend-luminosity">
+          <img
+            src="/assets/images/banners/scenic_railway_banner.png"
+            alt="Scenic Railway Platform"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#180B2E]/95 via-[#2A104E]/80 to-transparent pointer-events-none" />
+
         {/* CSS Animated Decorative Elements & Tracks */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/30 rounded-full blur-3xl animate-pulse"></div>
@@ -463,8 +473,13 @@ export const MyJourneysPage: React.FC = () => {
       {journeys.find((j) => j.status === 'CONFIRMED') && (() => {
         const topJourney = journeys.find((j) => j.status === 'CONFIRMED')!;
         return (
-          <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center justify-between gap-5 overflow-hidden">
+          <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center justify-between gap-5 overflow-hidden">
+            {/* Background Graphic */}
+            <div className="absolute inset-0 pointer-events-none opacity-5 overflow-hidden">
+              <img src="/assets/images/booking_train_bg.jpg" alt="Train Background" className="w-full h-full object-cover object-center" />
+            </div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
+            
             <div className="flex items-center gap-4 min-w-0 z-10">
               <div className="w-24 h-24 shrink-0 overflow-hidden rounded-2xl shadow-lg">
                 <img

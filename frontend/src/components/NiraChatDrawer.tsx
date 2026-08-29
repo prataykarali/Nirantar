@@ -243,7 +243,7 @@ export const getNiraAvatarAndMood = (
   ) {
     return { src: '/assets/images/characters/nira_idea.png', mood: 'Problem Solver', emoji: '💡' };
   }
-  return { src: '/assets/images/characters/nira_thumbsup.png', mood: 'Friendly Copilot', emoji: '✨' };
+  return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
 };
 
 export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose }) => {
@@ -1833,76 +1833,84 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       {/* ═══════════════════════════════════════════════════════════════════
           1. TOP BAR HEADER (Larger Animated Avatar + Status)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="p-3.5 px-4.5 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm shrink-0 transition-transform hover:scale-105">
-            <img
-              src={
-                isLoading
-                  ? '/assets/images/characters/nira_thinking.png'
-                  : '/assets/images/characters/nira_happy_mascot.png'
-              }
-              alt="Nira"
-              className="w-full h-full object-contain animate-bounce-gentle"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-black text-base text-slate-950 tracking-tight">Nira Copilot</h3>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live AI
-              </span>
+      {(() => {
+        const latestBotMsg = [...messages].reverse().find((m) => m.sender === 'nira');
+        const activeHeaderAvatar = latestBotMsg
+          ? getNiraAvatarAndMood(latestBotMsg.text, isLoading).src
+          : '/assets/images/characters/nira_happy_mascot.png';
+
+        return (
+          <div className="p-3.5 px-4.5 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm shrink-0 transition-transform hover:scale-105">
+                <img
+                  src={
+                    isLoading
+                      ? '/assets/images/characters/nira_thinking.png'
+                      : activeHeaderAvatar
+                  }
+                  alt="Nira"
+                  className="w-full h-full object-contain animate-bounce-gentle"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-base text-slate-950 tracking-tight">Nira Copilot</h3>
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live AI
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-slate-500">
+                  State-Aware Railway Assistant & Guide
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] font-medium text-slate-500">
-              State-Aware Railway Assistant & Guide
-            </p>
+
+            <div className="flex items-center gap-1.5">
+              {/* 25 Examples Drawer Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowExamplesModal(!showExamplesModal)}
+                className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Open 25 Test Examples"
+              >
+                <ListFilter className="w-3.5 h-3.5" />
+                <span>25 Demos</span>
+              </button>
+
+              {/* Reset Journey State Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  resetJourney();
+                  const resetMsg: ChatMessage = {
+                    id: `nira-reset-${Date.now()}`,
+                    sender: 'nira',
+                    text: "I've reset your journey state and returned to the home search. Where would you like to travel?",
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  };
+                  setMessages([resetMsg]);
+                }}
+                className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Reset Journey State & Start New Search"
+              >
+                <RefreshCw className="w-3 h-3 text-purple-700" />
+                <span>Reset</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-7 h-7 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer"
+                title="Close chat"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
-
-
-        <div className="flex items-center gap-1.5">
-          {/* 25 Examples Drawer Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowExamplesModal(!showExamplesModal)}
-            className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-            title="Open 25 Test Examples"
-          >
-            <ListFilter className="w-3.5 h-3.5" />
-            <span>25 Demos</span>
-          </button>
-
-          {/* Reset Journey State Button */}
-          <button
-            type="button"
-            onClick={() => {
-              resetJourney();
-              const resetMsg: ChatMessage = {
-                id: `nira-reset-${Date.now()}`,
-                sender: 'nira',
-                text: "I've reset your journey state and returned to the home search. Where would you like to travel?",
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              };
-              setMessages([resetMsg]);
-            }}
-            className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-            title="Reset Journey State & Start New Search"
-          >
-            <RefreshCw className="w-3 h-3 text-purple-700" />
-            <span>Reset</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-7 h-7 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer"
-            title="Close chat"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
           POPUP MODAL: 25 CATEGORIZED DIRECT TEST EXAMPLES
@@ -2015,19 +2023,19 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             <div className="flex items-start gap-2.5">
               <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-sm shrink-0 mt-0.5 transition-transform hover:scale-110">
                 <img
-                  src="/assets/images/characters/nira_conductor.jpg"
-                  alt="Nira Conductor"
+                  src="/assets/images/characters/nira_happy_mascot.png"
+                  alt="Nira Mascot"
                   className="w-full h-full object-contain"
                 />
               </div>
               <div className="max-w-[88%] space-y-1">
                 <div className="flex items-center gap-1.5 ml-1">
                   <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs">
-                    🚂 🎟️ All Aboard!
+                    ✨ 👋 Hi Pratay!
                   </span>
                 </div>
                 <div className="p-3.5 rounded-2xl rounded-tl-sm bg-purple-50/90 border border-purple-100 text-slate-800 space-y-1.5 shadow-2xs">
-                  <span className="font-black text-slate-900 block text-xs">Hi, I'm Nira! Your Indian Railways Copilot 👋</span>
+                  <span className="font-black text-slate-900 block text-xs">I'm Nira, your AI travel assistant!</span>
                   <p className="text-slate-600 font-medium leading-relaxed">
                     Where would you like to travel? Tell me your route (e.g. <em>"Delhi to Mumbai tomorrow 3A"</em>) or a train number (e.g. <em>"Track 12302"</em>), and I'll find, rank, and help you book! 🚆✨
                   </p>

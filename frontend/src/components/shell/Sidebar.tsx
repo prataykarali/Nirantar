@@ -269,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? '/assets/images/characters/nira_guide_teacher.jpg'
                 : activePage === 'settings'
                 ? '/assets/images/characters/nira_settings.jpg'
-                : '/assets/images/characters/nira_conductor.jpg'
+                : '/assets/images/characters/nira_happy_mascot.png'
             }
             alt="Nira AI Assistant"
             className="w-20 h-20 rounded-2xl object-contain drop-shadow-md animate-bounce-gentle transition-all duration-300"
