@@ -159,6 +159,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     navigateTo,
     executeSearch,
     searchParams,
+    setSearchParams,
+    authState,
     triggerAutoBookFlow,
     handleQuickTrack,
     startGuidanceTour,
@@ -189,6 +191,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     getWaitlistProbability,
     payWithWallet,
     setShowVisualDiagram,
+    goBack,
   } = useJourney();
 
   const hasEnteredPassengerDetails = currentPassengers.length > 0 && currentPassengers.some((p) => p.name && p.name.trim().length > 0);
@@ -733,7 +736,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const hasBerth = /\b(?:lower|upper|middle|side lower|side upper|window|berth|seat|sl|su|lb|mb|ub|3a|2a|1a)\b/i.test(lower);
     const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(text);
     const hasPhone = /\b[6-9]\d{9}\b/.test(text);
-    const hasPassengerKeywords = /\b(?:passenger|name|fill|details|pratay|rohan|priya|rahul|amit|pooja|rajesh|sunita|sneha|vikram|ananya|anusuya|moupiya|karali|sharma|kumar|singh)\b/i.test(lower);
+    const hasPassengerKeywords = /\b(?:passenger|passengers|pax|name|fill|details|traveller|citizen)\b/i.test(lower);
 
     // Require comma-separated format OR explicit details (Gender/Age/Phone/Email) OR workspace step active
     if (
@@ -1069,6 +1072,38 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
+    // ─── 1B.0: Conversational Navigation (Back, Book Another Train, Show Trains) ───
+    const navQuery = safeQuery.toLowerCase().trim();
+    
+    // Back navigation
+    const isBackQuery =
+      /^(?:back|go\s+back|previous(?:\s+page|\s+step)?|take\s+me\s+back|1\s+step\s+back|one\s+step\s+back|return|back\s+please)$/i.test(navQuery) ||
+      /\b(?:go\s+back(?:\s+1\s+step)?|take\s+me\s+back|previous\s+screen|previous\s+page)\b/i.test(navQuery);
+
+    if (isBackQuery) {
+      goBack();
+      const backMsg = `🔙 **Navigating Back**: Taking you back 1 step to the previous screen!`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: backMsg, isStreaming: false } : m))
+      );
+      return;
+    }
+
+    // Show trains / book another train navigation
+    const isShowTrainsQuery =
+      /\b(?:book\s+another\s+train|show\s+trains?|search\s+trains?|view\s+trains?|find\s+trains?|show\s+other\s+trains?|different\s+train|select\s+another\s+train|other\s+trains?|all\s+trains?)\b/i.test(navQuery);
+
+    if (isShowTrainsQuery && !intentData.isAutoBook && !navQuery.includes(' from ') && !navQuery.includes(' to ')) {
+      navigateTo('trains');
+      const trainsMsg = `🚆 **Showing Available Trains**: Redirected to the train selection and comparison screen!`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: trainsMsg, isStreaming: false } : m))
+      );
+      return;
+    }
+
     // ─── 1B.1B: Pay with Predefined Citizen Wallet ───
     const isWalletPayQuery =
       safeQuery.toLowerCase().includes('pay with wallet') ||
@@ -1327,7 +1362,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
         // Auto-generate realistic passenger profiles matching requested count & user name
         const defaultProfiles = [
-          { name: nextRouteCtx.passengerName || 'Pratay Karali', age: 20, gender: 'M' as const, berthPreference: 'LOWER' as const, phone: '8420773730', email: 'pratay@gmail.com' },
+          { name: nextRouteCtx.passengerName || authState?.displayName || 'Primary Passenger', age: 24, gender: 'M' as const, berthPreference: 'LOWER' as const, phone: '8420773730', email: 'passenger@example.com' },
           { name: 'Ananya Sharma', age: 28, gender: 'F' as const, berthPreference: 'MIDDLE' as const, phone: '9876543210', email: 'ananya@gmail.com' },
           { name: 'Rahul Verma', age: 32, gender: 'M' as const, berthPreference: 'UPPER' as const, phone: '9876543211', email: 'rahul@gmail.com' },
           { name: 'Pooja Mehta', age: 25, gender: 'F' as const, berthPreference: 'SIDE_LOWER' as const, phone: '9876543212', email: 'pooja@gmail.com' },
@@ -2181,7 +2216,12 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             type="button"
                             onClick={() => {
                               const todayStr = new Date().toISOString().split('T')[0];
-                              executeSearch({ travelDate: todayStr });
+                              if (activePage === 'trains' || activePage === 'home') {
+                                executeSearch({ travelDate: todayStr });
+                              } else {
+                                setSearchParams((prev) => ({ ...prev, travelDate: todayStr }));
+                                emitUiEvent('BOOKING_STEP_CHANGED', { step: 'DATE', date: todayStr });
+                              }
                             }}
                             className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
                           >
@@ -2192,7 +2232,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             onClick={() => {
                               const d = new Date();
                               d.setDate(d.getDate() + 1);
-                              executeSearch({ travelDate: d.toISOString().split('T')[0] });
+                              const tomStr = d.toISOString().split('T')[0];
+                              if (activePage === 'trains' || activePage === 'home') {
+                                executeSearch({ travelDate: tomStr });
+                              } else {
+                                setSearchParams((prev) => ({ ...prev, travelDate: tomStr }));
+                                emitUiEvent('BOOKING_STEP_CHANGED', { step: 'DATE', date: tomStr });
+                              }
                             }}
                             className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
                           >
@@ -2203,7 +2249,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             onClick={() => {
                               const d = new Date();
                               d.setDate(d.getDate() + 2);
-                              executeSearch({ travelDate: d.toISOString().split('T')[0] });
+                              const dayAfterStr = d.toISOString().split('T')[0];
+                              if (activePage === 'trains' || activePage === 'home') {
+                                executeSearch({ travelDate: dayAfterStr });
+                              } else {
+                                setSearchParams((prev) => ({ ...prev, travelDate: dayAfterStr }));
+                                emitUiEvent('BOOKING_STEP_CHANGED', { step: 'DATE', date: dayAfterStr });
+                              }
                             }}
                             className="px-2 py-1 rounded-lg bg-white border border-purple-200 hover:bg-purple-100 text-purple-950 font-bold cursor-pointer transition-all shadow-2xs"
                           >
@@ -2216,7 +2268,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               min={new Date().toISOString().split('T')[0]}
                               onChange={(e) => {
                                 if (e.target.value) {
-                                  executeSearch({ travelDate: e.target.value });
+                                  const customDate = e.target.value;
+                                  if (activePage === 'trains' || activePage === 'home') {
+                                    executeSearch({ travelDate: customDate });
+                                  } else {
+                                    setSearchParams((prev) => ({ ...prev, travelDate: customDate }));
+                                    emitUiEvent('BOOKING_STEP_CHANGED', { step: 'DATE', date: customDate });
+                                  }
                                 }
                               }}
                               className="text-[10px] font-bold text-purple-950 bg-transparent focus:outline-none cursor-pointer font-mono"
@@ -2686,7 +2744,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                         type="button"
                         onClick={() => {
                           if (m.actionCard?.route === 'autofill_passenger') {
-                            const pName = routeCtx.passengerName || 'Pratay Karali';
+                            const pName = routeCtx.passengerName || authState?.displayName || 'Primary Passenger';
                             const singleFare = selectedTrain?.classes[0]?.fare || 450;
                             setPassengers([
                               {

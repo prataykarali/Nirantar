@@ -22,6 +22,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import {
+  getDynamicInitialWaitlist,
+  calculateCalibratedProbability,
+  parseWaitlistStatus,
+} from '../utils/seatInventory';
 
 export const CompletionResultPage: React.FC = () => {
   const {
@@ -79,13 +84,25 @@ export const CompletionResultPage: React.FC = () => {
   }, [isWaitlisted]);
 
   // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
-  const initialWaitlistNum = isWaitlisted
-    ? Number(issuedTicket?.seatAllotments?.[0]?.seatNumber || bookingRecord?.seatAllotment?.seatNumber || 8)
-    : 0;
+  const parsedWlInfo = React.useMemo(() => {
+    const rawStatus =
+      issuedTicket?.seatAllotments?.[0]?.berthType ||
+      bookingRecord?.seatAllotment?.berthType ||
+      train.classes?.find((c) => c.classCode === (selectedClassCode || '3A'))?.status;
+    const parsed = parseWaitlistStatus(rawStatus);
+    const dynamicWl = getDynamicInitialWaitlist(train.trainNumber, selectedClassCode || '3A', rawStatus);
+    return {
+      initialWl: parsed.number > 0 ? parsed.number : dynamicWl.initialWl,
+      quotaType: parsed.quotaType || dynamicWl.quotaType || 'GNWL',
+    };
+  }, [issuedTicket, bookingRecord, train, selectedClassCode]);
+
+  const initialWaitlistNum = isWaitlisted ? parsedWlInfo.initialWl : 0;
+  const initialQuotaType = parsedWlInfo.quotaType;
   const liveWl = initialWaitlistNum;
   const clearedAhead = 0;
-  const liveProb = 78;
-  const racProb = 88;
+  const liveProb = calculateCalibratedProbability(initialWaitlistNum, initialWaitlistNum, selectedClassCode || '3A', initialQuotaType);
+  const racProb = Math.min(98, liveProb + 10);
 
   const handleMascotTap = () => {
     setMascotReaction('HAPPY');
@@ -103,7 +120,7 @@ export const CompletionResultPage: React.FC = () => {
       : [
           {
             id: 'p1',
-            name: 'Pratay Karali',
+            name: 'Primary Passenger',
             age: 24,
             gender: 'M' as const,
             berthPreference: 'SIDE_LOWER' as const,
@@ -113,7 +130,7 @@ export const CompletionResultPage: React.FC = () => {
 
     const targetCount = Math.max(searchParams.passengersCount || 1, pList.length || 1);
     if (pList.length < targetCount) {
-      const defaultNames = ['Pratay Karali', 'Varun Sharma', 'Anusuya Karali', 'Sourav Das', 'Rohan Gupta'];
+      const defaultNames = ['Passenger 1', 'Passenger 2', 'Passenger 3', 'Passenger 4', 'Passenger 5'];
       const expanded = [...pList];
       for (let i = pList.length; i < targetCount; i++) {
         expanded.push({
@@ -136,15 +153,15 @@ export const CompletionResultPage: React.FC = () => {
       return `${s.coach} - ${s.seatNumber} (${s.berthType})`;
     }
     const pClass = p.assignedClassCode || selectedClassCode || '3A';
-    const coachPrefix = isWaitlisted ? 'GNWL' : (pClass === '1A' ? 'H1' : pClass === '2A' ? 'A1' : pClass === 'SL' ? 'S1' : 'B4');
-    const seatNum = isWaitlisted ? 42 + idx : 14 + idx * 8;
+    const coachPrefix = isWaitlisted ? initialQuotaType : (pClass === '1A' ? 'H1' : pClass === '2A' ? 'A1' : pClass === 'SL' ? 'S1' : 'B4');
+    const seatNum = isWaitlisted ? initialWaitlistNum + idx * 2 : 14 + idx * 8;
     const berthLabel = isWaitlisted
-      ? `Queue #${42 + idx} (Real-Time Clearance)`
+      ? `Queue #${initialWaitlistNum + idx * 2} (Real-Time Clearance)`
       : (p.berthPreference && p.berthPreference !== 'NO_PREFERENCE' ? p.berthPreference.replace('_', ' ') : (idx % 2 === 0 ? 'Lower' : 'Middle'));
     return `${coachPrefix} - ${seatNum} (${berthLabel})`;
   };
 
-  const passengerName = displayPassengers[0]?.name || 'Pratay Karali';
+  const passengerName = displayPassengers[0]?.name || 'Primary Passenger';
   const pnrNumber = issuedTicket?.pnrNumber || bookingRecord?.pnrNumber || '2847 5896 1234';
 
   const handleCopyPnr = () => {
@@ -368,10 +385,10 @@ export const CompletionResultPage: React.FC = () => {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              {isWaitlisted ? `Booking Allocated (Waitlist GNWL-42)` : 'Booking Confirmed!'}
+              {isWaitlisted ? `Booking Allocated (Waitlist ${initialQuotaType}-${initialWaitlistNum})` : 'Booking Confirmed!'}
             </h2>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
-              {isWaitlisted ? `Waitlist ticket assigned at GNWL-42. Tap Track Live to monitor real-time queue clearance.` : 'We hope you have a safe and comfortable journey.'}
+              {isWaitlisted ? `Waitlist ticket assigned at ${initialQuotaType}-${initialWaitlistNum}. Tap Track Live to monitor real-time queue clearance.` : 'We hope you have a safe and comfortable journey.'}
             </p>
           </div>
         </div>
@@ -380,7 +397,7 @@ export const CompletionResultPage: React.FC = () => {
         <div className="relative z-10 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-purple-100 shadow-xs">
           <Train className="w-4 h-4 text-purple-700" />
           <span className="text-xs font-bold text-purple-950">
-            {train.trainName} • {isWaitlisted ? `WL-42 (62%)` : 'Confirmed'}
+            {train.trainName} • {isWaitlisted ? `${initialQuotaType}-${initialWaitlistNum} (${liveProb}%)` : 'Confirmed'}
           </span>
         </div>
       </section>
@@ -538,7 +555,7 @@ export const CompletionResultPage: React.FC = () => {
                             <span className="text-[9px] text-slate-400 block font-semibold">Booking Status</span>
                             {isWaitlisted ? (
                               <span className="font-bold text-amber-600 text-xs flex items-center gap-1 font-mono">
-                                ⚠️ GNWL-{42 + idx}
+                                ⚠️ {initialQuotaType}-{initialWaitlistNum + idx * 2}
                               </span>
                             ) : (
                               <span className="font-bold text-emerald-600 text-xs">Confirmed ✓</span>

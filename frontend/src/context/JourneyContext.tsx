@@ -30,7 +30,7 @@ import {
   apiMockVerify,
   apiGetTicket,
 } from '../services/journeyApi';
-import { allocatePassengerSeats } from '../utils/seatInventory';
+import { allocatePassengerSeats, getDynamicInitialWaitlist } from '../utils/seatInventory';
 import { admitFairAccess } from '../services/niraApi';
 import { setFairAccessTicket } from '../lib/fairAccessStore';
 import { UiEventBus } from '../events/UiEventBus';
@@ -92,6 +92,7 @@ export interface JourneyContextType {
   activePage: string;
   setActivePage: (page: string) => void;
   navigateTo: (page: string) => void;
+  goBack: () => void;
 
   // Search Parameters & Results
   searchParams: JourneySearchParams;
@@ -649,7 +650,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       distanceKm: 1958,
       runningDays: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
       departureDayOffset: 2,
-      classes: [{ classCode: selectedClassCode || '3A', className: 'AC 3 Tier', fare: 1958, status: 'GNWL-42', availableSeats: 0 }],
+      classes: [{ classCode: selectedClassCode || '3A', className: 'AC 3 Tier', fare: 1958, status: 'AVAILABLE', availableSeats: 48 }],
       score: 96,
       tags: ['Superfast', 'High Demand'],
     };
@@ -694,14 +695,16 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const dynamicAllotments = allocatePassengerSeats(resolvedPassengers, selectedClassCode || '3A', pnr);
-    const baseWlSeat = Math.floor(4 + Math.random() * 8);
+    const dynamicWlInfo = getDynamicInitialWaitlist(resolvedTrain.trainNumber, selectedClassCode || '3A', chosenClass?.status);
+    const baseWlSeat = dynamicWlInfo.initialWl;
+    const baseWlQuota = dynamicWlInfo.quotaType;
 
     const seatAllotments = resolvedPassengers.map((p, idx) => {
       if (isWaitlistTrain) {
         return {
-          coach: 'GNWL',
-          seatNumber: baseWlSeat + idx,
-          berthType: `Waitlist Queue #${baseWlSeat + idx}`,
+          coach: baseWlQuota,
+          seatNumber: baseWlSeat + idx * 2,
+          berthType: `${baseWlQuota} Queue #${baseWlSeat + idx * 2}`,
         };
       }
       const allot = dynamicAllotments[idx];
@@ -713,9 +716,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     const primarySeatAllotment = seatAllotments[0] || {
-      coach: isWaitlistTrain ? 'GNWL' : 'B4',
+      coach: isWaitlistTrain ? baseWlQuota : 'B4',
       seatNumber: isWaitlistTrain ? baseWlSeat : 16,
-      berthType: isWaitlistTrain ? `Waitlist Queue #${baseWlSeat}` : 'Lower Berth',
+      berthType: isWaitlistTrain ? `${baseWlQuota} Queue #${baseWlSeat}` : 'Lower Berth',
     };
 
     const newTicket: TicketRecord = {
@@ -1528,6 +1531,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     navigateTo('track');
   };
 
+  const [pageHistory, setPageHistory] = useState<string[]>(['home']);
+
   const navigateTo = (page: string) => {
     let normalized = (page || 'home').toLowerCase().trim();
     if (normalized === 'myjourneys' || normalized === 'journeys') normalized = 'my-journeys';
@@ -1536,6 +1541,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (normalized === 'results') normalized = 'trains';
 
     const previousPage = activePage;
+    if (previousPage !== normalized) {
+      setPageHistory((prev) => [...prev, previousPage]);
+    }
     setActivePage(normalized);
     // ─── CORE FEEDBACK LOOP: Frontend event → State update → Nira gets new state ───
     UiEventBus.emit('PAGE_CHANGED', normalized, { from: previousPage, to: normalized });
@@ -1547,6 +1555,29 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setBookingStateRaw(result.state);
       }
     }
+  };
+
+  const goBack = () => {
+    if (activePage === 'payment') {
+      navigateTo('workspace');
+      return;
+    }
+    if (activePage === 'workspace' || activePage === 'booking' || activePage === 'review') {
+      navigateTo('trains');
+      return;
+    }
+    if (activePage === 'trains') {
+      navigateTo('home');
+      return;
+    }
+    if (pageHistory.length > 1) {
+      const prev = pageHistory[pageHistory.length - 1];
+      setPageHistory((p) => p.slice(0, -1));
+      setActivePage(prev);
+      UiEventBus.emit('PAGE_CHANGED', prev, { from: activePage, to: prev, reason: 'goBack' });
+      return;
+    }
+    navigateTo('home');
   };
 
   const resetJourney = () => {
@@ -1571,6 +1602,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activePage,
         setActivePage,
         navigateTo,
+        goBack,
         searchParams,
         setSearchParams,
         availableTrains,

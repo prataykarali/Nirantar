@@ -46,6 +46,10 @@ import {
   allocatePassengerSeats,
   CoachInfo,
   ComfortLevel,
+  getDynamicInitialWaitlist,
+  calculateCalibratedProbability,
+  generateDynamicTelemetryStages,
+  parseWaitlistStatus,
 } from '../utils/seatInventory';
 import { Explain } from '../components/Explain';
 import { explainMyTicket, PassengerExplainEntry, TicketExplanation } from '../utils/explainContext';
@@ -127,146 +131,6 @@ export const JourneyTrackerPage: React.FC = () => {
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
   const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
 
-  // Check if current tracked train is really booked by this citizen
-  const isUserBookedTrain = useMemo(() => {
-    return Boolean(
-      (issuedTicket && issuedTicket.train?.trainNumber === activeTrainNumber && issuedTicket.status !== 'CANCELLED') ||
-      (bookingRecord && bookingRecord.trainNumber === activeTrainNumber && (bookingRecord.status === 'CONFIRMED' || bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC'))
-    );
-  }, [issuedTicket, bookingRecord, activeTrainNumber]);
-
-  // Real-Time Waitlist Clearance for actual booked waitlist tickets (no fake 42 starting number)
-  const isWaitlistBooking = useMemo(() => {
-    return Boolean(
-      isUserBookedTrain && (
-        (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL'))))) ||
-        (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
-      )
-    );
-  }, [isUserBookedTrain, issuedTicket, bookingRecord]);
-
-  const initialWaitlistNumber = useMemo(() => {
-    if (!isWaitlistBooking) return 0;
-    const seatNum = issuedTicket?.seatAllotments?.[0]?.seatNumber || bookingRecord?.seatAllotment?.seatNumber;
-    return typeof seatNum === 'number' && seatNum > 0 ? seatNum : 42;
-  }, [isWaitlistBooking, issuedTicket, bookingRecord]);
-
-  const [simulatedWl, setSimulatedWl] = useState<number>(() => (isWaitlistBooking ? 42 : 0));
-  const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
-  const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
-  const [isSimPaused, setIsSimPaused] = useState<boolean>(false);
-  const [simIndex, setSimIndex] = useState<number>(0);
-  const [simStatusMsg, setSimStatusMsg] = useState<string>('Corridor radar active: 3.4 cancels/hr baseline');
-
-  // Slower, highly realistic progressive telemetry sequence
-  const SIM_SEQUENCE = useMemo(() => [
-    { wl: 42, delay: 3600, msg: 'Corridor baseline active: 3.4 cancellations/hr for route' },
-    { wl: 34, delay: 4200, msg: '8 cancellations cleared in primary quota ahead 📉' },
-    { wl: 24, delay: 4500, msg: '10 intermediate drop-off berths absorbed • Velocity surging 🚀' },
-    { wl: 15, delay: 4500, msg: 'Corridor quota rebalancing: 9 positions cleared ✨' },
-    { wl: 6, delay: 4500, msg: 'Emergency & Tatkal unallocated quota buffers released 🟢' },
-    { wl: 2, delay: 4500, msg: 'RAC threshold crossed • Berth allocation assured! 🎫' },
-    { wl: 0, delay: 5000, msg: '🎉 100% CONFIRMED! Allocated Coach B4 Seat 36 & 37 🥳' },
-  ], []);
-
-  useEffect(() => {
-    if (!isWaitlistBooking || initialWaitlistNumber <= 0) {
-      setSimulatedWl(0);
-      return;
-    }
-
-    if (isSimPaused) return;
-    if (simIndex >= SIM_SEQUENCE.length) return;
-
-    const currentStage = SIM_SEQUENCE[simIndex];
-    setSimStatusMsg(currentStage.msg);
-
-    const timer = setTimeout(() => {
-      setSimulatedWl(currentStage.wl);
-      if (currentStage.wl === 0) {
-        setShowConfirmedCelebration(true);
-        setTimeout(() => {
-          setIsPoofingCelebration(true);
-          setTimeout(() => {
-            setShowConfirmedCelebration(false);
-            setIsPoofingCelebration(false);
-          }, 600);
-        }, 5000);
-      }
-      setSimIndex((prev) => prev + 1);
-    }, currentStage.delay);
-
-    return () => clearTimeout(timer);
-  }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE]);
-
-  const handleStepSim = () => {
-    const nextIdx = Math.min(SIM_SEQUENCE.length - 1, simIndex + 1);
-    setSimIndex(nextIdx);
-    setSimulatedWl(SIM_SEQUENCE[nextIdx].wl);
-    setSimStatusMsg(SIM_SEQUENCE[nextIdx].msg);
-    if (SIM_SEQUENCE[nextIdx].wl === 0) {
-      setShowConfirmedCelebration(true);
-    }
-  };
-
-  const handleResetSim = () => {
-    setSimIndex(0);
-    setSimulatedWl(42);
-    setSimStatusMsg(SIM_SEQUENCE[0].msg);
-    setShowConfirmedCelebration(false);
-    setIsPoofingCelebration(false);
-  };
-
-  const handleFastForwardSim = () => {
-    const lastIdx = SIM_SEQUENCE.length - 1;
-    setSimIndex(lastIdx);
-    setSimulatedWl(0);
-    setSimStatusMsg(SIM_SEQUENCE[lastIdx].msg);
-    setShowConfirmedCelebration(true);
-  };
-
-  const handlePoofCelebration = () => {
-    setIsPoofingCelebration(true);
-    setTimeout(() => {
-      setShowConfirmedCelebration(false);
-      setIsPoofingCelebration(false);
-    }, 600);
-  };
-
-  const [watchAlerts, setWatchAlerts] = useState({
-    underTwenty: true,
-    probSeventy: true,
-    statusChange: true,
-    chartPrep: true,
-  });
-  const lastNotifKey = useRef('');
-
-  // Handle Poof Off Animation
-  const handlePoofOff = () => {
-    setIsPoofingOff(true);
-    setTimeout(() => {
-      setShowNiraHappyBanner(false);
-      setIsPoofingOff(false);
-    }, 600);
-  };
-
-  useEffect(() => {
-    if (trackQuery && trackQuery.trim()) {
-      const nextTrainNumber = trackQuery.trim();
-      setSearchInput(nextTrainNumber);
-      setActiveTrainNumber(nextTrainNumber);
-      setActiveStationIndex(1);
-      setCountdownSeconds(180);
-      setHaltSeconds(20);
-      setPhase('TRAVELING');
-    }
-  }, [trackQuery]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setInventoryClock(Date.now()), 6_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
   // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
   const trainNumber = activeTrainNumber.trim() || '12302';
   const foundTrain = useMemo(() => resolveTrainDetail(trainNumber), [trainNumber]);
@@ -294,6 +158,14 @@ export const JourneyTrackerPage: React.FC = () => {
   const trainCoaches: CoachInfo[] = useMemo(() => {
     return generateTrainCoaches(trainNumber, foundTrain?.trainType, foundTrain?.classes);
   }, [trainNumber, foundTrain]);
+
+  // Check if current tracked train is really booked by this citizen
+  const isUserBookedTrain = useMemo(() => {
+    return Boolean(
+      (issuedTicket && issuedTicket.train?.trainNumber === activeTrainNumber && issuedTicket.status !== 'CANCELLED') ||
+      (bookingRecord && bookingRecord.trainNumber === activeTrainNumber && (bookingRecord.status === 'CONFIRMED' || bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC'))
+    );
+  }, [issuedTicket, bookingRecord, activeTrainNumber]);
 
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
@@ -341,7 +213,7 @@ export const JourneyTrackerPage: React.FC = () => {
     if (trainCoaches.length > 0 && !trainCoaches.some((c) => c.code === selectedCoach)) {
       setSelectedCoach(trainCoaches[0].code);
     }
-  }, [isUserBookedTrain, allocatedSeats, trainCoaches]);
+  }, [isUserBookedTrain, allocatedSeats, trainCoaches, selectedCoach]);
 
   const selectedCoachInfo = useMemo(() => {
     return trainCoaches.find((c) => c.code === selectedCoach) || trainCoaches[0] || {
@@ -356,6 +228,156 @@ export const JourneyTrackerPage: React.FC = () => {
   const coachInventory = useMemo(() => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
+
+  // Real-Time Waitlist Clearance for actual booked waitlist tickets (no fake 42 starting number)
+  const isWaitlistBooking = useMemo(() => {
+    return Boolean(
+      isUserBookedTrain && (
+        (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments && issuedTicket.seatAllotments.some((s) => (s.coach || '').includes('WL'))))) ||
+        (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+      )
+    );
+  }, [isUserBookedTrain, issuedTicket, bookingRecord]);
+
+  const parsedWaitlistInfo = useMemo(() => {
+    const rawStatus =
+      issuedTicket?.seatAllotments?.[0]?.berthType ||
+      bookingRecord?.seatAllotment?.berthType ||
+      foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode)?.status;
+    const parsed = parseWaitlistStatus(rawStatus);
+    const dynamicWl = getDynamicInitialWaitlist(trainNumber, selectedCoachInfo.classCode, rawStatus);
+    return {
+      initialWl: parsed.number > 0 ? parsed.number : dynamicWl.initialWl,
+      quotaType: parsed.quotaType || dynamicWl.quotaType || 'GNWL',
+    };
+  }, [issuedTicket, bookingRecord, foundTrain, trainNumber, selectedCoachInfo.classCode]);
+
+  const initialWaitlistNumber = isWaitlistBooking ? parsedWaitlistInfo.initialWl : 0;
+  const initialQuotaType = parsedWaitlistInfo.quotaType || 'GNWL';
+
+  const [simulatedWl, setSimulatedWl] = useState<number>(() => (isWaitlistBooking ? initialWaitlistNumber : 0));
+  const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
+  const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
+  const [isSimPaused, setIsSimPaused] = useState<boolean>(false);
+  const [simIndex, setSimIndex] = useState<number>(0);
+  const [simStatusMsg, setSimStatusMsg] = useState<string>('Corridor radar active: scanning cancellation queue...');
+
+  // Reset simulation when train or initial waitlist changes
+  useEffect(() => {
+    if (isWaitlistBooking && initialWaitlistNumber > 0) {
+      setSimulatedWl(initialWaitlistNumber);
+      setSimIndex(0);
+      setShowConfirmedCelebration(false);
+      setIsPoofingCelebration(false);
+    }
+  }, [trainNumber, isWaitlistBooking, initialWaitlistNumber]);
+
+  // Slower, highly realistic progressive telemetry sequence tailored to dynamic W0
+  const SIM_SEQUENCE = useMemo(() => {
+    if (!isWaitlistBooking || initialWaitlistNumber <= 0) return [];
+    return generateDynamicTelemetryStages(initialWaitlistNumber, selectedCoachInfo.classCode, initialQuotaType);
+  }, [isWaitlistBooking, initialWaitlistNumber, selectedCoachInfo.classCode, initialQuotaType]);
+
+  useEffect(() => {
+    if (!isWaitlistBooking || initialWaitlistNumber <= 0 || SIM_SEQUENCE.length === 0) {
+      setSimulatedWl(0);
+      return;
+    }
+
+    if (isSimPaused) return;
+    if (simIndex >= SIM_SEQUENCE.length) return;
+
+    const currentStage = SIM_SEQUENCE[simIndex];
+    setSimStatusMsg(currentStage.msg);
+
+    const timer = setTimeout(() => {
+      setSimulatedWl(currentStage.wl);
+      if (currentStage.wl === 0) {
+        setShowConfirmedCelebration(true);
+        setTimeout(() => {
+          setIsPoofingCelebration(true);
+          setTimeout(() => {
+            setShowConfirmedCelebration(false);
+            setIsPoofingCelebration(false);
+          }, 600);
+        }, 5000);
+      }
+      setSimIndex((prev) => prev + 1);
+    }, currentStage.delay);
+
+    return () => clearTimeout(timer);
+  }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE]);
+
+  const handleStepSim = () => {
+    if (SIM_SEQUENCE.length === 0) return;
+    const nextIdx = Math.min(SIM_SEQUENCE.length - 1, simIndex + 1);
+    setSimIndex(nextIdx);
+    setSimulatedWl(SIM_SEQUENCE[nextIdx].wl);
+    setSimStatusMsg(SIM_SEQUENCE[nextIdx].msg);
+    if (SIM_SEQUENCE[nextIdx].wl === 0) {
+      setShowConfirmedCelebration(true);
+    }
+  };
+
+  const handleResetSim = () => {
+    if (SIM_SEQUENCE.length === 0) return;
+    setSimIndex(0);
+    setSimulatedWl(initialWaitlistNumber);
+    setSimStatusMsg(SIM_SEQUENCE[0]?.msg || 'Corridor radar active');
+    setShowConfirmedCelebration(false);
+    setIsPoofingCelebration(false);
+  };
+
+  const handleFastForwardSim = () => {
+    if (SIM_SEQUENCE.length === 0) return;
+    const lastIdx = SIM_SEQUENCE.length - 1;
+    setSimIndex(lastIdx);
+    setSimulatedWl(0);
+    setSimStatusMsg(SIM_SEQUENCE[lastIdx]?.msg || 'Confirmed');
+    setShowConfirmedCelebration(true);
+  };
+
+  const handlePoofCelebration = () => {
+    setIsPoofingCelebration(true);
+    setTimeout(() => {
+      setShowConfirmedCelebration(false);
+      setIsPoofingCelebration(false);
+    }, 600);
+  };
+
+  const [watchAlerts, setWatchAlerts] = useState({
+    underTwenty: true,
+    probSeventy: true,
+    statusChange: true,
+    chartPrep: true,
+  });
+  const lastNotifKey = useRef('');
+
+  // Handle Poof Off Animation
+  const handlePoofOff = () => {
+    setIsPoofingOff(true);
+    setTimeout(() => {
+      setShowNiraHappyBanner(false);
+      setIsPoofingOff(false);
+    }, 600);
+  };
+
+  useEffect(() => {
+    if (trackQuery && trackQuery.trim()) {
+      const nextTrainNumber = trackQuery.trim();
+      setSearchInput(nextTrainNumber);
+      setActiveTrainNumber(nextTrainNumber);
+      setActiveStationIndex(1);
+      setCountdownSeconds(180);
+      setHaltSeconds(20);
+      setPhase('TRAVELING');
+    }
+  }, [trackQuery]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setInventoryClock(Date.now()), 6_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Passengers in this specific coach
   const passengersInThisCoach = useMemo(() => {
@@ -384,9 +406,9 @@ export const JourneyTrackerPage: React.FC = () => {
   const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
 
   const effectiveWl = isWaitlistBooking ? simulatedWl : coachInventory.waitlist;
-  const effectiveCleared = isWaitlistBooking ? Math.max(0, 42 - simulatedWl) : coachInventory.positionsCleared;
+  const effectiveCleared = isWaitlistBooking ? Math.max(0, initialWaitlistNumber - simulatedWl) : coachInventory.positionsCleared;
   const effectiveProb = isWaitlistBooking
-    ? (simulatedWl === 0 ? 100 : Math.min(99, Math.round(62 + ((42 - simulatedWl) / 42) * 37)))
+    ? calculateCalibratedProbability(initialWaitlistNumber, simulatedWl, selectedCoachInfo.classCode, initialQuotaType)
     : coachInventory.waitlist <= 2 ? 98 : 88;
 
   const seatInventory = useMemo(() => {
@@ -405,8 +427,15 @@ export const JourneyTrackerPage: React.FC = () => {
   const primaryNoSeat = noSeatSegments[0];
 
   const rawWlWatch = useMemo(() => {
-    return getWaitlistWatchProjection(trainNumber, selectedCoachInfo.classCode, effectiveWl, comfortLevel);
-  }, [trainNumber, selectedCoachInfo.classCode, effectiveWl, comfortLevel]);
+    return getWaitlistWatchProjection(
+      trainNumber,
+      selectedCoachInfo.classCode,
+      effectiveWl,
+      comfortLevel,
+      initialWaitlistNumber,
+      initialQuotaType
+    );
+  }, [trainNumber, selectedCoachInfo.classCode, effectiveWl, comfortLevel, initialWaitlistNumber, initialQuotaType]);
 
   const wlWatch = useMemo(() => {
     if (isWaitlistBooking) {
@@ -421,69 +450,39 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // Dynamic positive encouraging messages by Nira Copilot as waitlist decreases
   const copilotDynamicAdvice = useMemo(() => {
-    if (effectiveWl >= 40) {
+    const w0 = Math.max(1, initialWaitlistNumber);
+    const cleared = Math.max(0, w0 - effectiveWl);
+    if (effectiveWl === 0) {
       return {
-        title: `Hang tight Pratay! I'm monitoring the queue in real-time.`,
-        subtitle: `Initial GNWL-42 assigned. High cancellation corridor detected for ${toCity} (↑ 3.4 cancels/hr across corridor).`,
-        badge: 'Queue Active',
-        badgeColor: 'bg-amber-400 text-amber-950',
-      };
-    }
-    if (effectiveWl >= 30) {
-      return {
-        title: `Good news! 6 cancellations just cleared ahead in the ${toCity} quota! 🚀`,
-        subtitle: `Queue moving at 4.2 cancels/hr. Confirmation odds rising to ${effectiveProb}%.`,
-        badge: 'Moving Fast ⚡',
+        title: `🎉 ALL BERTHS CONFIRMED! All ${w0} positions cleared successfully! 🥳`,
+        subtitle: `Allocated Coach B4 • Seat 36 (Lower) & Seat 37 (Middle) for ${toCity}!`,
+        badge: '100% Confirmed 🎉',
         badgeColor: 'bg-emerald-400 text-emerald-950',
       };
     }
-    if (effectiveWl >= 20) {
+    if (effectiveWl <= 2) {
       return {
-        title: `We just cleared 14 more positions! Momentum is surging! ✨`,
-        subtitle: `Corridor balancing active. Current waitlist dropped to GNWL-${effectiveWl}.`,
-        badge: '14 Cleared 🚀',
-        badgeColor: 'bg-emerald-400 text-emerald-950',
-      };
-    }
-    if (effectiveWl >= 15) {
-      return {
-        title: `Over half the queue cleared! Down to GNWL-${effectiveWl}! 📈`,
-        subtitle: `Chart preparation clearance probability is surging at ${effectiveProb}%. Almost entering RAC!`,
-        badge: 'Over 50% Cleared',
-        badgeColor: 'bg-teal-400 text-teal-950',
-      };
-    }
-    if (effectiveWl >= 10) {
-      return {
-        title: `Down to GNWL-${effectiveWl}! Emergency & VIP quota buffers released! 🟢`,
-        subtitle: `High clearance velocity! Confirmation probability reached ${effectiveProb}%.`,
-        badge: 'Quota Released 🟢',
-        badgeColor: 'bg-teal-400 text-teal-950',
-      };
-    }
-    if (effectiveWl >= 5) {
-      return {
-        title: `Just ${effectiveWl} spots away! RAC threshold crossed — your seat is assured! 🎫`,
+        title: `Only ${effectiveWl} spot${effectiveWl === 1 ? '' : 's'} away! RAC threshold crossed — berth assured! 🎫`,
         subtitle: `Berth allocation algorithm is preparing your Lower/Middle berth assignments.`,
         badge: 'RAC Assured 🎫',
         badgeColor: 'bg-emerald-400 text-emerald-950',
       };
     }
-    if (effectiveWl >= 1) {
+    if (cleared > 0) {
       return {
-        title: `Only ${effectiveWl} left! Final chart buffer balancing in progress! ⚡`,
-        subtitle: `Confirmation odds now at ${effectiveProb}%. Berth allocation imminent!`,
-        badge: 'Almost Confirmed! ⚡',
-        badgeColor: 'bg-amber-300 text-amber-950',
+        title: `Good news! ${cleared} cancellations just cleared ahead in the ${toCity} quota! 🚀`,
+        subtitle: `Corridor queue moving. Confirmation odds rising to ${effectiveProb}%.`,
+        badge: `${cleared} Cleared ⚡`,
+        badgeColor: 'bg-emerald-400 text-emerald-950',
       };
     }
     return {
-      title: '🎉 ALL BERTHS CONFIRMED! All 42 positions cleared successfully! 🥳',
-      subtitle: `Allocated Coach B4 • Seat 36 (Lower) & Seat 37 (Middle) for ${toCity}!`,
-      badge: '100% Confirmed 🎉',
-      badgeColor: 'bg-emerald-400 text-emerald-950',
+      title: `Hang tight! I'm monitoring the queue in real-time.`,
+      subtitle: `Initial ${initialQuotaType}-${w0} assigned. Corridor velocity active at 3.4 cancels/hr.`,
+      badge: 'Queue Active',
+      badgeColor: 'bg-amber-400 text-amber-950',
     };
-  }, [effectiveWl, effectiveProb, toCity]);
+  }, [effectiveWl, initialWaitlistNumber, effectiveProb, toCity, initialQuotaType]);
 
   // Auto-pop the Waitlist Watch or Coach view when user has booked a ticket
   useEffect(() => {
@@ -507,20 +506,24 @@ export const JourneyTrackerPage: React.FC = () => {
   // Dynamic Passenger List for Waitlist Watch Sidebar
   const passengerEntries: PassengerExplainEntry[] = useMemo(() => {
     const p1Wl = effectiveWl;
-    const p1Init = 42;
-    const p1Prob = effectiveProb;
+    const p1Init = initialWaitlistNumber || 18;
     const p1Moved = effectiveCleared;
 
-    return userPassengers.map((p: any, idx: number) => ({
-      name: p.name || `Passenger ${idx + 1}`,
-      displayName: `Passenger ${idx + 1}`,
-      quotaType: 'GNWL',
-      initialWl: p1Init + idx * 2,
-      currentWl: Math.max(0, p1Wl + idx * 2),
-      probability: Math.max(10, p1Prob - idx * 4),
-      positionsCleared: p1Moved,
-    }));
-  }, [userPassengers, effectiveWl, effectiveProb, effectiveCleared]);
+    return userPassengers.map((p: any, idx: number) => {
+      const pInit = p1Init + idx * 2;
+      const pCur = Math.max(0, p1Wl + idx * 2);
+      const pProb = calculateCalibratedProbability(pInit, pCur, selectedCoachInfo.classCode, initialQuotaType);
+      return {
+        name: p.name || `Passenger ${idx + 1}`,
+        displayName: `Passenger ${idx + 1}`,
+        quotaType: initialQuotaType,
+        initialWl: pInit,
+        currentWl: pCur,
+        probability: pProb,
+        positionsCleared: p1Moved,
+      };
+    });
+  }, [userPassengers, effectiveWl, initialWaitlistNumber, effectiveCleared, selectedCoachInfo.classCode, initialQuotaType]);
 
   const ticketExplanation = useMemo(() => {
     return explainMyTicket(passengerEntries, 4, privacyMode);
@@ -1514,7 +1517,7 @@ export const JourneyTrackerPage: React.FC = () => {
                           </span>
                         </div>
                         <p className="text-xs sm:text-sm text-emerald-100 font-bold leading-snug">
-                          All 42 waitlist positions cleared! Allocated Coach <span className="underline font-mono text-amber-200 font-black">B4</span> • Berth <span className="underline font-mono text-amber-200 font-black">36 (Lower) & 37 (Middle)</span>.
+                          All {initialWaitlistNumber} waitlist positions cleared! Allocated Coach <span className="underline font-mono text-amber-200 font-black">B4</span> • Berth <span className="underline font-mono text-amber-200 font-black">36 (Lower) & 37 (Middle)</span>.
                         </p>
                       </div>
                     </div>
@@ -1600,7 +1603,7 @@ export const JourneyTrackerPage: React.FC = () => {
                       </div>
                       <p className="text-xs text-slate-500 font-medium mt-1">
                         {effectiveWl === 0
-                          ? '🎉 All 42 positions cleared • Berth allocated in Coach B4'
+                          ? `🎉 All ${initialWaitlistNumber} positions cleared • Berth allocated in Coach B4`
                           : `Monitoring corridor queue • Cleared ${effectiveCleared} positions ahead in real-time.`}
                       </p>
                     </div>
@@ -1631,7 +1634,7 @@ export const JourneyTrackerPage: React.FC = () => {
                       type="button"
                       onClick={handleResetSim}
                       className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
-                      title="Reset to Initial Queue (GNWL 42)"
+                      title={`Reset to Initial Queue (${initialQuotaType} ${initialWaitlistNumber})`}
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
@@ -1644,13 +1647,13 @@ export const JourneyTrackerPage: React.FC = () => {
                   <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-amber-400 ring-4 ring-amber-100" />
-                      <span className="text-amber-800">Booking: <strong className="font-mono font-black">GNWL 42</strong></span>
+                      <span className="text-amber-800">Booking: <strong className="font-mono font-black">{initialQuotaType} {initialWaitlistNumber}</strong></span>
                     </div>
 
                     <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-purple-200 shadow-2xs">
                       <Activity className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
                       <span className="text-purple-950 font-mono font-black">
-                        Current: {effectiveWl === 0 ? 'CONFIRMED ✓' : `GNWL ${effectiveWl}`}
+                        Current: {effectiveWl === 0 ? 'CONFIRMED ✓' : `${initialQuotaType} ${effectiveWl}`}
                       </span>
                     </div>
 
@@ -1664,7 +1667,12 @@ export const JourneyTrackerPage: React.FC = () => {
                   <div className="w-full h-4 rounded-full bg-slate-100 overflow-hidden p-0.5 border border-purple-100">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-500 transition-all duration-1000 ease-out shadow-xs"
-                      style={{ width: `${Math.min(100, Math.max(15, ((42 - effectiveWl) / 42) * 100))}%` }}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(12, Math.round(((Math.max(1, initialWaitlistNumber) - effectiveWl) / Math.max(1, initialWaitlistNumber)) * 100))
+                        )}%`,
+                      }}
                     />
                   </div>
 

@@ -542,33 +542,241 @@ export interface WaitlistWatchState {
   niraSpeech: string;
   comfortThreshold: number;
   lastMovementHoursAgo: number;
+  quotaType: string;
 }
 
-/** Interprets waitlist state, velocity, and comfort thresholds to reduce emotional uncertainty. */
+/**
+ * Robustly parses waitlist status strings like 'GNWL-18', 'WL-12', 'RLWL-6', 'PQWL 24', 'RAC 2/100'
+ */
+export function parseWaitlistStatus(statusStr?: string): {
+  statusType: 'AVAILABLE' | 'RAC' | 'WAITLIST';
+  quotaType: 'GNWL' | 'RLWL' | 'PQWL' | 'RAC' | 'WL';
+  number: number;
+} {
+  if (!statusStr) return { statusType: 'AVAILABLE', quotaType: 'GNWL', number: 0 };
+  const s = statusStr.trim().toUpperCase();
+
+  if (s.includes('AVAILABLE') || s === 'CNF' || s === 'CONFIRMED') {
+    return { statusType: 'AVAILABLE', quotaType: 'GNWL', number: 0 };
+  }
+
+  const quota: 'GNWL' | 'RLWL' | 'PQWL' | 'RAC' | 'WL' =
+    s.includes('RLWL') ? 'RLWL' :
+    s.includes('PQWL') ? 'PQWL' :
+    s.includes('RAC') ? 'RAC' :
+    s.includes('GNWL') ? 'GNWL' : 'WL';
+
+  const numMatch = s.match(/\b(?:GNWL|RLWL|PQWL|WL|RAC)[\s\-_]*(\d+)\b/) || s.match(/(\d+)/);
+  const num = numMatch ? parseInt(numMatch[1], 10) : 0;
+
+  return {
+    statusType: s.includes('RAC') ? 'RAC' : 'WAITLIST',
+    quotaType: quota,
+    number: num,
+  };
+}
+
+/**
+ * Calculates a realistic dynamic initial waitlist position based on train number, class code, and route demand.
+ */
+export function getDynamicInitialWaitlist(
+  trainNumber: string,
+  classCode: string = '3A',
+  customStatus?: string
+): { initialWl: number; quotaType: string } {
+  const parsed = parseWaitlistStatus(customStatus);
+  if (parsed.number > 0) {
+    return { initialWl: parsed.number, quotaType: parsed.quotaType };
+  }
+
+  const seed = hash(`${trainNumber}:${classCode}:dynamic_queue`);
+  let basePool = 24;
+
+  switch (classCode.toUpperCase()) {
+    case '1A':
+    case 'EC':
+      basePool = 3 + (seed % 5); // 3 to 7
+      break;
+    case '2A':
+      basePool = 7 + (seed % 10); // 7 to 16
+      break;
+    case '3A':
+    case '3E':
+      basePool = 14 + (seed % 22); // 14 to 35
+      break;
+    case 'CC':
+      basePool = 10 + (seed % 16); // 10 to 25
+      break;
+    case 'SL':
+      basePool = 22 + (seed % 34); // 22 to 55
+      break;
+    case '2S':
+      basePool = 18 + (seed % 28); // 18 to 45
+      break;
+    default:
+      basePool = 16 + (seed % 18);
+  }
+
+  return { initialWl: basePool, quotaType: 'GNWL' };
+}
+
+/**
+ * High-precision mathematical confirmation probability function.
+ * Factors in quota type, travel class pool size, and percentage of queue cleared.
+ */
+export function calculateCalibratedProbability(
+  initialWl: number,
+  currentWl: number,
+  classCode: string = '3A',
+  quotaType: string = 'GNWL'
+): number {
+  if (currentWl <= 0) return 100;
+  if (currentWl <= 2) return 98;
+  if (currentWl <= 5) return 94;
+  if (currentWl <= 8) return 90;
+
+  const quotaFactor = quotaType === 'PQWL' ? 0.68 : quotaType === 'RLWL' ? 0.84 : 1.0;
+  const classFactor = classCode === '1A' || classCode === 'EC' ? 0.85 : classCode === '2A' ? 0.92 : 1.0;
+
+  const safeInitial = Math.max(1, initialWl);
+  const clearedRatio = Math.max(0, (safeInitial - currentWl) / safeInitial);
+
+  // Baseline probability starting at ~58% - 66% and smoothly saturating to 99%
+  const baseProb = 58 * quotaFactor * classFactor;
+  const growth = clearedRatio * (98 - baseProb);
+  const calculated = Math.round(baseProb + growth);
+
+  return Math.min(99, Math.max(20, calculated));
+}
+
+export interface TelemetryStage {
+  wl: number;
+  delay: number;
+  msg: string;
+  odds: number;
+}
+
+/**
+ * Generates dynamic, realistic multi-stage telemetry sequence for any initial queue position W0.
+ */
+export function generateDynamicTelemetryStages(
+  initialWl: number,
+  classCode: string = '3A',
+  quotaType: string = 'GNWL'
+): TelemetryStage[] {
+  const w0 = Math.max(1, initialWl);
+  const stages: TelemetryStage[] = [];
+
+  // Stage 0: Initial
+  stages.push({
+    wl: w0,
+    delay: 3500,
+    msg: `Corridor radar active: scanning cancellation queue (${quotaType} ${w0})...`,
+    odds: calculateCalibratedProbability(w0, w0, classCode, quotaType),
+  });
+
+  if (w0 > 25) {
+    const s1 = Math.round(w0 * 0.78);
+    stages.push({
+      wl: s1,
+      delay: 4200,
+      msg: `${w0 - s1} cancellations cleared ahead in ${quotaType} quota 📉`,
+      odds: calculateCalibratedProbability(w0, s1, classCode, quotaType),
+    });
+
+    const s2 = Math.round(w0 * 0.55);
+    stages.push({
+      wl: s2,
+      delay: 4500,
+      msg: `${w0 - s2} cumulative positions absorbed • Velocity rising 🚀`,
+      odds: calculateCalibratedProbability(w0, s2, classCode, quotaType),
+    });
+
+    const s3 = Math.round(w0 * 0.32);
+    stages.push({
+      wl: s3,
+      delay: 4500,
+      msg: `Corridor quota rebalancing: ${w0 - s3} positions cleared ✨`,
+      odds: calculateCalibratedProbability(w0, s3, classCode, quotaType),
+    });
+  } else if (w0 > 10) {
+    const s1 = Math.round(w0 * 0.65);
+    stages.push({
+      wl: s1,
+      delay: 4200,
+      msg: `${w0 - s1} cancellations cleared in primary quota ahead 📉`,
+      odds: calculateCalibratedProbability(w0, s1, classCode, quotaType),
+    });
+
+    const s2 = Math.round(w0 * 0.35);
+    stages.push({
+      wl: s2,
+      delay: 4500,
+      msg: `Corridor quota rebalancing: ${w0 - s2} positions cleared ✨`,
+      odds: calculateCalibratedProbability(w0, s2, classCode, quotaType),
+    });
+  } else if (w0 > 4) {
+    const s1 = Math.round(w0 * 0.5);
+    stages.push({
+      wl: s1,
+      delay: 4200,
+      msg: `${w0 - s1} cancellations cleared ahead in quota 📉`,
+      odds: calculateCalibratedProbability(w0, s1, classCode, quotaType),
+    });
+  }
+
+  // Pre-RAC buffer stage
+  if (w0 > 5) {
+    stages.push({
+      wl: 5,
+      delay: 4500,
+      msg: 'Emergency & Tatkal unallocated quota buffers released 🟢',
+      odds: calculateCalibratedProbability(w0, 5, classCode, quotaType),
+    });
+  }
+
+  // RAC Assurance stage
+  stages.push({
+    wl: 2,
+    delay: 4500,
+    msg: 'RAC Threshold Crossed • Guaranteed Berth Allocated! 🎫',
+    odds: 98,
+  });
+
+  // Final 100% CNF stage
+  stages.push({
+    wl: 0,
+    delay: 5000,
+    msg: '🎉 100% CONFIRMED! Official Berth Allocated in Coach 🥳',
+    odds: 100,
+  });
+
+  return stages;
+}
+
+/** Interprets waitlist state, velocity, and comfort thresholds dynamically. */
 export function getWaitlistWatchProjection(
   trainNumber: string,
   classCode: string,
   currentWl: number,
-  comfort: ComfortLevel = 'BALANCED'
+  comfort: ComfortLevel = 'BALANCED',
+  customInitialWl?: number,
+  customQuota: string = 'GNWL'
 ): WaitlistWatchState {
-  const seed = hash(`${trainNumber}:${classCode}:watch`);
-  const initialWl = trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245' || classCode === '3A' || classCode === 'SL' ? 42 : 28;
+  const dynamicWlData = getDynamicInitialWaitlist(trainNumber, classCode);
+  const initialWl = customInitialWl && customInitialWl > 0 ? customInitialWl : dynamicWlData.initialWl;
   const effectiveWl = currentWl > 0 ? currentWl : 2;
   const cleared = Math.max(0, initialWl - effectiveWl);
 
-  // Scaled probability from 62% at WL 42 to 98% at WL 1-2
-  let probability = Math.min(99, Math.max(50, Math.round(62 + ((initialWl - effectiveWl) / Math.max(1, initialWl - 1)) * 36)));
-  if (effectiveWl <= 2) probability = 98;
-  else if (effectiveWl <= 5) probability = 94;
-  else if (effectiveWl <= 10) probability = 88;
+  const probability = calculateCalibratedProbability(initialWl, effectiveWl, classCode, customQuota);
 
-  const threshold = comfort === 'SAFE' ? 12 : comfort === 'BALANCED' ? 24 : 45;
+  const threshold = comfort === 'SAFE' ? Math.round(initialWl * 0.3) : comfort === 'BALANCED' ? Math.round(initialWl * 0.6) : initialWl;
   const targetProb = comfort === 'SAFE' ? 80 : comfort === 'BALANCED' ? 60 : 40;
   const isInsideComfort = probability >= targetProb || effectiveWl <= threshold;
 
   const niraSpeech = isInsideComfort
-    ? `Great news! Your waitlist WL ${effectiveWl} is moving rapidly (${cleared} positions cleared from WL ${initialWl}) and is within your ${comfort} comfort zone with a ${probability}% estimated confirmation chance.`
-    : `Don't panic yet! Your waitlist moved from WL ${initialWl} → WL ${effectiveWl} (${cleared} cleared). It is currently outside your ${comfort} range, but Nira is watching it live as chart preparation approaches.`;
+    ? `Great news! Your waitlist ${customQuota} ${effectiveWl} is moving rapidly (${cleared} positions cleared from initial ${initialWl}) and is within your ${comfort} comfort zone with a ${probability}% estimated confirmation chance.`
+    : `Don't panic yet! Your waitlist moved from ${customQuota} ${initialWl} → ${effectiveWl} (${cleared} cleared). It is currently outside your ${comfort} range, but Nira is watching live telemetry as chart preparation approaches.`;
 
   return {
     currentWl: effectiveWl,
@@ -576,10 +784,11 @@ export function getWaitlistWatchProjection(
     clearedCount: cleared,
     confirmationProbability: probability,
     comfortLevel: comfort,
-    trendText: `Moving faster than average • ${cleared} passengers ahead cleared status • Last movement 2m ago`,
+    trendText: `Moving faster than average • ${cleared} passengers ahead cleared • Last movement 2m ago`,
     isInsideComfort,
     niraSpeech,
     comfortThreshold: threshold,
     lastMovementHoursAgo: 2,
+    quotaType: customQuota,
   };
 }
