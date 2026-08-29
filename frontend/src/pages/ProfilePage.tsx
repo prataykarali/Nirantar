@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { JargonHint } from '../components/JargonHint';
+import { TopUpWalletModal } from '../components/payment/TopUpWalletModal';
 
 export interface CitizenAvatar {
   id: string;
@@ -112,6 +113,7 @@ export const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'GOOGLE' | 'DIGILOCKER'>('LOGIN');
 
   // Form State
@@ -511,7 +513,7 @@ export const ProfilePage: React.FC = () => {
         {/* RIGHT COLUMN: WALLET & SAVED PASSENGERS CARD */}
         <div className="space-y-3">
           {/* Real Wallet Balance Card */}
-          <div className="bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-5 text-white shadow-md border border-purple-800 space-y-2">
+          <div className="bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 rounded-3xl p-5 text-white shadow-md border border-purple-800 space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="text-purple-300 font-bold uppercase tracking-wider text-[10px]">
                 <JargonHint term="citizen wallet">Citizen Virtual Wallet</JargonHint>
@@ -526,6 +528,18 @@ export const ProfilePage: React.FC = () => {
             <p className="text-[11px] text-purple-200 font-medium">
               Government Pre-Loaded Travel Credit Grant. 100% Instant zero-PIN booking.
             </p>
+
+            {/* Top-up CTA Button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowTopUpModal(true)}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Balance / Top-Up Wallet</span>
+              </button>
+            </div>
           </div>
 
           {/* Quick Menu Links */}
@@ -736,6 +750,12 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 4. TOP-UP WALLET MODAL */}
+      <TopUpWalletModal
+        isOpen={showTopUpModal}
+        onClose={() => setShowTopUpModal(false)}
+      />
     </div>
   );
 };

@@ -27,6 +27,7 @@ import { VisualDiagramModal } from '../VisualDiagramModal';
 import { NewUserWelcomeModal } from '../NewUserWelcomeModal';
 import { NotificationToasts } from '../NotificationToasts';
 import { AgenticAuthModal } from '../auth/AgenticAuthModal';
+import { DigitalBankNotificationOverlay } from '../DigitalBankNotificationOverlay';
 
 export const AppShell: React.FC = () => {
   const {
@@ -220,6 +221,7 @@ export const AppShell: React.FC = () => {
       />
 
       <NotificationToasts />
+      <DigitalBankNotificationOverlay />
     </div>
   );
 };

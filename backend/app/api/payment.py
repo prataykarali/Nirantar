@@ -196,6 +196,122 @@ def mock_payment_result(payment_id: str, req: MockResultRequest, db: Session = D
 
 
 # ═══════════════════════════════════════════════════════════════
+# DIGITAL BANK & CITIZEN VIRTUAL WALLET ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+class WalletTopUpRequest(BaseModel):
+    user_id: str = "usr-pratay-84920"
+    amount: int
+    source: str = "NET_BANKING"  # NET_BANKING, UPI, FASTPAY, GRANT
+    idempotency_key: Optional[str] = None
+
+
+# In-memory wallet balance registry (persisted with fallback default of ₹10,000)
+_WALLET_BALANCES: dict[str, float] = {"usr-pratay-84920": 10000.0}
+_WALLET_TRANSACTIONS: dict[str, list] = {}
+
+
+@router.get("/wallet/balance")
+def get_wallet_balance(user_id: str = "usr-pratay-84920"):
+    """Fetch real-time digital bank / citizen wallet balance."""
+    bal = _WALLET_BALANCES.get(user_id, 10000.0)
+    txns = _WALLET_TRANSACTIONS.get(user_id, [])
+    return {
+        "userId": user_id,
+        "balance": bal,
+        "currency": "INR",
+        "accountMask": "XX-8492",
+        "bankName": "Digital Citizen Travel Bank",
+        "recentTransactions": txns[-10:],
+    }
+
+
+@router.post("/wallet/topup")
+def topup_wallet(req: WalletTopUpRequest):
+    """
+    Top-up / add real funds to the Digital Citizen Virtual Wallet.
+    Emits an authentic digital banking notification event and records the credit transaction.
+    """
+    if req.amount <= 0:
+        raise HTTPException(400, "Top-up amount must be strictly greater than zero.")
+    if req.amount > 50000:
+        raise HTTPException(400, "Maximum single top-up limit is ₹50,000 as per RBI prepaid wallet guidelines.")
+
+    current = _WALLET_BALANCES.get(req.user_id, 10000.0)
+    new_bal = current + req.amount
+    _WALLET_BALANCES[req.user_id] = new_bal
+
+    txn_ref = f"CR-BANK-{uuid.uuid4().hex[:10].upper()}"
+    now_iso = datetime.utcnow().isoformat()
+
+    txn_record = {
+        "id": f"txn_{uuid.uuid4().hex[:8]}",
+        "type": "CREDIT",
+        "amount": req.amount,
+        "source": req.source,
+        "transactionRef": txn_ref,
+        "balanceAfter": new_bal,
+        "timestamp": now_iso,
+        "description": f"Fund Addition via {req.source} to A/C XX-8492",
+    }
+
+    if req.user_id not in _WALLET_TRANSACTIONS:
+        _WALLET_TRANSACTIONS[req.user_id] = []
+    _WALLET_TRANSACTIONS[req.user_id].insert(0, txn_record)
+
+    return {
+        "success": True,
+        "amountAdded": req.amount,
+        "newBalance": new_bal,
+        "transactionRef": txn_ref,
+        "bankAccount": "A/C XX-8492",
+        "smsAlert": f"Dear Customer, INR {req.amount}.00 credited to Digital Citizen Travel Bank A/C XX8492 on {datetime.now().strftime('%d-%b-%Y %H:%M:%S')} via {req.source}. Avail Bal: INR {new_bal:,.2f}. Ref: {txn_ref}.",
+    }
+
+
+@router.post("/wallet/debit")
+def debit_wallet(user_id: str, amount: int, purpose: str = "Ticket Booking"):
+    """
+    Deduct balance from the Digital Citizen Virtual Wallet.
+    """
+    if amount <= 0:
+        raise HTTPException(400, "Debit amount must be greater than zero.")
+    current = _WALLET_BALANCES.get(user_id, 10000.0)
+    if current < amount:
+        raise HTTPException(400, f"Insufficient funds in Citizen Wallet. Active: ₹{current:,.2f}, Required: ₹{amount:,.2f}")
+
+    new_bal = current - amount
+    _WALLET_BALANCES[user_id] = new_bal
+
+    txn_ref = f"DR-BANK-{uuid.uuid4().hex[:10].upper()}"
+    now_iso = datetime.utcnow().isoformat()
+
+    txn_record = {
+        "id": f"txn_{uuid.uuid4().hex[:8]}",
+        "type": "DEBIT",
+        "amount": amount,
+        "purpose": purpose,
+        "transactionRef": txn_ref,
+        "balanceAfter": new_bal,
+        "timestamp": now_iso,
+        "description": f"Fare Debit for {purpose} from A/C XX-8492",
+    }
+
+    if user_id not in _WALLET_TRANSACTIONS:
+        _WALLET_TRANSACTIONS[user_id] = []
+    _WALLET_TRANSACTIONS[user_id].insert(0, txn_record)
+
+    return {
+        "success": True,
+        "amountDebited": amount,
+        "newBalance": new_bal,
+        "transactionRef": txn_ref,
+        "bankAccount": "A/C XX-8492",
+        "smsAlert": f"Dear Customer, INR {amount}.00 debited from A/C XX8492 to IRCTC RAILWAY CORP on {datetime.now().strftime('%d-%b-%Y %H:%M:%S')}. Avail Bal: INR {new_bal:,.2f}. Ref: {txn_ref}.",
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
 # HELPERS
 # ═══════════════════════════════════════════════════════════════
 

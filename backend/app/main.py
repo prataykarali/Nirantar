@@ -48,6 +48,15 @@ def on_startup():
     except Exception as e:
         print(f"Warning: database seed initialization failed: {e}")
 
+from backend.app.core.rate_limiter import RateLimitMiddleware
+from backend.app.core.security_headers import SecurityHeadersMiddleware
+
+# Security headers middleware (OWASP defensive headers)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Multi-user sliding-window rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
+
 # CORS configuration for React frontend
 app.add_middleware(
     CORSMiddleware,

@@ -39,6 +39,19 @@ import { BookingState, StateTransitionEngine } from '../state/JourneyStateMachin
 import { TaskStackItem, TaskStackManager } from '../state/TaskStack';
 import { NiraSanitizedContext } from '../ai/NiraPlanner';
 
+export interface DigitalBankAlert {
+  id: string;
+  type: 'DEBIT' | 'CREDIT';
+  amount: number;
+  bankName: string;
+  accountMask: string;
+  beneficiaryOrSource: string;
+  balanceAfter: number;
+  transactionRef: string;
+  timestamp: string;
+  smsText?: string;
+}
+
 export interface RecentJourney {
   id: string;
   from: Station;
@@ -155,10 +168,14 @@ export interface JourneyContextType {
     startWithGuidance?: boolean;
   }) => Promise<boolean>;
 
-  // Virtual Citizen Wallet (₹10,000 Predefined User Credit) & Payment History
+  // Virtual Citizen Wallet (₹10,000 Predefined User Credit) & Digital Banking
   walletBalance: number;
   setWalletBalance: React.Dispatch<React.SetStateAction<number>>;
+  addWalletBalance: (amount: number, source?: string) => void;
   payWithWallet: (amount: number) => Promise<PaymentAttempt | null>;
+  digitalBankAlert: DigitalBankAlert | null;
+  dismissDigitalBankAlert: () => void;
+  triggerDigitalBankAlert: (alert: Omit<DigitalBankAlert, 'id' | 'timestamp'>) => void;
   paymentHistory: PaymentAttempt[];
   cancelTicket: (pnr: string, refundAmount?: number) => void;
 
@@ -420,6 +437,71 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
+  const [digitalBankAlert, setDigitalBankAlert] = useState<DigitalBankAlert | null>(null);
+
+  const dismissDigitalBankAlert = useCallback(() => {
+    setDigitalBankAlert(null);
+  }, []);
+
+  const triggerDigitalBankAlert = useCallback((alert: Omit<DigitalBankAlert, 'id' | 'timestamp'>) => {
+    const newAlert: DigitalBankAlert = {
+      ...alert,
+      id: `alert-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    };
+    setDigitalBankAlert(newAlert);
+  }, []);
+
+  const addWalletBalance = useCallback((amount: number, source: string = 'NET_BANKING') => {
+    if (amount <= 0) return;
+    setWalletBalance((prev) => {
+      const updated = prev + amount;
+      try {
+        localStorage.setItem('nirantar_wallet_balance', String(updated));
+      } catch {}
+
+      const txnRef = `CR-BANK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+      const creditAttempt: PaymentAttempt = {
+        id: `pay_cr_${Date.now()}`,
+        journeyId: `fund_${Date.now()}`,
+        amount,
+        method: source as any,
+        state: 'SUCCESS',
+        idempotencyKey: `idemp_cr_${Date.now()}`,
+        transactionRef: txnRef,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setPaymentHistory((pHistory) => {
+        const upHistory = [creditAttempt, ...pHistory];
+        try {
+          localStorage.setItem('nirantar_payment_history', JSON.stringify(upHistory));
+        } catch {}
+        return upHistory;
+      });
+
+      triggerDigitalBankAlert({
+        type: 'CREDIT',
+        amount,
+        bankName: 'DIGITAL CITIZEN BANK',
+        accountMask: 'A/C XX-8492',
+        beneficiaryOrSource: source === 'UPI' ? 'FastPay UPI Transfer' : source === 'NET_BANKING' ? 'HDFC/SBI NetBanking' : 'Govt Travel Grant',
+        balanceAfter: updated,
+        transactionRef: txnRef,
+        smsText: `Dear Customer, INR ${amount.toLocaleString('en-IN')}.00 credited to Digital Citizen Travel Bank A/C XX8492 via ${source}. Avail Bal: INR ${updated.toLocaleString('en-IN')}.00. Ref: ${txnRef}.`,
+      });
+
+      addNotification({
+        type: 'ticket',
+        title: '💰 Funds Credited to Digital Bank',
+        body: `₹${amount.toLocaleString('en-IN')} added via ${source}. Updated balance: ₹${updated.toLocaleString('en-IN')}.00`,
+      });
+
+      return updated;
+    });
+  }, [triggerDigitalBankAlert, addNotification]);
+
   const sendNiraQuery = useCallback((query: string) => {
     setShowChatDrawer(true);
     setNiraPendingQuery(query);
@@ -678,6 +760,27 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setBookingStateRaw('CONFIRMED');
     setRecentJourneys((prev) => [newRecentJourney, ...prev]);
 
+    // Real digital bank balance deduction
+    setWalletBalance((prevBal) => {
+      const updatedBal = Math.max(0, prevBal - (attempt.amount || 0));
+      try {
+        localStorage.setItem('nirantar_wallet_balance', String(updatedBal));
+      } catch {}
+
+      triggerDigitalBankAlert({
+        type: 'DEBIT',
+        amount: attempt.amount,
+        bankName: 'DIGITAL CITIZEN BANK',
+        accountMask: 'A/C XX-8492',
+        beneficiaryOrSource: `IRCTC RAILWAY RESERVATION (${attempt.method || 'FASTPAY'})`,
+        balanceAfter: updatedBal,
+        transactionRef: attempt.transactionRef || `TXN-BK-${Date.now()}`,
+        smsText: `Dear Customer, INR ${(attempt.amount || 0).toLocaleString('en-IN')}.00 debited from A/C XX8492 to IRCTC RAILWAY CORP via ${attempt.method || 'FASTPAY'} on ${new Date().toLocaleDateString('en-IN')}. Avail Bal: INR ${updatedBal.toLocaleString('en-IN')}.00. Ref: ${attempt.transactionRef || 'TXN-DIRECT'}.`,
+      });
+
+      return updatedBal;
+    });
+
     setPaymentHistory((prev) => {
       const updated = [attempt, ...prev.filter((p) => p.id !== attempt.id)];
       try {
@@ -693,7 +796,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
 
     return { ticket: newTicket, booking: newBooking };
-  }, [selectedTrain, availableTrains, searchParams, selectedClassCode, passengers, recentJourneys]);
+  }, [selectedTrain, availableTrains, searchParams, selectedClassCode, passengers, recentJourneys, triggerDigitalBankAlert]);
 
   const payWithWallet = async (amount: number): Promise<PaymentAttempt | null> => {
     if (walletBalance < amount) {
@@ -740,14 +843,32 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const cancelTicket = useCallback((pnr: string, refundAmount: number = 0) => {
     setIssuedTicket((prev) => (prev && prev.pnrNumber === pnr ? { ...prev, status: 'CANCELLED' as any } : prev));
     if (refundAmount > 0) {
-      setWalletBalance((prev) => prev + refundAmount);
+      setWalletBalance((prev) => {
+        const updated = prev + refundAmount;
+        try {
+          localStorage.setItem('nirantar_wallet_balance', String(updated));
+        } catch {}
+
+        triggerDigitalBankAlert({
+          type: 'CREDIT',
+          amount: refundAmount,
+          bankName: 'DIGITAL CITIZEN BANK',
+          accountMask: 'A/C XX-8492',
+          beneficiaryOrSource: `IRCTC TICKET REFUND (#${pnr})`,
+          balanceAfter: updated,
+          transactionRef: `REF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+          smsText: `Dear Customer, INR ${refundAmount.toLocaleString('en-IN')}.00 refunded from IRCTC for PNR ${pnr} to A/C XX8492. Avail Bal: INR ${updated.toLocaleString('en-IN')}.00.`,
+        });
+
+        return updated;
+      });
     }
     addNotification({
       type: 'ticket',
       title: `Ticket #${pnr} Cancelled & Refunded`,
       body: `Statutory refund of ₹${refundAmount.toLocaleString('en-IN')} has been instantly credited back to your Citizen Travel Wallet.`,
     });
-  }, [addNotification]);
+  }, [addNotification, triggerDigitalBankAlert]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -1486,7 +1607,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         handleQuickTrack,
         walletBalance,
         setWalletBalance,
+        addWalletBalance,
         payWithWallet,
+        digitalBankAlert,
+        dismissDigitalBankAlert,
+        triggerDigitalBankAlert,
         paymentHistory,
         cancelTicket,
         showChatDrawer,

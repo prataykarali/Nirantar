@@ -14,9 +14,13 @@ import {
   Clock,
   Sparkles,
   Zap,
+  Building2,
+  Plus,
+  Wallet,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { TicketInvoiceModal, InvoiceData } from '../components/journey/TicketInvoiceModal';
+import { TopUpWalletModal } from '../components/payment/TopUpWalletModal';
 
 type StatusFilter = 'ALL' | 'PAID' | 'REFUNDED' | 'PROCESSING';
 
@@ -32,10 +36,11 @@ interface PaymentItem {
 }
 
 export const PaymentsPage: React.FC = () => {
-  const { navigateTo, paymentAttempt, paymentHistory, issuedTicket, searchParams } = useJourney();
+  const { navigateTo, paymentAttempt, paymentHistory, issuedTicket, searchParams, walletBalance } = useJourney();
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
+  const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
 
   const dynamicHistoryPayments: PaymentItem[] = (paymentHistory || []).map((p) => ({
     id: p.id,
@@ -129,6 +134,40 @@ export const PaymentsPage: React.FC = () => {
               <span>Export Statement</span>
             </button>
           </div>
+        </div>
+
+        {/* DIGITAL CITIZEN BANK & VIRTUAL WALLET HERO CARD */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md border border-purple-800">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-purple-800/60 border border-purple-500/40 text-purple-200 flex items-center justify-center font-bold shrink-0 shadow-inner">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">
+                  Digital Citizen Bank Wallet (A/C XX-8492)
+                </span>
+                <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black px-2 py-0.2 rounded-full uppercase">
+                  Active Real Balance
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                ₹{(walletBalance || 10000).toLocaleString('en-IN')}.00
+              </div>
+              <p className="text-[11px] text-purple-200/80 font-medium">
+                Instant zero-PIN debit for IRCTC booking & statutory auto-refund credit gateway.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowTopUpModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Top-Up / Add Funds</span>
+          </button>
         </div>
 
         {/* 4 Stat Pills */}
@@ -336,6 +375,12 @@ export const PaymentsPage: React.FC = () => {
         isOpen={!!selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         invoice={selectedInvoice}
+      />
+
+      {/* TOP-UP DIGITAL BANK WALLET MODAL */}
+      <TopUpWalletModal
+        isOpen={showTopUpModal}
+        onClose={() => setShowTopUpModal(false)}
       />
     </div>
   );
