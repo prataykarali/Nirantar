@@ -522,12 +522,12 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side Transparent Girl Avatar Cutout (Ananya) */}
-          <div className="hidden md:flex absolute right-4 lg:right-10 bottom-0 h-[88%] max-h-[340px] items-end pointer-events-none select-none z-10 animate-in fade-in slide-in-from-right-8 duration-700">
+          {/* Right Side Transparent Girl Avatar Cutout (Ananya with Ticket) */}
+          <div className="hidden md:flex absolute right-6 lg:right-14 bottom-0 h-[92%] max-h-[350px] items-end pointer-events-none select-none z-10 animate-in fade-in slide-in-from-right-8 duration-700">
             <img
-              src="/assets/images/characters/ananya_holding_map.png"
+              src="/assets/images/characters/citizen_ticket.png"
               alt="Ananya Nirantar Guide"
-              className="h-full object-contain drop-shadow-[0_15px_30px_rgba(88,28,135,0.22)]"
+              className="h-full object-contain drop-shadow-[0_15px_35px_rgba(88,28,135,0.25)]"
             />
           </div>
         </div>

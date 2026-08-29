@@ -366,14 +366,17 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
               </div>
 
               <div className="flex items-center gap-2 text-xs flex-wrap">
-                <span className="flex items-center gap-1 font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded-full text-[10px]">
-                  <span className="w-2 h-2 rounded-full bg-purple-600" /> Booked by You
+                <span className="flex items-center gap-1 font-bold text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" /> ★ Booked (You)
                 </span>
-                <span className="flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full text-[10px]">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" /> Occupied
+                <span className="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] shadow-2xs animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> 🟢 Vacant
                 </span>
-                <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> 🟢 Vacant (Claimable)
+                <span className="flex items-center gap-1 font-bold text-cyan-950 bg-cyan-100 border border-cyan-300 px-2.5 py-0.5 rounded-full text-[10px] shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-cyan-500" /> ⚡ Shift Requested
+                </span>
+                <span className="flex items-center gap-1 font-bold text-purple-900 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full text-[10px]">
+                  <span className="w-2 h-2 rounded-full bg-purple-500" /> 👥 Occupied
                 </span>
               </div>
             </div>
@@ -550,24 +553,24 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                               }}
                               className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                                 isUser
-                                  ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/50 shadow-lg scale-105 z-10'
+                                  ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-amber-600 text-slate-950 ring-4 ring-amber-400/50 shadow-lg scale-105 z-10'
                                   : isReallocated
-                                  ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-white text-white ring-2 ring-emerald-300 shadow-md scale-102'
+                                  ? 'bg-gradient-to-b from-cyan-500 via-cyan-600 to-blue-600 border-2 border-white text-white ring-4 ring-cyan-400/60 shadow-lg scale-105 z-10 animate-pulse'
                                   : isVacant
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:scale-105 cursor-pointer ring-1 ring-emerald-300'
-                                  : 'bg-purple-50/60 border-purple-100 text-slate-700'
+                                  ? 'bg-emerald-50 border-2 border-emerald-400 text-emerald-900 ring-2 ring-emerald-300/60 shadow-xs hover:bg-emerald-100 hover:scale-105 cursor-pointer'
+                                  : 'bg-purple-50/80 border border-purple-200 text-purple-950 hover:bg-purple-100/60'
                               }`}
                             >
                               <div className="flex items-center justify-between w-full px-1">
-                                <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-slate-900'}`}>
+                                <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : 'text-slate-900'}`}>
                                   #{seat.num}
                                 </span>
-                                <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-purple-100 text-purple-700'}`}>
+                                <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : isReallocated ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
                                   {seat.type}
                                 </span>
                               </div>
 
-                              <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-700' : 'text-slate-500'}`}>
+                              <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-800' : 'text-purple-700'}`}>
                                 {isUser
                                   ? '★ YOU'
                                   : isReallocated
@@ -577,8 +580,8 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                   : 'OCCUPIED'}
                               </span>
 
-                              <span className="text-[7px] text-slate-400 truncate max-w-full mt-0.5">
-                                {isVacant ? 'Click to Claim' : seat.fullTypeName.split(' ')[0]}
+                              <span className={`text-[7px] truncate max-w-full mt-0.5 ${isReallocated ? 'text-cyan-100' : 'text-slate-500'}`}>
+                                {isVacant ? 'Click to Claim' : isReallocated ? 'Confirmed' : seat.fullTypeName.split(' ')[0]}
                               </span>
                             </div>
                           );
@@ -606,24 +609,24 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                 }}
                                 className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                                   isUser
-                                    ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/50 shadow-lg scale-105 z-10'
+                                    ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-amber-600 text-slate-950 ring-4 ring-amber-400/50 shadow-lg scale-105 z-10'
                                     : isReallocated
-                                    ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-white text-white ring-2 ring-emerald-300 shadow-md scale-102'
+                                    ? 'bg-gradient-to-b from-cyan-500 via-cyan-600 to-blue-600 border-2 border-white text-white ring-4 ring-cyan-400/60 shadow-lg scale-105 z-10 animate-pulse'
                                     : isVacant
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:scale-105 cursor-pointer ring-1 ring-emerald-300'
-                                    : 'bg-purple-50/60 border-purple-100 text-slate-700'
+                                    ? 'bg-emerald-50 border-2 border-emerald-400 text-emerald-900 ring-2 ring-emerald-300/60 shadow-xs hover:bg-emerald-100 hover:scale-105 cursor-pointer'
+                                    : 'bg-purple-50/80 border border-purple-200 text-purple-950 hover:bg-purple-100/60'
                                 }`}
                               >
                                 <div className="flex items-center justify-between w-full px-1">
-                                  <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-slate-900'}`}>
+                                  <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : 'text-slate-900'}`}>
                                     #{seat.num}
                                   </span>
-                                  <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-purple-100 text-purple-700'}`}>
+                                  <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : isReallocated ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
                                     {seat.type}
                                   </span>
                                 </div>
 
-                                <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-800' : 'text-purple-700'}`}>
                                   {isUser
                                     ? '★ YOU'
                                     : isReallocated
@@ -633,8 +636,8 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                     : 'OCCUPIED'}
                                 </span>
 
-                                <span className="text-[7px] text-slate-400 truncate max-w-full mt-0.5">
-                                  {isVacant ? 'Click to Claim' : seat.fullTypeName.split(' ')[0]}
+                                <span className={`text-[7px] truncate max-w-full mt-0.5 ${isReallocated ? 'text-cyan-100' : 'text-slate-500'}`}>
+                                  {isVacant ? 'Click to Claim' : isReallocated ? 'Confirmed' : seat.fullTypeName.split(' ')[0]}
                                 </span>
                               </div>
                             );
