@@ -1726,14 +1726,39 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'PENDING',
       };
 
-      setActiveReallocations((prev) => [newRecord, ...prev.filter((r) => r.passengerName !== newRecord.passengerName)]);
+      // Ensure each passenger only has 1 active reallocation request at a time
+      setActiveReallocations((prev) => [
+        newRecord,
+        ...prev.filter((r) => r.passengerName?.toLowerCase() !== newRecord.passengerName?.toLowerCase())
+      ]);
 
-      // Push a confirmation notification
+      // Push initial pending notification
       addNotification({
         title: '⚡ Vacant Berth Shift Requested (Pending TTE Confirmation)',
-        body: `Your request to occupy vacant Berth ${newRecord.toSeat} (${newRecord.toBerthType}) from ${newRecord.effectiveFromStation} has been logged at ₹0 (NO Extra Cost). Status: REQUESTED - NOT APPROVED YET (Pending on-board TTE sign-off).`,
+        body: `Your request to occupy vacant Berth ${newRecord.toSeat} (${newRecord.toBerthType}) from ${newRecord.effectiveFromStation} for passenger ${newRecord.passengerName} has been logged at ₹0 (NO Extra Cost). Status: REQUESTED NOT APPROVED (Auto-verifying with on-board TTE...).`,
         type: 'ticket',
       });
+
+      // Auto-approve after 5 seconds
+      setTimeout(() => {
+        setActiveReallocations((prev) =>
+          prev.map((r) =>
+            r.id === newRecord.id
+              ? {
+                  ...r,
+                  status: 'APPROVED' as const,
+                  approvedBy: 'Chief On-Board Conductor (TTE #IR-77492)',
+                }
+              : r
+          )
+        );
+
+        addNotification({
+          title: '🎉 Vacant Berth Shift Approved by TTE!',
+          body: `On-Board Conductor (TTE #IR-77492) has signed off on the manifest chart. Berth #${newRecord.toSeat} (${newRecord.toBerthType}) from ${newRecord.effectiveFromStation} is now officially APPROVED for passenger ${newRecord.passengerName} at ₹0 (NO Extra Cost).`,
+          type: 'ticket',
+        });
+      }, 5000);
 
       return newRecord;
     },

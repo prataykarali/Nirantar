@@ -858,31 +858,39 @@ export function getRepresentativeCoaches(
   trainNumber: string,
   availableClasses?: Array<{ classCode: string; className?: string }>
 ): RepresentativeCoachInfo[] {
-  const allowedCodes = ['3A', '2A', '1A', 'SL'];
+  const classMetadata: Record<string, { repCode: string; name: string; cap: number; available: number; desc: string; color: string }> = {
+    '1A': { repCode: 'H1', name: 'AC 1st Class', cap: 24, available: 4, desc: 'Lockable 4-Berth Cabins & 2-Berth Private Coupes with Velvet Bedding', color: '#9333EA' },
+    '2A': { repCode: 'A1', name: 'AC 2 Tier', cap: 48, available: 6, desc: 'Curtained 4-Berth Cabins & 2-Berth Side Bay (No Middle Berths)', color: '#4F46E5' },
+    '3A': { repCode: 'B4', name: 'AC 3 Tier', cap: 64, available: 14, desc: 'Standard 8-Berth Bays (6 Main Cabin + 2 Side Berths) with Climate Control', color: '#7C3AED' },
+    '3E': { repCode: 'M1', name: '3-Tier Economy', cap: 72, available: 18, desc: 'Modern High-Density Modular 8-Berth Bays with Individual AC Vents', color: '#0284C7' },
+    'SL': { repCode: 'S2', name: 'Sleeper Class', cap: 72, available: 22, desc: 'Open-Window 8-Berth Bays (Traditional Non-AC Indian Railways Travel)', color: '#D97706' },
+    'EC': { repCode: 'E1', name: 'Executive Class', cap: 48, available: 8, desc: '2x2 Luxury Rotating Reclining Seats with Foldable Tables & USB-C', color: '#7C3AED' },
+    'EA': { repCode: 'EA1', name: 'Anubhuti Luxury', cap: 48, available: 5, desc: 'Ultra-Luxury 2x2 Pushback Recliner Seats with Individual LCD Touchscreens', color: '#9333EA' },
+    'CC': { repCode: 'C3', name: 'AC Chair Car', cap: 75, available: 24, desc: '3x2 Ergonomic Reclining Seats with Overhead Reading Lights & Power Ports', color: '#2563EB' },
+    '2S': { repCode: 'D1', name: 'Second Seating', cap: 108, available: 35, desc: 'High-Capacity 3x3 Cushioned Seating for Daylight Regional Commuting', color: '#059669' },
+  };
+
   let classCodes = (availableClasses && availableClasses.length > 0)
-    ? Array.from(new Set(availableClasses.map((c) => c.classCode))).filter((cc) => allowedCodes.includes(cc))
-    : ['3A', '2A', '1A'];
+    ? Array.from(new Set(availableClasses.map((c) => c.classCode))).filter((cc) => classMetadata[cc])
+    : [];
 
   if (classCodes.length === 0) {
-    classCodes = ['3A', '2A', '1A'];
+    if (trainNumber.startsWith('2243') || trainNumber.startsWith('2083') || trainNumber.startsWith('222')) {
+      classCodes = ['EC', 'CC'];
+    } else if (trainNumber.startsWith('1200')) {
+      classCodes = ['EC', 'CC'];
+    } else {
+      classCodes = ['3A', '2A', '1A', 'SL'];
+    }
   }
 
-  // Sort logically: 3A, 2A, 1A, SL
-  classCodes.sort((a, b) => {
-    const order: Record<string, number> = { '3A': 1, '2A': 2, '1A': 3, 'SL': 4 };
-    return (order[a] || 99) - (order[b] || 99);
-  });
-
-  const classMetadata: Record<string, { repCode: string; name: string; cap: number; available: number; desc: string; color: string }> = {
-    '3A': { repCode: 'B4', name: 'AC 3 Tier', cap: 64, available: 14, desc: 'Standard 8-Berth Bays (6 Main Cabin + 2 Side Berths) with Climate Control', color: '#7C3AED' },
-    '2A': { repCode: 'A1', name: 'AC 2 Tier', cap: 46, available: 6, desc: 'Curtained 4-Berth Cabins & 2-Berth Side Bay (No Middle Berths)', color: '#4F46E5' },
-    '1A': { repCode: 'H1', name: 'AC 1st Class', cap: 24, available: 4, desc: 'Lockable 4-Berth Cabins & 2-Berth Private Coupes with Velvet Bedding', color: '#9333EA' },
-    'SL': { repCode: 'S2', name: 'Sleeper Class', cap: 72, available: 22, desc: 'Open-Window 8-Berth Bays (Traditional Indian Railways Travel Experience)', color: '#D97706' },
-  };
+  // Sort logically: 1A, 2A, 3A, 3E, SL, EC, EA, CC, 2S
+  const order: Record<string, number> = { '1A': 1, '2A': 2, '3A': 3, '3E': 4, 'SL': 5, 'EC': 6, 'EA': 7, 'CC': 8, '2S': 9 };
+  classCodes.sort((a, b) => (order[a] || 99) - (order[b] || 99));
 
   return classCodes.map((cc) => {
     const meta = classMetadata[cc] || {
-      repCode: 'B1',
+      repCode: `${cc}1`,
       name: `${cc} Class`,
       cap: 64,
       available: 10,
@@ -903,7 +911,7 @@ export function getRepresentativeCoaches(
 }
 
 /**
- * Builds 3-4 realistic rectangular segment bays/coupes with live vacancy tracking (NO stranger names).
+ * Builds realistic rectangular segment bays/coupes with live vacancy tracking (NO stranger names).
  */
 export function getCoachSegmentBays(
   classCode: string,
@@ -911,7 +919,7 @@ export function getCoachSegmentBays(
   routeStations: StationStop[] = [],
   userBookedSeats: Array<{ seatNumber: number; passengerName?: string; berthType?: string }> = [],
   activeReallocations: MidJourneyReallocation[] = [],
-  segmentCount = 4
+  segmentCount = 8
 ): CoachBay[] {
   const bays: CoachBay[] = [];
   const defaultRoute = routeStations.length > 0 ? routeStations : [
@@ -953,7 +961,7 @@ export function getCoachSegmentBays(
       };
     }
 
-    // Stoppage where this occupied berth deboards (e.g. Stn 1, 2, 3, or last station)
+    // Stoppage where this occupied berth deboards
     const deboardStnIndex = 1 + ((seatNum * 7 + bayIdx * 3) % (defaultRoute.length - 1));
     const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[defaultRoute.length - 1];
 
@@ -997,70 +1005,53 @@ export function getCoachSegmentBays(
     };
   };
 
-  // 1. CLASS 1A: 4-Berth Cabins & 2-Berth Coupes with Lockable Doors & Cabinets
+  // 1. CLASS 1A: 4-Berth Cabins & 2-Berth Coupes with Lockable Doors (24 Berths)
   if (classCode === '1A') {
-    // Bay 1: Cabin A (Berths 1, 2, 3, 4)
-    bays.push({
-      bayIndex: 1,
-      bayLabel: 'Cabin A (4-Berth Private Cabin)',
-      cabinType: 'CABIN',
-      hasDoor: true,
-      hasCabinet: true,
-      mainCabinBerths: [
-        buildBerth(1, 'LB', 'Lower Berth', 1),
-        buildBerth(2, 'UB', 'Upper Berth', 1),
-        buildBerth(3, 'LB', 'Lower Berth', 1),
-        buildBerth(4, 'UB', 'Upper Berth', 1),
-      ],
-      sideBayBerths: [],
+    const cabinDefs = [
+      { type: 'CABIN' as const, label: 'Cabin A (4-Berth Private Cabin)', count: 4, base: 1 },
+      { type: 'COUPE' as const, label: 'Coupe B (2-Berth Private Coupe)', count: 2, base: 5 },
+      { type: 'CABIN' as const, label: 'Cabin C (4-Berth Private Cabin)', count: 4, base: 7 },
+      { type: 'COUPE' as const, label: 'Coupe D (2-Berth Private Coupe)', count: 2, base: 11 },
+      { type: 'CABIN' as const, label: 'Cabin E (4-Berth Private Cabin)', count: 4, base: 13 },
+      { type: 'COUPE' as const, label: 'Coupe F (2-Berth Private Coupe)', count: 2, base: 17 },
+      { type: 'CABIN' as const, label: 'Cabin G (4-Berth Private Cabin)', count: 4, base: 19 },
+      { type: 'COUPE' as const, label: 'Coupe H (2-Berth Private Coupe)', count: 2, base: 23 },
+    ];
+
+    cabinDefs.forEach((def, idx) => {
+      const mainBerths: SegmentBerth[] = [];
+      if (def.count === 4) {
+        mainBerths.push(
+          buildBerth(def.base, 'LB', 'Lower Berth', idx + 1),
+          buildBerth(def.base + 1, 'UB', 'Upper Berth', idx + 1),
+          buildBerth(def.base + 2, 'LB', 'Lower Berth', idx + 1),
+          buildBerth(def.base + 3, 'UB', 'Upper Berth', idx + 1)
+        );
+      } else {
+        mainBerths.push(
+          buildBerth(def.base, 'LB', 'Lower Berth', idx + 1),
+          buildBerth(def.base + 1, 'UB', 'Upper Berth', idx + 1)
+        );
+      }
+
+      bays.push({
+        bayIndex: idx + 1,
+        bayLabel: def.label,
+        cabinType: def.type,
+        hasDoor: true,
+        hasCabinet: true,
+        mainCabinBerths: mainBerths,
+        sideBayBerths: [],
+      });
     });
-    // Bay 2: Coupe B (Berths 5, 6)
-    bays.push({
-      bayIndex: 2,
-      bayLabel: 'Coupe B (2-Berth Honeymoon/VIP Coupe)',
-      cabinType: 'COUPE',
-      hasDoor: true,
-      hasCabinet: true,
-      mainCabinBerths: [
-        buildBerth(5, 'LB', 'Lower Berth', 2),
-        buildBerth(6, 'UB', 'Upper Berth', 2),
-      ],
-      sideBayBerths: [],
-    });
-    // Bay 3: Cabin C (Berths 7, 8, 9, 10)
-    bays.push({
-      bayIndex: 3,
-      bayLabel: 'Cabin C (4-Berth Private Cabin)',
-      cabinType: 'CABIN',
-      hasDoor: true,
-      hasCabinet: true,
-      mainCabinBerths: [
-        buildBerth(7, 'LB', 'Lower Berth', 3),
-        buildBerth(8, 'UB', 'Upper Berth', 3),
-        buildBerth(9, 'LB', 'Lower Berth', 3),
-        buildBerth(10, 'UB', 'Upper Berth', 3),
-      ],
-      sideBayBerths: [],
-    });
-    // Bay 4: Coupe D (Berths 11, 12)
-    bays.push({
-      bayIndex: 4,
-      bayLabel: 'Coupe D (2-Berth Private Coupe)',
-      cabinType: 'COUPE',
-      hasDoor: true,
-      hasCabinet: true,
-      mainCabinBerths: [
-        buildBerth(11, 'LB', 'Lower Berth', 4),
-        buildBerth(12, 'UB', 'Upper Berth', 4),
-      ],
-      sideBayBerths: [],
-    });
+
     return bays;
   }
 
-  // 2. CLASS 2A: 6-Berth Curtained Bays (4 Main Cabin + 2 Side Berths)
+  // 2. CLASS 2A: 6-Berth Curtained Bays (4 Main Cabin + 2 Side Berths, NO Middle Berths - 48 Berths)
   if (classCode === '2A') {
-    for (let b = 0; b < segmentCount; b++) {
+    const totalBays = segmentCount || 8;
+    for (let b = 0; b < totalBays; b++) {
       const base = b * 6;
       bays.push({
         bayIndex: b + 1,
@@ -1082,12 +1073,14 @@ export function getCoachSegmentBays(
     return bays;
   }
 
-  // 3. CLASS CC / EC: Chair Car Rows (Window, Middle, Aisle)
-  if (classCode === 'CC' || classCode === 'EC' || classCode === '2S') {
-    const isEc = classCode === 'EC';
-    for (let r = 0; r < segmentCount; r++) {
-      if (isEc) {
-        // EC: 2x2 Seating (Window, Aisle || Aisle, Window)
+  // 3. CLASS CC / EC / EA / 2S: Chair Car Rows (Window, Middle, Aisle)
+  if (classCode === 'CC' || classCode === 'EC' || classCode === 'EA' || classCode === '2S') {
+    const isExecutive = classCode === 'EC' || classCode === 'EA';
+    const totalRows = segmentCount || (isExecutive ? 12 : 15);
+
+    for (let r = 0; r < totalRows; r++) {
+      if (isExecutive) {
+        // Executive Class: 2x2 Seating (Window, Aisle || Aisle, Window)
         const base = r * 4;
         bays.push({
           bayIndex: r + 1,
@@ -1100,6 +1093,24 @@ export function getCoachSegmentBays(
           sideBayBerths: [
             buildBerth(base + 3, 'A', 'Aisle Seat (Right)', r + 1),
             buildBerth(base + 4, 'W', 'Window Seat (Right)', r + 1),
+          ],
+        });
+      } else if (classCode === '2S') {
+        // 2S: 3x3 Seating
+        const base = r * 6;
+        bays.push({
+          bayIndex: r + 1,
+          bayLabel: `Row ${r + 1} (Second Seating 3x3 Seats ${base + 1}–${base + 6})`,
+          cabinType: 'CHAIR_ROW',
+          mainCabinBerths: [
+            buildBerth(base + 1, 'W', 'Window Seat (Left)', r + 1),
+            buildBerth(base + 2, 'M', 'Middle Seat (Left)', r + 1),
+            buildBerth(base + 3, 'A', 'Aisle Seat (Left)', r + 1),
+          ],
+          sideBayBerths: [
+            buildBerth(base + 4, 'A', 'Aisle Seat (Right)', r + 1),
+            buildBerth(base + 5, 'M', 'Middle Seat (Right)', r + 1),
+            buildBerth(base + 6, 'W', 'Window Seat (Right)', r + 1),
           ],
         });
       } else {
@@ -1125,7 +1136,8 @@ export function getCoachSegmentBays(
   }
 
   // 4. CLASS 3A / 3E / SL: 8-Berth Bays (6 Main Cabin + 2 Side Berths)
-  for (let b = 0; b < segmentCount; b++) {
+  const totalBays = segmentCount || (classCode === 'SL' || classCode === '3E' ? 9 : 8);
+  for (let b = 0; b < totalBays; b++) {
     const base = b * 8;
     bays.push({
       bayIndex: b + 1,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Train,
   CheckCircle2,
@@ -59,11 +59,28 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
     return representativeCoaches[0]?.classCode || '3A';
   });
 
+  // Keep selectedClassCode synced when train or available classes change
+  useEffect(() => {
+    if (userBookedSeats.length > 0 && userBookedSeats[0].coachCode && isUserBookedTrain) {
+      const match = representativeCoaches.find((c) =>
+        userBookedSeats[0].coachCode?.includes(c.classCode) || userBookedSeats[0].coachCode?.startsWith(c.representativeCode[0])
+      );
+      if (match) {
+        setSelectedClassCode(match.classCode);
+        return;
+      }
+    }
+    if (!representativeCoaches.some((c) => c.classCode === selectedClassCode)) {
+      setSelectedClassCode(representativeCoaches[0]?.classCode || '3A');
+    }
+  }, [trainNumber, representativeCoaches, userBookedSeats, isUserBookedTrain]);
+
   // Simulated station index for downstream vacancy radar
   const [selectedStationIndex, setSelectedStationIndex] = useState<number>(currentStationIndex);
 
   // Selected berth for Special Mid-Journey Reallocation modal
   const [selectedVacantBerth, setSelectedVacantBerth] = useState<SegmentBerth | null>(null);
+  const [selectedPassengerIdx, setSelectedPassengerIdx] = useState<number>(0);
   const [isSubmittingReallocation, setIsSubmittingReallocation] = useState(false);
   const [reallocationSuccess, setReallocationSuccess] = useState<MidJourneyReallocation | null>(null);
 
@@ -73,11 +90,20 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
 
   // Generate all segment bays for selected coach class (8 bays for 3A to show all 64 berths including user seats #36 & #37)
   const bays: CoachBay[] = useMemo(() => {
-    const totalSegments = selectedClassCode === '3A' || selectedClassCode === '3E' || selectedClassCode === 'SL'
-      ? 8
-      : selectedClassCode === '2A'
-      ? 6
-      : 4;
+    const totalSegments =
+      selectedClassCode === '1A'
+        ? 8
+        : selectedClassCode === '2A'
+        ? 8
+        : selectedClassCode === '3A'
+        ? 8
+        : selectedClassCode === '3E' || selectedClassCode === 'SL'
+        ? 9
+        : selectedClassCode === 'EC' || selectedClassCode === 'EA'
+        ? 12
+        : selectedClassCode === 'CC'
+        ? 15
+        : 18;
 
     return getCoachSegmentBays(
       selectedClassCode,
@@ -121,7 +147,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
     if (!selectedVacantBerth) return;
     setIsSubmittingReallocation(true);
 
-    const primaryPassenger = userBookedSeats[0] || {
+    const chosenPassenger = userBookedSeats[selectedPassengerIdx] || userBookedSeats[0] || {
       passengerName: 'Pratay Karali',
       seatNumber: 36,
       berthType: 'Lower Berth (LB)',
@@ -130,10 +156,10 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
 
     try {
       const result = await requestMidJourneyReallocation({
-        passengerName: primaryPassenger.passengerName || 'Pratay Karali',
-        fromCoach: primaryPassenger.coachCode || selectedCoachMeta.representativeCode,
-        fromSeat: primaryPassenger.seatNumber || 36,
-        fromBerthType: primaryPassenger.berthType || 'Lower Berth (LB)',
+        passengerName: chosenPassenger.passengerName || 'Pratay Karali',
+        fromCoach: chosenPassenger.coachCode || selectedCoachMeta.representativeCode,
+        fromSeat: chosenPassenger.seatNumber || 36,
+        fromBerthType: chosenPassenger.berthType || 'Lower Berth (LB)',
         toCoach: selectedCoachMeta.representativeCode,
         toSeat: selectedVacantBerth.num,
         toBerthType: selectedVacantBerth.fullTypeName,
@@ -430,9 +456,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
             <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-100/60 border border-purple-200/80 text-purple-950 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-purple-700 shrink-0" />
-                <span className="font-medium text-[11px]">
+                <div className="font-medium text-[11px]">
                   Viewing coach state <strong>after departing {activeStation.name}</strong> ({activeStation.platform || 'Platform 1'}). Downstream vacant berths are highlighted in <strong>Green (🟢)</strong>.
-                </span>
+                </div>
               </div>
               <span className="text-[10px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">
                 Coach {selectedCoachMeta.representativeCode} • {selectedCoachMeta.className}
@@ -465,6 +491,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                       Seat Beside Your Berth (#{besideStatus.besideBerth.num} - {besideStatus.besideBerth.type}):
                     </span>
                     <span
+                      key={besideStatus.besideBerth.occupancyStatus}
                       className={`px-2 py-0.2 rounded-full text-[10px] font-black uppercase ${
                         besideStatus.besideBerth.occupancyStatus === 'VACANT'
                           ? 'bg-emerald-200 text-emerald-900 border border-emerald-300'
@@ -476,20 +503,49 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                   </div>
                   <div className="text-xs text-slate-600">
                     {besideStatus.besideBerth.occupancyStatus === 'VACANT' ? (
-                      <span>
+                      <div key="vacant-msg">
                         This berth is vacant at <strong>{activeStation.name}</strong>. You can submit a mid-journey shift request!
-                      </span>
+                      </div>
                     ) : (
-                      <span>
+                      <div key="occupied-msg">
                         Berth is currently occupied. It will become vacant once the passenger deboards downstream.
-                      </span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {besideStatus.besideBerth.occupancyStatus === 'VACANT' && (
+              {/* Remove Claim Button if already requested! */}
+              {activeReallocations && activeReallocations.length > 0 ? (
+                <div
+                  key={`realloc-badge-${activeReallocations[0]?.id}-${activeReallocations[0]?.status}`}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold shrink-0 flex items-center gap-2 border shadow-2xs ${
+                    activeReallocations[0].status === 'APPROVED'
+                      ? 'bg-emerald-100 border-emerald-300 text-emerald-950'
+                      : 'bg-amber-100 border-amber-300 text-amber-950'
+                  }`}
+                >
+                  {activeReallocations[0].status === 'APPROVED' ? (
+                    <React.Fragment key="approved">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <div>
+                        <span className="block font-black text-emerald-950">✓ TTE Approved Shift for {activeReallocations[0].passengerName}</span>
+                        <span className="text-[10px] text-emerald-800 block">Coach {activeReallocations[0].toCoach} • Seat #{activeReallocations[0].toSeat} ({activeReallocations[0].toBerthType})</span>
+                      </div>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment key="pending">
+                      <Zap className="w-4 h-4 text-amber-600 animate-pulse shrink-0" />
+                      <div>
+                        <span className="block font-black text-amber-950">⚡ Shift Requested for {activeReallocations[0].passengerName}</span>
+                        <span className="text-[10px] text-amber-800 block">Seat #{activeReallocations[0].toSeat} • Auto-verifying with TTE...</span>
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+              ) : besideStatus.besideBerth.occupancyStatus === 'VACANT' ? (
                 <button
+                  key="claim-btn"
                   type="button"
                   onClick={() => setSelectedVacantBerth(besideStatus.besideBerth)}
                   className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-105 cursor-pointer"
@@ -497,7 +553,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                   <Zap className="w-3.5 h-3.5" />
                   <span>Claim Beside Berth →</span>
                 </button>
-              )}
+              ) : null}
             </div>
           )}
 
@@ -563,6 +619,8 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                           const isUser = seat.occupancyStatus === 'USER_BOOKED';
                           const isVacant = seat.occupancyStatus === 'VACANT';
                           const isReallocated = seat.occupancyStatus === 'REALLOCATED';
+                          const matchingRealloc = isReallocated ? activeReallocations.find((r) => r.toSeat === seat.num) : null;
+                          const isReallocApproved = matchingRealloc?.status === 'APPROVED';
 
                           return (
                             <div
@@ -574,7 +632,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                 isUser
                                   ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/80 shadow-xl scale-105 z-10 font-black'
                                   : isReallocated
-                                  ? 'bg-gradient-to-b from-cyan-500 via-cyan-600 to-blue-600 border-2 border-white text-white ring-4 ring-cyan-400/60 shadow-lg scale-105 z-10 animate-pulse font-bold'
+                                  ? isReallocApproved
+                                    ? 'bg-gradient-to-b from-emerald-600 via-teal-600 to-emerald-700 border-2 border-white text-white ring-4 ring-emerald-400/80 shadow-xl scale-105 z-10 font-bold'
+                                    : 'bg-gradient-to-b from-cyan-600 via-cyan-700 to-blue-800 border-2 border-white text-white ring-4 ring-cyan-400/70 shadow-lg scale-105 z-10 font-bold'
                                   : isVacant
                                   ? 'bg-emerald-600 hover:bg-emerald-500 border-2 border-emerald-300 text-white ring-2 ring-emerald-400/50 shadow-md scale-102 z-10 font-bold cursor-pointer'
                                   : 'bg-[#20103A] hover:bg-[#2F1554] border border-purple-800/60 text-purple-200'
@@ -589,19 +649,21 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                 </span>
                               </div>
 
-                              <span className={`text-[8px] font-black uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
+                              <div className={`text-[8px] font-black uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
                                 {isUser
                                   ? `★ ${seat.passengerName || 'YOU'}`
                                   : isReallocated
-                                  ? '⚡ REQUESTED NOT APPROVED'
+                                  ? isReallocApproved
+                                    ? '⚡ APPROVED BY TTE'
+                                    : '⚡ REQUESTED NOT APPROVED'
                                   : isVacant
                                   ? '🟢 VACANT'
                                   : 'OCCUPIED'}
-                              </span>
+                              </div>
 
-                              <span className={`text-[7px] truncate max-w-full mt-0.5 ${isUser ? 'text-slate-900 font-bold' : isReallocated ? 'text-cyan-100 font-bold' : isVacant ? 'text-emerald-200 font-semibold' : 'text-purple-400'}`}>
-                                {isVacant ? 'Click to Claim' : isReallocated ? 'Pending TTE' : seat.fullTypeName.split(' ')[0]}
-                              </span>
+                              <div className={`text-[7px] truncate max-w-full mt-0.5 ${isUser ? 'text-slate-900 font-bold' : isReallocated ? 'text-cyan-100 font-bold' : isVacant ? 'text-emerald-200 font-semibold' : 'text-purple-400'}`}>
+                                {isVacant ? 'Click to Claim' : isReallocated ? (isReallocApproved ? 'Confirmed Shift' : 'Pending TTE') : seat.fullTypeName.split(' ')[0]}
+                              </div>
                             </div>
                           );
                         })}
@@ -619,6 +681,8 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                             const isUser = seat.occupancyStatus === 'USER_BOOKED';
                             const isVacant = seat.occupancyStatus === 'VACANT';
                             const isReallocated = seat.occupancyStatus === 'REALLOCATED';
+                            const matchingRealloc = isReallocated ? activeReallocations.find((r) => r.toSeat === seat.num) : null;
+                            const isReallocApproved = matchingRealloc?.status === 'APPROVED';
 
                             return (
                               <div
@@ -630,7 +694,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                   isUser
                                     ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/80 shadow-xl scale-105 z-10 font-black'
                                     : isReallocated
-                                    ? 'bg-gradient-to-b from-cyan-500 via-cyan-600 to-blue-600 border-2 border-white text-white ring-4 ring-cyan-400/60 shadow-lg scale-105 z-10 font-bold'
+                                    ? isReallocApproved
+                                      ? 'bg-gradient-to-b from-emerald-600 via-teal-600 to-emerald-700 border-2 border-white text-white ring-4 ring-emerald-400/80 shadow-xl scale-105 z-10 font-bold'
+                                      : 'bg-gradient-to-b from-cyan-600 via-cyan-700 to-blue-800 border-2 border-white text-white ring-4 ring-cyan-400/70 shadow-lg scale-105 z-10 font-bold'
                                     : isVacant
                                     ? 'bg-emerald-600 hover:bg-emerald-500 border-2 border-emerald-300 text-white ring-2 ring-emerald-400/50 shadow-md scale-102 z-10 font-bold cursor-pointer'
                                     : 'bg-[#20103A] hover:bg-[#2F1554] border border-purple-800/60 text-purple-200'
@@ -645,19 +711,21 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                   </span>
                                 </div>
 
-                                <span className={`text-[8px] font-black uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
+                                <div className={`text-[8px] font-black uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isReallocated ? 'text-white' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
                                   {isUser
                                     ? `★ ${seat.passengerName || 'YOU'}`
                                     : isReallocated
-                                    ? '⚡ REQUESTED NOT APPROVED'
+                                    ? isReallocApproved
+                                      ? '⚡ APPROVED BY TTE'
+                                      : '⚡ REQUESTED NOT APPROVED'
                                     : isVacant
                                     ? '🟢 VACANT'
                                     : 'OCCUPIED'}
-                                </span>
+                                </div>
 
-                                <span className={`text-[7px] truncate max-w-full mt-0.5 ${isUser ? 'text-slate-900 font-bold' : isReallocated ? 'text-cyan-100 font-bold' : isVacant ? 'text-emerald-200 font-semibold' : 'text-purple-400'}`}>
-                                  {isVacant ? 'Click to Claim' : isReallocated ? 'Pending TTE' : seat.fullTypeName.split(' ')[0]}
-                                </span>
+                                <div className={`text-[7px] truncate max-w-full mt-0.5 ${isUser ? 'text-slate-900 font-bold' : isReallocated ? 'text-cyan-100 font-bold' : isVacant ? 'text-emerald-200 font-semibold' : 'text-purple-400'}`}>
+                                  {isVacant ? 'Click to Claim' : isReallocated ? (isReallocApproved ? 'Confirmed Shift' : 'Pending TTE') : seat.fullTypeName.split(' ')[0]}
+                                </div>
                               </div>
                             );
                           })}
@@ -691,7 +759,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                     Vacant Berth Request Submitted!
                   </h3>
                   <p className="text-xs text-slate-600 font-medium mt-0.5">
-                    Pending physical verification by on-board TTE
+                    Will auto-approve after 5 seconds with on-board TTE
                   </p>
                 </div>
 
@@ -723,7 +791,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                 <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100 text-left text-[11px] text-purple-950 flex items-center gap-2">
                   <Ticket className="w-4 h-4 text-purple-700 shrink-0" />
                   <span>
-                    Your existing booked e-Ticket now reflects <strong>Seat 36 + {reallocationSuccess.toSeat}</strong> from {reallocationSuccess.effectiveFromStation} at <strong>₹0 (NO Extra Cost)</strong>.
+                    Your existing booked e-Ticket now reflects <strong>Seat {(userBookedSeats[selectedPassengerIdx] || userBookedSeats[0])?.seatNumber || 36} + {reallocationSuccess.toSeat}</strong> from {reallocationSuccess.effectiveFromStation} at <strong>₹0 (NO Extra Cost)</strong>.
                   </span>
                 </div>
 
@@ -777,18 +845,64 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                     <span className="text-[10px] text-slate-600 block">
                       Deboarding at: <strong>{activeStation.name}</strong> ({activeStation.code})
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-700 block">
-                      Passenger: <strong>Pratay Karali</strong> (Current Seat: #36 LB)
-                    </span>
+                  </div>
+
+                  {/* Booked Passenger Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                      Which booked passenger is this vacant berth for?
+                    </label>
+                    <div className="space-y-1.5">
+                      {userBookedSeats.length > 0 ? (
+                        userBookedSeats.map((p, idx) => {
+                          const isChosen = selectedPassengerIdx === idx;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setSelectedPassengerIdx(idx)}
+                              className={`w-full p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                isChosen
+                                  ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-300 text-purple-950 font-bold'
+                                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                  isChosen ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-600'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                                <div>
+                                  <span className="text-xs font-black block text-slate-900">{p.passengerName}</span>
+                                  <span className="text-[10px] text-slate-500 block">
+                                    Current Seat: Coach {p.coachCode || selectedCoachMeta.representativeCode} • #{p.seatNumber} ({p.berthType})
+                                  </span>
+                                </div>
+                              </div>
+                              {isChosen && (
+                                <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white text-[9px] font-black">
+                                  SELECTED ✓
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold">
+                          Pratay Karali (Coach B4 • Seat #36 LB)
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1">
-                    <span className="text-[10px] font-bold text-amber-900 uppercase block">Terms & Approval Workflow</span>
+                    <span className="text-[10px] font-bold text-amber-900 uppercase block">Terms & Auto-Approval Workflow</span>
                     <ul className="space-y-1 text-[11px] text-amber-900 list-disc list-inside">
                       <li>Free in-journey shift: <strong>₹0 (NO Extra Cost)</strong>.</li>
-                      <li>Status will be marked as <strong>REQUESTED NOT APPROVED</strong>.</li>
-                      <li>Updated on your digital e-ticket as <strong>Seat 36 + {selectedVacantBerth.num}</strong>.</li>
-                      <li>The on-board TTE will confirm against the physical chart after departure.</li>
+                      <li>Initially marked as <strong>REQUESTED NOT APPROVED</strong>.</li>
+                      <li>Will <strong>auto-approve after 5 seconds</strong> upon electronic TTE chart sync.</li>
+                      <li>Updated on e-ticket as <strong>Seat {(userBookedSeats[selectedPassengerIdx] || userBookedSeats[0])?.seatNumber || 36} + {selectedVacantBerth.num}</strong>.</li>
                     </ul>
                   </div>
                 </div>
