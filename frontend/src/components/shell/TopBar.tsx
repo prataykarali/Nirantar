@@ -12,8 +12,10 @@ import {
   Menu,
   Sun,
   Moon,
+  Palette,
+  Sparkles,
 } from 'lucide-react';
-import { useJourney } from '../../context/JourneyContext';
+import { useJourney, THEME_OPTIONS } from '../../context/JourneyContext';
 import { OAuthLoginModal } from '../auth/OAuthLoginModal';
 
 export interface TopBarProps {
@@ -44,16 +46,19 @@ export const TopBar: React.FC<TopBarProps> = ({
     notifications,
     markNotificationsRead,
     theme,
+    setTheme,
     toggleTheme,
   } = useJourney();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
+  const [showThemePalette, setShowThemePalette] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const rewardRef = useRef<HTMLDivElement>(null);
+  const themeRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -67,6 +72,9 @@ export const TopBar: React.FC<TopBarProps> = ({
       }
       if (rewardRef.current && !rewardRef.current.contains(target)) {
         setShowRewards(false);
+      }
+      if (themeRef.current && !themeRef.current.contains(target)) {
+        setShowThemePalette(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -172,20 +180,80 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden md:inline">Page Guide</span>
         </button>
 
-        {/* 🌓 LIGHT / DARK MODE TOGGLE */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 dark:bg-purple-950/80 hover:bg-white dark:hover:bg-purple-900 shadow-sm flex items-center justify-center text-purple-800 dark:text-yellow-300 border border-purple-100 dark:border-purple-700/60 transition-all hover:scale-105 cursor-pointer"
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          aria-label="Toggle light and dark theme"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />
-          ) : (
-            <Moon className="w-4 h-4 text-purple-800" />
+        {/* 🎨 CURATED THEME PALETTES SWITCHER */}
+        <div className="relative" ref={themeRef}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowThemePalette(!showThemePalette);
+              setShowRewards(false);
+              setShowNotifications(false);
+              setShowDropdown(false);
+            }}
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 shadow-sm flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border border-purple-100 dark:border-slate-700 transition-all hover:scale-105 cursor-pointer"
+            title="Curated Colour Themes (Lavender, Midnight Slate, Sunset Amber, Mint)"
+            aria-label="Select Theme Palette"
+          >
+            <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-indigo-400" />
+            <span className="text-sm">
+              {theme === 'midnight' ? '🌌' : theme === 'amber' ? '🌅' : theme === 'emerald' ? '🍃' : '🌸'}
+            </span>
+            <span className="hidden lg:inline text-[11px] font-semibold">
+              {theme === 'midnight' ? 'Midnight' : theme === 'amber' ? 'Sunset' : theme === 'emerald' ? 'Mint' : 'Iris'}
+            </span>
+          </button>
+
+          {showThemePalette && (
+            <div className="absolute right-0 top-12 w-64 bg-white dark:bg-slate-800 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-purple-100 dark:border-slate-700 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-purple-50 dark:border-slate-700 pb-2 px-1">
+                <span className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-indigo-400" />
+                  <span>Curated Themes</span>
+                </span>
+                <span className="text-[10px] font-semibold text-purple-600 dark:text-indigo-400">
+                  4 Palettes
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
+                {THEME_OPTIONS.map((opt) => {
+                  const isSelected = theme === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setTheme(opt.id);
+                        setShowThemePalette(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-2xl text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-purple-100/80 dark:bg-slate-700 text-purple-950 dark:text-white font-bold ring-1 ring-purple-400/40'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-medium'
+                      }`}
+                    >
+                      <div
+                        className="w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-2xs shrink-0"
+                        style={{ backgroundColor: opt.previewBg, border: `1px solid ${opt.accentColor}40` }}
+                      >
+                        {opt.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs truncate">{opt.name}</span>
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: opt.accentColor }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate">{opt.subtitle}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         {/* 1. GIFT ICON BUTTON & REWARDS POPOVER */}
         <div className="relative" ref={rewardRef}>

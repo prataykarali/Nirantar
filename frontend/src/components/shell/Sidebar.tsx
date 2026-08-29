@@ -69,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`w-64 lg:w-72 bg-white/95 dark:bg-[#0E091B]/95 backdrop-blur-sm border-r border-purple-100 dark:border-purple-900/40 flex flex-col h-screen select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden transition-colors duration-300 ${className}`}
+      className={`w-64 lg:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-purple-100 dark:border-slate-800 flex flex-col h-screen select-none shadow-[2px_0_16px_rgba(88,28,135,0.02)] justify-between p-4 overflow-y-auto overflow-x-hidden transition-colors duration-300 ${className}`}
     >
       {/* 1. TOP BRAND LOGO & NAVIGATION */}
       <div className="space-y-3">
@@ -277,7 +277,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Card Container */}
-        <div className="pt-10 pb-3 px-3 rounded-[24px] bg-white dark:bg-[#140D27] border-2 border-purple-100 dark:border-purple-900/50 shadow-[0_6px_20px_rgba(88,28,135,0.06)] flex flex-col items-center text-center space-y-2">
+        <div className="pt-10 pb-3 px-3 rounded-[24px] bg-white dark:bg-slate-850 dark:bg-slate-800 border-2 border-purple-100 dark:border-slate-700 shadow-[0_6px_20px_rgba(88,28,135,0.06)] flex flex-col items-center text-center space-y-2">
           <div className="space-y-0.5">
             <h3 className="font-display font-black text-base text-slate-900 dark:text-white tracking-tight">
               Hi, I'm Nira!

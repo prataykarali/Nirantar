@@ -87,6 +87,59 @@ export interface GuidanceStep {
   onAction?: () => void;
 }
 
+export type AppTheme = 'lavender' | 'midnight' | 'amber' | 'emerald';
+
+export interface ThemeOption {
+  id: AppTheme;
+  name: string;
+  subtitle: string;
+  icon: string;
+  previewBg: string;
+  cardBg: string;
+  accentColor: string;
+  isDark?: boolean;
+}
+
+export const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: 'lavender',
+    name: 'Royal Iris',
+    subtitle: 'Soft lavender canvas & royal violet',
+    icon: '🌸',
+    previewBg: '#F8F6FD',
+    cardBg: '#FFFFFF',
+    accentColor: '#7C3AED',
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight Slate',
+    subtitle: 'Gentle night slate & soft glowing indigo',
+    icon: '🌌',
+    previewBg: '#0F172A',
+    cardBg: '#1E293B',
+    accentColor: '#818CF8',
+    isDark: true,
+  },
+  {
+    id: 'amber',
+    name: 'Warm Sunset',
+    subtitle: 'Cozy cream & golden horizon',
+    icon: '🌅',
+    previewBg: '#FAF7F2',
+    cardBg: '#FFFFFF',
+    accentColor: '#D97706',
+  },
+  {
+    id: 'emerald',
+    name: 'Mint Express',
+    subtitle: 'Fresh pine tint & eco emerald',
+    icon: '🍃',
+    previewBg: '#F2F9F6',
+    cardBg: '#FFFFFF',
+    accentColor: '#059669',
+  },
+];
+
 export interface JourneyContextType {
   // Navigation & Page State
   activePage: string;
@@ -201,9 +254,10 @@ export interface JourneyContextType {
   showChatDrawer: boolean;
   setShowChatDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 
-  // Theme & Dark Mode
-  theme: 'light' | 'dark';
-  setTheme: (t: 'light' | 'dark') => void;
+  // Theme & Curated Colour Palettes
+  theme: AppTheme;
+  setTheme: (t: AppTheme | 'light' | 'dark') => void;
+  cycleNextTheme: () => void;
   toggleTheme: () => void;
 
   // Sanitized Context Builder
@@ -404,41 +458,56 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
   }, [authState]);
 
-  // ── Global Theme (Light & Dark Mode) with Glow Engine ──
-  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+  // ── Global Curated Colour Palettes (Lavender, Midnight Slate, Warm Amber, Mint Express) ──
+  const [theme, setThemeState] = useState<AppTheme>(() => {
     try {
       const saved = localStorage.getItem('nirantar_theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
+      if (saved === 'lavender' || saved === 'midnight' || saved === 'amber' || saved === 'emerald') {
+        return saved as AppTheme;
       }
+      if (saved === 'dark') return 'midnight';
+      if (saved === 'light') return 'lavender';
     } catch {}
-    return 'light';
+    return 'lavender';
   });
 
-  const setTheme = useCallback((newTheme: 'light' | 'dark') => {
-    setThemeState(newTheme);
-    try {
-      localStorage.setItem('nirantar_theme', newTheme);
-    } catch {}
-    if (newTheme === 'dark') {
+  const applyThemeToDOM = useCallback((th: AppTheme) => {
+    document.documentElement.setAttribute('data-theme', th);
+    if (th === 'midnight') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
   }, []);
 
+  const setTheme = useCallback((newTheme: AppTheme | 'light' | 'dark') => {
+    let resolved: AppTheme = 'lavender';
+    if (newTheme === 'dark') resolved = 'midnight';
+    else if (newTheme === 'light') resolved = 'lavender';
+    else if (['lavender', 'midnight', 'amber', 'emerald'].includes(newTheme as AppTheme)) {
+      resolved = newTheme as AppTheme;
+    }
+    setThemeState(resolved);
+    try {
+      localStorage.setItem('nirantar_theme', resolved);
+    } catch {}
+    applyThemeToDOM(resolved);
+  }, [applyThemeToDOM]);
+
+  const cycleNextTheme = useCallback(() => {
+    const list: AppTheme[] = ['lavender', 'midnight', 'amber', 'emerald'];
+    const currIdx = list.indexOf(theme);
+    const nextTheme = list[(currIdx + 1) % list.length];
+    setTheme(nextTheme);
+  }, [theme, setTheme]);
+
   const toggleTheme = useCallback(() => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setTheme(theme === 'midnight' ? 'lavender' : 'midnight');
   }, [theme, setTheme]);
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    applyThemeToDOM(theme);
+  }, [theme, applyThemeToDOM]);
 
   // Payment & Ticket Records with LocalStorage Sync
   const [paymentAttempt, setPaymentAttempt] = useState<PaymentAttempt | null>(null);
@@ -1787,9 +1856,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setShowAgenticAuth,
         triggerAgenticAuth,
         getWaitlistProbability,
-        // ─── Theme & Dark Mode ───
+        // ─── Theme & Curated Colour Palettes ───
         theme,
         setTheme,
+        cycleNextTheme,
         toggleTheme,
         // ─── Sanitized Context ───
         getSanitizedContext,

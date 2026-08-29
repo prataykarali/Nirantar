@@ -308,22 +308,24 @@ export const SettingsPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#16102A] border border-purple-100 dark:border-purple-900/50 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-100 dark:border-slate-700 shadow-2xs hover:shadow-sm transition-all">
                         <div>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block mb-0.5">Interface Theme</span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Appearance & glow mode</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block mb-0.5">Interface Theme Palette</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Curated soothing colour schemes</span>
                         </div>
                         <select
-                          value={theme === 'dark' ? 'Dark' : 'Light'}
+                          value={theme}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            setTheme(val === 'Dark' ? 'dark' : 'light');
+                            const val = e.target.value as any;
+                            setTheme(val);
                             setSettings({ ...settings, theme: val });
                           }}
-                          className="px-3.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/80 text-xs font-bold text-purple-950 dark:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
+                          className="px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-600 bg-purple-50/50 dark:bg-slate-700 text-xs font-bold text-purple-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
                         >
-                          <option value="Light">☀️ Light Mode</option>
-                          <option value="Dark">🌙 Dark Mode (Glow)</option>
+                          <option value="lavender">🌸 Royal Iris (Soft Lavender)</option>
+                          <option value="midnight">🌌 Midnight Slate (Soft Dark)</option>
+                          <option value="amber">🌅 Warm Sunset (Cozy Amber)</option>
+                          <option value="emerald">🍃 Mint Express (Calm Pine)</option>
                         </select>
                       </div>
 

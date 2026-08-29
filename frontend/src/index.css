@@ -46,77 +46,166 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PURE BLACK & UNIFIED DARK SURFACES
+   NIRANTAR CURATED PALETTE SYSTEM (4 Harmonious Themes)
    ═══════════════════════════════════════════════════════════════════ */
-html.dark [class*="bg-white"],
+
+/* 1. ROYAL IRIS (Default / Soft Lavender) */
+:root,
+html[data-theme="lavender"] {
+  --color-canvas-bg: #F8F6FD;
+  --color-surface-bg: #FFFFFF;
+  --color-surface-muted: #F4EFFE;
+  --color-border-subtle: #EDE9FE;
+  --color-border-strong: #DDD6FE;
+  --color-text-main: #1E1B4B;
+  --color-text-sub: #64748B;
+  --color-brand-accent: #7C3AED;
+}
+
+html[data-theme="lavender"] body {
+  background-color: #F8F6FD;
+  color: #1E1B4B;
+}
+
+/* 2. MIDNIGHT SLATE (Gentle Nocturnal Slate - Soothing on the Eyes) */
+html[data-theme="midnight"],
+html.dark {
+  --color-canvas-bg: #0F172A;
+  --color-surface-bg: #1E293B;
+  --color-surface-muted: #172033;
+  --color-border-subtle: #334155;
+  --color-border-strong: #475569;
+  --color-text-main: #F8FAFC;
+  --color-text-sub: #94A3B8;
+  --color-brand-accent: #818CF8;
+}
+
+html[data-theme="midnight"] body,
+html.dark body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+html[data-theme="midnight"] [class*="bg-white"],
+html.dark [class*="bg-white"] {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+html[data-theme="midnight"] [class*="bg-slate-50"],
 html.dark [class*="bg-slate-50"],
+html[data-theme="midnight"] [class*="bg-purple-50"],
 html.dark [class*="bg-purple-50"],
-html.dark [class*="bg-indigo-50"],
-html.dark [class*="bg-violet-50"],
-html.dark [class*="bg-emerald-50"],
-html.dark [class*="bg-pink-50"],
-html.dark [class*="bg-amber-50"],
-html.dark [class*="from-purple-50"],
-html.dark [class*="from-indigo-50"],
-html.dark [class*="from-pink-50"],
-html.dark [class*="to-purple-50"],
-html.dark [class*="to-indigo-50"],
-html.dark [class*="to-pink-50"] {
-  background-color: #121216 !important;
-  background-image: none !important;
-  color: #F4F4F5 !important;
+html[data-theme="midnight"] [class*="bg-indigo-50"],
+html.dark [class*="bg-indigo-50"] {
+  background-color: #162032 !important;
+  color: #F8FAFC !important;
 }
 
+html[data-theme="midnight"] [class*="border-purple-"],
 html.dark [class*="border-purple-"],
+html[data-theme="midnight"] [class*="border-slate-"],
 html.dark [class*="border-slate-"],
-html.dark [class*="border-indigo-"],
-html.dark [class*="border-emerald-"],
-html.dark [class*="border-pink-"] {
-  border-color: #24242A !important;
+html[data-theme="midnight"] [class*="border-indigo-"],
+html.dark [class*="border-indigo-"] {
+  border-color: #334155 !important;
 }
 
+html[data-theme="midnight"] input,
 html.dark input,
+html[data-theme="midnight"] select,
 html.dark select,
+html[data-theme="midnight"] textarea,
 html.dark textarea {
-  background-color: #18181E !important;
-  color: #F4F4F5 !important;
-  border-color: #2E2E38 !important;
+  background-color: #162032 !important;
+  color: #F8FAFC !important;
+  border-color: #475569 !important;
 }
 
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark h4,
-html.dark strong {
-  color: #F4F4F5 !important;
-}
-
+html[data-theme="midnight"] .text-slate-900,
 html.dark .text-slate-900,
+html[data-theme="midnight"] .text-slate-800,
 html.dark .text-slate-800,
-html.dark .text-purple-950,
-html.dark .text-purple-900 {
-  color: #F4F4F5 !important;
+html[data-theme="midnight"] .text-purple-950,
+html.dark .text-purple-950 {
+  color: #F8FAFC !important;
 }
 
+html[data-theme="midnight"] .text-slate-700,
 html.dark .text-slate-700,
-html.dark .text-slate-600,
-html.dark .text-purple-800 {
-  color: #D4D4D8 !important;
+html[data-theme="midnight"] .text-slate-600,
+html.dark .text-slate-600 {
+  color: #CBD5E1 !important;
 }
 
+html[data-theme="midnight"] .text-slate-500,
 html.dark .text-slate-500,
-html.dark .text-slate-400,
-html.dark .text-purple-700 {
-  color: #A1A1AA !important;
+html[data-theme="midnight"] .text-slate-400,
+html.dark .text-slate-400 {
+  color: #94A3B8 !important;
 }
 
-/* Ensure active primary buttons remain rich purple / violet */
-html.dark button.bg-purple-700,
-html.dark button.bg-purple-600,
-html.dark button[class*="bg-[#7C3AED]"],
-html.dark [class*="bg-purple-600"] button {
-  background-color: #7C3AED !important;
-  color: #FFFFFF !important;
+/* 3. WARM SUNSET (Cozy Cream & Golden Horizon) */
+html[data-theme="amber"] {
+  --color-canvas-bg: #FAF7F2;
+  --color-surface-bg: #FFFFFF;
+  --color-surface-muted: #F5EFE6;
+  --color-border-subtle: #FED7AA;
+  --color-border-strong: #FDBA74;
+  --color-text-main: #292524;
+  --color-text-sub: #78716C;
+  --color-brand-accent: #D97706;
+}
+
+html[data-theme="amber"] body {
+  background-color: #FAF7F2;
+  color: #292524;
+}
+
+html[data-theme="amber"] [class*="bg-purple-700"],
+html[data-theme="amber"] [class*="bg-[#7C3AED]"] {
+  background-color: #D97706 !important;
+}
+
+html[data-theme="amber"] [class*="border-purple-100"],
+html[data-theme="amber"] [class*="border-purple-200"] {
+  border-color: #FED7AA !important;
+}
+
+/* 4. MINT EXPRESS (Soothing Pine & Eco Green) */
+html[data-theme="emerald"] {
+  --color-canvas-bg: #F2F9F6;
+  --color-surface-bg: #FFFFFF;
+  --color-surface-muted: #E6F4ED;
+  --color-border-subtle: #A7F3D0;
+  --color-border-strong: #6EE7B7;
+  --color-text-main: #064E3B;
+  --color-text-sub: #475569;
+  --color-brand-accent: #059669;
+}
+
+html[data-theme="emerald"] body {
+  background-color: #F2F9F6;
+  color: #064E3B;
+}
+
+html[data-theme="emerald"] [class*="bg-purple-700"],
+html[data-theme="emerald"] [class*="bg-[#7C3AED]"] {
+  background-color: #059669 !important;
+}
+
+html[data-theme="emerald"] [class*="border-purple-100"],
+html[data-theme="emerald"] [class*="border-purple-200"] {
+  border-color: #A7F3D0 !important;
+}
+
+/* Glowing mascot effects in dark slate mode */
+html[data-theme="midnight"] img,
+html.dark img,
+html[data-theme="midnight"] .avatar-glow,
+html.dark .avatar-glow {
+  filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.45)) drop-shadow(0 0 20px rgba(99, 102, 241, 0.25));
+  transition: filter 0.3s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
