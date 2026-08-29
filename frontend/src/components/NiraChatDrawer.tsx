@@ -154,6 +154,98 @@ interface RouteContext {
 
 type ExampleCategory = 'booking' | 'tatkal' | 'tracking' | 'services';
 
+export const getNiraAvatarAndMood = (
+  text: string,
+  isStreaming?: boolean
+): { src: string; mood: string; emoji: string } => {
+  const t = text.toLowerCase();
+  if (isStreaming) {
+    return { src: '/assets/images/characters/nira_thinking.png', mood: 'Thinking', emoji: '🤔' };
+  }
+  if (
+    t.includes('congratulations') ||
+    t.includes('confirmed') ||
+    t.includes('booked') ||
+    t.includes('hooray') ||
+    t.includes('success') ||
+    t.includes('verified') ||
+    t.includes('yay') ||
+    t.includes('done!')
+  ) {
+    return { src: '/assets/images/characters/nira_excited.jpg', mood: 'Excited', emoji: '🎉' };
+  }
+  if (
+    t.includes('train') ||
+    t.includes('rajdhani') ||
+    t.includes('vande bharat') ||
+    t.includes('shatabdi') ||
+    t.includes('duronto') ||
+    t.includes('coach') ||
+    t.includes('platform') ||
+    t.includes('berth') ||
+    t.includes('express')
+  ) {
+    return { src: '/assets/images/characters/nira_conductor.jpg', mood: 'Conductor', emoji: '🚂' };
+  }
+  if (
+    t.includes('how to') ||
+    t.includes('explain') ||
+    t.includes('rule') ||
+    t.includes('guide') ||
+    t.includes('understand') ||
+    t.includes('architecture') ||
+    t.includes('tatkal') ||
+    t.includes('why')
+  ) {
+    return { src: '/assets/images/characters/nira_guide_teacher.jpg', mood: 'Teacher & Guide', emoji: '🎓' };
+  }
+  if (
+    t.includes('track') ||
+    t.includes('radar') ||
+    t.includes('where is') ||
+    t.includes('gps') ||
+    t.includes('delay') ||
+    t.includes('speed') ||
+    t.includes('route') ||
+    t.includes('km/h')
+  ) {
+    return { src: '/assets/images/characters/nira_explorer.jpg', mood: 'Radar Explorer', emoji: '🧭' };
+  }
+  if (
+    t.includes('pack') ||
+    t.includes('travel') ||
+    t.includes('trip') ||
+    t.includes('luggage') ||
+    t.includes('holiday') ||
+    t.includes('vacation') ||
+    t.includes('adventure')
+  ) {
+    return { src: '/assets/images/characters/nira_traveler.jpg', mood: 'Travel Ready', emoji: '😎' };
+  }
+  if (
+    t.includes('security') ||
+    t.includes('pin') ||
+    t.includes('zero-pii') ||
+    t.includes('setting') ||
+    t.includes('config') ||
+    t.includes('wallet') ||
+    t.includes('refund') ||
+    t.includes('payment')
+  ) {
+    return { src: '/assets/images/characters/nira_settings.jpg', mood: 'Config & Security', emoji: '🔧' };
+  }
+  if (
+    t.includes('stuck') ||
+    t.includes('error') ||
+    t.includes('problem') ||
+    t.includes('failed') ||
+    t.includes('help')
+  ) {
+    return { src: '/assets/images/characters/nira_idea.png', mood: 'Problem Solver', emoji: '💡' };
+  }
+  return { src: '/assets/images/characters/nira_thumbsup.png', mood: 'Friendly Copilot', emoji: '✨' };
+};
+
 export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose }) => {
   const {
     navigateTo,
@@ -1735,23 +1827,36 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       />
 
       <aside
-        className="fixed inset-x-2 bottom-2 top-12 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[410px] sm:h-[640px] max-h-[95vh] bg-white rounded-3xl sm:rounded-[28px] shadow-[0_16px_50px_rgba(88,28,135,0.25)] border border-purple-100 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200"
+        className="fixed inset-x-2 bottom-2 top-8 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[480px] md:w-[520px] sm:h-[720px] max-h-[92vh] bg-white rounded-3xl sm:rounded-[32px] shadow-[0_20px_60px_rgba(88,28,135,0.28)] border-2 border-purple-200/80 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200 backdrop-blur-sm"
         aria-label="Nira AI Chat Window"
       >
       {/* ═══════════════════════════════════════════════════════════════════
-          1. TOP BAR HEADER
+          1. TOP BAR HEADER (Larger Animated Avatar + Status)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="p-3 px-4 flex items-center justify-between border-b border-purple-50 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/80">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-purple-100 border border-purple-200 flex items-center justify-center p-0.5 shadow-2xs">
+      <div className="p-3.5 px-4.5 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm shrink-0 transition-transform hover:scale-105">
             <img
-              src="/assets/images/characters/nira_wave.png"
+              src={
+                isLoading
+                  ? '/assets/images/characters/nira_thinking.png'
+                  : '/assets/images/characters/nira_happy_mascot.png'
+              }
               alt="Nira"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain animate-bounce-gentle"
             />
           </div>
           <div>
-            <h3 className="font-black text-base text-slate-950 tracking-tight">Nira</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-base text-slate-950 tracking-tight">Nira Copilot</h3>
+              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live AI
+              </span>
+            </div>
+            <p className="text-[11px] font-medium text-slate-500">
+              State-Aware Railway Assistant & Guide
+            </p>
           </div>
         </div>
 
@@ -1907,19 +2012,26 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         {messages.length === 0 && (
           <div className="space-y-3.5 animate-in fade-in duration-200">
             {/* Mascot Greeting Bubble */}
-            <div className="flex items-start gap-2">
-              <div className="w-7 h-7 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5 mt-0.5">
+            <div className="flex items-start gap-2.5">
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-sm shrink-0 mt-0.5 transition-transform hover:scale-110">
                 <img
-                  src="/assets/images/characters/nira_wave.png"
-                  alt="Nira"
+                  src="/assets/images/characters/nira_conductor.jpg"
+                  alt="Nira Conductor"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <div className="p-3 rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 text-slate-800 space-y-1 shadow-2xs">
-                <span className="font-bold text-slate-900 block">Nira Rail Assistant</span>
-                <p className="text-slate-600 font-medium leading-relaxed">
-                  Where in India would you like to travel? Tell me your route (e.g. <em>Delhi to Mumbai</em>) or train number, and I'll find, rank, and help you book your journey.
-                </p>
+              <div className="max-w-[88%] space-y-1">
+                <div className="flex items-center gap-1.5 ml-1">
+                  <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs">
+                    🚂 🎟️ All Aboard!
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-2xl rounded-tl-sm bg-purple-50/90 border border-purple-100 text-slate-800 space-y-1.5 shadow-2xs">
+                  <span className="font-black text-slate-900 block text-xs">Hi, I'm Nira! Your Indian Railways Copilot 👋</span>
+                  <p className="text-slate-600 font-medium leading-relaxed">
+                    Where would you like to travel? Tell me your route (e.g. <em>"Delhi to Mumbai tomorrow 3A"</em>) or a train number (e.g. <em>"Track 12302"</em>), and I'll find, rank, and help you book! 🚆✨
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1929,7 +2041,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 <span className="text-[11px] font-bold text-slate-500">
                   Tap to test flagship features:
                 </span>
-                <span className="text-[10px] font-bold text-purple-700 cursor-pointer" onClick={() => setShowExamplesModal(true)}>
+                <span className="text-[10px] font-bold text-purple-700 cursor-pointer hover:underline" onClick={() => setShowExamplesModal(true)}>
                   All 25 Demos ➔
                 </span>
               </div>
@@ -1959,45 +2071,54 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         {/* Conversation Stream */}
         {messages.map((m) => {
           const isUser = m.sender === 'user';
+          const expression = !isUser ? getNiraAvatarAndMood(m.text, m.isStreaming) : null;
           return (
             <div key={m.id} className="space-y-2 animate-in fade-in duration-200">
               {isUser ? (
                 /* USER MESSAGE (PURPLE BUBBLE) */
                 <div className="flex justify-end">
-                  <div className="max-w-[85%] p-3 rounded-2xl rounded-br-sm bg-[#7C3AED] text-white text-xs font-bold shadow-xs">
+                  <div className="max-w-[85%] p-3.5 rounded-2xl rounded-br-sm bg-[#7C3AED] text-white text-xs font-bold shadow-xs">
                     {m.text}
                   </div>
                 </div>
               ) : (
                 /* BOT MESSAGE (LIGHT BUBBLE + INTERACTIVE CARDS) */
                 <div className="space-y-2.5">
-                  <div className="flex items-start gap-2">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 border border-purple-200 shrink-0 p-0.5 mt-0.5">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-sm shrink-0 mt-0.5 transition-transform hover:scale-110">
                       <img
-                        src="/assets/images/characters/nira_wave.png"
-                        alt="Nira"
+                        src={expression?.src || '/assets/images/characters/nira_thumbsup.png'}
+                        alt={expression?.mood || 'Nira'}
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <div className="max-w-[88%] p-3 rounded-2xl rounded-tl-sm bg-purple-50/80 border border-purple-100 text-slate-800 text-xs font-medium space-y-1">
-                      {m.isStreaming && !m.text ? (
-                        <div className="flex items-center gap-2 text-purple-700 py-0.5">
-                          <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600" />
-                          </span>
-                          <span className="text-xs font-bold animate-pulse">Nira is preparing your guide...</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <p className="whitespace-pre-wrap leading-relaxed font-medium">
-                            {m.text}
-                            {m.isStreaming && (
-                              <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#7C3AED] animate-pulse align-middle rounded-xs" />
-                            )}
-                          </p>
-                        </div>
-                      )}
+                    <div className="max-w-[88%] space-y-1">
+                      <div className="flex items-center gap-1.5 ml-1">
+                        <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs">
+                          {expression?.emoji} {expression?.mood}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">{m.timestamp}</span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl rounded-tl-sm bg-purple-50/90 border border-purple-100 text-slate-800 text-xs font-medium space-y-1.5 shadow-2xs">
+                        {m.isStreaming && !m.text ? (
+                          <div className="flex items-center gap-2 text-purple-700 py-0.5">
+                            <span className="flex h-2.5 w-2.5 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-600" />
+                            </span>
+                            <span className="text-xs font-bold animate-pulse">Nira is analyzing & preparing your guide...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <p className="whitespace-pre-wrap leading-relaxed font-medium">
+                              {m.text}
+                              {m.isStreaming && (
+                                <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#7C3AED] animate-pulse align-middle rounded-xs" />
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

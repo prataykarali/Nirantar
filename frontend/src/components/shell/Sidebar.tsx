@@ -248,27 +248,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* 2. BOTTOM NIRA ROBOT ASSISTANT CARD (Elevated & never cropped) */}
       <div className="relative pt-10 mt-2">
         {/* Dynamic Nira 3D Mascot Peeking Out */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-24 h-24 pointer-events-none flex items-center justify-center z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 w-24 h-24 pointer-events-none flex items-center justify-center z-10">
           <img
             src={
               activePage === 'completion' || activePage === 'ticket'
-                ? '/assets/images/characters/nira_happy.png'
+                ? '/assets/images/characters/nira_excited.jpg'
                 : activePage === 'my-journeys' || activePage === 'journeys'
-                ? '/assets/images/characters/nira_tablet.png'
+                ? '/assets/images/characters/nira_traveler.jpg'
                 : activePage === 'payment' || activePage === 'payments'
-                ? '/assets/images/characters/nira_wave.png'
+                ? '/assets/images/characters/nira_settings.jpg'
                 : activePage === 'booking' || activePage === 'workspace'
-                ? '/assets/images/characters/nira_tablet.png'
+                ? '/assets/images/characters/nira_traveler.jpg'
                 : activePage === 'trains' || activePage === 'results'
-                ? '/assets/images/characters/nira_thumbsup.png'
+                ? '/assets/images/characters/nira_conductor.jpg'
                 : activePage === 'discover'
-                ? '/assets/images/characters/nira_idea.png'
+                ? '/assets/images/characters/nira_explorer.jpg'
                 : activePage === 'track'
-                ? '/assets/images/characters/nira_thinking.png'
-                : '/assets/images/characters/nira_wave.png'
+                ? '/assets/images/characters/nira_explorer.jpg'
+                : activePage === 'help'
+                ? '/assets/images/characters/nira_guide_teacher.jpg'
+                : activePage === 'settings'
+                ? '/assets/images/characters/nira_settings.jpg'
+                : '/assets/images/characters/nira_conductor.jpg'
             }
             alt="Nira AI Assistant"
-            className="w-20 h-20 object-contain drop-shadow-md animate-bounce-gentle"
+            className="w-20 h-20 rounded-2xl object-contain drop-shadow-md animate-bounce-gentle transition-all duration-300"
           />
         </div>
 
