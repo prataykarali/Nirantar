@@ -202,7 +202,7 @@ export const AppShell: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
             <span className="text-purple-950 font-extrabold">Ask Nira AI</span>
-            <span className="text-[10px] text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full font-bold">25 Demos ➔</span>
+            <span className="text-[10px] text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full font-bold">20 Demos ➔</span>
           </div>
 
           {/* Floating Mascot Avatar Button */}

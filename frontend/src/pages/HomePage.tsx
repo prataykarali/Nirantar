@@ -360,10 +360,10 @@ export const HomePage: React.FC = () => {
           1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative rounded-2xl sm:rounded-[32px] overflow-hidden min-h-[280px] sm:min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
-        {/* Background Station Scene */}
+        {/* Background Station Scene with Ananya */}
         <img
-          src="/assets/images/hero_station_bg.jpg"
-          alt="Nirantar Railway Station"
+          src="/assets/images/hero_banner_full.png"
+          alt="Nirantar Railway Station with Ananya"
           className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none"
         />
 
@@ -520,15 +520,6 @@ export const HomePage: React.FC = () => {
                 2 Adults
               </button>
             </div>
-          </div>
-
-          {/* Right Side Girl Avatar Cutout (Ananya) */}
-          <div className="hidden md:flex absolute right-4 lg:right-10 bottom-0 h-[88%] max-h-[340px] items-end pointer-events-none select-none z-10 animate-in fade-in slide-in-from-right-8 duration-700">
-            <img
-              src="/assets/images/characters/ananya_holding_map.png"
-              alt="Ananya Nirantar Guide"
-              className="h-full object-contain drop-shadow-[0_20px_35px_rgba(88,28,135,0.25)]"
-            />
           </div>
         </div>
       </section>

@@ -2039,15 +2039,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* 25 Examples Drawer Toggle */}
+              {/* 20 Examples Drawer Toggle */}
               <button
                 type="button"
                 onClick={() => setShowExamplesModal(!showExamplesModal)}
                 className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                title="Open 25 Test Examples"
+                title="Open 20 Test Examples"
               >
                 <ListFilter className="w-3.5 h-3.5" />
-                <span>25 Demos</span>
+                <span>20 Demos</span>
               </button>
 
               {/* Reset Journey State Button */}
@@ -2091,7 +2091,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black text-purple-950 uppercase flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-              <span>Direct Input Test Examples</span>
+              <span>20 Direct Input Test Examples</span>
             </span>
             <button
               type="button"
@@ -2222,7 +2222,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                   Tap to test flagship features:
                 </span>
                 <span className="text-[10px] font-bold text-purple-700 cursor-pointer hover:underline" onClick={() => setShowExamplesModal(true)}>
-                  All 25 Demos ➔
+                  All 20 Demos ➔
                 </span>
               </div>
               <div className="space-y-1.5">
