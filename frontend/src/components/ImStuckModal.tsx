@@ -34,12 +34,15 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
     onClose();
     switch (type) {
       case 'find_train':
+        navigateTo('discover');
         sendNiraQuery("Help me find and compare the best trains for my route based on price and speed.");
         break;
       case 'fill_form':
+        navigateTo('booking');
         sendNiraQuery("Help me fill passenger details and explain what information is required.");
         break;
       case 'payment_help':
+        navigateTo('payments');
         sendNiraQuery("I have a question about payment. How does the ₹10,000 Citizen Wallet and payment recovery work?");
         break;
       case 'go_back':

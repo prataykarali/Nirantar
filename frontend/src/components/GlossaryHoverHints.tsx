@@ -12,6 +12,12 @@ const commonJourneyTerms = [
   { term: 'OTP', definition: 'A one-time password used to verify a secure action. Never share it.' },
   { term: 'CVV', definition: 'The short security code on your payment card. Never share it outside a trusted payment form.' },
   { term: 'GPS', definition: 'Satellite location data used to show where a train is currently running.' },
+  { term: 'ledger', definition: 'A record of payments, refunds and their current status.' },
+  { term: 'e-ticket', definition: 'The digital ticket issued after a successful booking.' },
+  { term: 'quota', definition: 'A reserved pool of seats, such as General or Tatkal.' },
+  { term: 'berth', definition: 'A sleeping place on a train, such as lower, middle or upper.' },
+  { term: 'concession', definition: 'A fare discount or travel benefit for an eligible passenger.' },
+  { term: 'clerkage', definition: 'The fixed administrative amount deducted when an eligible ticket is cancelled.' },
 ];
 
 const glossaryEntries = [
@@ -70,6 +76,17 @@ const highlightTerms = (root: Node) => {
       hint.setAttribute('aria-label', `${matchedTerm}: ${definition?.definition || 'Railway term'}`);
       hint.setAttribute('title', definition?.definition || 'Railway term');
       hint.textContent = matchedTerm;
+      hint.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        hint.classList.toggle('jargon-hint--open');
+      });
+      hint.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          hint.classList.toggle('jargon-hint--open');
+        }
+      });
       fragment.append(hint);
       lastIndex = start + matchedTerm.length;
     }

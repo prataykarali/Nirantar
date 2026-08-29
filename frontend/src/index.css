@@ -69,7 +69,8 @@
 }
 
 .jargon-hint:hover::after,
-.jargon-hint:focus-visible::after {
+.jargon-hint:focus-visible::after,
+.jargon-hint--open::after {
   opacity: 1;
   transform: translate(-50%, 0);
 }
