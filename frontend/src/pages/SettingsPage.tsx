@@ -307,26 +307,7 @@ export const SettingsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-100 dark:border-slate-700 shadow-2xs hover:shadow-sm transition-all">
-                        <div>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block mb-0.5">Interface Theme Palette</span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Curated soothing colour schemes</span>
-                        </div>
-                        <select
-                          value={theme}
-                          onChange={(e) => {
-                            const val = e.target.value as any;
-                            setTheme(val);
-                            setSettings({ ...settings, theme: val });
-                          }}
-                          className="px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-600 bg-purple-50/50 dark:bg-slate-700 text-xs font-bold text-purple-950 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer shadow-2xs"
-                        >
-                          <option value="lavender">🌸 Royal Iris (Deep Violet & Lavender)</option>
-                          <option value="amber">🌅 Warm Sunset (Golden Amber & Terracotta)</option>
-                          <option value="emerald">🍃 Mint Express (Forest Emerald & Sage)</option>
-                        </select>
-                      </div>
+                    <div className="grid grid-cols-1 gap-3">
 
                       <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#16102A] border border-purple-100 dark:border-purple-900/50 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
                         <div>

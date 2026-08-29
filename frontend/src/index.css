@@ -46,211 +46,29 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NIRANTAR DEEP CURATED PALETTE SYSTEM (3 Immersive Themes)
+   NIRANTAR DEFAULT THEME
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── 1. ROYAL IRIS (Deep Imperial Violet & Lavender Canvas) ── */
-:root,
-html[data-theme="lavender"] {
-  --app-canvas-bg: #F5EEFD;
-  --app-sidebar-bg: #FAF5FF;
-  --app-card-bg: #FFFFFF;
-  --app-card-border: #E4D4FA;
-  --app-text-main: #2E1065;
-  --app-text-sub: #6B21A8;
-  --app-accent: #7C3AED;
+:root {
+  --color-canvas-bg: #F8F6FD;
+  --color-surface-bg: #FFFFFF;
+  --color-surface-muted: #F4EFFE;
+  --color-border-subtle: #EDE9FE;
+  --color-border-strong: #DDD6FE;
+  --color-text-main: #1E1B4B;
+  --color-text-sub: #64748B;
+  --color-brand-accent: #7C3AED;
 }
 
-html[data-theme="lavender"] body {
-  background-color: #F5EEFD;
-  color: #2E1065;
+body {
+  background-color: #F8F6FD;
+  color: #1E1B4B;
 }
 
-html[data-theme="lavender"] img,
-html[data-theme="lavender"] .avatar-glow {
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.35)) drop-shadow(0 0 16px rgba(139, 92, 246, 0.2));
-}
-
-/* ── 2. WARM SUNSET (Rich Terracotta & Warm Golden Amber Canvas) ── */
-html[data-theme="amber"] {
-  --app-canvas-bg: #FFF7ED;
-  --app-sidebar-bg: #FFFAF0;
-  --app-card-bg: #FFFFFF;
-  --app-card-border: #FCD34D;
-  --app-text-main: #451A03;
-  --app-text-sub: #92400E;
-  --app-accent: #D97706;
-}
-
-html[data-theme="amber"] body {
-  background-color: #FFF7ED;
-  color: #451A03;
-}
-
-html[data-theme="amber"] aside {
-  background-color: #FFFDF7 !important;
-  border-color: #FDE68A !important;
-}
-
-html[data-theme="amber"] div[class*="from-[#180B2E]"],
-html[data-theme="amber"] div[class*="from-[#1A0B2E]"],
-html[data-theme="amber"] div[class*="from-[#2A104E]"],
-html[data-theme="amber"] div[class*="from-[#2D1254]"],
-html[data-theme="amber"] div[class*="from-purple-950"],
-html[data-theme="amber"] header[class*="bg-gradient-to-"] {
-  background-image: linear-gradient(135deg, #78350F, #92400E, #B45309, #D97706) !important;
-}
-
-html[data-theme="amber"] button[class*="bg-purple-"],
-html[data-theme="amber"] button[class*="bg-[#7C3AED]"],
-html[data-theme="amber"] [class*="bg-purple-700"],
-html[data-theme="amber"] [class*="bg-purple-600"],
-html[data-theme="amber"] .bg-purple-600 {
-  background-color: #D97706 !important;
-  color: #FFFFFF !important;
-}
-
-html[data-theme="amber"] button[class*="bg-purple-"]:hover,
-html[data-theme="amber"] button[class*="bg-[#7C3AED]"]:hover {
-  background-color: #B45309 !important;
-}
-
-html[data-theme="amber"] [class*="border-purple-100"],
-html[data-theme="amber"] [class*="border-purple-200"],
-html[data-theme="amber"] [class*="border-purple-300"],
-html[data-theme="amber"] [class*="border-purple-400"] {
-  border-color: #FDE68A !important;
-}
-
-html[data-theme="amber"] [class*="bg-purple-50"],
-html[data-theme="amber"] [class*="bg-indigo-50"],
-html[data-theme="amber"] [class*="from-purple-50"],
-html[data-theme="amber"] [class*="via-purple-50"],
-html[data-theme="amber"] [class*="to-purple-50"] {
-  background-color: #FEF3C7 !important;
-  background-image: none !important;
-}
-
-html[data-theme="amber"] .text-purple-950,
-html[data-theme="amber"] .text-purple-900,
-html[data-theme="amber"] .text-slate-900 {
-  color: #451A03 !important;
-}
-
-html[data-theme="amber"] .text-purple-800,
-html[data-theme="amber"] .text-purple-700,
-html[data-theme="amber"] .text-slate-700 {
-  color: #92400E !important;
-}
-
-html[data-theme="amber"] .text-purple-600,
-html[data-theme="amber"] .text-slate-500 {
-  color: #B45309 !important;
-}
-
-html[data-theme="amber"] .bg-purple-100 {
-  background-color: #FED7AA !important;
-  color: #7C2D12 !important;
-}
-
-html[data-theme="amber"] .bg-purple-200 {
-  background-color: #FDBA74 !important;
-}
-
-html[data-theme="amber"] img,
-html[data-theme="amber"] .avatar-glow {
-  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.4)) drop-shadow(0 0 18px rgba(217, 119, 6, 0.25));
-}
-
-/* ── 3. MINT EXPRESS (Deep Forest Emerald & Jade Sage Canvas) ── */
-html[data-theme="emerald"] {
-  --app-canvas-bg: #F0FDF4;
-  --app-sidebar-bg: #F5FBF7;
-  --app-card-bg: #FFFFFF;
-  --app-card-border: #86EFAC;
-  --app-text-main: #022C22;
-  --app-text-sub: #065F46;
-  --app-accent: #059669;
-}
-
-html[data-theme="emerald"] body {
-  background-color: #F0FDF4;
-  color: #022C22;
-}
-
-html[data-theme="emerald"] aside {
-  background-color: #F5FBF7 !important;
-  border-color: #A7F3D0 !important;
-}
-
-html[data-theme="emerald"] div[class*="from-[#180B2E]"],
-html[data-theme="emerald"] div[class*="from-[#1A0B2E]"],
-html[data-theme="emerald"] div[class*="from-[#2A104E]"],
-html[data-theme="emerald"] div[class*="from-[#2D1254]"],
-html[data-theme="emerald"] div[class*="from-purple-950"],
-html[data-theme="emerald"] header[class*="bg-gradient-to-"] {
-  background-image: linear-gradient(135deg, #022C22, #064E3B, #047857, #059669) !important;
-}
-
-html[data-theme="emerald"] button[class*="bg-purple-"],
-html[data-theme="emerald"] button[class*="bg-[#7C3AED]"],
-html[data-theme="emerald"] [class*="bg-purple-700"],
-html[data-theme="emerald"] [class*="bg-purple-600"],
-html[data-theme="emerald"] .bg-purple-600 {
-  background-color: #059669 !important;
-  color: #FFFFFF !important;
-}
-
-html[data-theme="emerald"] button[class*="bg-purple-"]:hover,
-html[data-theme="emerald"] button[class*="bg-[#7C3AED]"]:hover {
-  background-color: #047857 !important;
-}
-
-html[data-theme="emerald"] [class*="border-purple-100"],
-html[data-theme="emerald"] [class*="border-purple-200"],
-html[data-theme="emerald"] [class*="border-purple-300"],
-html[data-theme="emerald"] [class*="border-purple-400"] {
-  border-color: #A7F3D0 !important;
-}
-
-html[data-theme="emerald"] [class*="bg-purple-50"],
-html[data-theme="emerald"] [class*="bg-indigo-50"],
-html[data-theme="emerald"] [class*="from-purple-50"],
-html[data-theme="emerald"] [class*="via-purple-50"],
-html[data-theme="emerald"] [class*="to-purple-50"] {
-  background-color: #DCFCE7 !important;
-  background-image: none !important;
-}
-
-html[data-theme="emerald"] .text-purple-950,
-html[data-theme="emerald"] .text-purple-900,
-html[data-theme="emerald"] .text-slate-900 {
-  color: #022C22 !important;
-}
-
-html[data-theme="emerald"] .text-purple-800,
-html[data-theme="emerald"] .text-purple-700,
-html[data-theme="emerald"] .text-slate-700 {
-  color: #065F46 !important;
-}
-
-html[data-theme="emerald"] .text-purple-600,
-html[data-theme="emerald"] .text-slate-500 {
-  color: #047857 !important;
-}
-
-html[data-theme="emerald"] .bg-purple-100 {
-  background-color: #A7F3D0 !important;
-  color: #064E3B !important;
-}
-
-html[data-theme="emerald"] .bg-purple-200 {
-  background-color: #6EE7B7 !important;
-}
-
-html[data-theme="emerald"] img,
-html[data-theme="emerald"] .avatar-glow {
-  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4)) drop-shadow(0 0 18px rgba(5, 150, 105, 0.25));
+img,
+.avatar-glow {
+  filter: drop-shadow(0 0 6px rgba(124, 58, 237, 0.25));
+  transition: filter 0.25s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

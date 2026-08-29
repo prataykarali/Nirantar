@@ -75,6 +75,119 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
 
   if (!isOpen || !ticket) return null;
 
+  const handleDownloadTicket = () => {
+    const activeRealloc = activeReallocations && activeReallocations.length > 0 ? activeReallocations[0] : null;
+    const ticketContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Electronic Railway Ticket - PNR ${ticket.pnr}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #0f172a; padding: 28px; }
+    .ticket-card { max-width: 720px; margin: 0 auto; background: #ffffff; border: 2px solid #7c3aed; border-radius: 20px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .header { border-bottom: 2px solid #ede9fe; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .title { color: #581c87; font-size: 22px; font-weight: 900; margin: 0; }
+    .badge { background: #dcfce7; color: #166534; font-weight: bold; font-size: 11px; padding: 4px 12px; border-radius: 9999px; border: 1px solid #86efac; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .box { background: #f8f6fd; border: 1px solid #ddd6fe; border-radius: 12px; padding: 12px; }
+    .label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; }
+    .value { font-size: 14px; font-weight: bold; color: #1e1b4b; margin-top: 2px; }
+    .passenger-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+    .passenger-table th, .passenger-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .passenger-table th { background: #f1f5f9; color: #475569; font-size: 11px; }
+    .reallocation { background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 12px; padding: 14px; margin-top: 16px; font-size: 12px; }
+    .reallocation-title { color: #065f46; font-weight: bold; font-size: 13px; margin-bottom: 6px; }
+    .footer { margin-top: 24px; font-size: 11px; color: #64748b; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="ticket-card">
+    <div class="header">
+      <div>
+        <h1 class="title">INDIAN RAILWAYS e-TICKET</h1>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">Ministry of Railways • DigiLocker Verified Passenger</p>
+      </div>
+      <span class="badge">CONFIRMED</span>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <div class="label">PNR NUMBER</div>
+        <div class="value" style="font-family: monospace; letter-spacing: 1px;">${ticket.pnr}</div>
+      </div>
+      <div class="box">
+        <div class="label">TRAIN NUMBER & NAME</div>
+        <div class="value">#${ticket.trainNumber} - ${ticket.trainName}</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <div class="label">FROM STATION</div>
+        <div class="value">${ticket.fromCity} (${ticket.fromCode}) - ${ticket.fromPlatform}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Dep: ${ticket.departureTime} (${ticket.departureDate})</div>
+      </div>
+      <div class="box">
+        <div class="label">TO DESTINATION</div>
+        <div class="value">${ticket.toCity} (${ticket.toCode}) - ${ticket.toPlatform}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Arr: ${ticket.arrivalTime} (${ticket.arrivalDate})</div>
+      </div>
+    </div>
+
+    <div class="box" style="margin-bottom: 16px;">
+      <div class="label">PASSENGER DETAILS & BERTH ROSTER</div>
+      <table class="passenger-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Passenger</th>
+            <th>Coach</th>
+            <th>Seat / Berth</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ticket.passengers.map((p, idx) => `
+            <tr>
+              <td>${idx + 1}</td>
+              <td><strong>${p.name}</strong> (${p.age}y, ${p.gender})</td>
+              <td><strong style="color: #7c3aed;">Coach ${p.coach}</strong></td>
+              <td><strong>Seat ${p.seatNumber}</strong> (${p.berthType})</td>
+              <td><span class="badge">${p.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    ${activeRealloc ? `
+    <div class="reallocation">
+      <div class="reallocation-title">⚡ OFFICIAL MID-JOURNEY SEAT REALLOCATION (TTE VERIFIED)</div>
+      <div><strong>Reallocated Berth:</strong> Coach ${activeRealloc.toCoach} • Seat #${activeRealloc.toSeat} (${activeRealloc.toBerthType})</div>
+      <div><strong>Effective From:</strong> ${activeRealloc.effectiveFromStation} (${activeRealloc.effectiveFromStationCode}) onwards</div>
+      <div><strong>Endorsement Ref:</strong> ${activeRealloc.id} • ${activeRealloc.approvedBy}</div>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+      Total Fare Paid: ₹${ticket.totalFare} • Payment Ref: ${ticket.bookingRef}<br>
+      Carry original Government ID (Aadhaar / DigiLocker / Voter ID) during journey.
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([ticketContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `IRCTC_eTicket_${ticket.pnr.replace(/\s+/g, '')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -117,9 +230,9 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => alert(`Downloaded E-Ticket PDF for PNR #${ticket.pnr}`)}
-              className="p-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors cursor-pointer text-xs flex items-center gap-1 font-bold shadow-xs"
-              title="Download Ticket PDF"
+              onClick={handleDownloadTicket}
+              className="p-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-white transition-colors cursor-pointer text-xs flex items-center gap-1 font-bold shadow-xs"
+              title="Download Ticket HTML/PDF"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Download</span>

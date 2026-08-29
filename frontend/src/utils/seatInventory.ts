@@ -803,6 +803,7 @@ export interface RepresentativeCoachInfo {
   representativeCode: string;
   label: string;
   capacity: number;
+  seatsAvailable: number;
   description: string;
   accentColor: string;
 }
@@ -815,9 +816,6 @@ export interface SegmentBerth {
   passengerName?: string;
   occupancyStatus: 'USER_BOOKED' | 'OCCUPIED' | 'VACANT' | 'REALLOCATED';
   coPassengerDetails?: {
-    name: string;
-    gender: string;
-    age: number;
     travelFrom: string;
     travelTo: string;
     deboardsAtStationIndex: number;
@@ -854,25 +852,32 @@ export interface MidJourneyReallocation {
 }
 
 /**
- * Returns exactly 1 representative coach for each distinct class available on the train.
+ * Returns exactly 1 representative coach for core train classes (3A, 2A, 1A, and SL if present).
  */
 export function getRepresentativeCoaches(
   trainNumber: string,
   availableClasses?: Array<{ classCode: string; className?: string }>
 ): RepresentativeCoachInfo[] {
-  const classCodes = (availableClasses && availableClasses.length > 0)
-    ? Array.from(new Set(availableClasses.map((c) => c.classCode)))
-    : ['3A', '2A', '1A', 'SL'];
+  const allowedCodes = ['3A', '2A', '1A', 'SL'];
+  let classCodes = (availableClasses && availableClasses.length > 0)
+    ? Array.from(new Set(availableClasses.map((c) => c.classCode))).filter((cc) => allowedCodes.includes(cc))
+    : ['3A', '2A', '1A'];
 
-  const classMetadata: Record<string, { repCode: string; name: string; cap: number; desc: string; color: string }> = {
-    '1A': { repCode: 'H1', name: 'AC 1st Class', cap: 24, desc: 'Lockable 4-Berth Cabins & 2-Berth Private Coupes with Velvet Bedding', color: '#9333EA' },
-    '2A': { repCode: 'A1', name: 'AC 2 Tier', cap: 46, desc: 'Curtained 4-Berth Cabins & 2-Berth Side Bay (No Middle Berths)', color: '#4F46E5' },
-    '3A': { repCode: 'B4', name: 'AC 3 Tier', cap: 64, desc: 'Standard 8-Berth Bays (6 Main Cabin + 2 Side Berths) with Climate Control', color: '#7C3AED' },
-    '3E': { repCode: 'M1', name: 'AC 3 Economy', cap: 72, desc: 'Modern 3E High-Density Modular Berths with Individual AC Vents & USB Ports', color: '#2563EB' },
-    'SL': { repCode: 'S2', name: 'Sleeper Class', cap: 72, desc: 'Open-Window 8-Berth Bays (Traditional Indian Railways Travel Experience)', color: '#D97706' },
-    'CC': { repCode: 'C1', name: 'AC Chair Car', cap: 73, desc: 'Air-Conditioned 3x2 Pushback Reclining Seats with Foldable Trays', color: '#059669' },
-    'EC': { repCode: 'E1', name: 'Exec. Chair Car', cap: 56, desc: 'Premium 2x2 Ultra-Wide Reclining Chairs with Armrest Charging & Reading Lights', color: '#DC2626' },
-    '2S': { repCode: 'D1', name: 'Second Sitting', cap: 108, desc: 'Economical 3x3 Bench/Cushioned Seating for Day Journeys', color: '#475569' },
+  if (classCodes.length === 0) {
+    classCodes = ['3A', '2A', '1A'];
+  }
+
+  // Sort logically: 3A, 2A, 1A, SL
+  classCodes.sort((a, b) => {
+    const order: Record<string, number> = { '3A': 1, '2A': 2, '1A': 3, 'SL': 4 };
+    return (order[a] || 99) - (order[b] || 99);
+  });
+
+  const classMetadata: Record<string, { repCode: string; name: string; cap: number; available: number; desc: string; color: string }> = {
+    '3A': { repCode: 'B4', name: 'AC 3 Tier', cap: 64, available: 14, desc: 'Standard 8-Berth Bays (6 Main Cabin + 2 Side Berths) with Climate Control', color: '#7C3AED' },
+    '2A': { repCode: 'A1', name: 'AC 2 Tier', cap: 46, available: 6, desc: 'Curtained 4-Berth Cabins & 2-Berth Side Bay (No Middle Berths)', color: '#4F46E5' },
+    '1A': { repCode: 'H1', name: 'AC 1st Class', cap: 24, available: 4, desc: 'Lockable 4-Berth Cabins & 2-Berth Private Coupes with Velvet Bedding', color: '#9333EA' },
+    'SL': { repCode: 'S2', name: 'Sleeper Class', cap: 72, available: 22, desc: 'Open-Window 8-Berth Bays (Traditional Indian Railways Travel Experience)', color: '#D97706' },
   };
 
   return classCodes.map((cc) => {
@@ -880,6 +885,7 @@ export function getRepresentativeCoaches(
       repCode: 'B1',
       name: `${cc} Class`,
       cap: 64,
+      available: 10,
       desc: 'Standard Indian Railway Coach',
       color: '#7C3AED',
     };
@@ -889,6 +895,7 @@ export function getRepresentativeCoaches(
       representativeCode: meta.repCode,
       label: `${meta.repCode} (${cc})`,
       capacity: meta.cap,
+      seatsAvailable: meta.available,
       description: meta.desc,
       accentColor: meta.color,
     };
@@ -896,7 +903,7 @@ export function getRepresentativeCoaches(
 }
 
 /**
- * Builds 3-4 realistic rectangular segment bays/coupes with co-passenger travel legs and live vacancy tracking.
+ * Builds 3-4 realistic rectangular segment bays/coupes with live vacancy tracking (NO stranger names).
  */
 export function getCoachSegmentBays(
   classCode: string,
@@ -916,26 +923,11 @@ export function getCoachSegmentBays(
     { code: 'MMCT', name: 'Mumbai Central', platform: 'Pf 3', distanceKm: 1386, scheduledArr: '08:35', scheduledDep: '08:35', haltMins: 0 },
   ];
 
-  const coPassengerNames = [
-    { name: 'Dr. Ramesh Sharma', gender: 'Male', age: 58 },
-    { name: 'Pooja Verma', gender: 'Female', age: 29 },
-    { name: 'Arjun Deshmukh', gender: 'Male', age: 34 },
-    { name: 'Sunita Patel', gender: 'Female', age: 62 },
-    { name: 'Vikram Sengupta', gender: 'Male', age: 41 },
-    { name: 'Ananya Roy', gender: 'Female', age: 24 },
-    { name: 'Col. Hardeep Singh', gender: 'Male', age: 66 },
-    { name: 'Meera Nambiar', gender: 'Female', age: 31 },
-    { name: 'Aditya Kulkarni', gender: 'Male', age: 26 },
-    { name: 'Kavita Joshi', gender: 'Female', age: 47 },
-    { name: 'Sanjay Reddy', gender: 'Male', age: 52 },
-    { name: 'Deepak Mishra', gender: 'Male', age: 38 },
-  ];
-
   const userSeatNums = userBookedSeats.map((s) => s.seatNumber);
 
   // Helper to construct a single berth
   const buildBerth = (seatNum: number, typeCode: string, fullType: string, bayIdx: number): SegmentBerth => {
-    // Check if reallocated
+    // Check if reallocated by user
     const reallocatedItem = activeReallocations.find((r) => r.toSeat === seatNum && r.status === 'APPROVED');
     if (reallocatedItem) {
       return {
@@ -961,11 +953,7 @@ export function getCoachSegmentBays(
       };
     }
 
-    // Check if co-passenger is assigned
-    const seed = (seatNum * 37 + bayIdx * 19) % coPassengerNames.length;
-    const coPass = coPassengerNames[seed];
-    
-    // Stoppage where this co-passenger deboards (e.g. Stn 1, 2, 3, or last station)
+    // Stoppage where this occupied berth deboards (e.g. Stn 1, 2, 3, or last station)
     const deboardStnIndex = 1 + ((seatNum * 7 + bayIdx * 3) % (defaultRoute.length - 1));
     const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[defaultRoute.length - 1];
 
@@ -986,9 +974,6 @@ export function getCoachSegmentBays(
         occupancyStatus: 'VACANT',
         isBesideUser: isBeside,
         coPassengerDetails: {
-          name: `${coPass.name} (Deboarded)`,
-          gender: coPass.gender,
-          age: coPass.age,
           travelFrom: defaultRoute[0].name,
           travelTo: deboardStn.name,
           deboardsAtStationIndex: deboardStnIndex,
@@ -1004,9 +989,6 @@ export function getCoachSegmentBays(
       occupancyStatus: 'OCCUPIED',
       isBesideUser: isBeside,
       coPassengerDetails: {
-        name: coPass.name,
-        gender: coPass.gender,
-        age: coPass.age,
         travelFrom: defaultRoute[0].name,
         travelTo: deboardStn.name,
         deboardsAtStationIndex: deboardStnIndex,
