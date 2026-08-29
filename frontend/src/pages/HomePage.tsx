@@ -16,6 +16,7 @@ import { Card } from '../design-system/components/Card';
 import TypewriterText from '../components/smoothui/typewriter-text';
 import { parseNiraIntent } from '../services/niraApi';
 import { SafeAssistParser } from '../utils/SafeAssistParser';
+import { JargonHint } from '../components/JargonHint';
 
 export const HomePage: React.FC = () => {
   const {
@@ -297,7 +298,6 @@ export const HomePage: React.FC = () => {
           <div className="w-10 h-10 rounded-xl bg-purple-700/80 border border-purple-500/60 flex items-center justify-center shrink-0 shadow-inner">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-xs sm:text-sm text-white block">
                 Want a Step-by-Step Guided Walkthrough?
@@ -309,7 +309,6 @@ export const HomePage: React.FC = () => {
             <p className="text-[11px] text-purple-200 font-medium mt-0.5">
               Experience the full guided walkthrough with blurred overlays, live arrows, voice audio, and 1-tap booking!
             </p>
-          </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
           <button
@@ -825,11 +824,16 @@ export const HomePage: React.FC = () => {
           ═══════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="feature-guide-title" className="rounded-3xl border border-purple-100 bg-white p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col gap-2 border-b border-purple-50 pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+          <div className="flex items-start gap-3">
+            <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-purple-50 p-1 sm:flex">
+              <img src="/assets/images/characters/nira_idea.png" alt="Nira" className="h-full w-full object-contain" />
+            </div>
+            <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-700">Nirantar guide</p>
             <h2 id="feature-guide-title" className="mt-1 font-display text-lg font-black text-slate-950 sm:text-xl">
               Everything you need for a smoother train journey
             </h2>
+            </div>
           </div>
           <p className="max-w-md text-xs font-medium leading-relaxed text-slate-500">
             Explore a feature when you need it. Underlined railway terms reveal a plain-English explanation on hover.
@@ -855,12 +859,12 @@ export const HomePage: React.FC = () => {
           <button type="button" onClick={() => navigateTo('payment')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🛡️</span>
             <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Pay with safeguards</h3>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Use UPI, cards or net banking with payment-status checks designed to prevent duplicate charges.</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Use <JargonHint term="UPI" />, cards or net banking with payment-status checks designed to prevent duplicate charges.</p>
           </button>
           <button type="button" onClick={() => navigateTo('track')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">📍</span>
             <h3 className="mt-1 text-xs font-black text-slate-900 group-hover:text-purple-800">Track and understand tickets</h3>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Follow live train movement, platform updates and PNR status in language that is easy to act on.</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">Follow live train movement, platform updates and <JargonHint term="PNR" /> status in language that is easy to act on.</p>
           </button>
           <button type="button" onClick={() => navigateTo('my-journeys')} className="group rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm">
             <span className="text-lg">🎫</span>
@@ -870,7 +874,12 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-purple-50 px-3.5 py-3">
-          <p className="text-[11px] font-semibold text-purple-950">Need guidance at any point? Nira can explain railway terms and help with the next step.</p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white p-0.5 ring-1 ring-purple-100">
+              <img src="/assets/images/characters/citizen_wave.png" alt="Passenger" className="h-full w-full object-contain" />
+            </div>
+            <p className="text-[11px] font-semibold text-purple-950">Need guidance at any point? Nira can explain railway terms and help with the next step.</p>
+          </div>
           <button type="button" onClick={() => navigateTo('help')} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-purple-800 shadow-sm ring-1 ring-purple-100 transition-colors hover:bg-purple-100">Open Help Center <span aria-hidden="true">→</span></button>
         </div>
       </section>
