@@ -51,7 +51,7 @@ export const SettingsPage: React.FC = () => {
   });
 
   const categories = [
-    { id: 'general', label: 'General & Wallpaper', icon: SettingsIcon },
+    { id: 'general', label: 'General & Preferences', icon: SettingsIcon },
     { id: 'profile', label: 'Avatar & Profile', icon: User },
     { id: 'notifications', label: 'Alerts & Chimes', icon: Bell },
     { id: 'privacy', label: 'Zero-PII Vault', icon: Lock },
@@ -74,14 +74,6 @@ export const SettingsPage: React.FC = () => {
     { id: 'nira_guide', name: 'Nira Copilot', role: 'AI Assistant Edition', path: '/assets/images/avatars/avatar_10_nira_guide.svg' },
     { id: 'ananya', name: 'Ananya', role: 'Digital Rail Navigator', path: '/assets/images/avatars/avatar_11_ananya.svg' },
     { id: 'conductor', name: 'Chief Conductor', role: 'TTE Conductor Edition', path: '/assets/images/avatars/avatar_12_conductor.svg' },
-  ];
-
-  const SCENIC_THEMES = [
-    { id: 'vande_bharat', name: 'Vande Bharat Sunrise', path: '/assets/images/settings_bg.png', tag: 'High-Speed Violet' },
-    { id: 'himalayan', name: 'Himalayan Mountain Pass', path: '/assets/images/banners/scenic_railway_banner.png', tag: 'Kalka-Shimla Mist' },
-    { id: 'konkan', name: 'Konkan Coastal Green', path: '/assets/images/booking_scenic_bg.jpg', tag: 'Western Ghats Viaduct' },
-    { id: 'csmt_heritage', name: 'CSMT Heritage Glow', path: '/assets/images/hero_station_bg.jpg', tag: 'Golden Terminus' },
-    { id: 'cyber_radar', name: 'Cyber Station Radar', path: '/assets/images/discover_station_bg.jpg', tag: 'Night Matrix' },
   ];
 
   const playAudioSimulation = (toneName: string) => {
@@ -184,11 +176,11 @@ export const SettingsPage: React.FC = () => {
                 <Sparkles className="w-3 h-3 text-purple-300" />
                 <span>Preferences & Privacy Vault</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Settings & Customization
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
+                Settings & Preferences
               </h1>
               <p className="text-xs sm:text-sm font-medium text-purple-200/90 mt-0.5">
-                Personalize your avatar, scenic wallpapers, accessibility, and zero-PII security
+                Personalize your citizen avatar, audio chimes, accessibility, and zero-PII security
               </p>
             </div>
           </div>
@@ -197,11 +189,11 @@ export const SettingsPage: React.FC = () => {
           <div className="relative z-10 hidden sm:flex items-center gap-4 mt-4 sm:mt-0 shrink-0">
             {saveSuccess ? (
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 p-2 pr-5 rounded-full shadow-lg animate-in fade-in slide-in-from-right-4">
-                <div className="w-16 h-16 overflow-hidden rounded-full shadow-lg">
+                <div className="w-16 h-16 flex items-center justify-center">
                   <img
-                    src="/assets/images/characters/nira_excited.jpg"
+                    src="/assets/images/characters/nira_excited.png"
                     alt="Saved"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-md"
                   />
                 </div>
                 <span className="text-emerald-300 font-bold flex items-center gap-1.5 text-sm">
@@ -210,19 +202,19 @@ export const SettingsPage: React.FC = () => {
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-28 h-28 overflow-hidden rounded-2xl shadow-xl transform rotate-2 hover:rotate-0 transition-transform bg-purple-900/40 p-1 border border-purple-400/20">
+              <div className="flex items-center gap-4">
+                <div className="w-28 h-28 transform rotate-2 hover:rotate-0 transition-transform flex items-center justify-center">
                   <img
-                    src="/assets/images/characters/nira_settings.jpg"
+                    src="/assets/images/characters/nira_settings.png"
                     alt="Nira Settings"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-xl"
                   />
                 </div>
-                <div className="w-20 h-20 overflow-hidden rounded-2xl shadow-md transform -rotate-3 hover:rotate-0 transition-transform bg-purple-900/40 p-1 border border-purple-400/20">
+                <div className="w-22 h-22 transform -rotate-3 hover:rotate-0 transition-transform flex items-center justify-center">
                   <img
                     src="/assets/images/characters/ananya_nira_duo.png"
                     alt="Ananya & Nira"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-lg"
                   />
                 </div>
               </div>
@@ -231,19 +223,17 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            2. TWO-COLUMN LAYOUT: CATEGORIES + CONTROLS
+            2. TWO-COLUMN LAYOUT
             ═══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
           
-          {/* ── LEFT COLUMN: CATEGORIES (4 Cols) ── */}
           <div className="md:col-span-4 bg-white/80 backdrop-blur-xl rounded-[2rem] p-4 shadow-xl border border-purple-100/60 space-y-3">
             
-            {/* User Avatar Header Card with Real Citizen Photo */}
             <div 
               onClick={() => setActiveTab('profile')}
               className="p-3.5 rounded-3xl bg-gradient-to-r from-purple-100/90 via-indigo-50/90 to-pink-50/90 border border-purple-200/60 flex items-center gap-3.5 shadow-sm hover:shadow-md cursor-pointer transition-all group"
             >
-              <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md shrink-0 transition-transform group-hover:scale-105 bg-white p-0.5 border border-purple-200">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 transition-transform group-hover:scale-105 flex items-center justify-center">
                 <img
                   src={citizenProfile?.avatar || '/assets/images/avatars/avatar_1_student.svg'}
                   alt="Citizen Profile"
@@ -251,15 +241,13 @@ export const SettingsPage: React.FC = () => {
                 />
               </div>
               <div className="min-w-0">
-                <div className="font-black text-slate-900 text-sm truncate group-hover:text-purple-900 transition-colors">
-                  {citizenProfile?.name || 'Pratay Karali'}
-                </div>
-                <div className="text-xs text-purple-700 font-bold flex items-center gap-1 mt-0.5 truncate">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">{citizenProfile?.role || 'Citizen Explorer'}</span>
-                </div>
+                <h3 className="font-black text-sm text-slate-950 truncate">{citizenProfile?.name || 'Citizen User'}</h3>
+                <span className="text-[11px] text-purple-700 font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                  <span>{citizenProfile?.role || 'Citizen & Explorer'}</span>
+                </span>
               </div>
-              <ChevronRight className="w-4 h-4 ml-auto text-purple-400 group-hover:text-purple-700 transition-colors shrink-0" />
+              <ChevronRight className="w-4 h-4 ml-auto text-purple-400 group-hover:translate-x-0.5 transition-transform" />
             </div>
 
             <div className="space-y-1.5 px-1">
@@ -291,12 +279,11 @@ export const SettingsPage: React.FC = () => {
               })}
             </div>
 
-            {/* Mascot Guide Info Box */}
             <div className="pt-3 pb-1 px-1">
               <div className="relative overflow-hidden p-4 rounded-3xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100 shadow-sm flex items-center gap-3.5 group hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 shrink-0 overflow-hidden rounded-2xl shadow-md transition-transform group-hover:scale-105 bg-white/80 p-0.5">
+                <div className="w-16 h-16 shrink-0 overflow-hidden transition-transform group-hover:scale-105 flex items-center justify-center">
                   <img
-                    src="/assets/images/characters/nira_guide_teacher.jpg"
+                    src="/assets/images/characters/nira_guide_teacher.png"
                     alt="Guide"
                     className="w-full h-full object-contain"
                   />
@@ -309,10 +296,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN: CATEGORY-SPECIFIC SETTINGS CONTROLS (8 Cols) ── */}
           <div className="relative overflow-hidden md:col-span-8 bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 shadow-xl border border-purple-100/60 min-h-[600px] flex flex-col">
-            
-            {/* Subtle Dot Grid Pattern */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #6b21a8 1px, transparent 0)', backgroundSize: '24px 24px' }} />
 
             <div className="relative z-10 flex items-center justify-between pb-5 border-b border-purple-100 mb-6">
@@ -320,7 +304,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="w-2 h-7 bg-gradient-to-b from-purple-600 to-indigo-600 rounded-full" />
                 <h2 className="text-lg font-black text-slate-900 tracking-tight capitalize">
                   {activeTab === 'general'
-                    ? 'General Settings & Scenic Wallpapers'
+                    ? 'General Settings & Preferences'
                     : activeTab === 'profile'
                     ? 'Citizen Avatar Picker & Identity'
                     : activeTab === 'notifications'
@@ -345,53 +329,18 @@ export const SettingsPage: React.FC = () => {
             <form onSubmit={handleSave} className="relative z-10 flex-1 flex flex-col">
               <div className="flex-1 space-y-5 text-xs sm:text-sm font-semibold text-slate-700">
                 
-                {/* ── TAB 1: GENERAL & SCENIC WALLPAPERS ── */}
                 {activeTab === 'general' && (
-                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-                    
-                    {/* SCENIC THEMES SELECTOR */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
-                          <ImageIcon className="w-4 h-4 text-purple-700" />
-                          <span>Scenic Indian Railway Wallpapers</span>
-                        </label>
-                        <span className="text-[11px] text-purple-700 font-bold">5 Available</span>
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-100 flex items-center gap-3">
+                      <div className="w-12 h-12 flex items-center justify-center shrink-0">
+                        <img src="/assets/images/characters/nira_idea.png" alt="Preferences" className="w-full h-full object-contain drop-shadow-sm" />
                       </div>
-                      
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {SCENIC_THEMES.map((theme) => {
-                          const isSelected = activeThemeBg === theme.path;
-                          return (
-                            <div
-                              key={theme.id}
-                              onClick={() => {
-                                setActiveThemeBg(theme.path);
-                                setSettings({ ...settings, scenicWallpaper: theme.name });
-                              }}
-                              className={`relative rounded-2xl overflow-hidden cursor-pointer border-2 transition-all p-1 group shadow-xs ${
-                                isSelected ? 'border-purple-600 ring-2 ring-purple-400/40 shadow-md scale-[1.02]' : 'border-purple-100 hover:border-purple-300'
-                              }`}
-                            >
-                              <div className="h-20 sm:h-24 rounded-xl overflow-hidden relative bg-slate-900">
-                                <img src={theme.path} alt={theme.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                                <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
-                                  <span className="text-[10px] font-black text-white truncate">{theme.name}</span>
-                                  {isSelected && (
-                                    <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0">
-                                      <Check className="w-2.5 h-2.5" />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="space-y-0.5">
+                        <h4 className="font-black text-sm text-purple-950">App Appearance & Booking Preferences</h4>
+                        <p className="text-xs text-slate-600 font-medium">Customize interface theme, default train classes, and session retention.</p>
                       </div>
                     </div>
 
-                    {/* Setting Rows */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
                         <div>
@@ -446,10 +395,17 @@ export const SettingsPage: React.FC = () => {
                         />
                       </button>
                     </div>
+
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-purple-100 shadow-2xs hover:shadow-sm hover:border-purple-200 transition-all">
+                      <div>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Instant 1-Click Ticket Checkout</span>
+                        <span className="text-xs text-slate-500 font-medium">Use pre-funded citizen virtual wallet for zero OTP friction</span>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">Enabled</span>
+                    </div>
                   </div>
                 )}
 
-                {/* ── TAB 2: AVATAR & PROFILE PICKER ── */}
                 {activeTab === 'profile' && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
                     <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-100/80 via-indigo-50/80 to-pink-50/80 border border-purple-200/80 flex items-center justify-between">
@@ -457,7 +413,7 @@ export const SettingsPage: React.FC = () => {
                         <h4 className="font-black text-sm text-purple-950">Citizen Avatar Gallery (12 Characters)</h4>
                         <p className="text-xs text-slate-600 font-medium">Select your preferred avatar for tickets, copilot chats, and profile identity.</p>
                       </div>
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white p-0.5 border border-purple-200 shadow-sm shrink-0">
+                      <div className="w-12 h-12 flex items-center justify-center shrink-0">
                         <img src={citizenProfile?.avatar || '/assets/images/avatars/avatar_1_student.svg'} alt="Active Avatar" className="w-full h-full object-contain" />
                       </div>
                     </div>
@@ -475,10 +431,10 @@ export const SettingsPage: React.FC = () => {
                                 : 'bg-white border-purple-100 hover:border-purple-300 hover:bg-purple-50/40'
                             }`}
                           >
-                            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white shadow-xs p-1 border border-purple-200 transition-transform group-hover:scale-108 relative">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-108 relative flex items-center justify-center">
                               <img src={av.path} alt={av.name} className="w-full h-full object-contain" />
                               {isSelected && (
-                                <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
                                   <Check className="w-2.5 h-2.5" />
                                 </div>
                               )}
@@ -561,7 +517,7 @@ export const SettingsPage: React.FC = () => {
                 {activeTab === 'privacy' && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
                     <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 flex items-start gap-4 shadow-sm">
-                      <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm shrink-0 bg-white p-1">
+                      <div className="w-16 h-16 shrink-0 flex items-center justify-center">
                         <img src="/assets/images/safety_shield.png" alt="Safety Shield" className="w-full h-full object-contain" />
                       </div>
                       <div className="space-y-1">
@@ -621,8 +577,8 @@ export const SettingsPage: React.FC = () => {
                 {activeTab === 'language' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-4 p-4 rounded-2xl bg-purple-50 border border-purple-100">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0 bg-white p-0.5">
-                        <img src="/assets/images/characters/nira_guide_teacher.jpg" alt="Language Guide" className="w-full h-full object-contain" />
+                      <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                        <img src="/assets/images/characters/nira_guide_teacher.png" alt="Language Guide" className="w-full h-full object-contain" />
                       </div>
                       <div>
                         <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Multilingual Indian Regional Localization</span>
@@ -724,8 +680,8 @@ export const SettingsPage: React.FC = () => {
         
         {/* Decorative Footer Section */}
         <div className="mt-8 flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity">
-          <div className="w-10 h-10 overflow-hidden rounded-full shadow-sm">
-            <img src="/assets/images/characters/nira_settings.jpg" alt="Nira" className="w-full h-full object-contain" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img src="/assets/images/characters/nira_settings.png" alt="Nira" className="w-full h-full object-contain" />
           </div>
           <div className="text-xs font-bold text-slate-500">
             Nirantar System OS • v2.0 • Privacy First

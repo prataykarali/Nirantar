@@ -57,7 +57,7 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
       status: 'upcoming',
       summary: "You'll temporarily leave NIRANTAR to complete payment.",
       details: 'A ₹50 statutory processing fee will be processed via our resilient Payment Bridge adapter.',
-      avatar: '/assets/images/characters/nira_settings.jpg',
+      avatar: '/assets/images/characters/nira_settings.png',
       icon: CreditCard,
     },
     {
@@ -66,7 +66,7 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
       status: 'upcoming',
       summary: 'The department will verify your application.',
       details: 'Designated official reviews submitted details. Automatic telemetry tracking keeps your place safe.',
-      avatar: '/assets/images/characters/nira_explorer.jpg',
+      avatar: '/assets/images/characters/nira_explorer.png',
       icon: FileCheck,
     },
     {
@@ -75,7 +75,7 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
       status: 'upcoming',
       summary: 'Receive your verified digital certificate.',
       details: 'Download QR-verified digital document with official cryptographic seal.',
-      avatar: '/assets/images/characters/nira_excited.jpg',
+      avatar: '/assets/images/characters/nira_excited.png',
       icon: Award,
     },
   ];
@@ -131,18 +131,18 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
 
           {/* Mascot Avatars Showcase */}
           <div className="relative z-10 flex items-center gap-4 shrink-0">
-            <div className="w-36 h-36 md:w-44 md:h-44 rounded-3xl shadow-2xl overflow-hidden transition-transform hover:scale-105 duration-300">
+            <div className="w-36 h-36 md:w-44 md:h-44 flex items-center justify-center transition-transform hover:scale-105 duration-300">
               <img 
-                src="/assets/images/characters/nira_guide_teacher.jpg" 
+                src="/assets/images/characters/nira_guide_teacher.png" 
                 alt="Guide Teacher" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-xl"
               />
             </div>
-            <div className="hidden sm:block w-24 h-24 rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-105 duration-300 -mt-8">
+            <div className="hidden sm:flex w-24 h-24 items-center justify-center transition-transform hover:scale-105 duration-300 -mt-8">
               <img 
                 src="/assets/images/characters/ananya_holding_map.png" 
                 alt="Citizen Guide" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-md"
               />
             </div>
           </div>
@@ -160,8 +160,8 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">A step-by-step path from verification to digital certificate</p>
             </div>
-            <div className="hidden md:block w-20 h-20 rounded-2xl overflow-hidden shadow-md">
-              <img src="/assets/images/characters/nira_explorer.jpg" alt="Explorer" className="w-full h-full object-contain" />
+            <div className="hidden md:flex w-20 h-20 items-center justify-center">
+              <img src="/assets/images/characters/nira_explorer.png" alt="Explorer" className="w-full h-full object-contain drop-shadow-sm" />
             </div>
           </div>
 
@@ -303,8 +303,8 @@ export const ServiceGuidePage: React.FC<ServiceGuidePageProps> = ({ onNavigate }
 
           {/* START APPLICATION CTA */}
           <div className="md:col-span-1 flex flex-col items-center justify-center gap-4 text-center">
-            <div className="w-28 h-28 rounded-3xl overflow-hidden shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
-              <img src="/assets/images/characters/nira_excited.jpg" alt="Excited Mascot" className="w-full h-full object-contain" />
+            <div className="w-28 h-28 flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
+              <img src="/assets/images/characters/nira_excited.png" alt="Excited Mascot" className="w-full h-full object-contain drop-shadow-md" />
             </div>
             
             <button

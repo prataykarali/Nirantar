@@ -252,27 +252,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <img
             src={
               activePage === 'completion' || activePage === 'ticket'
-                ? '/assets/images/characters/nira_excited.jpg'
+                ? '/assets/images/characters/nira_excited.png'
                 : activePage === 'my-journeys' || activePage === 'journeys'
-                ? '/assets/images/characters/nira_traveler.jpg'
+                ? '/assets/images/characters/nira_traveler.png'
                 : activePage === 'payment' || activePage === 'payments'
-                ? '/assets/images/characters/nira_settings.jpg'
+                ? '/assets/images/characters/nira_settings.png'
                 : activePage === 'booking' || activePage === 'workspace'
-                ? '/assets/images/characters/nira_traveler.jpg'
+                ? '/assets/images/characters/nira_traveler.png'
                 : activePage === 'trains' || activePage === 'results'
-                ? '/assets/images/characters/nira_conductor.jpg'
+                ? '/assets/images/characters/nira_conductor.png'
                 : activePage === 'discover'
-                ? '/assets/images/characters/nira_explorer.jpg'
+                ? '/assets/images/characters/nira_explorer.png'
                 : activePage === 'track'
-                ? '/assets/images/characters/nira_explorer.jpg'
+                ? '/assets/images/characters/nira_explorer.png'
                 : activePage === 'help'
-                ? '/assets/images/characters/nira_guide_teacher.jpg'
+                ? '/assets/images/characters/nira_guide_teacher.png'
                 : activePage === 'settings'
-                ? '/assets/images/characters/nira_settings.jpg'
+                ? '/assets/images/characters/nira_settings.png'
                 : '/assets/images/characters/nira_happy_mascot.png'
             }
             alt="Nira AI Assistant"
-            className="w-20 h-20 rounded-2xl object-contain drop-shadow-md animate-bounce-gentle transition-all duration-300"
+            className="w-20 h-20 object-contain drop-shadow-md animate-bounce-gentle transition-all duration-300"
           />
         </div>
 

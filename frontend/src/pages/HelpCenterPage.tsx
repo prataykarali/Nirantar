@@ -202,18 +202,18 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
 
           {/* Large Mascot Teacher Illustration with Breathing Room */}
           <div className="shrink-0 flex items-center gap-3 justify-center">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl overflow-hidden shadow-2xl transition-transform hover:scale-105 duration-300">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center transition-transform hover:scale-105 duration-300">
               <img
-                src="/assets/images/characters/nira_guide_teacher.jpg"
+                src="/assets/images/characters/nira_guide_teacher.png"
                 alt="Nira Guide"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-xl"
               />
             </div>
-            <div className="hidden sm:block w-24 h-24 rounded-2xl overflow-hidden shadow-lg transition-transform hover:scale-105 duration-300 mt-4">
+            <div className="hidden sm:flex w-24 h-24 items-center justify-center transition-transform hover:scale-105 duration-300 mt-4">
               <img
                 src="/assets/images/characters/ananya_nira_duo.png"
                 alt="Mascot Duo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-lg"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. SPACIOUS 3-PILLAR GUIDANCE SECTION (Uncongested, Room to Breathe)
+          2. SPACIOUS 3-PILLAR GUIDANCE SECTION (With Dedicated Avatars)
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* CARD 1: GUIDANCE HIGHLIGHTS & TOUR */}
@@ -252,11 +252,14 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                 if (onOpenNiraChat) onOpenNiraChat();
                 sendNiraQuery("Show me the best train recommendations.");
               }}
-              className="w-full text-left p-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 transition-all flex items-center justify-between group cursor-pointer"
+              className="w-full text-left p-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 transition-all flex items-center gap-3 group cursor-pointer"
             >
-              <div className="space-y-0.5">
-                <p className="text-xs font-bold text-slate-800 group-hover:text-purple-950">"I recommend the best train"</p>
-                <p className="text-[11px] text-slate-500">Auto-ranks speed, punctuality & fare</p>
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/nira_idea.png" alt="Recommend" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-800 group-hover:text-purple-950 truncate">"I recommend the best train"</p>
+                <p className="text-[11px] text-slate-500 truncate">Auto-ranks speed, punctuality & fare</p>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 shrink-0">
                 ✨ Rank
@@ -266,11 +269,14 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             <button
               type="button"
               onClick={() => navigateTo('track')}
-              className="w-full text-left p-3 rounded-2xl bg-indigo-50/60 hover:bg-indigo-100/70 border border-indigo-100 transition-all flex items-center justify-between group cursor-pointer"
+              className="w-full text-left p-3 rounded-2xl bg-indigo-50/60 hover:bg-indigo-100/70 border border-indigo-100 transition-all flex items-center gap-3 group cursor-pointer"
             >
-              <div className="space-y-0.5">
-                <p className="text-xs font-bold text-slate-800 group-hover:text-indigo-950">"Where is my train right now?"</p>
-                <p className="text-[11px] text-slate-500">Live GPS telemetry & platform arrivals</p>
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/nira_robot_map.png" alt="Track" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-800 group-hover:text-indigo-950 truncate">"Where is my train right now?"</p>
+                <p className="text-[11px] text-slate-500 truncate">Live GPS telemetry & platform arrivals</p>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 shrink-0">
                 📍 Track
@@ -283,11 +289,14 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                 if (onOpenNiraChat) onOpenNiraChat();
                 sendNiraQuery("How does payment protection work?");
               }}
-              className="w-full text-left p-3 rounded-2xl bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-100 transition-all flex items-center justify-between group cursor-pointer"
+              className="w-full text-left p-3 rounded-2xl bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-100 transition-all flex items-center gap-3 group cursor-pointer"
             >
-              <div className="space-y-0.5">
-                <p className="text-xs font-bold text-slate-800 group-hover:text-emerald-950">"Is my payment protected?"</p>
-                <p className="text-[11px] text-slate-500">Zero-PII isolation & instant refunds</p>
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/nira_robot_tablet.png" alt="Safe Pay" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-800 group-hover:text-emerald-950 truncate">"Is my payment protected?"</p>
+                <p className="text-[11px] text-slate-500 truncate">Zero-PII isolation & instant refunds</p>
               </div>
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-xl bg-emerald-600 text-white shrink-0">
                 🛡️ Safe Pay
@@ -296,7 +305,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           </div>
         </div>
 
-        {/* CARD 2: TIPS FROM NIRA WITH PROMINENT MASCOT */}
+        {/* CARD 2: TIPS FROM NIRA WITH DEDICATED AVATARS */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-purple-100/80 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -315,39 +324,45 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           </div>
 
           <div className="space-y-2.5">
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 flex items-start gap-2.5">
-              <span className="text-base shrink-0">👥</span>
-              <div>
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 flex items-center gap-3">
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/ananya_holding_map.png" alt="Passenger Profiles" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-800">Save Passenger Profiles</p>
-                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                  Store frequent travelers in your Profile for instant 1-click autofill during booking.
+                <p className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
+                  Store frequent travelers in Profile for instant 1-click autofill.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 flex items-start gap-2.5">
-              <span className="text-base shrink-0">🔔</span>
-              <div>
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 flex items-center gap-3">
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/nira_conductor.png" alt="Waitlist Radar" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-800">Waitlist Movement Radar</p>
-                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                  Track RAC clearance probabilities and chart preparation times automatically.
+                <p className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
+                  Track RAC clearance probabilities and chart preparation times.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-100 flex items-start gap-2.5">
-              <span className="text-base shrink-0">🎙️</span>
-              <div>
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-100 flex items-center gap-3">
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img src="/assets/images/characters/nira_guide_teacher.png" alt="Voice & Multilingual" className="w-full h-full object-contain drop-shadow-xs" />
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-800">Voice & Multilingual</p>
-                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                  Ask Nira in Hindi, Bengali, or English for instant route answers and booking help.
+                <p className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
+                  Ask Nira in Hindi, Bengali, or English for instant route answers.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CARD 3: 5-STEP RAIL JOURNEY FLOW */}
+        {/* CARD 3: 5-STEP RAIL JOURNEY FLOW WITH AVATARS */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-purple-100/80 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -363,18 +378,21 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
 
           <div className="space-y-2">
             {[
-              { num: '1', title: 'Search Trains', desc: 'Enter cities & date with natural language' },
-              { num: '2', title: 'Select Express & Class', desc: 'View transparent berths, quota & rankings' },
-              { num: '3', title: 'Autofill Passenger', desc: 'DigiLocker verified with zero-PII protection' },
-              { num: '4', title: '1-Click Checkout', desc: 'Pre-funded citizen wallet with instant receipt' },
-              { num: '5', title: 'Digital e-Ticket & Radar', desc: 'Download QR pass & track GPS telemetry' },
+              { num: '1', title: 'Search Trains', desc: 'Enter cities & date naturally', avatar: '/assets/images/characters/nira_robot_map.png' },
+              { num: '2', title: 'Select Express & Class', desc: 'View transparent berths & ranking', avatar: '/assets/images/characters/citizen_ticket.png' },
+              { num: '3', title: 'Autofill Passenger', desc: 'DigiLocker zero-PII protection', avatar: '/assets/images/characters/citizen_confident.png' },
+              { num: '4', title: '1-Click Checkout', desc: 'Pre-funded wallet instant receipt', avatar: '/assets/images/characters/nira_happy.png' },
+              { num: '5', title: 'Digital e-Ticket & Radar', desc: 'QR pass & live GPS telemetry', avatar: '/assets/images/characters/nira_excited.png' },
             ].map((step, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50/40 transition-colors">
-                <span className="w-6 h-6 rounded-full bg-purple-700 text-white text-xs flex items-center justify-center font-black shrink-0 shadow-2xs">
+              <div key={idx} className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-purple-50/40 transition-colors">
+                <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                  <img src={step.avatar} alt={step.title} className="w-full h-full object-contain drop-shadow-xs" />
+                </div>
+                <span className="w-5 h-5 rounded-full bg-purple-700 text-white text-[10px] flex items-center justify-center font-black shrink-0 shadow-2xs">
                   {step.num}
                 </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-900 leading-none">{step.title}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-900 leading-none truncate">{step.title}</p>
                   <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{step.desc}</p>
                 </div>
               </div>
@@ -431,7 +449,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
               barWidth: 'w-full bg-emerald-500',
               rule: 'Legal right to travel. 2 passengers share 1 Side-Lower berth.',
               tip: 'Berths automatically upgrade to CNF as confirmed seats cancel.',
-              avatar: '/assets/images/characters/nira_conductor.jpg',
+              avatar: '/assets/images/characters/nira_conductor.png',
             },
             {
               term: 'GNWL',
@@ -441,7 +459,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
               barWidth: 'w-4/5 bg-purple-600',
               rule: 'Origin station quota. Always prioritized over remote quotas.',
               tip: 'First in line when RAC passengers convert to confirmed.',
-              avatar: '/assets/images/characters/nira_guide_teacher.jpg',
+              avatar: '/assets/images/characters/nira_guide_teacher.png',
             },
             {
               term: 'RLWL / PQWL',
@@ -451,7 +469,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
               barWidth: 'w-1/3 bg-rose-500',
               rule: 'Intermediate station quota with limited cancellations.',
               tip: 'Consider booking from originating station for better clearance.',
-              avatar: '/assets/images/characters/nira_explorer.jpg',
+              avatar: '/assets/images/characters/nira_explorer.png',
             },
           ].map((item, idx) => (
             <div
@@ -463,8 +481,8 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                   <span className="text-xs font-black text-slate-900 block">{item.term}</span>
                   <span className="text-[11px] font-bold text-purple-700">{item.title}</span>
                 </div>
-                <div className="w-8 h-8 rounded-xl overflow-hidden shadow-2xs shrink-0 bg-white border border-purple-100">
-                  <img src={item.avatar} alt={item.term} className="w-full h-full object-contain" />
+                <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                  <img src={item.avatar} alt={item.term} className="w-full h-full object-contain drop-shadow-xs" />
                 </div>
               </div>
 
@@ -536,11 +554,11 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
 
           {/* Quick Mascot Info */}
           <div className="pt-3 border-t border-purple-50 flex items-center gap-3 p-2">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-sm shrink-0">
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
               <img
-                src="/assets/images/characters/nira_explorer.jpg"
+                src="/assets/images/characters/nira_explorer.png"
                 alt="Nira Explorer"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-xs"
               />
             </div>
             <div className="text-[11px] leading-tight">
@@ -628,11 +646,11 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white shadow-xl border border-purple-500/20 flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4 text-center sm:text-left">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md shrink-0">
+          <div className="w-16 h-16 shrink-0 flex items-center justify-center">
             <img
-              src="/assets/images/characters/nira_conductor.jpg"
+              src="/assets/images/characters/nira_conductor.png"
               alt="Nira Conductor"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-md"
             />
           </div>
           <div className="space-y-0.5">

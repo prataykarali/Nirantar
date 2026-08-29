@@ -466,18 +466,18 @@ export const MyJourneysPage: React.FC = () => {
 
         {/* Mascot Illustrations */}
         <div className="hidden md:flex items-center gap-4 z-10 shrink-0">
-          <div className="w-40 h-40 overflow-hidden rounded-2xl shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
+          <div className="w-36 h-36 flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
             <img
-              src="/assets/images/characters/nira_conductor.jpg"
+              src="/assets/images/characters/nira_conductor.png"
               alt="Nira Conductor"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-xl"
             />
           </div>
-          <div className="w-32 h-32 overflow-hidden rounded-2xl shadow-lg transform -rotate-6 hover:rotate-0 transition-transform mt-8">
+          <div className="w-28 h-28 flex items-center justify-center transform -rotate-6 hover:rotate-0 transition-transform mt-6">
             <img
               src="/assets/images/characters/ananya_nira_duo.png"
               alt="Ananya & Nira Mascot Duo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-lg"
             />
           </div>
         </div>
@@ -903,18 +903,18 @@ export const MyJourneysPage: React.FC = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/40 rounded-full blur-3xl pointer-events-none"></div>
             
             <div className="flex items-center justify-center gap-6 z-10">
-              <div className="w-40 h-40 overflow-hidden rounded-2xl shadow-lg transform -rotate-6">
+              <div className="w-36 h-36 flex items-center justify-center transform -rotate-6">
                 <img
-                  src="/assets/images/characters/nira_traveler.jpg"
+                  src="/assets/images/characters/nira_traveler.png"
                   alt="Nira Traveler"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain drop-shadow-lg"
                 />
               </div>
-              <div className="w-32 h-32 overflow-hidden rounded-2xl shadow-lg transform rotate-12 mt-8">
+              <div className="w-28 h-28 flex items-center justify-center transform rotate-12 mt-6">
                 <img
                   src="/assets/images/characters/ananya_travel_luggage.png"
                   alt="No Journeys"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain drop-shadow-md"
                 />
               </div>
             </div>

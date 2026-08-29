@@ -168,17 +168,18 @@ export const getNiraAvatarAndMood = (
 
   // 1. Success, Confirmation, Celebration
   if (
-    t.includes('congratulations') ||
-    t.includes('confirmed') ||
-    t.includes('booked') ||
-    t.includes('hooray') ||
+    t.includes('thank') ||
+    t.includes('great') ||
+    t.includes('awesome') ||
+    t.includes('happy') ||
+    t.includes('love') ||
     t.includes('success') ||
     t.includes('verified') ||
     t.includes('yay') ||
     t.includes('done!') ||
     t.includes('cnf')
   ) {
-    return { src: '/assets/images/characters/nira_excited.jpg', mood: 'Super Excited', emoji: '🎉' };
+    return { src: '/assets/images/characters/nira_excited.png', mood: 'Super Excited', emoji: '🎉' };
   }
 
   // 2. Train tracking, Radar, GPS, Speed, Delay, Platform arrival
@@ -196,7 +197,7 @@ export const getNiraAvatarAndMood = (
     t.includes('which platform') ||
     t.includes('platform number')
   ) {
-    return { src: '/assets/images/characters/nira_explorer.jpg', mood: 'Live Radar Explorer', emoji: '🧭' };
+    return { src: '/assets/images/characters/nira_explorer.png', mood: 'Live Radar Explorer', emoji: '🧭' };
   }
 
   // 3. Booking, Reservation, Tatkal, Quota, Berth Autofill
@@ -227,7 +228,7 @@ export const getNiraAvatarAndMood = (
     t.includes('express') ||
     /\b\d{5}\b/.test(t)
   ) {
-    return { src: '/assets/images/characters/nira_conductor.jpg', mood: 'Chief Conductor', emoji: '🚂' };
+    return { src: '/assets/images/characters/nira_conductor.png', mood: 'Chief Conductor', emoji: '🚂' };
   }
 
   // 5. Teacher & Guide, Rules, Jargon explanations, Architecture
@@ -249,7 +250,7 @@ export const getNiraAvatarAndMood = (
     t.includes('jargon') ||
     t.includes('digilocker')
   ) {
-    return { src: '/assets/images/characters/nira_guide_teacher.jpg', mood: 'Railway Guide & Teacher', emoji: '🎓' };
+    return { src: '/assets/images/characters/nira_guide_teacher.png', mood: 'Railway Guide & Teacher', emoji: '🎓' };
   }
 
   // 6. Travel, Vacation, Luggage, Station Amenities, Meals, e-Catering
@@ -266,7 +267,7 @@ export const getNiraAvatarAndMood = (
     t.includes('catering') ||
     t.includes('tourist')
   ) {
-    return { src: '/assets/images/characters/nira_traveler.jpg', mood: 'Travel Companion', emoji: '🧳' };
+    return { src: '/assets/images/characters/nira_traveler.png', mood: 'Travel Companion', emoji: '🧳' };
   }
 
   // 7. Security, Settings, Password, PIN, Zero-PII, Vault
@@ -281,7 +282,7 @@ export const getNiraAvatarAndMood = (
     t.includes('vault') ||
     t.includes('language')
   ) {
-    return { src: '/assets/images/characters/nira_settings.jpg', mood: 'System & Security', emoji: '⚙️' };
+    return { src: '/assets/images/characters/nira_settings.png', mood: 'System & Security', emoji: '⚙️' };
   }
 
   // 8. Cancellation, Refund, Failed, Error, Empathy
