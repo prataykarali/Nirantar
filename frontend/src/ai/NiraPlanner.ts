@@ -359,10 +359,17 @@ export class NiraPlanner {
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };
-      default:
+      case 'home':
         return {
           intent: 'GENERAL_HELP',
           message: 'Where in India do you want to go? I can find trains, rank them by speed or fare, or track a live train number.',
+          actionCue: { type: 'NONE', requiresConfirmation: false },
+          source: 'SAFE_ASSIST_DETERMINISTIC',
+        };
+      default:
+        return {
+          intent: 'GENERAL_HELP',
+          message: '',
           actionCue: { type: 'NONE', requiresConfirmation: false },
           source: 'SAFE_ASSIST_DETERMINISTIC',
         };

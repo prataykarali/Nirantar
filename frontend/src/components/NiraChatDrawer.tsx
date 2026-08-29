@@ -406,11 +406,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     const greeting = NiraPlanner.generateStateAwareGreeting(ctx);
 
     if (messages.length === 0) {
+      const msgText = greeting.message?.trim() || 'Where in India do you want to go? I can find trains, rank them, or track a live train number.';
       const greetMsg: ChatMessage = {
         id: `nira-greeting-${Date.now()}`,
         sender: 'nira',
-        text: greeting.message.replace(/i'?m nira[^.!]*/i, '').trim() ||
-          'Where in India do you want to go? I can find trains, rank them, or track a live train number.',
+        text: msgText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages([greetMsg]);
@@ -419,19 +419,53 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
   const prevPageRef = useRef<string>(activePage);
 
-  // Auto-announce page transitions (e.g. ticket completion congratulations)
+  // Auto-announce page transitions ONLY for home, track, and booking flow pages
   useEffect(() => {
     if (isOpen && prevPageRef.current !== activePage) {
       prevPageRef.current = activePage;
+
+      // STRICT ALLOWLIST: ONLY announce for home, track, and active booking/ticket flow
+      const ALLOWED_ANNOUNCE_PAGES = [
+        'home',
+        'track',
+        'discover',
+        'trains',
+        'results',
+        'booking',
+        'workspace',
+        'payment',
+        'ticket',
+        'completion',
+      ];
+
+      if (!ALLOWED_ANNOUNCE_PAGES.includes(activePage)) {
+        // Completely silent on settings, help, profile, and non-booking utility screens
+        return;
+      }
+
       const ctx = getSanitizedContext();
       const greeting = NiraPlanner.generateStateAwareGreeting(ctx);
-      const pageChangeMsg: ChatMessage = {
-        id: `nira-page-${activePage}-${Date.now()}`,
-        sender: 'nira',
-        text: greeting.message,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, pageChangeMsg]);
+      if (!greeting.message || greeting.message.trim().length === 0) {
+        return;
+      }
+
+      setMessages((prev) => {
+        const lastMsg = prev[prev.length - 1];
+        // Prevent duplicate messages
+        if (lastMsg && lastMsg.sender === 'nira' && lastMsg.text.trim() === greeting.message.trim()) {
+          return prev;
+        }
+        return [
+          ...prev,
+          {
+            id: `nira-page-${activePage}-${Date.now()}`,
+            sender: 'nira',
+            text: greeting.message,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ];
+      });
+
       if (autoVoice) {
         speakNiraResponse(greeting.message);
       }
