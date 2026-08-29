@@ -14,9 +14,7 @@ from backend.app.models.journey_models import (
 )
 
 
-def hash_password(password: str) -> str:
-    """Simple hash for synthetic demo passwords. NOT production-grade."""
-    return hashlib.sha256(password.encode()).hexdigest()
+from backend.app.api.auth import hash_password
 
 
 STATIONS = [

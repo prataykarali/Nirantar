@@ -360,3 +360,68 @@ def test_api_security_audit_and_status() -> None:
     status_data = resp_status.json()
     assert status_data["status"] == 200
     assert status_data["zero_pii_enforced"] is True
+
+
+def test_auth_pbkdf2_password_hashing_and_verification() -> None:
+    from backend.app.api.auth import hash_password, verify_password
+
+    raw_pw = "SecureP@ssword2026!"
+    hashed = hash_password(raw_pw)
+    assert hashed.startswith("pbkdf2_sha256$")
+    assert verify_password(raw_pw, hashed) is True
+    assert verify_password("WrongPassword", hashed) is False
+    assert verify_password("", hashed) is False
+
+
+def test_auth_no_backdoor_login() -> None:
+    # Sign up a unique test user
+    test_user = "user_sec_test_" + str(int(__import__("time").time()))
+    signup_res = client.post("/api/v1/auth/signup", json={
+        "display_name": "Security Tester",
+        "username": test_user,
+        "email": f"{test_user}@test.com",
+        "password": "MySecretPassword123",
+    })
+    assert signup_res.status_code == 200
+
+    # Attempt login with backdoor "nirantar2026" - MUST fail with 401
+    bad_login = client.post("/api/v1/auth/login", json={
+        "username_or_email": test_user,
+        "password": "nirantar2026",
+    })
+    assert bad_login.status_code == 401
+
+    # Attempt login with actual password - MUST succeed
+    good_login = client.post("/api/v1/auth/login", json={
+        "username_or_email": test_user,
+        "password": "MySecretPassword123",
+    })
+    assert good_login.status_code == 200
+    assert good_login.json()["isAuthenticated"] is True
+
+
+def test_auth_session_unauthenticated_isolation() -> None:
+    # Query session with no user_id -> must be UNAUTHENTICATED and NOT return first user
+    sess = client.get("/api/v1/auth/session")
+    assert sess.status_code == 200
+    assert sess.json()["isAuthenticated"] is False
+    assert sess.json()["userId"] is None
+
+    # Query /me with no user_id -> must return 401
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 401
+
+
+def test_digilocker_aadhaar_zero_pii_masking() -> None:
+    digi_res = client.post("/api/v1/auth/oauth/digilocker", json={
+        "aadhaar_number": "999988887777",
+        "full_name": "Aadhaar Test Citizen",
+        "phone": "9123456789",
+    })
+    assert digi_res.status_code == 200
+    data = digi_res.json()
+    assert data["isAuthenticated"] is True
+    assert data["aadhaarVerified"] is True
+    # Ensure masked version is present and raw 12 digits are masked
+    assert data.get("maskedAadhaar") == "XXXX-XXXX-7777"
+

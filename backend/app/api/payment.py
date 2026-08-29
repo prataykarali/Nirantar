@@ -72,6 +72,9 @@ def create_payment(req: CreatePaymentRequest, db: Session = Depends(get_db)):
     if existing:
         return _serialize_payment(existing)
 
+    if req.amount <= 0:
+        raise HTTPException(400, "Payment amount must be greater than zero.")
+
     # Check journey exists
     journey = db.query(JourneyModel).filter_by(id=req.journey_id).first()
     if not journey:

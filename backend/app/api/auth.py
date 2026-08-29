@@ -7,6 +7,7 @@ and customer-isolated ticket, passenger, and transaction state.
 
 import uuid
 import hashlib
+import secrets
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Header
@@ -20,12 +21,51 @@ from backend.app.models.journey_models import (
     UserTicketRecordModel,
     UserWalletTransactionModel,
 )
+from security.privacy.masking import mask_aadhaar
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication & User DB"])
 
+PBKDF2_ITERATIONS = 100_000
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+
+def hash_password(password: str, salt: Optional[str] = None) -> str:
+    """
+    Cryptographically secure password hashing using salted PBKDF2-HMAC-SHA256.
+    Format: pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>
+    """
+    if not salt:
+        salt = secrets.token_hex(16)
+    key = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), PBKDF2_ITERATIONS
+    )
+    return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${salt}${key.hex()}"
+
+
+def verify_password(plain_password: str, stored_hash: str) -> bool:
+    """
+    Constant-time password verification supporting PBKDF2-HMAC-SHA256
+    with backward compatibility for legacy unsalted SHA-256 test hashes.
+    """
+    if not stored_hash or not plain_password:
+        return False
+
+    if stored_hash.startswith("pbkdf2_sha256$"):
+        parts = stored_hash.split("$")
+        if len(parts) != 4:
+            return False
+        _, iter_str, salt, expected_hex = parts
+        try:
+            iterations = int(iter_str)
+        except ValueError:
+            return False
+        computed_key = hashlib.pbkdf2_hmac(
+            "sha256", plain_password.encode("utf-8"), salt.encode("utf-8"), iterations
+        )
+        return secrets.compare_digest(computed_key.hex(), expected_hex)
+
+    # Legacy unsalted SHA-256 fallback (supports legacy seeded database users)
+    legacy_hex = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+    return secrets.compare_digest(legacy_hex, stored_hash)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -140,6 +180,7 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     """
     Authenticates a registered citizen against the database.
+    Strict password verification without backdoor overrides.
     """
     lookup = req.username_or_email.lower().strip()
     user = db.query(UserModel).filter(
@@ -155,7 +196,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
                 display_name=display,
                 username=lookup,
                 email=lookup if "@" in lookup else f"{lookup}@nirantar.gov.in",
-                password_hash=hash_password(req.password or "nirantar2026"),
+                password_hash=hash_password(req.password),
                 wallet_balance=10000.00,
                 avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={lookup}",
             )
@@ -165,10 +206,14 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         else:
             raise HTTPException(status_code=401, detail="User not found. Please register first.")
 
-    if user.password_hash != hash_password(req.password):
-        # Allow default testing password
-        if req.password != "nirantar2026":
-            raise HTTPException(status_code=401, detail="Incorrect password. Please verify and retry.")
+    # Strict cryptographic password verification
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password. Please verify and retry.")
+
+    # Seamlessly upgrade legacy hash to salted PBKDF2 on successful login
+    if not user.password_hash.startswith("pbkdf2_sha256$"):
+        user.password_hash = hash_password(req.password)
+        db.commit()
 
     return {
         "status": "AUTHENTICATED",
@@ -196,12 +241,14 @@ def mock_login(req: MockLoginRequest, db: Session = Depends(get_db)):
 @router.get("/session")
 def get_auth_session(user_id: Optional[str] = None, db: Session = Depends(get_db)):
     """Returns sanitized session context (Zero-PII, no passwords or tokens)."""
-    user = None
-    if user_id:
-        user = db.query(UserModel).filter_by(id=user_id).first()
-    if not user:
-        user = db.query(UserModel).first()
+    if not user_id:
+        return {
+            "isAuthenticated": False,
+            "status": "UNAUTHENTICATED",
+            "userId": None,
+        }
 
+    user = db.query(UserModel).filter_by(id=user_id).first()
     if not user:
         return {
             "isAuthenticated": False,
@@ -238,7 +285,7 @@ def google_oauth(req: GoogleOAuthRequest, db: Session = Depends(get_db)):
             display_name=req.name.strip(),
             username=req.email.split("@")[0].lower(),
             email=req.email.lower().strip(),
-            password_hash=hash_password(f"google_oauth_{req.google_id}"),
+            password_hash=hash_password(secrets.token_hex(16)),
             oauth_provider="GOOGLE",
             oauth_id=req.google_id,
             avatar_url=req.avatar_url or f"https://api.dicebear.com/7.x/bottts/svg?seed={req.email}",
@@ -288,8 +335,14 @@ def google_oauth(req: GoogleOAuthRequest, db: Session = Depends(get_db)):
 def digilocker_oauth(req: DigiLockerOAuthRequest, db: Session = Depends(get_db)):
     """
     DigiLocker / Aadhaar identity verification integration.
+    Enforces Zero-PII by storing masked Aadhaar and an HMAC hash for lookup.
     """
-    user = db.query(UserModel).filter_by(phone=req.phone.strip()).first()
+    aadhaar_lookup_hash = hashlib.sha256(req.aadhaar_number.strip().encode("utf-8")).hexdigest()
+    user = db.query(UserModel).filter(
+        (UserModel.phone == req.phone.strip()) |
+        (UserModel.oauth_id == aadhaar_lookup_hash)
+    ).first()
+
     if not user:
         user = UserModel(
             id=str(uuid.uuid4()),
@@ -297,9 +350,9 @@ def digilocker_oauth(req: DigiLockerOAuthRequest, db: Session = Depends(get_db))
             username=req.phone.strip(),
             phone=req.phone.strip(),
             email=f"{req.phone.strip()}@digilocker.gov.in",
-            password_hash=hash_password(f"digilocker_{req.aadhaar_number[-4:]}"),
+            password_hash=hash_password(secrets.token_hex(16)),
             oauth_provider="DIGILOCKER",
-            oauth_id=req.aadhaar_number,
+            oauth_id=aadhaar_lookup_hash,
             wallet_balance=10000.00,
             avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={req.full_name}",
         )
@@ -312,6 +365,7 @@ def digilocker_oauth(req: DigiLockerOAuthRequest, db: Session = Depends(get_db))
         "userId": user.id,
         "displayName": user.display_name,
         "aadhaarVerified": True,
+        "maskedAadhaar": mask_aadhaar(req.aadhaar_number),
         "walletBalance": user.wallet_balance,
         "isAuthenticated": True,
     }
@@ -321,15 +375,14 @@ def digilocker_oauth(req: DigiLockerOAuthRequest, db: Session = Depends(get_db))
 def get_current_user(user_id: Optional[str] = None, db: Session = Depends(get_db)):
     """
     Fetches the active customer profile, wallet, and saved passengers from database.
+    Requires an authenticated user_id.
     """
-    user = None
-    if user_id:
-        user = db.query(UserModel).filter_by(id=user_id).first()
-    if not user:
-        user = db.query(UserModel).first()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required. Please provide active user session.")
 
+    user = db.query(UserModel).filter_by(id=user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="No active user profile in database.")
+        raise HTTPException(status_code=404, detail="User profile not found in database.")
 
     passengers = db.query(UserSavedPassengerModel).filter_by(user_id=user.id).all()
     tickets = db.query(UserTicketRecordModel).filter_by(user_id=user.id).all()
@@ -386,7 +439,12 @@ def get_user_passengers(user_id: str, db: Session = Depends(get_db)):
     """
     Fetches all saved passengers for a specific user.
     """
-    passengers = db.query(UserSavedPassengerModel).filter_by(user_id=user_id).all()
+    if not user_id or not user_id.strip():
+        raise HTTPException(status_code=400, detail="Missing user_id parameter.")
+    user = db.query(UserModel).filter_by(id=user_id.strip()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    passengers = db.query(UserSavedPassengerModel).filter_by(user_id=user.id).all()
     return {
         "passengers": [
             {

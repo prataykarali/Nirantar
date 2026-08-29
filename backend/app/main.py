@@ -48,6 +48,7 @@ def on_startup():
     except Exception as e:
         print(f"Warning: database seed initialization failed: {e}")
 
+import os
 from backend.app.core.rate_limiter import RateLimitMiddleware
 from backend.app.core.security_headers import SecurityHeadersMiddleware
 
@@ -57,12 +58,24 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Multi-user sliding-window rate limiting middleware
 app.add_middleware(RateLimitMiddleware)
 
-# CORS configuration for React frontend
+# Safe CORS configuration with explicit origins and Vercel preview support
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+env_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+allowed_origins = list(set(default_origins + env_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 

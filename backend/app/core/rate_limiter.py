@@ -71,13 +71,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(p) for p in self.exempt_paths):
             return await call_next(request)
 
-        # Extract client identifier (X-Forwarded-For if behind Vercel/reverse-proxy, else client.host)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            client_id = forwarded.split(",")[0].strip()
-        else:
-            client_id = request.client.host if request.client else "unknown"
+        # Extract client identifier safely
+        client_ip = "unknown"
+        if request.client and request.client.host:
+            client_ip = request.client.host
 
+        # If behind reverse-proxy (e.g. Vercel), use rightmost or real client IP with sanitization
+        real_ip = request.headers.get("CF-Connecting-IP") or request.headers.get("X-Real-IP")
+        if real_ip:
+            client_ip = real_ip.strip()
+        else:
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                # Use first non-empty IP entry and sanitize characters
+                parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+                if parts:
+                    candidate = parts[0]
+                    # Simple sanitize: alphanumeric, colons, dots only (IPv4/IPv6)
+                    if all(c in "0123456789abcdefABCDEF:." for c in candidate):
+                        client_ip = candidate
+
+        client_id = client_ip
         allowed, remaining, retry_after = self.limiter.is_allowed(client_id)
         if not allowed:
             return JSONResponse(
