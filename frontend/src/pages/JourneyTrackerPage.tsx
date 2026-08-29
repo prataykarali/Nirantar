@@ -57,6 +57,7 @@ import { generateTrainCoaches } from '../utils/trainCoachGenerator';
 import { WakeUpAlarmModal } from '../components/journey/WakeUpAlarmModal';
 import { ShareTripModal } from '../components/journey/ShareTripModal';
 import { OrderFoodModal } from '../components/journey/OrderFoodModal';
+import { CoachSegmentShowcase } from '../components/journey/CoachSegmentShowcase';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
@@ -1435,179 +1436,16 @@ export const JourneyTrackerPage: React.FC = () => {
 
           {/* ─── TAB 2: COACH COMPOSITION & SEAT BERTH MATRIX ─── */}
           {activeTrackerTab === 'coach' && (
-            <div className="bg-white rounded-3xl p-4 sm:p-6 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
-              {/* Header Title & Legend */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-50 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0 shadow-2xs">
-                    <Train className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm sm:text-base text-slate-900">
-                      Live Coach Composition & Seat Berth Feature
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Interactive Coach Layout • Real-time quota balance based on destination ({toCity})
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap text-xs">
-                  {isUserBookedTrain && (
-                    <span className="flex items-center gap-1 font-black text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] shadow-2xs">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" /> ★ Booked (You)
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600" /> 🟢 Vacant ℹ
-                  </span>
-                  <span className="flex items-center gap-1 font-bold text-purple-900 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-purple-600" /> 🟣 WL-{coachInventory.waitlist} (Queue) ℹ
-                  </span>
-                </div>
-              </div>
-
-              {/* Coach Selector Horizontal Bar */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-                <span className="text-[11px] font-black uppercase text-slate-400 shrink-0 mr-1 tracking-wider">
-                  COACHES:
-                </span>
-                {trainCoaches.map((c) => {
-                  const isSelected = selectedCoach === c.code;
-                  const seatsInThisCoach = allocatedSeats.filter((s) => s.coachCode === c.code);
-                  const hasPassengerInCoach = isUserBookedTrain && seatsInThisCoach.length > 0;
-
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => setSelectedCoach(c.code)}
-                      className={`px-3.5 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-900/25 ring-2 ring-purple-300 scale-105 font-black'
-                          : hasPassengerInCoach
-                          ? 'bg-amber-100 text-amber-950 border border-amber-300 hover:bg-amber-200 font-bold'
-                          : 'bg-purple-50 text-slate-700 border border-purple-100 hover:bg-purple-100 font-medium'
-                      }`}
-                    >
-                      <span>{c.label}</span>
-                      {hasPassengerInCoach && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-[9px] text-slate-950 font-black">
-                          ★ You ({seatsInThisCoach.length})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Coach Berth Grid Layout Box (Authentic Purple / Dark Themed 8-Column Box) */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#130E26] text-white border-2 border-purple-900/80 shadow-xl space-y-3.5">
-                <div className="flex items-center justify-between text-xs border-b border-purple-500/20 pb-2.5 flex-wrap gap-2">
-                  <span className="font-bold text-purple-200">
-                    Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoachInfo.className}) Layout:
-                  </span>
-                  <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
-                    <span>Occupancy: {coachInventory.occupancyPercent}%</span>
-                    <span>•</span>
-                    <span>{isUserCoach && coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
-                    <span>•</span>
-                    <span>{coachInventory.waitlist} GNWL in Queue</span>
-                  </span>
-                </div>
-
-                {/* 8-Column Seat Rows Grid */}
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
-                  {coachBerthLayout.map((seat) => {
-                    const isRac = seat.status === 'RAC';
-                    const isUser = isUserBookedTrain && !!seat.isUserSeat;
-                    // Deep green vacant seats
-                    const isVacant = !isUser && !isRac && (seat.num === 3 || seat.num === 12 || seat.num === 21 || seat.num === 30 || seat.num === 48 || seat.num === 57);
-
-                    return (
-                      <div
-                        key={seat.num}
-                        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                          isUser
-                            ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/80 shadow-xl shadow-amber-500/50 scale-105 z-10 font-black'
-                            : isVacant
-                            ? 'bg-emerald-600 hover:bg-emerald-500 border-2 border-emerald-300 text-white ring-2 ring-emerald-400/50 shadow-md scale-102 z-10 font-bold'
-                            : isRac
-                            ? 'bg-amber-600 border border-amber-300 text-white'
-                            : 'bg-[#2D124D] hover:bg-[#3D1866] border border-purple-500/40 text-purple-100 shadow-xs'
-                        }`}
-                      >
-                        <span className={`font-black text-sm leading-none ${isUser ? 'text-slate-950' : 'text-white'}`}>
-                          {seat.num}
-                        </span>
-                        <span className={`text-[9px] mt-0.5 font-bold ${isUser ? 'text-slate-900' : isVacant ? 'text-emerald-100' : 'text-purple-300'}`}>
-                          {seat.type}
-                        </span>
-                        <span
-                          className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded mt-0.5 truncate max-w-full ${
-                            isUser
-                              ? 'bg-slate-950 text-amber-300 shadow-xs'
-                              : isVacant
-                              ? 'bg-emerald-950 text-emerald-200 font-bold border border-emerald-400/60'
-                              : isRac
-                              ? 'bg-amber-950 text-amber-200 font-bold'
-                              : 'bg-[#1A0A2E] text-purple-200 border border-purple-600/40'
-                          }`}
-                        >
-                          {isUser ? `★ ${seat.label || 'YOU'}` : isVacant ? 'VACANT' : (seat.label || 'CNF')}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* User Booked Seats Highlight Banner */}
-                <div className="p-3.5 rounded-2xl bg-purple-950/80 border border-purple-400/30 flex items-center justify-between flex-wrap gap-2 text-xs">
-                  {isUserCoach ? (
-                    <>
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="w-7 h-7 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-md animate-pulse shrink-0">
-                          ★
-                        </span>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-amber-200">
-                            Your Booked {passengersInThisCoach.length > 1 ? `Berths (${passengersInThisCoach.length} Seats)` : 'Berth'} in Coach {selectedCoach}:
-                          </span>
-                          {passengersInThisCoach.map((s, idx) => (
-                            <span
-                              key={`${s.coachCode}_${s.seatNumber}_${idx}`}
-                              className="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 font-mono font-black text-xs shadow-xs border border-white"
-                            >
-                              {s.passengerName}: Seat #{s.seatNumber} ({s.berthType})
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-xs font-black text-emerald-300 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-400/40">
-                        ⚡ {passengersInThisCoach.length} Confirmed {passengersInThisCoach.length > 1 ? 'Berths' : 'Berth'}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">ℹ</span>
-                        <span className="flex items-center gap-1.5 text-purple-200">
-                          Coach <strong className="text-white font-mono">{selectedCoach}</strong> Corridor Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> ({selectedCoachInfo.className})
-                        </span>
-                      </div>
-                      {isUserBookedTrain && allocatedSeats.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCoach(allocatedSeats[0].coachCode)}
-                          className="text-xs font-bold text-amber-200 bg-purple-900 hover:bg-purple-800 px-3 py-1 rounded-full border border-amber-300/40 transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <span>Jump to Your Booked Coach ({allocatedSeats[0].coachCode}) →</span>
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
+              <CoachSegmentShowcase
+                trainNumber={trainNumber}
+                trainName={trainName}
+                availableClasses={foundTrain?.classes}
+                routeStations={routeStations}
+                currentStationIndex={activeStationIndex}
+                userBookedSeats={allocatedSeats}
+                isUserBookedTrain={isUserBookedTrain}
+              />
             </div>
           )}
 
