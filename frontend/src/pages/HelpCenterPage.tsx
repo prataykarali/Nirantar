@@ -148,9 +148,19 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16 font-sans select-none text-slate-800 animate-in fade-in duration-300">
       {/* ═══════════════════════════════════════════════════════════════════
-          1. SPACIOUS HERO & SEARCH BANNER
+          1. SPACIOUS HERO & SEARCH BANNER WITH SCENIC OVERLAY
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#1A0B2E] via-[#2A114E] to-[#160B30] text-white shadow-xl border border-purple-500/20 overflow-hidden">
+        {/* Scenic Railway Knowledge Background Overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden mix-blend-luminosity">
+          <img
+            src="/assets/images/help_center_banner.png"
+            alt="Help Center Background"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/95 via-[#2A114E]/85 to-[#160B30]/75 pointer-events-none" />
+
         {/* Ambient background glow & SVG grid */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-600/20 via-transparent to-transparent pointer-events-none" />
         <div className="absolute -right-10 -bottom-10 w-72 h-72 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
@@ -191,11 +201,18 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
           </div>
 
           {/* Large Mascot Teacher Illustration with Breathing Room */}
-          <div className="shrink-0 flex items-center justify-center">
-            <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl overflow-hidden shadow-2xl transition-transform hover:scale-105 duration-300">
+          <div className="shrink-0 flex items-center gap-3 justify-center">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl overflow-hidden shadow-2xl transition-transform hover:scale-105 duration-300">
               <img
                 src="/assets/images/characters/nira_guide_teacher.jpg"
                 alt="Nira Guide"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="hidden sm:block w-24 h-24 rounded-2xl overflow-hidden shadow-lg transition-transform hover:scale-105 duration-300 mt-4">
+              <img
+                src="/assets/images/characters/ananya_nira_duo.png"
+                alt="Mascot Duo"
                 className="w-full h-full object-contain"
               />
             </div>

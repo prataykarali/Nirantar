@@ -163,6 +163,15 @@ export const getNiraAvatarAndMood = (
     return { src: '/assets/images/characters/nira_thinking.png', mood: 'Thinking', emoji: '🤔' };
   }
   if (
+    t.includes('where in india do you want to go') ||
+    t.includes("i'm nira") ||
+    t.includes('hi,') ||
+    t.includes('hello') ||
+    t.includes('welcome')
+  ) {
+    return { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Friendly Copilot', emoji: '✨' };
+  }
+  if (
     t.includes('congratulations') ||
     t.includes('confirmed') ||
     t.includes('booked') ||
