@@ -30,7 +30,7 @@ import {
   apiMockVerify,
   apiGetTicket,
 } from '../services/journeyApi';
-import { allocatePassengerSeats, getDynamicInitialWaitlist } from '../utils/seatInventory';
+import { allocatePassengerSeats, getDynamicInitialWaitlist, MidJourneyReallocation } from '../utils/seatInventory';
 import { admitFairAccess } from '../services/niraApi';
 import { setFairAccessTicket } from '../lib/fairAccessStore';
 import { UiEventBus } from '../events/UiEventBus';
@@ -285,6 +285,11 @@ export interface JourneyContextType {
   addNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => void;
   dismissNotification: (id: string) => void;
   markNotificationsRead: () => void;
+
+  // Mid-Journey Vacant Berth Reallocations & Special Requests
+  activeReallocations: MidJourneyReallocation[];
+  requestMidJourneyReallocation: (reallocation: Omit<MidJourneyReallocation, 'id' | 'timestamp' | 'approvedBy' | 'status'>) => Promise<MidJourneyReallocation>;
+  clearReallocations: () => void;
 }
 
 export interface CitizenProfile {
@@ -1693,6 +1698,54 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     navigateTo('track');
   };
 
+  // ─── Mid-Journey Berth Reallocations & Special Requests ───
+  const [activeReallocations, setActiveReallocations] = useState<MidJourneyReallocation[]>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_active_reallocations');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_active_reallocations', JSON.stringify(activeReallocations));
+    } catch {}
+  }, [activeReallocations]);
+
+  const requestMidJourneyReallocation = useCallback(
+    async (
+      reallocationData: Omit<MidJourneyReallocation, 'id' | 'timestamp' | 'approvedBy' | 'status'>
+    ): Promise<MidJourneyReallocation> => {
+      const newRecord: MidJourneyReallocation = {
+        ...reallocationData,
+        id: `REALOC-${Date.now().toString().slice(-6)}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        approvedBy: 'Chief On-Board Conductor (TTE #IR-77492)',
+        status: 'APPROVED',
+      };
+
+      setActiveReallocations((prev) => [newRecord, ...prev.filter((r) => r.passengerName !== newRecord.passengerName)]);
+
+      // Push a confirmation notification
+      addNotification({
+        title: '⚡ Mid-Journey Berth Upgrade Approved!',
+        body: `Your request to occupy vacant Berth ${newRecord.toSeat} (${newRecord.toBerthType}) in Coach ${newRecord.toCoach} from ${newRecord.effectiveFromStation} has been verified and endorsed by the Conductor.`,
+        type: 'ticket',
+      });
+
+      return newRecord;
+    },
+    [addNotification]
+  );
+
+  const clearReallocations = useCallback(() => {
+    setActiveReallocations([]);
+    try {
+      localStorage.removeItem('nirantar_active_reallocations');
+    } catch {}
+  }, []);
+
   const [pageHistory, setPageHistory] = useState<string[]>(['home']);
 
   const navigateTo = (page: string) => {
@@ -1864,6 +1917,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addNotification,
         dismissNotification,
         markNotificationsRead,
+        // ─── Mid-Journey Berth Reallocations ───
+        activeReallocations,
+        requestMidJourneyReallocation,
+        clearReallocations,
       }}
     >
       {children}

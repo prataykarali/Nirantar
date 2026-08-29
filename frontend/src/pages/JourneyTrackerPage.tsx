@@ -57,6 +57,7 @@ import { generateTrainCoaches } from '../utils/trainCoachGenerator';
 import { WakeUpAlarmModal } from '../components/journey/WakeUpAlarmModal';
 import { ShareTripModal } from '../components/journey/ShareTripModal';
 import { OrderFoodModal } from '../components/journey/OrderFoodModal';
+import { CoachSegmentShowcase } from '../components/journey/CoachSegmentShowcase';
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
@@ -1420,178 +1421,15 @@ export const JourneyTrackerPage: React.FC = () => {
           {/* ─── TAB 2: COACH COMPOSITION & SEAT BERTH MATRIX ─── */}
           {activeTrackerTab === 'coach' && (
             <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 rounded-lg bg-purple-100 text-purple-900">
-                      <Train className="w-4 h-4" />
-                    </span>
-                    <h3 className="text-sm sm:text-base font-black text-slate-900">
-                      Live Coach Composition & Seat Berth Feature
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Interactive Coach Layout • Real-time quota balance based on destination ({toCity})
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs flex-wrap">
-                  <span className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" /> Vacant
-                    <Explain term="CNF" />
-                  </span>
-                  {coachInventory.racCount > 0 && isUserCoach && (
-                    <span className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" /> RAC (Shared)
-                      <Explain term="RAC" />
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                    <span className="w-2 h-2 rounded-full bg-purple-600" /> WL-{coachInventory.waitlist} {isUserCoach ? '(You)' : '(Queue)'}
-                    <Explain
-                      term="GNWL"
-                      context={{
-                        currentValue: coachInventory.waitlist,
-                        initialValue: coachInventory.initialWaitlist,
-                        probability: wlWatch.confirmationProbability,
-                      }}
-                    />
-                  </span>
-                </div>
-              </div>
-
-              {/* Coach Selection Tabs */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Coaches:</span>
-                {trainCoaches.map((c) => {
-                  const isSelected = selectedCoach === c.code;
-                  const seatsInThisCoach = isUserBookedTrain ? allocatedSeats.filter((s) => s.coachCode === c.code) : [];
-                  const hasPassengerInCoach = seatsInThisCoach.length > 0;
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => setSelectedCoach(c.code)}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer text-xs flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-purple-900 text-white shadow-md shadow-purple-900/20 ring-2 ring-purple-300'
-                          : hasPassengerInCoach
-                          ? 'bg-purple-100 text-purple-950 border border-purple-300 hover:bg-purple-200'
-                          : 'bg-purple-50/70 text-slate-700 border border-purple-100 hover:bg-purple-100'
-                      }`}
-                    >
-                      <span>{c.label}</span>
-                      {hasPassengerInCoach && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-[9px] text-white font-black">
-                          Booked ({seatsInThisCoach.length})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Coach Berth Grid Layout */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white space-y-3">
-                <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2 flex-wrap gap-2">
-                  <span className="font-bold text-purple-200">
-                    Coach <strong className="text-white font-mono text-sm">{selectedCoach}</strong> ({selectedCoachInfo.className}) Layout:
-                  </span>
-                  <span className="text-[11px] font-mono text-emerald-300 font-bold flex items-center gap-1.5">
-                    <span>Occupancy: {coachInventory.occupancyPercent}%</span>
-                    <span>•</span>
-                    <span>{isUserCoach && coachInventory.racCount > 0 ? `${coachInventory.racCount} RAC` : '0 RAC'}</span>
-                    <span>•</span>
-                    <span>{coachInventory.waitlist} GNWL in Queue</span>
-                  </span>
-                </div>
-
-                {/* Dynamic Seat Rows Grid */}
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-xs font-mono">
-                  {coachBerthLayout.map((seat) => {
-                    const isRac = seat.status === 'RAC';
-                    const isUser = !!seat.isUserSeat;
-                    return (
-                      <div
-                        key={seat.num}
-                        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                          isUser
-                            ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 border-white text-slate-950 ring-4 ring-amber-400/60 shadow-xl shadow-amber-500/50 scale-105 z-10'
-                            : isRac
-                            ? 'bg-amber-400/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
-                            : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                        }`}
-                      >
-                        <span className={`font-black text-sm leading-none ${isUser ? 'text-slate-950' : 'text-white'}`}>
-                          {seat.num}
-                        </span>
-                        <span className={`text-[9px] mt-0.5 font-bold ${isUser ? 'text-slate-900' : 'text-purple-200'}`}>
-                          {seat.type}
-                        </span>
-                        <span
-                          className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded mt-0.5 truncate max-w-full ${
-                            isUser
-                              ? 'bg-slate-950 text-amber-300 shadow-xs'
-                              : isRac
-                              ? 'bg-amber-400 text-slate-950 font-bold'
-                              : 'bg-emerald-400/20 text-emerald-300'
-                          }`}
-                        >
-                          {isUser ? `★ ${seat.label || 'YOU'}` : (seat.label || 'CNF')}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* User Booked Seats Highlight */}
-                <div className="p-3 rounded-xl bg-purple-900/60 border border-purple-400/40 flex items-center justify-between flex-wrap gap-2 text-xs">
-                  {isUserCoach ? (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md animate-pulse shrink-0">
-                          ★
-                        </span>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-purple-200">
-                            Your Booked {passengersInThisCoach.length > 1 ? `Berths (${passengersInThisCoach.length} Seats)` : 'Berth'} in Coach {selectedCoach}:
-                          </span>
-                          {passengersInThisCoach.map((s, idx) => (
-                            <span
-                              key={`${s.coachCode}_${s.seatNumber}_${idx}`}
-                              className="px-2 py-0.5 rounded-full bg-purple-400/30 text-amber-300 font-mono font-bold text-[11px] border border-purple-300/40"
-                            >
-                              {s.passengerName}: Seat {s.seatNumber} ({s.berthType})
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-bold text-emerald-300 bg-emerald-400/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                        ⚡ {passengersInThisCoach.length} Confirmed {passengersInThisCoach.length > 1 ? 'Berths' : 'Berth'}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-purple-500/60 text-white flex items-center justify-center font-bold text-xs">ℹ</span>
-                        <span className="flex items-center gap-1.5 text-purple-200">
-                          Coach <strong className="text-white font-mono">{selectedCoach}</strong> Corridor Queue: <strong className="text-amber-300 font-mono">WL-{coachInventory.waitlist}</strong> ({selectedCoachInfo.className})
-                        </span>
-                      </div>
-                      {isUserBookedTrain && allocatedSeats.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCoach(allocatedSeats[0].coachCode)}
-                          className="text-[11px] font-bold text-purple-200 bg-purple-800/60 hover:bg-purple-700/60 px-2.5 py-1 rounded-full border border-purple-400/30 transition-all cursor-pointer"
-                        >
-                          Jump to Your Booked Coach ({allocatedSeats[0].coachCode}) →
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+              <CoachSegmentShowcase
+                trainNumber={trainNumber}
+                trainName={trainName}
+                availableClasses={foundTrain?.classes}
+                routeStations={routeStations}
+                currentStationIndex={activeStationIndex}
+                userBookedSeats={allocatedSeats}
+                isUserBookedTrain={isUserBookedTrain}
+              />
             </div>
           )}
 

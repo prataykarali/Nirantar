@@ -12,7 +12,11 @@ import {
   Clock,
   User,
   Sparkles,
+  Zap,
+  Award,
+  Compass,
 } from 'lucide-react';
+import { useJourney } from '../../context/JourneyContext';
 
 export interface TicketPassenger {
   name: string;
@@ -67,6 +71,8 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
   onClose,
   ticket,
 }) => {
+  const { activeReallocations } = useJourney();
+
   if (!isOpen || !ticket) return null;
 
   const handlePrint = () => {
@@ -252,6 +258,53 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Mid-Journey Berth Upgrade / Reallocation Endorsement */}
+          {activeReallocations && activeReallocations.length > 0 && (
+            <div className="border border-emerald-300 rounded-2xl p-4 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/60 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-lg bg-emerald-600 text-white">
+                    <Zap className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5">
+                      <span>Official Mid-Journey Seat Reallocation Endorsement</span>
+                      <span className="px-2 py-0.2 rounded-full bg-emerald-200 text-emerald-900 text-[9px] font-black">
+                        TTE VERIFIED
+                      </span>
+                    </h4>
+                    <p className="text-[10px] text-emerald-800 font-medium">
+                      Authorized by on-board train conductor upon co-passenger deboarding.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                  {activeReallocations[0].id}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200 space-y-0.5">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">ORIGINAL RESERVATION</span>
+                  <strong className="text-slate-700 block">
+                    Coach {activeReallocations[0].fromCoach} • Seat #{activeReallocations[0].fromSeat} ({activeReallocations[0].fromBerthType})
+                  </strong>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-100/70 border border-emerald-300 space-y-0.5">
+                  <span className="text-[9px] uppercase font-bold text-emerald-800 block">APPROVED MID-JOURNEY BERTH</span>
+                  <strong className="text-emerald-950 block text-sm">
+                    Coach {activeReallocations[0].toCoach} • Seat #{activeReallocations[0].toSeat} ({activeReallocations[0].toBerthType})
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-emerald-900 font-medium pt-1 border-t border-emerald-200/60 flex-wrap gap-2">
+                <span>Effective from: <strong>{activeReallocations[0].effectiveFromStation} ({activeReallocations[0].effectiveFromStationCode})</strong> onwards</span>
+                <span>Endorsed by: <strong>{activeReallocations[0].approvedBy}</strong></span>
+              </div>
+            </div>
+          )}
 
           {/* Verification QR Code & DigiLocker Guarantee */}
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-50/80 via-white to-purple-50/60 border border-purple-100 flex items-center justify-between gap-4">
