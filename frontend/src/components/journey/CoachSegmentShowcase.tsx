@@ -269,16 +269,16 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
               {bays.map((bay) => (
                 <div
                   key={bay.bayIndex}
-                  className="bg-slate-900 rounded-3xl p-4 text-white border border-purple-900/60 shadow-md space-y-3"
+                  className="bg-white rounded-3xl p-4 text-slate-900 border border-purple-100 shadow-sm space-y-3"
                 >
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
-                    <span className="font-black text-purple-200 flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-lg bg-purple-800 text-white flex items-center justify-center text-[10px] font-bold">
+                  <div className="flex items-center justify-between border-b border-purple-100 pb-2 text-xs">
+                    <span className="font-black text-purple-900 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center text-[10px] font-bold">
                         {bay.bayIndex}
                       </span>
                       <span>{bay.bayLabel}</span>
                     </span>
-                    <span className="text-[10px] font-mono text-purple-300">
+                    <span className="text-[10px] font-mono text-purple-600">
                       {bay.hasDoor ? '🚪 Sliding Door Cabin' : bay.hasCurtain ? '✨ Privacy Curtains' : '🪟 Bay Window'}
                     </span>
                   </div>
@@ -286,24 +286,24 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                   {/* Skeleton Berth Grid */}
                   <div className="grid grid-cols-12 gap-2 text-xs font-mono">
                     <div className={`${bay.sideBayBerths.length > 0 ? 'col-span-8' : 'col-span-12'} space-y-2`}>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                         <span>Main Cabin</span>
-                        {bay.hasCabinet && <span className="text-amber-400">🧳 Luggage Cabinet</span>}
+                        {bay.hasCabinet && <span className="text-amber-600">🧳 Luggage Cabinet</span>}
                       </div>
 
                       <div className={`grid ${bay.mainCabinBerths.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'} gap-1.5`}>
                         {bay.mainCabinBerths.map((seat) => (
                           <div
                             key={seat.num}
-                            className="p-2 rounded-xl border bg-slate-800/80 border-slate-700/80 text-slate-300 flex flex-col items-center justify-center text-center"
+                            className="p-2 rounded-xl border bg-purple-50/60 border-purple-100 text-slate-700 flex flex-col items-center justify-center text-center"
                           >
                             <div className="flex items-center justify-between w-full px-1">
-                              <span className="text-[11px] font-black text-white">#{seat.num}</span>
-                              <span className="text-[8px] font-bold px-1 rounded bg-white/10 text-purple-200">
+                              <span className="text-[11px] font-black text-slate-900">#{seat.num}</span>
+                              <span className="text-[8px] font-bold px-1 rounded bg-purple-100 text-purple-700">
                                 {seat.type}
                               </span>
                             </div>
-                            <span className="text-[8px] font-extrabold uppercase mt-1 text-slate-400">
+                            <span className="text-[8px] font-extrabold uppercase mt-1 text-slate-500">
                               {seat.fullTypeName.split(' ')[0]}
                             </span>
                           </div>
@@ -312,23 +312,23 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                     </div>
 
                     {bay.sideBayBerths.length > 0 && (
-                      <div className="col-span-4 border-l border-white/10 pl-2 space-y-2">
-                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                      <div className="col-span-4 border-l border-purple-100 pl-2 space-y-2">
+                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                           Side Bay
                         </div>
                         <div className="grid grid-cols-1 gap-1.5">
                           {bay.sideBayBerths.map((seat) => (
                             <div
                               key={seat.num}
-                              className="p-2 rounded-xl border bg-slate-800/80 border-slate-700/80 text-slate-300 flex flex-col items-center justify-center text-center"
+                              className="p-2 rounded-xl border bg-purple-50/60 border-purple-100 text-slate-700 flex flex-col items-center justify-center text-center"
                             >
                               <div className="flex items-center justify-between w-full px-1">
-                                <span className="text-[11px] font-black text-white">#{seat.num}</span>
-                                <span className="text-[8px] font-bold px-1 rounded bg-white/10 text-purple-200">
+                                <span className="text-[11px] font-black text-slate-900">#{seat.num}</span>
+                                <span className="text-[8px] font-bold px-1 rounded bg-purple-100 text-purple-700">
                                   {seat.type}
                                 </span>
                               </div>
-                              <span className="text-[8px] font-extrabold uppercase mt-1 text-slate-400">
+                              <span className="text-[8px] font-extrabold uppercase mt-1 text-slate-500">
                                 {seat.fullTypeName.split(' ')[0]}
                               </span>
                             </div>
@@ -514,16 +514,16 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
               {bays.map((bay) => (
                 <div
                   key={bay.bayIndex}
-                  className="bg-slate-900 rounded-3xl p-4 text-white border border-purple-900/60 shadow-lg space-y-3 relative overflow-hidden"
+                  className="bg-white rounded-3xl p-4 text-slate-900 border border-purple-100 shadow-sm space-y-3 relative overflow-hidden"
                 >
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
-                    <span className="font-black text-purple-200 flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-lg bg-purple-800 text-white flex items-center justify-center text-[10px] font-bold">
+                  <div className="flex items-center justify-between border-b border-purple-100 pb-2 text-xs">
+                    <span className="font-black text-purple-900 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center text-[10px] font-bold">
                         {bay.bayIndex}
                       </span>
                       <span>{bay.bayLabel}</span>
                     </span>
-                    <span className="text-[10px] font-mono text-purple-300">
+                    <span className="text-[10px] font-mono text-purple-600">
                       {bay.hasDoor ? '🚪 Sliding Door Cabin' : bay.hasCurtain ? '✨ Privacy Curtains' : '🪟 Bay Window'}
                     </span>
                   </div>
@@ -531,9 +531,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                   <div className="grid grid-cols-12 gap-2 text-xs font-mono">
                     {/* Main Cabin */}
                     <div className={`${bay.sideBayBerths.length > 0 ? 'col-span-8' : 'col-span-12'} space-y-2`}>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                         <span>Main Cabin</span>
-                        {bay.hasCabinet && <span className="text-amber-400">🧳 Luggage Cabinet</span>}
+                        {bay.hasCabinet && <span className="text-amber-600">🧳 Luggage Cabinet</span>}
                       </div>
 
                       <div className={`grid ${bay.mainCabinBerths.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'} gap-1.5`}>
@@ -554,20 +554,20 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                   : isReallocated
                                   ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-white text-white ring-2 ring-emerald-300 shadow-md scale-102'
                                   : isVacant
-                                  ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-200 hover:bg-emerald-500/30 hover:scale-105 cursor-pointer ring-1 ring-emerald-400/40'
-                                  : 'bg-slate-800/80 border-slate-700/80 text-slate-300'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:scale-105 cursor-pointer ring-1 ring-emerald-300'
+                                  : 'bg-purple-50/60 border-purple-100 text-slate-700'
                               }`}
                             >
                               <div className="flex items-center justify-between w-full px-1">
-                                <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-white'}`}>
+                                <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-slate-900'}`}>
                                   #{seat.num}
                                 </span>
-                                <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-white/10 text-purple-200'}`}>
+                                <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-purple-100 text-purple-700'}`}>
                                   {seat.type}
                                 </span>
                               </div>
 
-                              <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-300' : 'text-slate-400'}`}>
+                              <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-700' : 'text-slate-500'}`}>
                                 {isUser
                                   ? '★ YOU'
                                   : isReallocated
@@ -588,8 +588,8 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
 
                     {/* Side Bay */}
                     {bay.sideBayBerths.length > 0 && (
-                      <div className="col-span-4 border-l border-white/10 pl-2 space-y-2">
-                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                      <div className="col-span-4 border-l border-purple-100 pl-2 space-y-2">
+                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                           Side Bay
                         </div>
                         <div className="grid grid-cols-1 gap-1.5">
@@ -610,20 +610,20 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                                     : isReallocated
                                     ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-white text-white ring-2 ring-emerald-300 shadow-md scale-102'
                                     : isVacant
-                                    ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-200 hover:bg-emerald-500/30 hover:scale-105 cursor-pointer ring-1 ring-emerald-400/40'
-                                    : 'bg-slate-800/80 border-slate-700/80 text-slate-300'
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:scale-105 cursor-pointer ring-1 ring-emerald-300'
+                                    : 'bg-purple-50/60 border-purple-100 text-slate-700'
                                 }`}
                               >
                                 <div className="flex items-center justify-between w-full px-1">
-                                  <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-white'}`}>
+                                  <span className={`text-[11px] font-black ${isUser ? 'text-slate-950' : 'text-slate-900'}`}>
                                     #{seat.num}
                                   </span>
-                                  <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-white/10 text-purple-200'}`}>
+                                  <span className={`text-[8px] font-bold px-1 rounded ${isUser ? 'bg-slate-950 text-amber-300' : 'bg-purple-100 text-purple-700'}`}>
                                     {seat.type}
                                   </span>
                                 </div>
 
-                                <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-300' : 'text-slate-400'}`}>
+                                <span className={`text-[8px] font-extrabold uppercase mt-1 truncate max-w-full ${isUser ? 'text-slate-950' : isVacant ? 'text-emerald-700' : 'text-slate-500'}`}>
                                   {isUser
                                     ? '★ YOU'
                                     : isReallocated

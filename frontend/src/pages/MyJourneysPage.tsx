@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { DigitalTicketModal, TicketDetails } from '../components/journey/DigitalTicketModal';
+import { CoachSegmentShowcase } from '../components/journey/CoachSegmentShowcase';
+import { getTrainStoppages } from '../data/trainStoppages';
 
 type JourneyTab = 'upcoming' | 'completed' | 'cancelled';
 
@@ -83,13 +85,14 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin } = useJourney();
+  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [cancellingJourney, setCancellingJourney] = useState<JourneyRecord | null>(null);
   const [cancelledPnrList, setCancelledPnrList] = useState<string[]>([]);
+  const [coachShowcaseJourneyId, setCoachShowcaseJourneyId] = useState<string | null>(null);
 
   // Cancel Ticket Security Verification States
   const [cancelTrainNumberInput, setCancelTrainNumberInput] = useState('');
@@ -887,6 +890,53 @@ export const MyJourneysPage: React.FC = () => {
                         </span>
                       ))}
                     </div>
+
+                    {/* 3b. Coach Layout & Vacant Seat Requests (CONFIRMED only) */}
+                    {j.status === 'CONFIRMED' && (
+                      <div className="space-y-3 pt-3 border-t border-purple-100/80">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase font-bold text-purple-900 tracking-wider flex items-center gap-1.5">
+                            <Train className="w-4 h-4 text-purple-700" />
+                            <span>Coach Layout & Vacant Seat Requests</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCoachShowcaseJourneyId(coachShowcaseJourneyId === j.id ? null : j.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              coachShowcaseJourneyId === j.id
+                                ? 'bg-purple-900 text-white shadow-sm'
+                                : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200'
+                            }`}
+                          >
+                            {coachShowcaseJourneyId === j.id ? 'Hide Coach View ✕' : 'View Coach Layout →'}
+                          </button>
+                        </div>
+
+                        {coachShowcaseJourneyId === j.id && (() => {
+                          const routeStations = getTrainStoppages(j.trainNumber);
+                          const userSeats = j.passengers.map((p) => ({
+                            seatNumber: typeof p.seatNumber === 'number' ? p.seatNumber : parseInt(String(p.seatNumber)) || 36,
+                            passengerName: p.name,
+                            berthType: p.berthType,
+                            coachCode: p.coach,
+                          }));
+
+                          return (
+                            <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm animate-in fade-in">
+                              <CoachSegmentShowcase
+                                trainNumber={j.trainNumber}
+                                trainName={j.trainName}
+                                availableClasses={[{ classCode: j.classCode, className: j.className }]}
+                                routeStations={routeStations}
+                                currentStationIndex={0}
+                                userBookedSeats={userSeats}
+                                isUserBookedTrain={true}
+                              />
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     {/* 4. Traveler Reviews */}
                     {j.reviews.length > 0 && (

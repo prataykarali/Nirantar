@@ -1219,9 +1219,9 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
         doorSide: nextStop.doorSide,
       };
 
-      const statusMsg = `🎫 **Booked Train Status & Live Radar Telemetry**:\n\n🚆 **Train**: **#${trainNo} ${trainName}**\n📍 **Route**: **${fromCity} (${fromCode})** ➔ **${toCity} (${toCode})**\n📅 **Travel Date**: ${travelDate} | Departure: ${matchedTrain.departureTime} hrs\n🔢 **PNR Number**: \`${pnrNumber}\`\n\n---\n### 📋 Booking & Confirmation Status:\n${statusType === 'CONFIRMED' ? `✅ **Status**: **CONFIRMED** (${seatInfo})` : statusType === 'RAC' ? `🟡 **Status**: **RAC** (${seatInfo}) — **${probLabel}** at Chart Preparation (4h prior).` : `🟠 **Status**: **WAITLISTED** (${seatInfo}) — **${probLabel}**.`}\n\n---\n### 🛰️ Live Train Running Status:\n⚡ **Speed**: **118 km/h** | ⏱️ **Punctuality**: Running **Right on Time**\n🚉 **Next Stoppage**: **${nextStop.name} (${nextStop.code})** on **${nextStop.platform}**\n🚪 **Deboarding Doors**: **${nextStop.doorSide}**\n\nTap **'🛰️ Track Live on Radar'** below to open the real-time satellite GPS tracking map!`;
+      const statusMsg = `🎫 **Booked Train Status & Passenger Itinerary**:\n\n🚆 **Train**: **#${trainNo} ${trainName}**\n📍 **Route**: **${fromCity} (${fromCode})** ➔ **${toCity} (${toCode})**\n📅 **Travel Date**: ${travelDate} | Departure: ${matchedTrain.departureTime} hrs\n🔢 **PNR Number**: \`${pnrNumber}\`\n\n---\n### 📋 Booking & Confirmation Status:\n${statusType === 'CONFIRMED' ? `✅ **Status**: **CONFIRMED** (${seatInfo})` : statusType === 'RAC' ? `🟡 **Status**: **RAC** (${seatInfo}) — **${probLabel}** at Chart Preparation (4h prior).` : `🟠 **Status**: **WAITLISTED** (${seatInfo}) — **${probLabel}**.`}\n\n---\n### 💺 Coach & Seat Roster:\nOpening your **My Journeys** page where your exact coach layout, verified passenger names, booking timestamps, and DigiLocker e-tickets are ready for viewing!`;
 
-      handleQuickTrack(trainNo);
+      navigateTo('my-journeys');
       setIsLoading(false);
       setMessages((prev) =>
         prev.map((m) =>
@@ -1808,11 +1808,11 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
         // Build action card for consequential or navigational actions
         let actionCard: ChatMessage['actionCard'] | undefined;
-        if (plannerResponse.intent === 'DOWNLOAD_TICKET' || validatedAction.target === 'my-journeys' || validatedAction.target === 'ticket') {
+        if (plannerResponse.intent === 'BOOKED_TRAIN_STATUS' || plannerResponse.intent === 'DOWNLOAD_TICKET' || validatedAction.target === 'my-journeys' || validatedAction.target === 'ticket') {
           actionCard = {
-            title: 'DigiLocker Verified e-Ticket',
-            subtitle: 'Instant PDF export & scannable QR ticket',
-            buttonLabel: 'Open & Download Ticket ➔',
+            title: 'My Booked Journeys & e-Tickets',
+            subtitle: 'Exact seat details, coach layout, and passenger manifests',
+            buttonLabel: 'Open My Journeys ➔',
             route: 'my-journeys',
           };
         }
@@ -2675,31 +2675,35 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
                       {/* 3 Action Buttons */}
                       <div className="space-y-1.5 pt-0.5">
+                        {/* Primary Action: View in My Journeys */}
                         <button
                           type="button"
                           onClick={() => {
-                            handleQuickTrack(m.bookedTrainStatusCard!.trainNumber);
+                            navigateTo('my-journeys');
                           }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
                         >
-                          <Navigation className="w-3.5 h-3.5" />
-                          <span>🛰️ Track Live on Radar Map</span>
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>🎫 View My Bookings & Seats</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
-                            onClick={() => navigateTo('my-journeys')}
-                            className="py-2 px-2.5 rounded-xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-purple-900 font-bold text-[11px] transition-all cursor-pointer text-center"
+                            onClick={() => {
+                              handleQuickTrack(m.bookedTrainStatusCard!.trainNumber);
+                            }}
+                            className="py-2 px-2.5 rounded-xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-purple-900 font-bold text-[11px] transition-all cursor-pointer text-center flex items-center justify-center gap-1"
                           >
-                            🎫 View / Download e-Ticket
+                            <Navigation className="w-3 h-3 text-purple-700" />
+                            <span>Track Radar</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => navigateTo('my-journeys')}
-                            className="py-2 px-2.5 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-900 font-bold text-[11px] transition-all cursor-pointer text-center"
+                            className="py-2 px-2.5 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-900 font-bold text-[11px] transition-all cursor-pointer text-center flex items-center justify-center gap-1"
                           >
-                            ❌ Cancel Ticket & Refund
+                            <span>Cancel Ticket</span>
                           </button>
                         </div>
                       </div>

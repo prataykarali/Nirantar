@@ -185,9 +185,9 @@ export class NiraPlanner {
       return {
         intent: 'BOOKED_TRAIN_STATUS',
         message: isConfirmed
-          ? `🎫 **Booked Train Status**: Train **#${trainNum}** is **CONFIRMED** (Coach B4, Berth 32). Running on time on the Live GPS Radar!`
-          : `🎫 **Active Journey Status**: Train **#${trainNum}** (${context.journey.origin || 'NDLS'} → ${context.journey.destination || 'HWH'}). Tap Track Live to view GPS status.`,
-        actionCue: { type: 'NAVIGATE', target: 'track', requiresConfirmation: false },
+          ? `🎫 **Booked Train Status**: Train **#${trainNum}** is **CONFIRMED** (Coach B4, Berth 32). Opening your **My Journeys** page where you can view exact seat details, passenger info, and manage your bookings!`
+          : `🎫 **Active Journey Status**: Train **#${trainNum}** (${context.journey.origin || 'NDLS'} → ${context.journey.destination || 'HWH'}). Opening **My Journeys** to view your booking details.`,
+        actionCue: { type: 'NAVIGATE', target: 'my-journeys', requiresConfirmation: false },
         source: 'SAFE_ASSIST_DETERMINISTIC',
       };
     }
