@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   MapPin,
@@ -44,16 +44,33 @@ interface DiagramStep {
   details: string[];
 }
 
+const normalizePage = (p: string | null | undefined): string => {
+  const norm = (p || 'home').toLowerCase().trim();
+  if (norm === 'booking' || norm === 'review') return 'workspace';
+  if (norm === 'results') return 'trains';
+  if (norm === 'wallet') return 'payments';
+  if (norm === 'ticket') return 'completion';
+  if (norm === 'myjourneys' || norm === 'journeys') return 'my-journeys';
+  if (norm === 'tracker') return 'track';
+  if (norm === 'discover') return 'home';
+  return norm;
+};
+
 export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, onClose }) => {
   const { activePage, navigateTo, selectedTrain } = useJourney();
   const [selectedViewPage, setSelectedViewPage] = useState<string | null>(null);
 
+  // Automatically sync to current active page whenever modal opens or user switches pages
+  useEffect(() => {
+    setSelectedViewPage(null);
+  }, [isOpen, activePage]);
+
   if (!isOpen) return null;
 
-  const effectivePage = selectedViewPage || activePage || 'home';
+  const currentNormPage = normalizePage(activePage);
+  const effectivePage = normalizePage(selectedViewPage || currentNormPage);
 
   const PAGE_TABS = [
-    { id: 'current', label: 'Current Screen', icon: Eye, targetPage: activePage },
     { id: 'payments', label: 'Citizen Wallet & Ledger', icon: Wallet, targetPage: 'payments' },
     { id: 'home', label: '1. Intent & Search', icon: Sparkles, targetPage: 'home' },
     { id: 'trains', label: '2. Train Match', icon: Train, targetPage: 'trains' },
@@ -67,6 +84,11 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
     { id: 'help', label: 'Help Center & Jargon', icon: BookOpen, targetPage: 'help' },
     { id: 'overview', label: 'Master Architecture', icon: Compass, targetPage: 'overview' },
   ];
+
+  const handleClose = () => {
+    setSelectedViewPage(null);
+    onClose();
+  };
 
   // Generate screen-specific visual diagrams
   const getPageDiagram = (): {
@@ -719,7 +741,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
             )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs active:scale-95"
               aria-label="Close page guide"
             >
@@ -733,16 +755,15 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             {PAGE_TABS.map((tab) => {
               const TabIcon = tab.icon;
-              const isSelected =
-                (tab.id === 'current' && !selectedViewPage) ||
-                selectedViewPage === tab.targetPage;
+              const isCurrentScreen = tab.targetPage === currentNormPage;
+              const isSelected = tab.targetPage === effectivePage;
 
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => {
-                    if (tab.id === 'current') {
+                    if (tab.targetPage === currentNormPage) {
                       setSelectedViewPage(null);
                     } else {
                       setSelectedViewPage(tab.targetPage);
@@ -756,6 +777,13 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
                 >
                   <TabIcon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
+                  {isCurrentScreen && (
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+                      isSelected ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      Current
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -771,7 +799,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
                 <strong className="text-purple-800 font-bold">Nira says:</strong> "Here is how this screen protects your journey with zero confusion!"
               </p>
             </div>
-            {effectivePage !== activePage && effectivePage !== 'overview' && (
+            {effectivePage !== currentNormPage && effectivePage !== 'overview' && (
               <button
                 type="button"
                 onClick={() => handleNavigateDirect(effectivePage)}
@@ -874,7 +902,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
             )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-md shadow-purple-500/20 transition-all cursor-pointer shrink-0 active:scale-95 flex items-center justify-center gap-1.5"
             >
               <span>Understood, Continue ➔</span>

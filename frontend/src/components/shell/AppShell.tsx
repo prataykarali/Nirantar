@@ -124,7 +124,7 @@ export const AppShell: React.FC = () => {
       <Sidebar
         className="hidden md:flex"
         activePage={activePage as NavPageId}
-        onNavigate={(page) => setActivePage(page)}
+        onNavigate={(page) => navigateTo(page)}
         onOpenNira={() => setShowChatDrawer(true)}
       />
 
@@ -142,7 +142,7 @@ export const AppShell: React.FC = () => {
               onCloseDrawer={() => setMobileMenuOpen(false)}
               activePage={activePage as NavPageId}
               onNavigate={(page) => {
-                setActivePage(page);
+                navigateTo(page);
                 setMobileMenuOpen(false);
               }}
               onOpenNira={() => {
@@ -165,7 +165,7 @@ export const AppShell: React.FC = () => {
           onOpenNotifications={() =>
             console.log('Notifications: 1. Train 12302 arrives on platform 8. 2. PNR 8429104821 is Confirmed.')
           }
-          onOpenProfile={() => setActivePage('profile')}
+          onOpenProfile={() => navigateTo('profile')}
         />
 
         <FairAccessBanner />
@@ -181,7 +181,7 @@ export const AppShell: React.FC = () => {
       {/* 4. MOBILE BOTTOM NAVIGATION BAR */}
       <MobileNav
         activePage={activePage}
-        onNavigate={(page) => setActivePage(page)}
+        onNavigate={(page) => navigateTo(page)}
         onOpenNira={() => setShowChatDrawer(true)}
         onOpenMenu={() => setMobileMenuOpen(true)}
       />
