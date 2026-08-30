@@ -385,11 +385,25 @@ export const DiscoverPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1 border-t border-amber-100">
-                  {POPULAR_STATIONS.slice(0, 4).map((hub) => (
+                  {[
+                    { code: 'NDLS', city: 'New Delhi' },
+                    { code: 'HWH', city: 'Howrah' },
+                    { code: 'CSMT', city: 'Mumbai' },
+                    { code: 'SBC', city: 'Bengaluru' },
+                    { code: 'MAS', city: 'Chennai' },
+                    { code: 'JP', city: 'Jaipur' },
+                    { code: 'LKO', city: 'Lucknow' },
+                    { code: 'PNBE', city: 'Patna' },
+                    { code: 'GHY', city: 'Guwahati' },
+                    { code: 'ADI', city: 'Ahmedabad' },
+                  ].map((hub) => (
                     <button
                       key={hub.code}
                       type="button"
-                      onClick={() => handleSelectFrom(hub)}
+                      onClick={() => {
+                        const found = POPULAR_STATIONS.find((s) => s.code === hub.code);
+                        if (found) handleSelectFrom(found);
+                      }}
                       className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-[11px] font-bold border border-purple-200 cursor-pointer"
                     >
                       {hub.city} ({hub.code})
@@ -465,11 +479,25 @@ export const DiscoverPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1 border-t border-amber-100">
-                  {POPULAR_STATIONS.slice(0, 4).map((hub) => (
+                  {[
+                    { code: 'NDLS', city: 'New Delhi' },
+                    { code: 'HWH', city: 'Howrah' },
+                    { code: 'CSMT', city: 'Mumbai' },
+                    { code: 'SBC', city: 'Bengaluru' },
+                    { code: 'MAS', city: 'Chennai' },
+                    { code: 'JP', city: 'Jaipur' },
+                    { code: 'LKO', city: 'Lucknow' },
+                    { code: 'PNBE', city: 'Patna' },
+                    { code: 'GHY', city: 'Guwahati' },
+                    { code: 'ADI', city: 'Ahmedabad' },
+                  ].map((hub) => (
                     <button
                       key={hub.code}
                       type="button"
-                      onClick={() => handleSelectTo(hub)}
+                      onClick={() => {
+                        const found = POPULAR_STATIONS.find((s) => s.code === hub.code);
+                        if (found) handleSelectTo(found);
+                      }}
                       className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-[11px] font-bold border border-purple-200 cursor-pointer"
                     >
                       {hub.city} ({hub.code})

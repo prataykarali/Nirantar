@@ -220,9 +220,141 @@ export function findStation(query: string): Station | null {
   return null;
 }
 
-export function searchStations(query: string, limit: number = 8): Station[] {
+/**
+ * Multi-station cities: when user types a city name (e.g. "Kolkata"),
+ * show all individual stations within that city as separate entries.
+ */
+export const MULTI_STATION_CITIES: Record<string, { code: string; name: string; tag?: string }[]> = {
+  KOLKATA: [
+    { code: 'HWH', name: 'Howrah Junction', tag: '23 Platforms' },
+    { code: 'SDAH', name: 'Sealdah Terminus', tag: '21 Platforms' },
+    { code: 'KOAA', name: 'Kolkata Chitpur', tag: 'Terminal' },
+  ],
+  DELHI: [
+    { code: 'NDLS', name: 'New Delhi', tag: 'Capital Hub' },
+    { code: 'DLI', name: 'Old Delhi', tag: 'Historic' },
+    { code: 'NZM', name: 'Hazrat Nizamuddin', tag: 'Express Terminal' },
+    { code: 'ANVT', name: 'Anand Vihar Terminus', tag: 'East Delhi' },
+  ],
+  MUMBAI: [
+    { code: 'CSMT', name: 'Chhatrapati Shivaji Maharaj Terminus', tag: 'UNESCO Heritage' },
+    { code: 'MMCT', name: 'Mumbai Central', tag: 'Western Hub' },
+    { code: 'LTT', name: 'Lokmanya Tilak Terminus', tag: 'Kurla' },
+    { code: 'BDTS', name: 'Bandra Terminus', tag: 'Western Suburb' },
+  ],
+  CHENNAI: [
+    { code: 'MAS', name: 'MGR Chennai Central', tag: '12 Platforms' },
+    { code: 'MS', name: 'Chennai Egmore', tag: '11 Platforms' },
+  ],
+  BENGALURU: [
+    { code: 'SBC', name: 'KSR Bengaluru City', tag: 'Main Station' },
+    { code: 'YPR', name: 'Yesvantpur Junction', tag: 'North Hub' },
+    { code: 'SMVB', name: 'SMVT Bengaluru', tag: 'New Terminal' },
+  ],
+  HYDERABAD: [
+    { code: 'SC', name: 'Secunderabad Junction', tag: '10 Platforms' },
+    { code: 'HYB', name: 'Hyderabad Deccan (Nampally)', tag: 'City Centre' },
+    { code: 'KCG', name: 'Kacheguda', tag: 'South Hub' },
+  ],
+  PATNA: [
+    { code: 'PNBE', name: 'Patna Junction', tag: 'Main' },
+    { code: 'RJPB', name: 'Rajendranagar Terminal', tag: 'South' },
+    { code: 'DNR', name: 'Danapur', tag: 'Cantonment' },
+  ],
+  LUCKNOW: [
+    { code: 'LKO', name: 'Lucknow Charbagh NR', tag: 'Northern Rly' },
+    { code: 'LJN', name: 'Lucknow Junction NER', tag: 'NE Rly' },
+  ],
+  BHOPAL: [
+    { code: 'BPL', name: 'Bhopal Junction', tag: 'Main' },
+    { code: 'RKMP', name: 'Rani Kamalapati (Habibganj)', tag: 'Smart Station' },
+  ],
+  PUNE: [
+    { code: 'PUNE', name: 'Pune Junction', tag: 'Main' },
+    { code: 'SVJR', name: 'Shivajinagar', tag: 'City Centre' },
+  ],
+  AHMEDABAD: [
+    { code: 'ADI', name: 'Ahmedabad Junction (Kalupur)', tag: '12 Platforms' },
+    { code: 'SBT', name: 'Sabarmati Junction', tag: 'North Hub' },
+  ],
+  VARANASI: [
+    { code: 'BSB', name: 'Varanasi Junction', tag: 'Main' },
+    { code: 'BSBS', name: 'Varanasi City', tag: 'NER' },
+    { code: 'MUV', name: 'Manduadih', tag: 'Cantt' },
+  ],
+  AGRA: [
+    { code: 'AGC', name: 'Agra Cantt', tag: 'Main' },
+    { code: 'AF', name: 'Agra Fort', tag: 'Fort Area' },
+  ],
+  JAMMU: [
+    { code: 'JAT', name: 'Jammu Tawi', tag: 'Main Terminal' },
+    { code: 'SVDK', name: 'SMVD Katra', tag: 'Vaishno Devi' },
+  ],
+};
+
+// City name aliases → canonical multi-station city key
+const CITY_ALIASES: Record<string, string> = {
+  KOLKATA: 'KOLKATA', CALCUTTA: 'KOLKATA', HOWRAH: 'KOLKATA', KOL: 'KOLKATA',
+  DELHI: 'DELHI', 'NEW DELHI': 'DELHI', DLI: 'DELHI',
+  MUMBAI: 'MUMBAI', BOMBAY: 'MUMBAI',
+  CHENNAI: 'CHENNAI', MADRAS: 'CHENNAI',
+  BENGALURU: 'BENGALURU', BANGALORE: 'BENGALURU', BANGALURU: 'BENGALURU',
+  HYDERABAD: 'HYDERABAD', SECUNDERABAD: 'HYDERABAD',
+  PATNA: 'PATNA',
+  LUCKNOW: 'LUCKNOW',
+  BHOPAL: 'BHOPAL',
+  PUNE: 'PUNE', POONA: 'PUNE',
+  AHMEDABAD: 'AHMEDABAD', AMDAVAD: 'AHMEDABAD',
+  VARANASI: 'VARANASI', BANARAS: 'VARANASI', KASHI: 'VARANASI',
+  AGRA: 'AGRA',
+  JAMMU: 'JAMMU', KASHMIR: 'JAMMU',
+};
+
+export function searchStations(query: string, limit: number = 10): Station[] {
   if (!query || query.trim().length === 0) return POPULAR_STATIONS.slice(0, limit);
   const q = query.trim().toUpperCase();
+
+  // Check if query matches a multi-station city — expand sub-stations
+  const cityKey = CITY_ALIASES[q];
+  if (cityKey && MULTI_STATION_CITIES[cityKey]) {
+    const subStations = MULTI_STATION_CITIES[cityKey];
+    // Return actual Station objects from POPULAR_STATIONS for each sub-station
+    const results: Station[] = [];
+    for (const sub of subStations) {
+      const found = POPULAR_STATIONS.find((s) => s.code === sub.code);
+      if (found) {
+        results.push(found);
+      } else {
+        // Fallback: create a minimal station entry from the hub data
+        const cityName = cityKey.charAt(0) + cityKey.slice(1).toLowerCase();
+        results.push({
+          code: sub.code,
+          name: sub.name,
+          city: cityName,
+          state: '',
+          aliases: [sub.code],
+        });
+      }
+    }
+    return results.slice(0, limit);
+  }
+
+  // Also check prefix match for multi-station cities (e.g. "kol" → Kolkata)
+  if (q.length >= 3) {
+    for (const [alias, key] of Object.entries(CITY_ALIASES)) {
+      if (alias.startsWith(q) && MULTI_STATION_CITIES[key]) {
+        const subStations = MULTI_STATION_CITIES[key];
+        const results: Station[] = [];
+        for (const sub of subStations) {
+          const found = POPULAR_STATIONS.find((s) => s.code === sub.code);
+          if (found) results.push(found);
+        }
+        if (results.length > 0) return results.slice(0, limit);
+      }
+    }
+  }
+
+  // Standard search across all stations
   return POPULAR_STATIONS.filter(
     (s) =>
       s.code.includes(q) ||
@@ -231,3 +363,4 @@ export function searchStations(query: string, limit: number = 8): Station[] {
       (s.aliases && s.aliases.some((a) => a.toUpperCase().includes(q)))
   ).slice(0, limit);
 }
+

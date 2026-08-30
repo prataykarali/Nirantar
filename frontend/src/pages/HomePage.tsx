@@ -494,7 +494,7 @@ export const HomePage: React.FC = () => {
                         Station Unavailable for Now
                       </h4>
                       <p className="text-[11px] text-amber-900/90 font-medium leading-relaxed mt-0.5">
-                        We couldn't locate "<strong>{nlQuery.trim()}</strong>" on the direct railway network. Nirantar currently supports 550+ verified major Indian Railway stations.
+                        We couldn't locate "<strong>{nlQuery.trim()}</strong>" on the direct railway network. Nirantar currently supports 1000+ verified major Indian Railway stations.
                       </p>
                     </div>
                   </div>
@@ -509,8 +509,14 @@ export const HomePage: React.FC = () => {
                         { code: 'HWH', name: 'Howrah' },
                         { code: 'CSMT', name: 'Mumbai CSMT' },
                         { code: 'SBC', name: 'Bengaluru' },
-                        { code: 'MAS', name: 'Chennai Central' },
+                        { code: 'MAS', name: 'Chennai' },
                         { code: 'PUNE', name: 'Pune' },
+                        { code: 'JP', name: 'Jaipur' },
+                        { code: 'LKO', name: 'Lucknow' },
+                        { code: 'PNBE', name: 'Patna' },
+                        { code: 'GHY', name: 'Guwahati' },
+                        { code: 'ADI', name: 'Ahmedabad' },
+                        { code: 'BPL', name: 'Bhopal' },
                       ].map((hub) => (
                         <button
                           key={hub.code}
