@@ -148,19 +148,19 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
     setIsSubmittingReallocation(true);
 
     const chosenPassenger = userBookedSeats[selectedPassengerIdx] || userBookedSeats[0] || {
-      passengerName: 'Pratay Karali',
-      seatNumber: 36,
-      berthType: 'Lower Berth (LB)',
+      passengerName: 'Passenger 1',
+      seatNumber: 1,
+      berthType: 'Lower Berth',
       coachCode: selectedCoachMeta.representativeCode,
     };
 
     try {
       const result = await requestMidJourneyReallocation({
         trainNumber,
-        passengerName: chosenPassenger.passengerName || 'Pratay Karali',
+        passengerName: chosenPassenger.passengerName || 'Passenger 1',
         fromCoach: chosenPassenger.coachCode || selectedCoachMeta.representativeCode,
-        fromSeat: chosenPassenger.seatNumber || 36,
-        fromBerthType: chosenPassenger.berthType || 'Lower Berth (LB)',
+        fromSeat: chosenPassenger.seatNumber || 1,
+        fromBerthType: chosenPassenger.berthType || 'Lower Berth',
         toCoach: selectedCoachMeta.representativeCode,
         toSeat: selectedVacantBerth.num,
         toBerthType: selectedVacantBerth.fullTypeName,
@@ -573,19 +573,26 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                 </p>
               </div>
 
-              {isUserBookedTrain && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById('bay-5')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <span>★ Jump to Your Seats (Bay 5: #36 & #37) ↓</span>
-                  </button>
-                </div>
-              )}
+              {isUserBookedTrain && userBookedSeats.length > 0 && (() => {
+                const firstSeatNum = userBookedSeats[0]?.seatNumber || 1;
+                // 3A/SL = 8 berths per bay, 2A = 6, 1A = varies
+                const berthsPerBay = selectedCoachMeta.classCode === '2A' ? 6 : selectedCoachMeta.classCode === '1A' ? 4 : 8;
+                const userBayIdx = Math.ceil(firstSeatNum / berthsPerBay);
+                const seatLabel = userBookedSeats.map((s) => `#${s.seatNumber}`).join(' & ');
+                return (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        document.getElementById(`bay-${userBayIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <span>★ Jump to Your Seats (Bay {userBayIdx}: {seatLabel}) ↓</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -902,7 +909,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                         })
                       ) : (
                         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold col-span-2">
-                          Pratay Karali (Coach B4 • Seat #36 LB)
+                          Passenger 1 (Coach {selectedCoachMeta.representativeCode})
                         </div>
                       )}
                     </div>

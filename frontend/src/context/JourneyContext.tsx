@@ -900,16 +900,16 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       const allot = dynamicAllotments[idx];
       return {
-        coach: allot?.coachCode || 'B4',
-        seatNumber: allot?.seatNumber || (16 + idx),
+        coach: allot?.coachCode || dynamicAllotments[0]?.coachCode || 'B1',
+        seatNumber: allot?.seatNumber || (dynamicAllotments[0]?.seatNumber || 5) + idx,
         berthType: allot?.berthType || 'Lower Berth',
       };
     });
 
     const primarySeatAllotment = seatAllotments[0] || {
-      coach: isWaitlistTrain ? baseWlQuota : 'B4',
-      seatNumber: isWaitlistTrain ? baseWlSeat : 16,
-      berthType: isWaitlistTrain ? `${baseWlQuota} Queue #${baseWlSeat}` : 'Lower Berth',
+      coach: isWaitlistTrain ? baseWlQuota : (dynamicAllotments[0]?.coachCode || 'B1'),
+      seatNumber: isWaitlistTrain ? baseWlSeat : (dynamicAllotments[0]?.seatNumber || 5),
+      berthType: isWaitlistTrain ? `${baseWlQuota} Queue #${baseWlSeat}` : (dynamicAllotments[0]?.berthType || 'Lower Berth'),
     };
 
     const newTicket: TicketRecord = {

@@ -245,6 +245,8 @@ export const JourneyTrackerPage: React.FC = () => {
     navigateTo,
     preferredTrackerTab,
     setPreferredTrackerTab,
+    bookedTicketsList,
+    setBookedTicketsList,
   } = useJourney();
 
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12951';
@@ -352,30 +354,50 @@ export const JourneyTrackerPage: React.FC = () => {
   // User's allocated seats across specific coaches (e.g. Coach B4 for 3A)
   const allocatedSeats = useMemo(() => {
     if (!isUserBookedTrain) return [];
+
+    // Helper to check if a coach code is a real coach (not WL/GNWL)
+    const isRealCoach = (coach: string) => !coach.includes('WL') && !coach.includes('GNWL') && !coach.includes('RAC');
+
+    // 1. Check issuedTicket first
     if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.seatAllotments && issuedTicket.seatAllotments.length > 0) {
-      return issuedTicket.seatAllotments.map((s, idx) => ({
-        coachCode: s.coach,
-        seatNumber: s.seatNumber,
-        berthType: s.berthType,
-        passengerName: issuedTicket.passengers?.[idx]?.name || (passengers[idx]?.name) || `Passenger ${idx + 1}`,
-      }));
+      const realSeats = issuedTicket.seatAllotments
+        .map((s, idx) => ({
+          coachCode: s.coach,
+          seatNumber: s.seatNumber,
+          berthType: s.berthType,
+          passengerName: issuedTicket.passengers?.[idx]?.name || (passengers[idx]?.name) || `Passenger ${idx + 1}`,
+        }))
+        .filter((s) => isRealCoach(s.coachCode));
+      if (realSeats.length > 0) return realSeats;
     }
-    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.seatAllotment) {
+
+    // 2. Check bookedTicketsList for this train
+    const bookedMatch = (bookedTicketsList || []).find((t) => t.train?.trainNumber === trainNumber);
+    if (bookedMatch && bookedMatch.seatAllotments && bookedMatch.seatAllotments.length > 0) {
+      const realSeats = bookedMatch.seatAllotments
+        .map((s, idx) => ({
+          coachCode: s.coach,
+          seatNumber: s.seatNumber,
+          berthType: s.berthType,
+          passengerName: bookedMatch.passengers?.[idx]?.name || `Passenger ${idx + 1}`,
+        }))
+        .filter((s) => isRealCoach(s.coachCode));
+      if (realSeats.length > 0) return realSeats;
+    }
+
+    // 3. Check bookingRecord
+    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.seatAllotment && isRealCoach(bookingRecord.seatAllotment.coach)) {
       return [{
         coachCode: bookingRecord.seatAllotment.coach,
         seatNumber: bookingRecord.seatAllotment.seatNumber,
         berthType: bookingRecord.seatAllotment.berthType,
-        passengerName: bookingRecord.passengerName || 'Pratay Karali',
+        passengerName: bookingRecord.passengerName || 'Passenger 1',
       }];
     }
-    if (trainNumber === '12951' && !issuedTicket && !bookingRecord) {
-      return [
-        { coachCode: 'B4', seatNumber: 36, berthType: 'Lower Berth (LB)', passengerName: 'Pratay Karali (You)' },
-        { coachCode: 'B4', seatNumber: 37, berthType: 'Middle Berth (MB)', passengerName: 'Rahul Sharma' }
-      ];
-    }
+
+    // 4. Dynamic allocation (never hardcode seat numbers)
     return allocatePassengerSeats(userPassengers, userBookedClass);
-  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber, userPassengers, userBookedClass, passengers]);
+  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber, userPassengers, userBookedClass, passengers, bookedTicketsList]);
 
   // Auto-focus user's booked coach by default
   useEffect(() => {
@@ -470,26 +492,56 @@ export const JourneyTrackerPage: React.FC = () => {
     } catch {}
 
     if (issuedTicket && (issuedTicket.train?.trainNumber === trainNumber || trainNumber === '12951')) {
-      const updatedSeatAllotments = (issuedTicket.seatAllotments || []).map((s, idx) => ({
-        coach: 'B4',
-        seatNumber: 36 + idx,
-        berthType: idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth',
-      }));
+      // Use dynamic seat allocation based on ticket PNR + class (NOT hardcoded seats)
+      const classCode = issuedTicket.classCode || '3A';
+      const dynamicAllotments = allocatePassengerSeats(
+        issuedTicket.passengers || [{ id: 'p1', name: 'Passenger 1' }],
+        classCode,
+        issuedTicket.pnrNumber || `cnf_${trainNumber}_${Date.now()}`
+      );
+
+      const updatedSeatAllotments = (issuedTicket.seatAllotments || []).map((s, idx) => {
+        const allot = dynamicAllotments[idx];
+        if (allot) {
+          return {
+            coach: allot.coachCode,
+            seatNumber: allot.seatNumber,
+            berthType: allot.berthType,
+          };
+        }
+        // Fallback: use dynamic allocation seed rather than hardcoded 36
+        return {
+          coach: dynamicAllotments[0]?.coachCode || 'B4',
+          seatNumber: (dynamicAllotments[0]?.seatNumber || 12) + idx,
+          berthType: idx % 3 === 0 ? 'Lower Berth' : idx % 3 === 1 ? 'Middle Berth' : 'Upper Berth',
+        };
+      });
 
       const updatedTicket: TicketRecord = {
         ...issuedTicket,
         status: 'ACTIVE' as any,
-        seatAllotments: updatedSeatAllotments.length > 0 ? updatedSeatAllotments : [
-          { coach: 'B4', seatNumber: 36, berthType: 'Lower Berth' },
-          { coach: 'B4', seatNumber: 37, berthType: 'Middle Berth' },
-        ],
+        seatAllotments: updatedSeatAllotments.length > 0 ? updatedSeatAllotments : dynamicAllotments.map((a) => ({
+          coach: a.coachCode,
+          seatNumber: a.seatNumber,
+          berthType: a.berthType,
+        })),
       };
       setIssuedTicket(updatedTicket);
+
+      // Also update in bookedTicketsList
+      setBookedTicketsList((prev) => {
+        return prev.map((t) =>
+          t.train?.trainNumber === trainNumber || t.pnrNumber === issuedTicket.pnrNumber
+            ? { ...t, status: 'ACTIVE' as any, seatAllotments: updatedTicket.seatAllotments }
+            : t
+        );
+      });
+
       try {
         localStorage.setItem('nirantar_issued_ticket', JSON.stringify(updatedTicket));
       } catch {}
     }
-  }, [trainNumber, issuedTicket, setIssuedTicket]);
+  }, [trainNumber, issuedTicket, setIssuedTicket, setBookedTicketsList]);
 
   // Reset simulation when train or initial waitlist changes
   useEffect(() => {
@@ -2282,7 +2334,7 @@ export const JourneyTrackerPage: React.FC = () => {
         stoppages={routeStations}
         currentStationIndex={activeStationIndex}
         coach={selectedCoach}
-        seatNumber={userSeatObjects[0]?.seatNumber || 36}
+        seatNumber={userSeatObjects[0]?.seatNumber || allocatedSeats[0]?.seatNumber || 1}
       />
     </div>
   );
