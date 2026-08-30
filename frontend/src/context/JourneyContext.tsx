@@ -38,6 +38,7 @@ import { NirantarEventType, NirantarUiEvent } from '../events/eventTypes';
 import { BookingState, StateTransitionEngine } from '../state/JourneyStateMachine';
 import { TaskStackItem, TaskStackManager } from '../state/TaskStack';
 import { NiraSanitizedContext } from '../ai/NiraPlanner';
+import { syncTicketToSupabase, syncUserToSupabase } from '../services/supabaseClient';
 
 export interface DigitalBankAlert {
   id: string;
@@ -580,8 +581,37 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         localStorage.setItem('nirantar_issued_ticket', JSON.stringify(issuedTicket));
       } catch {}
+      // Automatically sync confirmed ticket record with Supabase
+      syncTicketToSupabase({
+        user_id: authState?.userId || undefined,
+        pnr_number: issuedTicket.pnrNumber,
+        train_number: issuedTicket.train?.trainNumber || '12301',
+        train_name: issuedTicket.train?.trainName || 'Express Train',
+        from_station_code: issuedTicket.origin?.code || 'NDLS',
+        from_station_name: issuedTicket.origin?.name || 'New Delhi',
+        to_station_code: issuedTicket.destination?.code || 'HWH',
+        to_station_name: issuedTicket.destination?.name || 'Howrah Jn',
+        travel_date: issuedTicket.travelDate,
+        class_code: issuedTicket.classCode || '3A',
+        fare: issuedTicket.train?.classes?.find((c) => c.classCode === issuedTicket.classCode)?.fare || 1450,
+        status: issuedTicket.status,
+        passengers: issuedTicket.passengers,
+      }).catch(() => {});
     }
-  }, [issuedTicket]);
+  }, [issuedTicket, authState?.userId]);
+
+  useEffect(() => {
+    if (authState?.userId) {
+      syncUserToSupabase({
+        id: authState.userId,
+        display_name: authState.displayName || 'Citizen User',
+        username: authState.displayName?.toLowerCase().replace(/\s+/g, '.') || 'citizen.user',
+        email: authState.email || undefined,
+        phone: authState.phone || undefined,
+        wallet_balance: walletBalance,
+      }).catch(() => {});
+    }
+  }, [authState?.userId, authState?.displayName, authState?.email, authState?.phone, walletBalance]);
 
   useEffect(() => {
     if (bookingRecord) {

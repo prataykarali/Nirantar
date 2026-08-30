@@ -41,7 +41,7 @@ def _ensure_postgres_ssl(url: str) -> str:
 
 
 def normalize_database_url(url: str | None) -> str:
-    """Convert async / Heroku URLs into a sync psycopg2 or SQLite URL."""
+    """Convert async / Heroku / Supabase URLs into a sync psycopg2 or SQLite URL."""
     if not url:
         return "sqlite:////tmp/nirantar_journey.db"
 
@@ -58,6 +58,15 @@ def normalize_database_url(url: str | None) -> str:
         if url.startswith(src):
             url = dst + url[len(src) :]
             break
+
+    # Handle pgbouncer parameter from Prisma / Supabase connection strings
+    if "?" in url:
+        parsed = urlparse(url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query.pop("pgbouncer", None)  # psycopg2 handles pooler port directly
+        if "sslmode" not in query and ("supabase" in parsed.netloc or "vercel-storage" in parsed.netloc or "aws" in parsed.netloc):
+            query["sslmode"] = "require"
+        url = urlunparse(parsed._replace(query=urlencode(query)))
 
     if "unix_sock=" in url:
         parsed = urlparse(url)
@@ -81,26 +90,29 @@ def _format_instance_host(instance: str) -> str:
 
 
 def resolve_database_url() -> str:
-    """Prefer DATABASE_URL, then discrete Postgres env vars, then local SQLite."""
+    """Prefer DATABASE_URL, Supabase/Vercel Postgres env vars, discrete credentials, then SQLite."""
     direct = _first_env(
         "DATABASE_URL",
+        "POSTGRES_URL_NON_POOLING",
+        "POSTGRES_PRISMA_URL",
+        "POSTGRES_URL",
+        "SUPABASE_DB_URL",
         "CLOUDSQL_URL",
         "CLOUD_SQL_DATABASE_URL",
-        "POSTGRES_URL",
         "SQLALCHEMY_DATABASE_URI",
     )
     if direct:
         return normalize_database_url(direct)
 
-    user = _first_env("DB_USER", "POSTGRES_USER", "DATABASE_USER") or "postgres"
+    user = _first_env("POSTGRES_USER", "DB_USER", "DATABASE_USER", "SUPABASE_USER") or "postgres"
     password = _first_env(
-        "DB_PASS", "DB_PASSWORD", "POSTGRES_PASSWORD", "DATABASE_PASSWORD"
+        "POSTGRES_PASSWORD", "DB_PASS", "DB_PASSWORD", "DATABASE_PASSWORD", "SUPABASE_PASSWORD"
     ) or ""
     name = _first_env(
-        "DB_NAME", "POSTGRES_DB", "DATABASE_NAME", "POSTGRES_DATABASE"
+        "POSTGRES_DATABASE", "POSTGRES_DB", "DB_NAME", "DATABASE_NAME", "SUPABASE_DATABASE"
     ) or "postgres"
-    host = _first_env("DB_HOST", "POSTGRES_HOST", "DATABASE_HOST")
-    port = _first_env("DB_PORT", "POSTGRES_PORT") or "5432"
+    host = _first_env("POSTGRES_HOST", "DB_HOST", "DATABASE_HOST", "SUPABASE_HOST")
+    port = _first_env("POSTGRES_PORT", "DB_PORT", "SUPABASE_PORT") or "5432"
     instance = _first_env(
         "INSTANCE_CONNECTION_NAME",
         "CLOUD_SQL_CONNECTION_NAME",
