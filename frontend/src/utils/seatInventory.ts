@@ -837,6 +837,8 @@ export interface CoachBay {
 
 export interface MidJourneyReallocation {
   id: string;
+  trainNumber?: string;
+  pnrNumber?: string;
   passengerName: string;
   fromCoach: string;
   fromSeat: number | string;

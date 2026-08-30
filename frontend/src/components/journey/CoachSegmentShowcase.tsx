@@ -156,6 +156,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
 
     try {
       const result = await requestMidJourneyReallocation({
+        trainNumber,
         passengerName: chosenPassenger.passengerName || 'Pratay Karali',
         fromCoach: chosenPassenger.coachCode || selectedCoachMeta.representativeCode,
         fromSeat: chosenPassenger.seatNumber || 36,

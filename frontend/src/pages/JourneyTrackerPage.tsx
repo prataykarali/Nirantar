@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Train,
   MapPin,
@@ -33,7 +33,7 @@ import {
   Activity,
   TrendingUp,
 } from 'lucide-react';
-import { useJourney } from '../context/JourneyContext';
+import { useJourney, TicketRecord } from '../context/JourneyContext';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { getTrainStoppages, resolveTrainDetail, StationStop } from '../data/trainStoppages';
 import {
@@ -144,7 +144,7 @@ const RADAR_TRAIN_PRESETS: RadarTrainPreset[] = [
     fromCode: 'HWH',
     toCity: 'Bengaluru',
     toCode: 'SMVB',
-    tag: 'WL Watch',
+    tag: 'Daily SF',
   },
   {
     number: '12232',
@@ -154,7 +154,7 @@ const RADAR_TRAIN_PRESETS: RadarTrainPreset[] = [
     fromCode: 'CDG',
     toCity: 'Lucknow',
     toCode: 'LKO',
-    tag: 'WL Watch',
+    tag: 'Express',
   },
   {
     number: '12302',
@@ -234,6 +234,7 @@ export const JourneyTrackerPage: React.FC = () => {
     setTrackQuery,
     selectedTrain,
     issuedTicket,
+    setIssuedTicket,
     bookingRecord,
     passengers,
     selectedClassCode,
@@ -242,6 +243,8 @@ export const JourneyTrackerPage: React.FC = () => {
     setShowChatDrawer,
     addNotification,
     navigateTo,
+    preferredTrackerTab,
+    setPreferredTrackerTab,
   } = useJourney();
 
   const initialTrainNumber = trackQuery || selectedTrain?.trainNumber || issuedTicket?.train?.trainNumber || '12951';
@@ -269,7 +272,16 @@ export const JourneyTrackerPage: React.FC = () => {
   const [activeAlarm, setActiveAlarm] = useState<{ station: string; leadMinutes: number } | null>(null);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
-  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
+  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>(() => {
+    if (preferredTrackerTab) return preferredTrackerTab;
+    return 'timeline';
+  });
+
+  useEffect(() => {
+    if (preferredTrackerTab) {
+      setActiveTrackerTab(preferredTrackerTab);
+    }
+  }, [preferredTrackerTab]);
 
   // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
   const trainNumber = activeTrainNumber.trim() || '12951';
@@ -370,10 +382,18 @@ export const JourneyTrackerPage: React.FC = () => {
   // Real-Time Waitlist Clearance ONLY for actual waitlisted bookings (disappears if confirmed)
   const isWaitlistBooking = useMemo(() => {
     if (!isUserBookedTrain) return false;
+
+    // If already marked confirmed in storage for this train, it is no longer on waitlist!
+    try {
+      if (localStorage.getItem(`nirantar_wl_confirmed_${trainNumber}`) === 'true') {
+        return false;
+      }
+    } catch {}
     
     // Check issuedTicket status
     if (issuedTicket && (issuedTicket.train?.trainNumber === trainNumber || trainNumber === '12951')) {
       if (issuedTicket.status === 'CANCELLED') return false;
+      if ((issuedTicket.status as string) === 'CONFIRMED' || issuedTicket.status === 'ACTIVE') return false;
       const hasWLSeat = issuedTicket.seatAllotments?.some((s) => (s.coach || '').includes('WL') || (s.berthType || '').includes('WL'));
       if (hasWLSeat || (issuedTicket.status as any) === 'WAITLIST' || (issuedTicket.status as any) === 'RAC') return true;
       return false;
@@ -382,6 +402,7 @@ export const JourneyTrackerPage: React.FC = () => {
     // Check bookingRecord status
     if (bookingRecord && bookingRecord.trainNumber === trainNumber) {
       if (bookingRecord.status === 'CANCELLED') return false;
+      if (bookingRecord.status === 'CONFIRMED') return false;
       const hasWLSeat = (bookingRecord.seatAllotment?.coach || '').includes('WL') || (bookingRecord.seatAllotment?.berthType || '').includes('WL');
       if (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || hasWLSeat) return true;
       return false;
@@ -416,8 +437,43 @@ export const JourneyTrackerPage: React.FC = () => {
   const [simIndex, setSimIndex] = useState<number>(0);
   const [simStatusMsg, setSimStatusMsg] = useState<string>('Corridor radar active: scanning cancellation queue...');
 
+  // Helper to permanently confirm waitlist in storage and context
+  const confirmWaitlistPermanently = useCallback(() => {
+    try {
+      localStorage.setItem(`nirantar_wl_confirmed_${trainNumber}`, 'true');
+    } catch {}
+
+    if (issuedTicket && (issuedTicket.train?.trainNumber === trainNumber || trainNumber === '12951')) {
+      const updatedSeatAllotments = (issuedTicket.seatAllotments || []).map((s, idx) => ({
+        coach: 'B4',
+        seatNumber: 36 + idx,
+        berthType: idx % 2 === 0 ? 'Lower Berth' : 'Middle Berth',
+      }));
+
+      const updatedTicket: TicketRecord = {
+        ...issuedTicket,
+        status: 'ACTIVE' as any,
+        seatAllotments: updatedSeatAllotments.length > 0 ? updatedSeatAllotments : [
+          { coach: 'B4', seatNumber: 36, berthType: 'Lower Berth' },
+          { coach: 'B4', seatNumber: 37, berthType: 'Middle Berth' },
+        ],
+      };
+      setIssuedTicket(updatedTicket);
+      try {
+        localStorage.setItem('nirantar_issued_ticket', JSON.stringify(updatedTicket));
+      } catch {}
+    }
+  }, [trainNumber, issuedTicket, setIssuedTicket]);
+
   // Reset simulation when train or initial waitlist changes
   useEffect(() => {
+    try {
+      if (localStorage.getItem(`nirantar_wl_confirmed_${trainNumber}`) === 'true') {
+        setSimulatedWl(0);
+        return;
+      }
+    } catch {}
+
     if (isWaitlistBooking && initialWaitlistNumber > 0) {
       setSimulatedWl(initialWaitlistNumber);
       setSimIndex(0);
@@ -447,20 +503,22 @@ export const JourneyTrackerPage: React.FC = () => {
     const timer = setTimeout(() => {
       setSimulatedWl(currentStage.wl);
       if (currentStage.wl === 0) {
+        confirmWaitlistPermanently();
         setShowConfirmedCelebration(true);
         setTimeout(() => {
           setIsPoofingCelebration(true);
           setTimeout(() => {
             setShowConfirmedCelebration(false);
             setIsPoofingCelebration(false);
+            setActiveTrackerTab('coach');
           }, 600);
-        }, 5000);
+        }, 4000);
       }
       setSimIndex((prev) => prev + 1);
     }, currentStage.delay);
 
     return () => clearTimeout(timer);
-  }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE]);
+  }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE, confirmWaitlistPermanently]);
 
   const handleStepSim = () => {
     if (SIM_SEQUENCE.length === 0) return;
@@ -469,12 +527,16 @@ export const JourneyTrackerPage: React.FC = () => {
     setSimulatedWl(SIM_SEQUENCE[nextIdx].wl);
     setSimStatusMsg(SIM_SEQUENCE[nextIdx].msg);
     if (SIM_SEQUENCE[nextIdx].wl === 0) {
+      confirmWaitlistPermanently();
       setShowConfirmedCelebration(true);
     }
   };
 
   const handleResetSim = () => {
     if (SIM_SEQUENCE.length === 0) return;
+    try {
+      localStorage.removeItem(`nirantar_wl_confirmed_${trainNumber}`);
+    } catch {}
     setSimIndex(0);
     setSimulatedWl(initialWaitlistNumber);
     setSimStatusMsg(SIM_SEQUENCE[0]?.msg || 'Corridor radar active');
@@ -488,14 +550,17 @@ export const JourneyTrackerPage: React.FC = () => {
     setSimIndex(lastIdx);
     setSimulatedWl(0);
     setSimStatusMsg(SIM_SEQUENCE[lastIdx]?.msg || 'Confirmed');
+    confirmWaitlistPermanently();
     setShowConfirmedCelebration(true);
   };
 
   const handlePoofCelebration = () => {
     setIsPoofingCelebration(true);
+    confirmWaitlistPermanently();
     setTimeout(() => {
       setShowConfirmedCelebration(false);
       setIsPoofingCelebration(false);
+      setActiveTrackerTab('coach');
     }, 600);
   };
 
@@ -958,17 +1023,26 @@ export const JourneyTrackerPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {tr.tag && (
-                    <span
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
-                        isSelected
-                          ? 'bg-white/20 text-amber-200 border border-white/30'
-                          : 'bg-purple-50 text-purple-800 border border-purple-200'
-                      }`}
-                    >
-                      {tr.tag}
-                    </span>
-                  )}
+                  {(() => {
+                    const isTrainBookedOnWL =
+                      (issuedTicket?.train?.trainNumber === tr.number || bookingRecord?.trainNumber === tr.number) &&
+                      isWaitlistBooking;
+                    const badgeText = isTrainBookedOnWL ? 'WL Watch' : tr.tag;
+                    if (!badgeText) return null;
+                    return (
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
+                          isSelected
+                            ? 'bg-white/20 text-amber-200 border border-white/30'
+                            : isTrainBookedOnWL
+                            ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                            : 'bg-purple-50 text-purple-800 border border-purple-200'
+                        }`}
+                      >
+                        {badgeText}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {/* Bottom Row: From Where to Where Route */}

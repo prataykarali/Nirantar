@@ -287,6 +287,10 @@ export interface JourneyContextType {
   dismissNotification: (id: string) => void;
   markNotificationsRead: () => void;
 
+  // Tracker Tab Preference (Timeline / Coach / Waitlist)
+  preferredTrackerTab: 'timeline' | 'coach' | 'waitlist';
+  setPreferredTrackerTab: (tab: 'timeline' | 'coach' | 'waitlist') => void;
+
   // Mid-Journey Vacant Berth Reallocations & Special Requests
   activeReallocations: MidJourneyReallocation[];
   requestMidJourneyReallocation: (reallocation: Omit<MidJourneyReallocation, 'id' | 'timestamp' | 'approvedBy' | 'status'>) => Promise<MidJourneyReallocation>;
@@ -575,6 +579,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeHighlightTarget, setActiveHighlightTarget] = useState<string | null>(null);
 
   // ─── Citizen Accessibility & "I'm Stuck" ───
+  const [preferredTrackerTab, setPreferredTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>('timeline');
   const [easyMode, setEasyMode] = useState<boolean>(() => {
     try {
       return localStorage.getItem('nirantar_easy_mode') === 'true';
@@ -1408,71 +1413,56 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       title: '1. Hands-Free Nira AI Assistant',
       speech: 'Welcome to Nirantar! Meet Nira, your conversational AI travel assistant. You can chat or speak to search trains, autofill passenger forms, or check live policies hands-free anytime!',
       actionCue: 'Tap Nira on the left sidebar or chat directly in the open drawer to start.',
-      actionButtonText: 'Explore Train Discovery ➔',
+      actionButtonText: 'Proceed to Passenger Workspace ➔',
       arrowPlacement: { bottom: '260px', right: '440px' },
       arrowLabel: '🤖 Nira AI Chatbot & Voice Assistant',
       cardPosition: 'left',
-      onAction: () => {
-        setActivePage('home');
-        setGuidanceStepIndex(1);
-      },
-    },
-    {
-      id: 'step-2-home-search',
-      stepNumber: 2,
-      title: '2. Intelligent Train Discovery',
-      speech: 'Search express trains by typing station names, choosing popular routes like Delhi to Mumbai, or speaking directly to Nira AI.',
-      actionCue: 'Type a destination or select a route to discover express trains.',
-      actionButtonText: 'View Express Trains ➔',
-      arrowPlacement: { top: '48%', left: '26%' },
-      arrowLabel: '🔍 Enter Destination or Select Route',
-      cardPosition: 'right',
-      onAction: () => {
-        setActivePage('trains');
-        setGuidanceStepIndex(2);
-      },
-    },
-    {
-      id: 'step-3-train-results',
-      stepNumber: 3,
-      title: '3. Ranked Express Comparison',
-      speech: 'Compare direct trains ranked by fastest speed, cheapest fare, or departure timing. Filter by AC 3-Tier, 2A, Tatkal, or Senior Citizen quotas.',
-      actionCue: 'Compare ranked trains, check fare & class, then tap Select Train.',
-      actionButtonText: 'Select Recommended Train ➔',
-      arrowPlacement: { top: '35%', left: '24%' },
-      arrowLabel: '⚡ Ranked Trains: Fastest & Best Value',
-      cardPosition: 'right',
       onAction: () => {
         const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] || MOCK_TRAINS_DATABASE[0];
         if (topTrain) {
           selectTrain(topTrain, selectedClassCode || '3A');
         }
         setActivePage('workspace');
-        setGuidanceStepIndex(3);
+        setGuidanceStepIndex(1);
       },
     },
     {
-      id: 'step-4-passenger-workspace',
-      stepNumber: 4,
-      title: '4. Passenger Workspace & Seat Lock',
+      id: 'step-2-passenger-workspace',
+      stepNumber: 2,
+      title: '2. Passenger Workspace & Seat Lock',
       speech: 'Here are your passenger names, berth preferences, and one-tap Travel Class selector. Review your details with Zero-PII privacy protection and proceed.',
-      actionCue: 'Review passenger names and class selection, then proceed.',
-      actionButtonText: 'Proceed to Step 5 (Payment) ➔',
+      actionCue: 'Review passenger names and seat preferences with zero PII exposure.',
+      actionButtonText: 'Explore Profile & Wallet Top-Up ➔',
       arrowPlacement: { top: '38%', left: '22%' },
       arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
       cardPosition: 'right',
       onAction: () => {
-        setActivePage('payment');
-        setGuidanceStepIndex(4);
+        setActivePage('profile');
+        setGuidanceStepIndex(2);
       },
     },
     {
-      id: 'step-5-citizen-wallet',
-      stepNumber: 5,
-      title: '5. Citizen Virtual Wallet & 1-Click Pay',
+      id: 'step-3-profile-wallet-topup',
+      stepNumber: 3,
+      title: '3. Citizen Profile & Virtual Wallet Top-Up',
+      speech: 'Every citizen receives a pre-loaded ₹10,000 Government Travel Credit Grant! You can manage personal details, switch avatar personas, update your 4-digit Security PIN, and easily add funds to your Virtual Wallet anytime.',
+      actionCue: 'View your ₹10,000 Active Balance and tap "Add Balance / Top-Up Wallet" to top up.',
+      actionButtonText: 'Proceed to 1-Click Payment ➔',
+      arrowPlacement: { top: '340px', right: '120px' },
+      arrowLabel: '💳 Pre-Loaded ₹10,000 Citizen Wallet & Instant Top-Up',
+      cardPosition: 'left',
+      onAction: () => {
+        setActivePage('payment');
+        setGuidanceStepIndex(3);
+      },
+    },
+    {
+      id: 'step-4-citizen-wallet-pay',
+      stepNumber: 4,
+      title: '4. Citizen Virtual Wallet & 1-Click Pay',
       speech: 'Enjoy instant 1-click checkout with your ₹10,000 pre-loaded Nirantar Citizen Virtual Wallet or choose UPI/NetBanking with zero payment risk.',
       actionCue: 'Use Citizen Wallet or UPI ID to authorize payment securely.',
-      actionButtonText: 'Authorize & Pay ➔',
+      actionButtonText: 'Authorize & View Ticket ➔',
       arrowPlacement: { top: '68%', left: '24%' },
       arrowLabel: '💳 Enter UPI ID or 1-Click Wallet Pay',
       cardPosition: 'right',
@@ -1483,13 +1473,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         await payWithWallet(3120);
         setActivePage('ticket');
-        setGuidanceStepIndex(5);
+        setGuidanceStepIndex(4);
       },
     },
     {
-      id: 'step-6-digilocker-ticket',
-      stepNumber: 6,
-      title: '6. DigiLocker Verified e-Ticket',
+      id: 'step-5-digilocker-ticket',
+      stepNumber: 5,
+      title: '5. DigiLocker Verified e-Ticket',
       speech: 'Booking confirmed! Your official DigiLocker verified e-ticket has been issued with confirmed coach and seat allocation.',
       actionCue: 'Review your confirmed ticket PNR, download PDF, or check history.',
       actionButtonText: 'Open Live Train Radar ➔',
@@ -1497,49 +1487,50 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '🎟️ DigiLocker Verified e-Ticket & PNR',
       cardPosition: 'right',
       onAction: () => {
+        setPreferredTrackerTab('timeline');
+        setActivePage('track');
+        setGuidanceStepIndex(5);
+      },
+    },
+    {
+      id: 'step-6-live-radar-tracking',
+      stepNumber: 6,
+      title: '6. Live Radar & Satellite Telemetry',
+      speech: 'Track live train location, real-time speed, delay estimator, platform indicators, and deboarding door direction with satellite telemetry.',
+      actionCue: 'Monitor live GPS speed, next stoppage, and platform door alignment.',
+      actionButtonText: 'Switch to Coach Layout & Berth Matrix ➔',
+      arrowPlacement: { top: '32%', left: '22%' },
+      arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
+      cardPosition: 'right',
+      onAction: () => {
+        setPreferredTrackerTab('coach');
         setActivePage('track');
         setGuidanceStepIndex(6);
       },
     },
     {
-      id: 'step-7-live-radar-tracking',
+      id: 'step-7-coach-seat-matrix',
       stepNumber: 7,
-      title: '7. Live Radar & Satellite Telemetry',
-      speech: 'Track live train location, real-time speed, delay estimator, platform indicators, and deboarding door direction with satellite telemetry.',
-      actionCue: 'Monitor live GPS speed, next stoppage, and platform door alignment.',
-      actionButtonText: 'Explore Coach & Seats ➔',
-      arrowPlacement: { top: '32%', left: '22%' },
-      arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
-      cardPosition: 'right',
-      onAction: () => {
-        setActivePage('track');
-        setGuidanceStepIndex(7);
-      },
-    },
-    {
-      id: 'step-8-coach-seat-matrix',
-      stepNumber: 8,
-      title: '8. Live Coach Layout & Berth Matrix',
+      title: '7. Live Coach Layout & Berth Matrix',
       speech: 'Explore interactive coach layouts across S1, B4, A1, and H1 with live 24-berth matrix, booked seat indicators, and corridor occupancy balance.',
-      actionCue: 'Switch coaches and view your confirmed booked berths with real-time occupancy.',
-      actionButtonText: 'View Nirantar Explain & Waitlist ➔',
+      actionCue: 'Switch coaches and view your confirmed booked berths in the live matrix.',
+      actionButtonText: 'Explore Dotted Keywords & Jargon Decoder ➔',
       arrowPlacement: { top: '55%', left: '20%' },
       arrowLabel: '💺 Interactive Coach Layout & 24-Berth Grid',
       cardPosition: 'right',
       onAction: () => {
-        setActivePage('track');
-        setGuidanceStepIndex(8);
+        setGuidanceStepIndex(7);
       },
     },
     {
-      id: 'step-9-nirantar-explain',
-      stepNumber: 9,
-      title: '9. Nirantar Explain • Plain English Ticket Intelligence',
-      speech: 'Welcome to Nirantar Explain! Tap any railway code like GNWL or RAC, or tap "Explain My Ticket in Plain English" to get progressive 3-level definitions (Quick Definition, For You, and Deep Dive) with personalized confirmation odds and AI recommendations.',
-      actionCue: 'Tap "✨ Explain My Ticket in Plain English" or any ⓘ symbol to view full breakdown.',
+      id: 'step-8-interactive-jargon',
+      stepNumber: 8,
+      title: '8. Interactive Keywords & Plain-English Jargon Decoder',
+      speech: 'Notice the dotted underline on terms like PNR, GNWL, RAC, and Platform Alignment across the entire platform! Hover or tap on any underlined keyword anywhere on the website for instant, crystal-clear plain-English definitions and railway policy explanations.',
+      actionCue: 'Hover or tap any dotted underlined keyword across Nirantar to view instant definitions.',
       actionButtonText: 'Finish Guided Tour 🎉',
-      arrowPlacement: { top: '38%', right: '18%' },
-      arrowLabel: '✨ Nirantar Explain • Plain English Ticket Intelligence',
+      arrowPlacement: { top: '42%', left: '30%' },
+      arrowLabel: '✨ Plain-English Dotted Keyword Definitions & Hover Hints',
       cardPosition: 'left',
       onAction: () => {
         setGuidanceActive(false);
@@ -1726,10 +1717,16 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'PENDING',
       };
 
-      // Ensure each passenger only has 1 active reallocation request at a time
+      // Ensure each passenger only has 1 active reallocation request at a time for this train/journey
       setActiveReallocations((prev) => [
         newRecord,
-        ...prev.filter((r) => r.passengerName?.toLowerCase() !== newRecord.passengerName?.toLowerCase())
+        ...prev.filter(
+          (r) =>
+            !(
+              r.passengerName?.toLowerCase().trim() === newRecord.passengerName?.toLowerCase().trim() &&
+              (!newRecord.trainNumber || !r.trainNumber || r.trainNumber === newRecord.trainNumber)
+            )
+        ),
       ]);
 
       // Push initial pending notification
@@ -1948,6 +1945,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activeReallocations,
         requestMidJourneyReallocation,
         clearReallocations,
+        // ─── Tracker Tab Preference ───
+        preferredTrackerTab,
+        setPreferredTrackerTab,
       }}
     >
       {children}
