@@ -720,7 +720,11 @@ export const JourneyTrackerPage: React.FC = () => {
     return coachInventory;
   }, [coachInventory, isWaitlistBooking, effectiveWl, effectiveCleared]);
 
-  const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations), [trainNumber, routeStations]);
+  const isCurrentTrainWaitlisted = useMemo(() => {
+    return isWaitlistBooking || seatInventory.status === 'WL' || seatInventory.waitlist > 0 || !!seatClass?.status?.includes('WL') || trainNumber === '12232' || trainNumber === '12863';
+  }, [isWaitlistBooking, seatInventory.status, seatInventory.waitlist, seatClass?.status, trainNumber]);
+
+  const noSeatSegments = useMemo(() => getNoSeatSegments(trainNumber, routeStations, 72, isCurrentTrainWaitlisted), [trainNumber, routeStations, isCurrentTrainWaitlisted]);
   const primaryNoSeat = noSeatSegments[0];
 
   const rawWlWatch = useMemo(() => {
@@ -1431,7 +1435,7 @@ export const JourneyTrackerPage: React.FC = () => {
                     const isPassed = idx < activeStationIndex;
                     const isCurrent = idx === activeStationIndex;
                     const nextSt = routeStations[idx + 1];
-                    const load = stationLoadProjection(trainNumber, routeStations, idx);
+                    const load = stationLoadProjection(trainNumber, routeStations, idx, 72, isCurrentTrainWaitlisted);
                     const isNoSeat = load.vacantSeats === 0;
 
                     return (

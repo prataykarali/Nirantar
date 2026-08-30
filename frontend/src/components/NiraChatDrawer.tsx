@@ -1586,97 +1586,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       const fromSt = nextRouteCtx.fromStation;
       const toSt = nextRouteCtx.toStation;
 
-      const isDirectAutoBook =
-        intentData.isAutoBook ||
-        safeQuery.toLowerCase().includes('auto book') ||
-        safeQuery.toLowerCase().includes('autobook') ||
-        safeQuery.toLowerCase().startsWith('book ') ||
-        safeQuery.toLowerCase().includes('pax') ||
-        safeQuery.toLowerCase().includes('pratay karali') ||
-        safeQuery.toLowerCase().includes('2 seats') ||
-        safeQuery.toLowerCase().includes('2 seat') ||
-        safeQuery.toLowerCase().includes('seats') ||
-        safeQuery.toLowerCase().includes('tatkal');
-
-      if (isDirectAutoBook || hasExplicitTrain) {
-        // Resolve target train
-        let matchedTrain: TrainDetail;
-        if (hasExplicitTrain) {
-          const trainNo = intentData.trainNumber!.trim();
-          matchedTrain = resolveTrainDetail(trainNo, classCode);
-        } else if (fromSt && toSt) {
-          const foundTrains = searchTrains(fromSt.code, toSt.code);
-          if (foundTrains && foundTrains.length > 0) {
-            matchedTrain = rankTrains(foundTrains)[0];
-          } else {
-            // Known flagship train corridor fallbacks
-            const fromCity = fromSt.city?.toLowerCase() || '';
-            const toCity = toSt.city?.toLowerCase() || '';
-            if (fromCity.includes('delhi') && toCity.includes('mumbai')) {
-              matchedTrain = resolveTrainDetail('12951', classCode);
-            } else if (fromCity.includes('delhi') && toCity.includes('varanasi')) {
-              matchedTrain = resolveTrainDetail('22436', classCode);
-            } else if (fromCity.includes('delhi') && toCity.includes('bangalore')) {
-              matchedTrain = resolveTrainDetail('12628', classCode);
-            } else if ((fromCity.includes('howrah') || fromCity.includes('kolkata')) && toCity.includes('puri')) {
-              matchedTrain = resolveTrainDetail('12837', classCode);
-            } else if ((fromCity.includes('kolkata') || fromCity.includes('howrah')) && toCity.includes('bangalore')) {
-              matchedTrain = resolveTrainDetail('12863', classCode);
-            } else if (fromCity.includes('delhi') && toCity.includes('lucknow')) {
-              matchedTrain = resolveTrainDetail('12420', classCode);
-            } else if (fromCity.includes('mumbai') && toCity.includes('pune')) {
-              matchedTrain = resolveTrainDetail('12127', classCode);
-            } else if (fromCity.includes('delhi') && toCity.includes('patna')) {
-              matchedTrain = resolveTrainDetail('12310', classCode);
-            } else {
-              matchedTrain = resolveTrainDetail('12951', classCode);
-            }
-          }
-        } else {
-          matchedTrain = resolveTrainDetail('12951', classCode);
-        }
-
-        // Select train and synchronize central context states
-        selectTrain(matchedTrain, classCode);
-
-        const searchOrigin = matchedTrain.fromStationCode
-          ? { code: matchedTrain.fromStationCode, name: matchedTrain.fromStationName || matchedTrain.fromCity, city: matchedTrain.fromCity, state: '', aliases: [] }
-          : fromSt || { code: 'NDLS', name: 'New Delhi', city: 'Delhi', state: '', aliases: [] };
-        const searchDest = matchedTrain.toStationCode
-          ? { code: matchedTrain.toStationCode, name: matchedTrain.toStationName || matchedTrain.toCity, city: matchedTrain.toCity, state: '', aliases: [] }
-          : toSt || { code: 'MMCT', name: 'Mumbai Central', city: 'Mumbai', state: '', aliases: [] };
-
-        const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
-
-        setSearchParams({
-          fromStation: searchOrigin,
-          toStation: searchDest,
-          travelDate: effDate,
-          passengersCount: paxCount,
-          classType: classCode,
-          quota: intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)',
-        });
-
-        const singleFare = matchedTrain.classes?.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes?.[0]?.fare || 1040;
-
-        const askDetailsMsg = `🚆 **Selected Train**: **#${matchedTrain.trainNumber} • ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity})\n💺 **Class**: **${classCode}** | **Fare**: **₹${singleFare.toLocaleString('en-IN')} / seat**${intentData.isTatkal ? ' • **Quota: Tatkal (TQ)**' : ''}\n\n**Please enter the passenger details and travel date to proceed to Step 2:**\n\n• **Format**: \`[Passenger Name], [Age], [Gender (M/F)], [Berth Preference]\`\n• **Travel Date**: (e.g., *Tomorrow*, *15th Sept*, or *YYYY-MM-DD*)\n\n*(Example: "Rahul Sharma, 28, Male, Lower Berth, Tomorrow")*`;
-
-        setIsLoading(false);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  text: askDetailsMsg,
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-        return;
-      }
-
-      // General Route Discovery (when user is browsing routes)
+      // 1. Route Discovery & Booking: Always navigate to the Trains Page so citizen can compare & select train
       if (fromSt && toSt) {
         const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
         executeSearch({
@@ -1684,13 +1594,15 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           toStation: toSt,
           travelDate: effDate,
           passengersCount: paxCount,
+          classType: classCode,
+          quota: intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)',
         });
         navigateTo('trains');
 
         const trains = searchTrains(fromSt.code, toSt.code);
         if (trains && trains.length > 0) {
           const topTrains = rankTrains(trains).slice(0, 3);
-          const promptText = `I found **${trains.length} trains** between **${fromSt.city}** and **${toSt.city}**.\n\nTop recommendation: **#${topTrains[0].trainNumber} ${topTrains[0].trainName}** (${topTrains[0].durationHours}).`;
+          const promptText = `I found **${trains.length} trains** between **${fromSt.city}** and **${toSt.city}**.\n\nTop recommendation: **#${topTrains[0].trainNumber} ${topTrains[0].trainName}** (${topTrains[0].durationHours}). Review all available trains on the **Trains** screen or select below to proceed!`;
 
           setIsLoading(false);
           setMessages((prev) =>
@@ -1754,6 +1666,63 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           );
           return;
         }
+      }
+
+      // 2. Explicit train number query without station context (e.g. "book train 12951")
+      if (hasExplicitTrain) {
+        const trainNo = intentData.trainNumber!.trim();
+        const matchedTrain = resolveTrainDetail(trainNo, classCode);
+        const searchOrigin = matchedTrain.fromStationCode
+          ? (findStation(matchedTrain.fromStationCode) || { code: matchedTrain.fromStationCode, name: matchedTrain.fromStationName || matchedTrain.fromCity, city: matchedTrain.fromCity, state: '', aliases: [] })
+          : { code: 'NDLS', name: 'New Delhi', city: 'Delhi', state: '', aliases: [] };
+        const searchDest = matchedTrain.toStationCode
+          ? (findStation(matchedTrain.toStationCode) || { code: matchedTrain.toStationCode, name: matchedTrain.toStationName || matchedTrain.toCity, city: matchedTrain.toCity, state: '', aliases: [] })
+          : { code: 'MMCT', name: 'Mumbai Central', city: 'Mumbai', state: '', aliases: [] };
+
+        const effDate = (travelDate && travelDate !== 'Tomorrow') ? travelDate : (searchParams.travelDate || 'Tomorrow');
+        executeSearch({
+          fromStation: searchOrigin,
+          toStation: searchDest,
+          travelDate: effDate,
+          passengersCount: paxCount,
+          classType: classCode,
+          quota: intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)',
+        });
+        navigateTo('trains');
+
+        const trains = searchTrains(searchOrigin.code, searchDest.code);
+        const allTrains = trains.length > 0 ? trains : [matchedTrain];
+        const topTrains = rankTrains(allTrains).slice(0, 3);
+        const promptText = `I found **#${matchedTrain.trainNumber} • ${matchedTrain.trainName}** (${matchedTrain.fromCity} ➔ ${matchedTrain.toCity}).\n\nReview available trains and class options on the **Trains** screen or select below to continue!`;
+
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: promptText,
+                  isStreaming: false,
+                  trainList: topTrains,
+                  understoodCard: {
+                    from: searchOrigin.name,
+                    to: searchDest.name,
+                    date: travelDate,
+                    passengers: paxCount,
+                    classCode,
+                    fare: matchedTrain.classes?.find((c) => c.classCode === classCode)?.fare || matchedTrain.classes?.[0]?.fare || 1870,
+                    trainName: `#${matchedTrain.trainNumber} ${matchedTrain.trainName}`,
+                    trainNumber: matchedTrain.trainNumber,
+                    departureTime: matchedTrain.departureTime || '16:55',
+                    arrivalTime: matchedTrain.arrivalTime || '08:40',
+                    fromStation: searchOrigin,
+                    toStation: searchDest,
+                  },
+                }
+              : m
+          )
+        );
+        return;
       }
     }
 

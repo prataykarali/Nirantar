@@ -498,8 +498,26 @@ export interface StationLoadProjection {
 }
 
 /** Deterministic passenger-flow projection for the demo route timeline. */
-export function stationLoadProjection(trainNumber: string, stops: StationStop[], index: number, capacity = 72): StationLoadProjection {
+export function stationLoadProjection(
+  trainNumber: string,
+  stops: StationStop[],
+  index: number,
+  capacity = 72,
+  isWaitlisted = false
+): StationLoadProjection {
   const seed = hash(`${trainNumber}:${stops[index]?.code || index}`);
+
+  if (isWaitlisted) {
+    // Waitlisted trains run virtually packed (100% occupancy) across all legs
+    const alighting = index === 0 ? 0 : index === stops.length - 1 ? capacity : 1 + (seed % 3);
+    const boarding = index === stops.length - 1 ? 0 : alighting;
+    return {
+      boarding,
+      alighting,
+      vacantSeats: 0,
+    };
+  }
+
   let onboard = Math.round(capacity * 0.74);
   for (let i = 0; i <= index; i += 1) {
     const currentSeed = hash(`${trainNumber}:${stops[i]?.code || i}`);
@@ -527,13 +545,14 @@ export interface NoSeatSegment {
 export function getNoSeatSegments(
   trainNumber: string,
   stops: StationStop[],
-  capacity = 72
+  capacity = 72,
+  isWaitlisted = false
 ): NoSeatSegment[] {
   const segments: NoSeatSegment[] = [];
   if (!stops || stops.length < 2) return segments;
 
   for (let i = 0; i < stops.length - 1; i++) {
-    const load = stationLoadProjection(trainNumber, stops, i, capacity);
+    const load = stationLoadProjection(trainNumber, stops, i, capacity, isWaitlisted);
     if (load.vacantSeats === 0) {
       const from = stops[i];
       const to = stops[i + 1];
@@ -959,7 +978,9 @@ export function getCoachSegmentBays(
   routeStations: StationStop[] = [],
   userBookedSeats: Array<{ seatNumber: number; passengerName?: string; berthType?: string }> = [],
   activeReallocations: MidJourneyReallocation[] = [],
-  segmentCount = 8
+  segmentCount = 8,
+  trainNumber?: string,
+  isWaitlisted?: boolean
 ): CoachBay[] {
   const bays: CoachBay[] = [];
   const defaultRoute = routeStations.length > 0 ? routeStations : [
@@ -972,6 +993,13 @@ export function getCoachSegmentBays(
   ];
 
   const userSeatNums = userBookedSeats.map((s) => s.seatNumber);
+  const totalStoppages = defaultRoute.length;
+
+  // Determine whether this train suffers from waitlist
+  const effectiveIsWaitlisted =
+    isWaitlisted !== undefined
+      ? isWaitlisted
+      : (trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245');
 
   // Helper to construct a single berth
   const buildBerth = (seatNum: number, typeCode: string, fullType: string, bayIdx: number): SegmentBerth => {
@@ -1001,12 +1029,45 @@ export function getCoachSegmentBays(
       };
     }
 
-    // Stoppage where this occupied berth deboards (ONLY 2 to 3 stoppages away from terminal platform)
-    const totalStoppages = defaultRoute.length;
-    const minDeboardIdx = Math.max(1, totalStoppages - 3);
-    const maxDeboardIdx = Math.max(minDeboardIdx, totalStoppages - 2);
-    const deboardStnIndex = minDeboardIdx + ((seatNum * 3 + bayIdx) % (maxDeboardIdx - minDeboardIdx + 1));
-    const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[totalStoppages - 2] || defaultRoute[totalStoppages - 1];
+    const berthSeed = Math.abs(hash(`${trainNumber || '12951'}:${classCode}:${seatNum}:${bayIdx}`));
+
+    // Stoppage where this occupied berth deboards
+    let deboardStnIndex: number;
+    let boardStnIndex = 0;
+
+    if (effectiveIsWaitlisted) {
+      // WAITLISTED TRAIN:
+      // High demand corridor: ~96% of passengers travel end-to-end (terminal station).
+      // At most ~4% (e.g. 0-1 seat across coach) deboard early, ensuring very few or almost NO vacant seats.
+      const isEndToEnd = (berthSeed % 100) < 96 || totalStoppages <= 2;
+      if (isEndToEnd) {
+        deboardStnIndex = totalStoppages - 1;
+      } else {
+        deboardStnIndex = 1 + (berthSeed % (totalStoppages - 1));
+      }
+    } else {
+      // AVAILABLE TRAIN:
+      // Realistic random passenger distribution across all intermediate stations:
+      // ~65% travel end-to-end, and ~35% deboard randomly across intermediate stations (stations 1 to totalStoppages - 2).
+      const isEndToEnd = (berthSeed % 100) < 65 || totalStoppages <= 2;
+      if (isEndToEnd) {
+        deboardStnIndex = totalStoppages - 1;
+      } else {
+        // Randomly deboard at any intermediate stoppage (not just the last 2-3 stops)
+        const intermediateOptions = Math.max(1, totalStoppages - 1);
+        deboardStnIndex = 1 + ((berthSeed >> 3) % intermediateOptions);
+        if (deboardStnIndex >= totalStoppages) {
+          deboardStnIndex = totalStoppages - 1;
+        }
+        // Realistic boarding station (origin or intermediate prior station)
+        if (deboardStnIndex > 1 && (berthSeed % 2 === 0)) {
+          boardStnIndex = (berthSeed >> 6) % deboardStnIndex;
+        }
+      }
+    }
+
+    const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[totalStoppages - 1];
+    const boardStn = defaultRoute[boardStnIndex] || defaultRoute[0];
     const stopsFromTerminal = totalStoppages - 1 - deboardStnIndex;
 
     // If current station has reached or passed deboarding station, seat is VACANT!
@@ -1026,10 +1087,10 @@ export function getCoachSegmentBays(
         occupancyStatus: 'VACANT',
         isBesideUser: isBeside,
         coPassengerDetails: {
-          travelFrom: defaultRoute[0].name,
+          travelFrom: boardStn.name,
           travelTo: deboardStn.name,
           deboardsAtStationIndex: deboardStnIndex,
-          deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stops from terminal)`,
+          deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stop${stopsFromTerminal === 1 ? '' : 's'} from terminal)`,
         },
       };
     }
@@ -1041,10 +1102,10 @@ export function getCoachSegmentBays(
       occupancyStatus: 'OCCUPIED',
       isBesideUser: isBeside,
       coPassengerDetails: {
-        travelFrom: defaultRoute[0].name,
+        travelFrom: boardStn.name,
         travelTo: deboardStn.name,
         deboardsAtStationIndex: deboardStnIndex,
-        deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stops from terminal)`,
+        deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stop${stopsFromTerminal === 1 ? '' : 's'} from terminal)`,
       },
     };
   };
