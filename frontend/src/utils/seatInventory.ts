@@ -148,6 +148,13 @@ export function registerOccupiedSeats(trainNumber: string, coachCode: string, se
     const merged = Array.from(new Set([...existing, ...seatNumbers]));
     map[key] = merged;
     localStorage.setItem(OCCUPIED_SEATS_STORAGE_KEY, JSON.stringify(map));
+
+    // Also sync to global serverless API in background
+    fetch('/api/v1/seats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trainNumber, coachCode, seatNumbers }),
+    }).catch(() => {});
   } catch (e) {
     console.warn('Failed to register occupied seats in persistent store:', e);
   }

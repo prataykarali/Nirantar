@@ -610,8 +610,19 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         phone: authState.phone || undefined,
         wallet_balance: walletBalance,
       }).catch(() => {});
+
+      fetch('/api/v1/user-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: authState.userId,
+          userProfile: citizenProfile,
+          tickets: bookedTicketsList,
+          walletBalance,
+        }),
+      }).catch(() => {});
     }
-  }, [authState?.userId, authState?.displayName, authState?.email, authState?.phone, walletBalance]);
+  }, [authState?.userId, authState?.displayName, authState?.email, authState?.phone, walletBalance, citizenProfile, bookedTicketsList]);
 
   useEffect(() => {
     if (bookingRecord) {
