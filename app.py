@@ -367,7 +367,7 @@ with gr.Blocks(title="🇮🇳 NIRANTAR — State-Aware AI Assistant & Resilienc
             with gr.Row():
                 with gr.Column(scale=3):
                     nira_input = gr.Textbox(
-                        label="Ask Nira (Voice / Text in any language)",
+                        label="Ask Nira (Voice / Text in English)",
                         placeholder="e.g. 'Book me the cheapest train to Mumbai tomorrow evening for two' or 'Track my train #12302'",
                         lines=3,
                         value="Book me the fastest train from Delhi to Kolkata tomorrow for two passengers",
@@ -375,7 +375,7 @@ with gr.Blocks(title="🇮🇳 NIRANTAR — State-Aware AI Assistant & Resilienc
                     with gr.Row():
                         lang_selector = gr.Dropdown(
                             label="Language",
-                            choices=["English", "हिन्दी (Hindi)", "বাংলা (Bengali)"],
+                            choices=["English"],
                             value="English",
                         )
                         src_dropdown = gr.Dropdown(

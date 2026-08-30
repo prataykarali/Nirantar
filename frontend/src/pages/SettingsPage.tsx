@@ -56,7 +56,7 @@ export const SettingsPage: React.FC = () => {
     { id: 'notifications', label: 'Alerts & Chimes', icon: Bell },
     { id: 'privacy', label: 'Zero-PII Vault', icon: Lock },
     { id: 'payments', label: 'Citizen Wallet', icon: CreditCard },
-    { id: 'language', label: 'Languages (10)', icon: Globe },
+    { id: 'language', label: 'Language', icon: Globe },
     { id: 'accessibility', label: 'Easy Accessibility', icon: Accessibility },
     { id: 'about', label: 'About Nirantar', icon: Info },
   ];
@@ -280,7 +280,7 @@ export const SettingsPage: React.FC = () => {
                     : activeTab === 'payments'
                     ? 'Citizen Virtual Wallet & Payments'
                     : activeTab === 'language'
-                    ? 'Multilingual Indian Localization (10)'
+                    ? 'Language & Localization (English)'
                     : activeTab === 'accessibility'
                     ? 'Accessibility & Visual Easy Mode'
                     : 'About Nirantar Master Architecture'}
@@ -524,7 +524,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* ── TAB 6: LANGUAGES (10 INDIAN REGIONAL SCRIPTS) ── */}
+                {/* ── TAB 6: LANGUAGE (ENGLISH) ── */}
                 {activeTab === 'language' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-4 p-4 rounded-2xl bg-purple-50 border border-purple-100">
@@ -532,23 +532,14 @@ export const SettingsPage: React.FC = () => {
                         <img src="/assets/images/characters/nira_guide_teacher.png" alt="Language Guide" className="w-full h-full object-contain" />
                       </div>
                       <div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Multilingual Indian Regional Localization</span>
-                        <span className="text-xs text-slate-600 font-medium">Nira understands and assists in 10 official Indian languages.</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 block mb-0.5">Language & Localization</span>
+                        <span className="text-xs text-slate-600 font-medium">Nira currently operates and assists in English.</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       {[
                         { code: 'en', name: 'English', native: 'English', greeting: 'Happy Journey' },
-                        { code: 'hi', name: 'Hindi', native: 'हिन्दी', greeting: 'शुभ यात्रा' },
-                        { code: 'bn', name: 'Bengali', native: 'বাংলা', greeting: 'শুভ যাত্রা' },
-                        { code: 'ta', name: 'Tamil', native: 'தமிழ்', greeting: 'இனிய பயணம்' },
-                        { code: 'te', name: 'Telugu', native: 'తెలుగు', greeting: 'శుభ ప్రయాణం' },
-                        { code: 'mr', name: 'Marathi', native: 'मराठी', greeting: 'आनंददायी प्रवास' },
-                        { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', greeting: 'સુખદ પ્રવાસ' },
-                        { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', greeting: 'ಶುಭ ಪ್ರಯಾಣ' },
-                        { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', greeting: 'ਸੁਖਦ ਯਾਤਰਾ' },
-                        { code: 'ml', name: 'Malayalam', native: 'മലയാളം', greeting: 'ശുഭയാത്ര' },
                       ].map((lang) => (
                         <button
                           key={lang.code}

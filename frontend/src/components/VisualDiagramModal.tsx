@@ -1,20 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   MapPin,
   Train,
   User,
+  Users,
   CreditCard,
   Ticket,
   ShieldCheck,
   Zap,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   Sparkles,
   Compass,
   Radio,
   Clock,
   HelpCircle,
+  Wallet,
+  Settings as SettingsIcon,
+  BookOpen,
+  FileText,
+  Lock,
+  Layers,
+  RefreshCw,
+  Eye,
+  ChevronRight,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 
@@ -34,9 +45,28 @@ interface DiagramStep {
 }
 
 export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, onClose }) => {
-  const { activePage, navigateTo, bookingState, paymentState, selectedTrain } = useJourney();
+  const { activePage, navigateTo, selectedTrain } = useJourney();
+  const [selectedViewPage, setSelectedViewPage] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const effectivePage = selectedViewPage || activePage || 'home';
+
+  const PAGE_TABS = [
+    { id: 'current', label: 'Current Screen', icon: Eye, targetPage: activePage },
+    { id: 'payments', label: 'Citizen Wallet & Ledger', icon: Wallet, targetPage: 'payments' },
+    { id: 'home', label: '1. Intent & Search', icon: Sparkles, targetPage: 'home' },
+    { id: 'trains', label: '2. Train Match', icon: Train, targetPage: 'trains' },
+    { id: 'workspace', label: '3. Passenger Workspace', icon: User, targetPage: 'workspace' },
+    { id: 'payment', label: '4. Payment Bridge', icon: CreditCard, targetPage: 'payment' },
+    { id: 'completion', label: '5. Confirmed e-Ticket', icon: Ticket, targetPage: 'completion' },
+    { id: 'my-journeys', label: 'My Journeys', icon: Layers, targetPage: 'my-journeys' },
+    { id: 'track', label: 'Live Satellite Radar', icon: Radio, targetPage: 'track' },
+    { id: 'profile', label: 'Citizen Profile & Vault', icon: Lock, targetPage: 'profile' },
+    { id: 'settings', label: 'Settings & Preferences', icon: SettingsIcon, targetPage: 'settings' },
+    { id: 'help', label: 'Help Center & Jargon', icon: BookOpen, targetPage: 'help' },
+    { id: 'overview', label: 'Master Architecture', icon: Compass, targetPage: 'overview' },
+  ];
 
   // Generate screen-specific visual diagrams
   const getPageDiagram = (): {
@@ -46,7 +76,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
     steps: DiagramStep[];
     takeaway: string;
   } => {
-    switch (activePage) {
+    switch (effectivePage) {
       case 'home':
       case 'discover':
         return {
@@ -284,6 +314,285 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
           takeaway: 'GPS updates run at 1-second precision with live platform, coach berth matrix, and plain English ticket intelligence.',
         };
 
+      case 'payments':
+      case 'wallet':
+        return {
+          title: 'Citizen Wallet & Payment Ledger Architecture',
+          subtitle: '0-PIN instant booking wallet with bank-level double-verification ledger.',
+          badge: 'Citizen Wallet & Ledger',
+          steps: [
+            {
+              id: 'wallet-balance',
+              stepNumber: 1,
+              title: 'Zero-PIN Citizen Virtual Wallet',
+              subtitle: 'Pre-authorized ₹10,000 balance for instant Tatkal checkout without OTP dropouts',
+              icon: Wallet,
+              status: 'active',
+              details: ['Instant 1-click debit without SMS delay', 'Biometric & device token authorization', 'Tamper-proof local balance ledger'],
+            },
+            {
+              id: 'ledger-sync',
+              stepNumber: 2,
+              title: 'Double-Verification Ledger Sync',
+              subtitle: 'Protects against duplicate debits if bank gateway experiences latency',
+              icon: ShieldCheck,
+              status: 'upcoming',
+              details: ['Idempotency key per booking session', 'Automatic bank reconciliation heartbeat', 'Zero duplicate charge guarantee'],
+            },
+            {
+              id: 'auto-refund',
+              stepNumber: 3,
+              title: 'Automated Refund & Reversal Engine',
+              subtitle: '100% automated refund recovery on cancelled tickets or gateway timeouts',
+              icon: RefreshCw,
+              status: 'upcoming',
+              details: ['Instant wallet credit in 2-4 hours', 'Real-time refund state tracking', 'Zero paperwork or claims required'],
+            },
+            {
+              id: 'audit-invoice',
+              stepNumber: 4,
+              title: 'Cryptographically Signed Invoices',
+              subtitle: 'Official IRCTC GST tax invoices and downloadable transaction ledger',
+              icon: FileText,
+              status: 'upcoming',
+              details: ['DigiLocker payment record sync', 'High-contrast printable receipts', 'Exportable PDF statement'],
+            },
+          ],
+          takeaway: 'Citizen Wallet guarantees zero double-debit and 1-tap instant booking without OTP dropouts.',
+        };
+
+      case 'completion':
+      case 'ticket':
+        return {
+          title: 'Confirmed e-Ticket & DigiLocker Issuance Flow',
+          subtitle: 'Official Indian Railways PNR generation and cryptographically signed e-ticket.',
+          badge: 'e-Ticket & Confirmation',
+          steps: [
+            {
+              id: 'pnr-issuance',
+              stepNumber: 1,
+              title: 'Authoritative 10-Digit PNR Issuance',
+              subtitle: 'Official IRCTC PNR allocated with confirmed coach & berth numbers',
+              icon: Ticket,
+              status: 'completed',
+              details: ['Statutory 10-digit PNR #2847 5896 1234', 'Direct coach & berth allocation (e.g. B4 - 32 MB)', 'Live seat quota confirmation'],
+            },
+            {
+              id: 'digilocker-sync',
+              stepNumber: 2,
+              title: 'DigiLocker Integration',
+              subtitle: 'Automatic sync with Government DigiLocker for paperless travel ID verification',
+              icon: ShieldCheck,
+              status: 'completed',
+              details: ['Official QR code verification for TTE inspection', 'Tamper-proof cryptographic signature', '100% offline PDF storage in browser'],
+            },
+            {
+              id: 'live-radar-link',
+              stepNumber: 3,
+              title: 'Live Journey Radar Link',
+              subtitle: 'Real-time satellite GPS tracking and platform arrival guidance',
+              icon: Radio,
+              status: 'active',
+              details: ['ISRO satellite loco positioning link', 'Platform number & arrival time countdown', 'Left/Right deboarding door guidance'],
+            },
+            {
+              id: 'sharing-alerts',
+              stepNumber: 4,
+              title: 'Trip Sharing & Station Chime Alerts',
+              subtitle: 'WhatsApp ticket dispatch and station alarm synchronization',
+              icon: Sparkles,
+              status: 'upcoming',
+              details: ['1-tap WhatsApp PDF ticket sharing', 'Wake-up destination alarm timer', 'Station chime notifications'],
+            },
+          ],
+          takeaway: 'Your confirmed e-ticket is cryptographically valid, stored offline, and linked to live satellite radar.',
+        };
+
+      case 'my-journeys':
+      case 'journeys':
+        return {
+          title: 'Active Journeys & Trip Portfolio Architecture',
+          subtitle: 'Real-time status tracking, cancellation rules, and ticket history.',
+          badge: 'Journey Management',
+          steps: [
+            {
+              id: 'portfolio',
+              stepNumber: 1,
+              title: 'Unified Journey Portfolio',
+              subtitle: 'Comprehensive dashboard of active, completed, and waitlisted trips',
+              icon: Layers,
+              status: 'active',
+              details: ['Categorized by Active, Upcoming, and Past trips', 'Real-time PNR status sync', 'Zero server PII tracking'],
+            },
+            {
+              id: 'rac-radar',
+              stepNumber: 2,
+              title: 'Live RAC & Waitlist Movement Tracker',
+              subtitle: 'Predictive machine learning waitlist clearance radar',
+              icon: Clock,
+              status: 'upcoming',
+              details: ['Chart preparation timeline countdown', 'Historical confirmation probability (e.g. 96%)', 'Alternative train suggestion if WL > 50'],
+            },
+            {
+              id: 'cancel-tdr',
+              stepNumber: 3,
+              title: '1-Click Ticket Cancellation & TDR',
+              subtitle: 'Transparent cancellation fee calculator and instant refund',
+              icon: RefreshCw,
+              status: 'upcoming',
+              details: ['Real-time IRCTC statutory refund calculator', 'Instant refund return directly to Citizen Wallet', 'TDR filing for delayed or cancelled trains'],
+            },
+            {
+              id: 'boarding-pass',
+              stepNumber: 4,
+              title: 'High-Contrast Boarding Pass & QR Export',
+              subtitle: 'Printable, sunlight-readable travel passes',
+              icon: Ticket,
+              status: 'upcoming',
+              details: ['Sunlight legibility high-contrast mode', 'Offline QR code inspection pass', 'Native calendar trip integration'],
+            },
+          ],
+          takeaway: 'Manage, modify, and monitor all upcoming train travels with zero server PII storage.',
+        };
+
+      case 'profile':
+        return {
+          title: 'Citizen Identity & SafeAssist Profile Architecture',
+          subtitle: 'Zero-PII local credential vault with one-click passenger autofill.',
+          badge: 'Identity & Security',
+          steps: [
+            {
+              id: 'local-vault',
+              stepNumber: 1,
+              title: 'Local Browser Zero-PII Vault',
+              subtitle: 'Passenger identities stored strictly in your device browser sandbox',
+              icon: Lock,
+              status: 'completed',
+              details: ['Zero database storage of sensitive citizen data', 'AES-256 client-side encryption', 'Never exposed to external LLMs'],
+            },
+            {
+              id: 'autofill-profile',
+              stepNumber: 2,
+              title: 'SafeAssist 1-Click Autofill Profile',
+              subtitle: 'Instant form population during 10:00 AM Tatkal rush',
+              icon: User,
+              status: 'active',
+              details: ['Autofills Name, Age, Gender in 0ms', 'Lower / Window berth preference lock', 'Meal & Senior Citizen concession routing'],
+            },
+            {
+              id: 'family-dir',
+              stepNumber: 3,
+              title: 'Co-Traveler Family Directory',
+              subtitle: 'Save and manage up to 6 frequent traveling companions',
+              icon: Users,
+              status: 'upcoming',
+              details: ['Group booking optimization', 'Smart berth proximity assignment', '1-tap batch passenger selection'],
+            },
+            {
+              id: 'agentic-gate',
+              stepNumber: 4,
+              title: 'Agentic Credential Gate',
+              subtitle: '1Password & biometric isolation preventing credential leaks',
+              icon: ShieldCheck,
+              status: 'upcoming',
+              details: ['Zero password autofill over public networks', 'Biometric validation before booking release', 'Isolated banking credentials ring'],
+            },
+          ],
+          takeaway: 'Your citizen profile never transmits raw passwords or OTPs to external AI models.',
+        };
+
+      case 'settings':
+        return {
+          title: 'System Preferences & Accessibility Architecture',
+          subtitle: 'Customizable theme, font scaling, audio chimes, and language preferences.',
+          badge: 'Preferences & Config',
+          steps: [
+            {
+              id: 'display-mode',
+              stepNumber: 1,
+              title: 'Display & High-Contrast Visual Modes',
+              subtitle: 'Toggle between Light, Dark, and high-contrast sunlight modes',
+              icon: Sparkles,
+              status: 'active',
+              details: ['Optimized for harsh railway station sunlight', 'Crisp border contrast and typography', 'System theme synchronization'],
+            },
+            {
+              id: 'wcag-access',
+              stepNumber: 2,
+              title: 'WCAG 2.1 AA Accessibility & Typography',
+              subtitle: 'Adjustable font scaling and screen reader compatibility',
+              icon: HelpCircle,
+              status: 'upcoming',
+              details: ['Small, Medium, Large readability scaling', 'Full keyboard navigability (Tab & Enter)', 'ARIA landmark roles and announcements'],
+            },
+            {
+              id: 'audio-chimes',
+              stepNumber: 3,
+              title: 'Station Audio Chimes & Sound Alerts',
+              subtitle: 'Pleasant railway acoustic tones for booking milestones',
+              icon: Radio,
+              status: 'upcoming',
+              details: ['Custom station arrival chimes', 'High-importance payment safety audio cues', 'Audio mute toggle for quiet zones'],
+            },
+            {
+              id: 'data-saver',
+              stepNumber: 4,
+              title: 'Low-Bandwidth Data Saver Mode',
+              subtitle: 'Optimized mobile performance for 2G/3G connections',
+              icon: Zap,
+              status: 'upcoming',
+              details: ['Pauses rich satellite animations', 'Compresses route payload to <50 KB', 'Offline-first cached journey state'],
+            },
+          ],
+          takeaway: 'Settings are persisted client-side for zero latency and complete privacy.',
+        };
+
+      case 'help':
+        return {
+          title: 'Help Center & Railway Knowledge Architecture',
+          subtitle: 'Interactive guidance, plain English jargon translations, and Nira AI assistance.',
+          badge: 'Help & Jargon Guide',
+          steps: [
+            {
+              id: 'jargon-trans',
+              stepNumber: 1,
+              title: 'Plain English Jargon Translation',
+              subtitle: 'Instant clarification for confusing railway codes',
+              icon: BookOpen,
+              status: 'active',
+              details: ['GNWL, RAC, Tatkal, TDR, NTES explained in plain English', 'Waitlist chart preparation countdown rules', 'Refund timeline breakdown'],
+            },
+            {
+              id: 'flow-viz',
+              stepNumber: 2,
+              title: 'Step-by-Step Interactive Workflow Visualizer',
+              subtitle: 'Visual 5-step journey map with live stage indicators',
+              icon: Compass,
+              status: 'upcoming',
+              details: ['Interactive page diagrams for all 10+ screens', 'Green arrow spotlight tutorials', 'Fair access queue explanation'],
+            },
+            {
+              id: 'nira-copilot',
+              stepNumber: 3,
+              title: '24x7 Nira AI Copilot Chat Support',
+              subtitle: 'Conversational travel assistance with zero hallucination',
+              icon: Sparkles,
+              status: 'upcoming',
+              details: ['Deterministic route & schedule lookup', 'Grounded train comparison with live fares', 'Instant conversational answers'],
+            },
+            {
+              id: 'grievance-bridge',
+              stepNumber: 4,
+              title: 'RailMadad & IRCTC Statutory Grievance Bridge',
+              subtitle: 'Direct routing to official government assistance portals',
+              icon: ShieldCheck,
+              status: 'upcoming',
+              details: ['1-tap call to 139 Railway Helpline', 'Direct complaint filing with PNR tracking', 'Medical and emergency assistance links'],
+            },
+          ],
+          takeaway: 'Instant clarity on complex railway rules with zero confusing bureaucracy.',
+        };
+
       default:
         return {
           title: 'Nirantar End-to-End Civic Architecture',
@@ -297,7 +606,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
               subtitle: 'Conversational railway planning',
               icon: Sparkles,
               status: 'completed',
-              details: ['Origin & Destination parser', 'Language & Dialect support'],
+              details: ['Origin & Destination parser', 'English natural language intent parsing'],
             },
             {
               id: 'step2',
@@ -343,9 +652,16 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
 
   const diagram = getPageDiagram();
 
+  const handleNavigateDirect = (target: string) => {
+    onClose();
+    if (target && target !== 'overview') {
+      navigateTo(target);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 font-sans select-none">
-      <div className="relative bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] text-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border-2 border-purple-300/80 overflow-hidden space-y-4 animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+      <div className="relative bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] text-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-300/80 overflow-hidden space-y-3 animate-in zoom-in-95 duration-200 max-h-[94vh] flex flex-col">
         {/* Background Decorative Pattern & Station Image */}
         <div className="absolute top-0 right-0 left-0 h-36 overflow-hidden pointer-events-none opacity-25">
           <img
@@ -356,8 +672,8 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-purple-600/30 to-transparent" />
         </div>
 
-        {/* Modal Header with 3D Characters */}
-        <div className="relative p-5 pb-3 border-b border-purple-100 flex items-start justify-between gap-3 shrink-0">
+        {/* Modal Header with 3D Characters & Back/Close buttons */}
+        <div className="relative p-5 pb-2 border-b border-purple-100 flex items-start justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative flex -space-x-3 shrink-0">
               <div className="w-12 h-12 rounded-2xl bg-purple-100 border-2 border-purple-400 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
@@ -389,26 +705,87 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs active:scale-95"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {selectedViewPage && (
+              <button
+                type="button"
+                onClick={() => setSelectedViewPage(null)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Return to current screen guide"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-purple-700" />
+                <span className="hidden sm:inline">Current Page</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs active:scale-95"
+              aria-label="Close page guide"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Page Diagram Switcher Tabs */}
+        <div className="px-5 shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {PAGE_TABS.map((tab) => {
+              const TabIcon = tab.icon;
+              const isSelected =
+                (tab.id === 'current' && !selectedViewPage) ||
+                selectedViewPage === tab.targetPage;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    if (tab.id === 'current') {
+                      setSelectedViewPage(null);
+                    } else {
+                      setSelectedViewPage(tab.targetPage);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-2xs ${
+                    isSelected
+                      ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
+                      : 'bg-white/80 hover:bg-purple-50 text-slate-700 border border-purple-100/80 hover:border-purple-200'
+                  }`}
+                >
+                  <TabIcon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Friendly AI Bubble Banner */}
         <div className="px-5 shrink-0">
-          <div className="p-2.5 rounded-2xl bg-purple-100/70 border border-purple-200/80 flex items-center gap-2.5 shadow-xs">
-            <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-bounce" />
-            <p className="text-xs text-purple-950 font-medium">
-              <strong className="text-purple-800 font-bold">Nira says:</strong> "Here is how this page guides your journey to a confirmed seat with zero confusion!"
-            </p>
+          <div className="p-2.5 rounded-2xl bg-purple-100/70 border border-purple-200/80 flex items-center justify-between gap-2.5 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-bounce" />
+              <p className="text-xs text-purple-950 font-medium">
+                <strong className="text-purple-800 font-bold">Nira says:</strong> "Here is how this screen protects your journey with zero confusion!"
+              </p>
+            </div>
+            {effectivePage !== activePage && effectivePage !== 'overview' && (
+              <button
+                type="button"
+                onClick={() => handleNavigateDirect(effectivePage)}
+                className="hidden sm:flex items-center gap-1 text-[11px] font-black text-purple-700 bg-white px-2.5 py-1 rounded-lg border border-purple-200 hover:bg-purple-50 cursor-pointer transition-all shadow-2xs"
+              >
+                <span>Go to page</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Visual Workflow Steps (Scrollable Container) */}
-        <div className="space-y-3 px-5 overflow-y-auto flex-1 py-1">
+        <div className="space-y-2.5 px-5 overflow-y-auto flex-1 py-1">
           {diagram.steps.map((step) => {
             const Icon = step.icon;
             const isCompleted = step.status === 'completed';
@@ -484,12 +861,25 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold text-slate-700">{diagram.takeaway}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-md shadow-purple-500/20 transition-all cursor-pointer shrink-0 active:scale-95 flex items-center justify-center gap-1.5"
-          >
-            <span>Understood, Continue ➔</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {selectedViewPage && (
+              <button
+                type="button"
+                onClick={() => setSelectedViewPage(null)}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white hover:bg-purple-50 border border-purple-200 text-purple-900 font-bold text-xs shadow-2xs transition-all cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Current Screen</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-black text-xs shadow-md shadow-purple-500/20 transition-all cursor-pointer shrink-0 active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <span>Understood, Continue ➔</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

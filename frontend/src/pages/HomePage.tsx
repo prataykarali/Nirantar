@@ -148,7 +148,7 @@ export const HomePage: React.FC = () => {
       step: 1,
       title: 'Search & Discover Trains',
       boxLabel: 'Box 1: Route Search',
-      speech: 'Enter where you are going or speak in natural Hindi/English. I will pull live availability from Indian Railways.',
+      speech: 'Enter where you are going or speak in plain English. I will pull live availability from Indian Railways.',
       mascot: '/assets/images/characters/nira_idea.png',
       route: 'discover',
       actionLabel: 'Try Search Now →',

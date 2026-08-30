@@ -4,6 +4,6 @@ Lightweight, responsive React + Vite single-page application (<270 KB total down
 
 ---
 
-- **Multilingual Support:** English (`en`), Hindi (`hi`), Bengali (`bn`), Tamil (`ta`).
+- **Language Support:** English (`en`).
 - **Accessibility:** ARIA role tags, keyboard navigability, high-contrast indicators.
 - **Components:** Voice Interface Widget, Progressive Journey Stepper, Safe Autofill Loader.

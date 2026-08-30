@@ -40,12 +40,7 @@ export const CitizenInterface: React.FC = () => {
   const [kavach, setKavach] = useState<any>(null);
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; sources?: Array<{ title: string; url: string }> }>>([]);
 
-  const greet = (lang: 'hi' | 'bn' | 'en') =>
-    lang === 'hi'
-      ? 'नमस्ते। आपको क्या करना है?'
-      : lang === 'bn'
-        ? 'নমস্কার। আপনার কী প্রয়োজন?'
-        : 'What do you need to do?';
+  const greet = (_lang?: string) => 'What do you need to do?';
 
   const handleLanguageChange = (newLang: 'hi' | 'bn' | 'en') => {
     setLanguage(newLang);
@@ -142,17 +137,9 @@ export const CitizenInterface: React.FC = () => {
             <p className="text-sm text-slate-300">{greet(language)}</p>
           </div>
           <div className="flex items-center gap-1.5 bg-[#060b14]/90 p-2 rounded-2xl border border-white/10">
-            {(['hi', 'bn', 'en'] as const).map((code) => (
-              <button
-                key={code}
-                onClick={() => handleLanguageChange(code)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold ${
-                  language === code ? 'bg-[#00FF9D] text-slate-950' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {code === 'hi' ? 'हिन्दी' : code === 'bn' ? 'বাংলা' : 'English'}
-              </button>
-            ))}
+            <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#00FF9D] text-slate-950">
+              English
+            </span>
           </div>
         </div>
       </div>

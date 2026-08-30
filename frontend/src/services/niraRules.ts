@@ -293,7 +293,7 @@ Technically, we're not just building another railway frontend — we're connecti
       /\b(how to change settings|settings page|app language)\b/i,
     ],
     keywords: ['settings', 'theme', 'font size', 'app language', 'default class', 'data saver mode', 'local-first'],
-    reply: "Nirantar Settings & Personalization Options:\n• **Theme**: Toggle between Light, Dark, or System mode.\n• **Font Size**: Choose Small, Medium, or Large readability scaling.\n• **App Language**: Full multi-lingual support (English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada).\n• **Default Journey Class**: Pre-select your preferred class (3A, 2A, 1A, SL, CC, EC) on every search.\n• **Auto Save Journeys**: Seamlessly persist incomplete bookings locally on your browser with zero server PII leakage.\n• **Data Saver Mode**: Optimize low-bandwidth mobile connections by pausing rich satellite animations.",
+    reply: "Nirantar Settings & Personalization Options:\n• **Theme**: Toggle between Light, Dark, or System mode.\n• **Font Size**: Choose Small, Medium, or Large readability scaling.\n• **App Language**: Interface and voice assistant operate in English.\n• **Default Journey Class**: Pre-select your preferred class (3A, 2A, 1A, SL, CC, EC) on every search.\n• **Auto Save Journeys**: Seamlessly persist incomplete bookings locally on your browser with zero server PII leakage.\n• **Data Saver Mode**: Optimize low-bandwidth mobile connections by pausing rich satellite animations.",
   },
 
   // ── 23. HELP CENTER & CITIZEN ASSISTANCE ("I'M STUCK", "PAGE GUIDE") ──

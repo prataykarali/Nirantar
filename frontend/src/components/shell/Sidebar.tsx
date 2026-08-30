@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const accountNavItems = [
     { id: 'profile', label: 'Profile', icon: User, subtitle: 'Citizen Identity' },
-    { id: 'settings', label: 'Settings', icon: Settings, subtitle: 'Languages & Config' },
+    { id: 'settings', label: 'Settings', icon: Settings, subtitle: 'Language & Config' },
   ];
 
   const handleNavClick = (page: string) => {

@@ -14,6 +14,7 @@ import {
   Moon,
   Palette,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 import { useJourney, THEME_OPTIONS } from '../../context/JourneyContext';
 import { OAuthLoginModal } from '../auth/OAuthLoginModal';
@@ -39,6 +40,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const {
     activePage,
     navigateTo,
+    goBack,
     issuedTicket,
     authState,
     setShowImStuck,
@@ -103,8 +105,22 @@ export const TopBar: React.FC<TopBarProps> = ({
     <header
       className={`h-16 px-3 sm:px-6 lg:px-8 bg-transparent flex items-center justify-between sticky top-0 z-30 select-none ${className}`}
     >
-      {/* LEFT: MOBILE MENU TRIGGER & PAGE TITLE */}
-      <div className="flex items-center gap-2 sm:gap-4">
+      {/* LEFT: BACK BUTTON, MOBILE MENU TRIGGER & PAGE TITLE */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Back Button (Shown on any non-home screen) */}
+        {activePage !== 'home' && (
+          <button
+            type="button"
+            onClick={goBack}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-slate-850 shadow-xs border border-purple-200 dark:border-slate-700 text-xs font-black text-purple-950 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            title="Go back to previous screen"
+            aria-label="Go back to previous page"
+          >
+            <ArrowLeft className="w-4 h-4 text-purple-700 dark:text-purple-300" />
+            <span className="font-bold">Back</span>
+          </button>
+        )}
+
         {/* Mobile Hamburger Menu Toggle */}
         <button
           type="button"
@@ -158,17 +174,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* RIGHT: TOP ACTION BUTTONS */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
-        {/* 🆘 CITIZEN "I'M STUCK" BUTTON */}
-        <button
-          type="button"
-          onClick={() => setShowImStuck(true)}
-          className="px-2.5 sm:px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs transition-all hover:scale-105 cursor-pointer shrink-0"
-          title="Get immediate step-by-step help"
-        >
-          <span className="text-sm">🆘</span>
-          <span className="hidden sm:inline">I'm Stuck</span>
-        </button>
-
         {/* 🧭 VISUAL PAGE GUIDE / ARCHITECTURE DIAGRAM */}
         <button
           type="button"

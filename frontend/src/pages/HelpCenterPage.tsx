@@ -350,12 +350,12 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
 
             <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-100 flex items-center gap-3">
               <div className="w-10 h-10 shrink-0 flex items-center justify-center">
-                <img src="/assets/images/characters/nira_guide_teacher.png" alt="Voice & Multilingual" className="w-full h-full object-contain drop-shadow-xs" />
+                <img src="/assets/images/characters/nira_guide_teacher.png" alt="Voice Assistant" className="w-full h-full object-contain drop-shadow-xs" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-slate-800">Voice & Multilingual</p>
+                <p className="text-xs font-bold text-slate-800">Voice Assistant</p>
                 <p className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
-                  Ask Nira in Hindi, Bengali, or English for instant route answers.
+                  Ask Nira in plain English for instant route answers.
                 </p>
               </div>
             </div>

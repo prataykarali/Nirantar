@@ -698,7 +698,7 @@ export const RAILWAY_TERMS: Record<string, RailwayTerm> = {
   NIRA_AI: {
     id: 'NIRA_AI',
     short: 'Nira AI Assistant',
-    simple: 'Your friendly conversational travel co-pilot that answers queries in voice, English, Hindi, and Hinglish 24x7.',
+    simple: 'Your friendly conversational travel co-pilot that answers queries in voice and plain English 24x7.',
     why_it_matters: 'Assists with natural language search, step-by-step guidance, and jargon translation in plain English.',
     example: '"Find me the fastest train to Mumbai tomorrow evening under ₹2,000".',
     how_it_works: 'Advanced multi-modal assistant paired with Nirantar\'s real-time railway APIs and zero-PII privacy gate.',

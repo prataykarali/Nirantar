@@ -57,7 +57,7 @@
             ├── Live GPS Radar & Station Stoppage Timeline
             ├── Coach Composition Map (Platform Alignment)
             ├── e-Catering Food Order & Destination Alarm
-            └── Multi-Language (i18n), Station Chime & Trip Sharing
+            └── English Interface & Accessibility, Station Chime & Trip Sharing
 ```
 
 ---

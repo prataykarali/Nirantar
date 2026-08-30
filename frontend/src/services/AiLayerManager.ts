@@ -14,7 +14,7 @@ import { StructuredIntentResponse, validateIntentSchema, NirantarIntent } from '
 import { streamNiraChat } from './niraApi';
 
 const SYSTEM_INTENT_PROMPT = `You are Nirantar's AI Intent Parser for Indian Railway services.
-Your role is to analyze citizen queries (English, Hindi, Hinglish, or spoken text) and classify them into ONE of the following 12 strictly valid intents:
+Your role is to analyze citizen queries (English or spoken text) and classify them into ONE of the following 12 strictly valid intents:
 - SEARCH_TRAIN: Search/find trains between stations.
 - COMPARE_TRAINS: Explain differences between trains, recommend best/cheapest/fastest option.
 - TRACK_TRAIN: Check live train GPS running status, delays, platform numbers.

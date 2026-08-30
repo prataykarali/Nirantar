@@ -7,9 +7,6 @@ import ta from './ta.json';
 export type LanguageCode = 'en' | 'hi' | 'bn' | 'ta';
 
 export const LANGUAGES: { code: LanguageCode; label: string; nativeName: string }[] = [
-  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'bn', label: 'Bengali', nativeName: 'বাংলা' },
-  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்' },
   { code: 'en', label: 'English', nativeName: 'English' },
 ];
 
@@ -22,7 +19,7 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: 'hi',
+  language: 'en',
   setLanguage: () => {},
   t: (keyPath: string, fallback?: string) => fallback || keyPath,
 });
@@ -30,7 +27,7 @@ const LanguageContext = createContext<LanguageContextType>({
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<LanguageCode>(() => {
     const saved = localStorage.getItem('nirantar_lang') as LanguageCode;
-    return saved && ['en', 'hi', 'bn', 'ta'].includes(saved) ? saved : 'hi';
+    return saved && ['en'].includes(saved) ? saved : 'en';
   });
 
   const setLanguage = (lang: LanguageCode) => {
