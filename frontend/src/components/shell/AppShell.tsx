@@ -11,6 +11,7 @@ import { Card } from '../../design-system/components/Card';
 import { Button } from '../../design-system/components/Button';
 import { TrainsPage } from '../../pages/TrainsPage';
 import { BookingPage } from '../../pages/BookingPage';
+import { WaitlistAlertPage } from '../../pages/WaitlistAlertPage';
 import { PaymentBridgePage } from '../../pages/PaymentBridgePage';
 import { CompletionResultPage } from '../../pages/CompletionResultPage';
 import { MyJourneysPage } from '../../pages/MyJourneysPage';
@@ -61,6 +62,14 @@ export const AppShell: React.FC = () => {
       title: `${searchParams.fromStation.city} (${searchParams.fromStation.code}) → ${searchParams.toStation.city} (${searchParams.toStation.code})`,
       subtitle: `${searchParams.travelDate} • ${searchParams.passengersCount || 1} Adult • ${searchParams.classType || 'AC Classes'}`,
     },
+    'waitlist-alert': {
+      title: 'High Demand & Waitlist Notice',
+      subtitle: 'Real-time waitlist confirmation forecast & scattered seat radar',
+    },
+    'oh-no-waitlist': {
+      title: 'High Demand & Waitlist Notice',
+      subtitle: 'Real-time waitlist confirmation forecast & scattered seat radar',
+    },
     booking: {
       title: 'Passenger & Booking Workspace',
       subtitle: 'Safe autofill passenger details & IRCTC verification',
@@ -92,6 +101,9 @@ export const AppShell: React.FC = () => {
       case 'trains':
       case 'results':
         return <TrainsPage />;
+      case 'waitlist-alert':
+      case 'oh-no-waitlist':
+        return <WaitlistAlertPage />;
       case 'workspace':
       case 'booking':
         return <BookingPage />;

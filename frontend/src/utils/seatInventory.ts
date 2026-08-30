@@ -437,7 +437,9 @@ export function liveSeatInventory(
     const elapsedMins = Math.floor((now / 60000) % 60);
     const fluctuation = elapsedMins % 3;
     const baseSeats = initialSeats > 0 ? initialSeats : (18 + (seed % 42));
-    const dynamicSeats = Math.max(1, baseSeats - fluctuation);
+    const dynamicSeats = initialSeats > 0
+      ? Math.max(1, initialSeats - (fluctuation >= initialSeats ? 0 : fluctuation))
+      : Math.max(1, baseSeats - fluctuation);
     return {
       seats: dynamicSeats,
       waitlist: 0,
@@ -970,6 +972,85 @@ export function getRepresentativeCoaches(
 }
 
 /**
+ * In waitlist scenarios, determines whether seats scatter across intermediate stations
+ * (i.e. mid-journey vacancies arise due to passengers deboarding early).
+ * Returns true if seats scatter (~60% chance), false if train is 100% end-to-end packed (~40% chance).
+ */
+export function isWaitlistSeatScattered(trainNumber: string, classCode: string = '3A'): boolean {
+  const seed = Math.abs(hash(`${trainNumber}:${classCode}:waitlist_scatter`));
+  return (seed % 100) < 60;
+}
+
+export interface ScatteredVacantSeat {
+  seatNumber: number;
+  coachCode: string;
+  berthType: string;
+  stationName: string;
+  stationCode: string;
+  platform: string;
+}
+
+/**
+ * Returns the scattered vacant seats for a waitlisted train/class, IF AND ONLY IF seats scatter.
+ */
+export function getWaitlistScatteredVacancies(
+  trainNumber: string,
+  classCode: string = '3A',
+  routeStations: StationStop[] = []
+): ScatteredVacantSeat[] {
+  const hasScatter = isWaitlistSeatScattered(trainNumber, classCode);
+  if (!hasScatter) return [];
+
+  const defaultRoute = routeStations.length > 0 ? routeStations : [
+    { code: 'NDLS', name: 'New Delhi', platform: 'Pf 14', distanceKm: 0, scheduledArr: '00:00', scheduledDep: '16:55', haltMins: 0 },
+    { code: 'KOTA', name: 'Kota Junction', platform: 'Pf 1', distanceKm: 465, scheduledArr: '21:30', scheduledDep: '21:40', haltMins: 10 },
+    { code: 'RTM', name: 'Ratlam Junction', platform: 'Pf 4', distanceKm: 731, scheduledArr: '00:45', scheduledDep: '00:50', haltMins: 5 },
+    { code: 'BRC', name: 'Vadodara Junction', platform: 'Pf 2', distanceKm: 992, scheduledArr: '04:10', scheduledDep: '04:18', haltMins: 8 },
+    { code: 'ST', name: 'Surat', platform: 'Pf 1', distanceKm: 1122, scheduledArr: '05:40', scheduledDep: '05:45', haltMins: 5 },
+    { code: 'MMCT', name: 'Mumbai Central', platform: 'Pf 3', distanceKm: 1386, scheduledArr: '08:35', scheduledDep: '08:35', haltMins: 0 },
+  ];
+
+  const totalStoppages = defaultRoute.length;
+  if (totalStoppages <= 2) return [];
+
+  const seed = Math.abs(hash(`${trainNumber}:${classCode}:scatter_vacancies`));
+  const count = 1 + (seed % 2); // 1 or 2 scattered vacancies
+  const vacancies: ScatteredVacantSeat[] = [];
+
+  const repCoaches = getRepresentativeCoaches(trainNumber, [{ classCode }]);
+  const coachCode = repCoaches[0]?.representativeCode || 'B4';
+
+  const candidateSeats = [7, 14, 22, 35, 41, 48, 55];
+  for (let i = 0; i < count; i++) {
+    const seatNum = candidateSeats[(seed + i * 3) % candidateSeats.length];
+    const stnIdx = 1 + ((seed + i) % (totalStoppages - 2));
+    const stn = defaultRoute[stnIdx] || defaultRoute[1];
+
+    let berthType = 'Lower Berth';
+    if (classCode === '3A' || classCode === 'SL') {
+      const mod = seatNum % 8;
+      berthType = (mod === 1 || mod === 4) ? 'Lower Berth' : (mod === 7) ? 'Side Lower' : (mod === 2 || mod === 5) ? 'Middle Berth' : 'Upper Berth';
+    } else if (classCode === '2A') {
+      const mod = seatNum % 6;
+      berthType = (mod === 1 || mod === 3) ? 'Lower Berth' : (mod === 5) ? 'Side Lower' : 'Upper Berth';
+    } else {
+      berthType = 'Window Seat';
+    }
+
+    vacancies.push({
+      seatNumber: seatNum,
+      coachCode,
+      berthType,
+      stationName: stn.name,
+      stationCode: stn.code,
+      platform: stn.platform || 'Pf 1',
+    });
+  }
+
+  return vacancies;
+}
+
+/**
  * Builds realistic rectangular segment bays/coupes with live vacancy tracking (NO stranger names).
  */
 export function getCoachSegmentBays(
@@ -1037,13 +1118,19 @@ export function getCoachSegmentBays(
 
     if (effectiveIsWaitlisted) {
       // WAITLISTED TRAIN:
-      // High demand corridor: ~96% of passengers travel end-to-end (terminal station).
-      // At most ~4% (e.g. 0-1 seat across coach) deboard early, ensuring very few or almost NO vacant seats.
-      const isEndToEnd = (berthSeed % 100) < 96 || totalStoppages <= 2;
-      if (isEndToEnd) {
-        deboardStnIndex = totalStoppages - 1;
+      // In waitlist, seats MAY scatter: ONLY if scattered, passengers deboard at intermediate stops.
+      const hasScatter = isWaitlistSeatScattered(trainNumber || '12951', classCode);
+      if (hasScatter && totalStoppages > 2) {
+        // ~5% of berths across coach deboard early at an intermediate station
+        const isScatteredBerth = (berthSeed % 100) < 6;
+        if (isScatteredBerth) {
+          deboardStnIndex = 1 + ((berthSeed >> 3) % (totalStoppages - 2));
+        } else {
+          deboardStnIndex = totalStoppages - 1;
+        }
       } else {
-        deboardStnIndex = 1 + (berthSeed % (totalStoppages - 1));
+        // NO SCATTER: 100% end-to-end packed, zero vacant berths
+        deboardStnIndex = totalStoppages - 1;
       }
     } else {
       // AVAILABLE TRAIN:

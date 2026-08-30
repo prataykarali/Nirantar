@@ -156,7 +156,9 @@ export const TopBar: React.FC<TopBarProps> = ({
         activePage !== 'workspace' &&
         activePage !== 'payment' &&
         activePage !== 'completion' &&
-        activePage !== 'ticket' ? (
+        activePage !== 'ticket' &&
+        activePage !== 'waitlist-alert' &&
+        activePage !== 'oh-no-waitlist' ? (
           <div className="hidden md:block">
             <h2 className="font-display font-black text-2xl text-purple-950 tracking-tight leading-tight">
               {pageTitle}

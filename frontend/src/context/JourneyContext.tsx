@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Station, POPULAR_STATIONS, findStation } from '../data/stationData';
-import { TrainDetail, searchTrains as localSearchTrains, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
+import { TrainDetail, searchTrains as localSearchTrains, randomizeTrainAvailability, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import {
   JourneyState,
   JourneyStep,
@@ -1251,14 +1251,14 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // 2. Fetch train search results from backend API
       const searchRes = await apiSearchTrains(params.fromStation.code, params.toStation.code, params.travelDate);
       if (searchRes.trains && searchRes.trains.length > 0) {
-        setAvailableTrains(searchRes.trains);
+        setAvailableTrains(randomizeTrainAvailability(searchRes.trains, params.travelDate));
       } else {
-        const fallback = localSearchTrains(params.fromStation.code, params.toStation.code);
+        const fallback = localSearchTrains(params.fromStation.code, params.toStation.code, params.travelDate);
         setAvailableTrains(fallback);
       }
     } catch {
       // Graceful fallback to synthetic data fixture
-      const fallback = localSearchTrains(params.fromStation.code, params.toStation.code);
+      const fallback = localSearchTrains(params.fromStation.code, params.toStation.code, params.travelDate);
       setAvailableTrains(fallback);
     }
 
@@ -1314,6 +1314,28 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
 
     UiEventBus.emit('TRAIN_SELECTED', 'trains', { train, classCode: chosenClass });
+
+    // Check if selected train class is in waitlist or has < 10 seats
+    const targetClassObj = train.classes?.find((c) => c.classCode === chosenClass);
+    const isWl = Boolean(
+      targetClassObj?.status?.includes('WL') ||
+      targetClassObj?.status?.includes('GNWL') ||
+      targetClassObj?.status?.includes('RLWL') ||
+      targetClassObj?.status?.includes('PQWL') ||
+      targetClassObj?.status?.includes('RAC') ||
+      targetClassObj?.availableSeats === 0
+    );
+    const isLowSeats = typeof targetClassObj?.availableSeats === 'number' && targetClassObj.availableSeats > 0 && targetClassObj.availableSeats < 10;
+
+    if (isWl || isLowSeats) {
+      // High chance (~80% chance) to redirect to oh-no-waitlist alert page
+      const shouldRedirect = Math.random() < 0.80;
+      if (shouldRedirect) {
+        navigateTo('waitlist-alert');
+        return;
+      }
+    }
+
     navigateTo('workspace');
   };
 
@@ -1948,6 +1970,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (normalized === 'completion') normalized = 'ticket';
     if (normalized === 'booking') normalized = 'workspace';
     if (normalized === 'results') normalized = 'trains';
+    if (normalized === 'oh-no-waitlist') normalized = 'waitlist-alert';
 
     const previousPage = activePage;
     if (previousPage !== normalized) {
@@ -1984,6 +2007,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
+    if (activePage === 'waitlist-alert' || activePage === 'oh-no-waitlist') {
+      navigateTo('trains');
+      return;
+    }
     if (activePage === 'payment') {
       navigateTo('workspace');
       return;
@@ -1998,7 +2025,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     if (pageHistory.length > 1) {
       const prev = pageHistory[pageHistory.length - 1];
-      if (prev === 'payment' || prev === 'workspace' || prev === 'booking') {
+      if (prev === 'payment' || prev === 'workspace' || prev === 'booking' || prev === 'waitlist-alert') {
         navigateTo('home');
         return;
       }

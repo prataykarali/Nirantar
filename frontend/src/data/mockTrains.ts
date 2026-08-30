@@ -229,12 +229,91 @@ const MAJOR_CORRIDORS: string[][] = [
   ['NDLS', 'GZB', 'MTC', 'MOZ', 'TPZ', 'RK', 'HW', 'DDN'],
 ];
 
+function simpleHash(str: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return Math.abs(h);
+}
+
+/**
+ * Randomize Train Availability across all trains:
+ * Generates realistic WL, RAC, scarce/low-seats (<10), and available statuses.
+ * Keeps hardcoded explicit waitlist trains (12232, 12863, 12864) intact.
+ */
+export function randomizeTrainAvailability(trains: TrainDetail[], seedDate?: string): TrainDetail[] {
+  const explicitHardcodedWl = new Set(['12232', '12863', '12864']);
+
+  return trains.map((t) => {
+    // If it is explicitly hardcoded WL train, preserve its hand-tuned configuration
+    if (explicitHardcodedWl.has(t.trainNumber)) {
+      return t;
+    }
+
+    const updatedClasses = t.classes.map((cls) => {
+      const seed = simpleHash(`${t.trainNumber}:${cls.classCode}:${seedDate || 'nirantar_trains'}`);
+      const roll = seed % 100;
+
+      // 1. ~25% Chance: WAITLIST (WL / GNWL / RLWL)
+      if (roll < 25) {
+        const quota = (seed % 3 === 0) ? 'RLWL' : (seed % 5 === 0) ? 'PQWL' : 'GNWL';
+        const wlNumber = 4 + (seed % 35);
+        const prob = Math.max(45, Math.min(94, 98 - Math.round(wlNumber * 1.3)));
+        return {
+          ...cls,
+          status: `${quota}-${wlNumber}`,
+          availableSeats: 0,
+          confirmationProbability: prob,
+        };
+      }
+
+      // 2. ~10% Chance: RAC (Reservation Against Cancellation)
+      if (roll < 35) {
+        const racNum = 2 + (seed % 8);
+        return {
+          ...cls,
+          status: `RAC-${racNum}`,
+          availableSeats: 0,
+          confirmationProbability: 95,
+        };
+      }
+
+      // 3. ~15% Chance: LOW SEAT COUNT (< 10 seats)
+      if (roll < 50) {
+        const lowSeats = 2 + (seed % 8); // 2 to 9 seats
+        return {
+          ...cls,
+          status: 'AVAILABLE',
+          availableSeats: lowSeats,
+          confirmationProbability: 98,
+        };
+      }
+
+      // 4. ~50% Chance: ABUNDANT AVAILABLE SEATS (>= 10 seats)
+      const normalSeats = 14 + (seed % 68); // 14 to 81 seats
+      return {
+        ...cls,
+        status: 'AVAILABLE',
+        availableSeats: normalSeats,
+        confirmationProbability: 99,
+      };
+    });
+
+    return {
+      ...t,
+      classes: updatedClasses,
+    };
+  });
+}
+
 /**
  * Deterministic Real Train Search.
  * Searches across 550+ authentic Indian Railway trains.
  * Supports direct endpoints, city aliases, and intermediate corridor stoppages.
  */
-export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
+export function searchTrains(fromCode: string, toCode: string, date?: string): TrainDetail[] {
   if (!fromCode || !toCode) return [];
   const fromClean = fromCode.toUpperCase().trim();
   const toClean = toCode.toUpperCase().trim();
@@ -245,7 +324,7 @@ export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
   const matches = MOCK_TRAINS_DATABASE.filter(
     (t) => t.fromStationCode === fromClean && t.toStationCode === toClean
   );
-  if (matches.length > 0) return matches;
+  if (matches.length > 0) return randomizeTrainAvailability(matches, date);
 
   // 2. City name match
   const cityMatches = MOCK_TRAINS_DATABASE.filter(
@@ -253,7 +332,7 @@ export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
       (t.fromStationCode === fromClean || t.fromCity.toUpperCase() === fromClean || t.fromCity.toUpperCase().includes(fromClean)) &&
       (t.toStationCode === toClean || t.toCity.toUpperCase() === toClean || t.toCity.toUpperCase().includes(toClean))
   );
-  if (cityMatches.length > 0) return cityMatches;
+  if (cityMatches.length > 0) return randomizeTrainAvailability(cityMatches, date);
 
   // 3. Corridor & intermediate stoppage search
   for (const corridor of MAJOR_CORRIDORS) {
@@ -269,22 +348,24 @@ export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
       );
 
       if (corridorTrains.length > 0) {
-        return corridorTrains.slice(0, 4).map((t) => ({
+        const sliced = corridorTrains.slice(0, 4).map((t) => ({
           ...t,
           fromStationCode: fromClean,
           toStationCode: toClean,
         }));
+        return randomizeTrainAvailability(sliced, date);
       }
     } else if (fromIdx !== -1 && toIdx !== -1 && fromIdx > toIdx) {
       const reverseTrains = MOCK_TRAINS_DATABASE.filter(
         (t) => corridor.includes(t.fromStationCode) && corridor.includes(t.toStationCode) && corridor.indexOf(t.fromStationCode) > corridor.indexOf(t.toStationCode)
       );
       if (reverseTrains.length > 0) {
-        return reverseTrains.slice(0, 4).map((t) => ({
+        const sliced = reverseTrains.slice(0, 4).map((t) => ({
           ...t,
           fromStationCode: fromClean,
           toStationCode: toClean,
         }));
+        return randomizeTrainAvailability(sliced, date);
       }
     }
   }
@@ -295,7 +376,7 @@ export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
   const baseNum2 = 22000 + ((hash * 7) % 600);
   const baseNum3 = 12800 + ((hash * 13) % 400);
 
-  return [
+  const synthesized: TrainDetail[] = [
     {
       trainNumber: `${baseNum2}`,
       trainName: `${fromClean} - ${toClean} Vande Bharat Express`,
@@ -375,4 +456,6 @@ export function searchTrains(fromCode: string, toCode: string): TrainDetail[] {
       ],
     },
   ];
+
+  return randomizeTrainAvailability(synthesized, date);
 }
