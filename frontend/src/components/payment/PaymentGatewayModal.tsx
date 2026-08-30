@@ -55,7 +55,16 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     }, 600);
   };
 
-  const [currentStep, setCurrentStep] = useState<GatewayStep>('METHOD_SELECT');
+  const getShuffledKeypad = () => {
+    const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+    return digits;
+  };
+
+  const [currentStep, setCurrentStep] = useState<GatewayStep>('BANK_3D_SECURE');
   const [activeTab, setActiveTab] = useState<'upi' | 'cards' | 'netbanking' | 'wallets'>(
     selectedMethod === 'CARD'
       ? 'cards'
@@ -76,18 +85,29 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [timerSeconds, setTimerSeconds] = useState(280);
   const [processingStatus, setProcessingStatus] = useState('Connecting to NPCI & Bank Gateway...');
   const [processingStage, setProcessingStage] = useState<number>(1);
+  const [keypadDigits, setKeypadDigits] = useState<string[]>(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
 
-  // Reset step and PIN on open
+  // Reset step and PIN on open - pop up Bank 3D Secure / PIN step directly
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep('METHOD_SELECT');
+      setCurrentStep('BANK_3D_SECURE');
+      setActiveTab(
+        selectedMethod === 'CARD'
+          ? 'cards'
+          : selectedMethod === 'NET_BANKING'
+          ? 'netbanking'
+          : selectedMethod === 'WALLET'
+          ? 'wallets'
+          : 'upi'
+      );
       setPinDigits(['', '', '', '', '', '']);
       setActivePinIndex(0);
       setPinError(null);
       setTimerSeconds(280);
       setProcessingStage(1);
+      setKeypadDigits(getShuffledKeypad());
     }
-  }, [isOpen]);
+  }, [isOpen, selectedMethod]);
 
   // Countdown timer
   useEffect(() => {
@@ -108,6 +128,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setPinDigits(['', '', '', '', '', '']);
     setActivePinIndex(0);
     setPinError(null);
+    setKeypadDigits(getShuffledKeypad());
     setCurrentStep('BANK_3D_SECURE');
   };
 
@@ -141,6 +162,29 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setActivePinIndex(0);
     setPinError(null);
   };
+
+  const handleShuffleKeypad = () => {
+    setKeypadDigits(getShuffledKeypad());
+  };
+
+  // Physical keyboard support for PIN input
+  useEffect(() => {
+    if (!isOpen || currentStep !== 'BANK_3D_SECURE') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        handleKeypadPress(e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleKeypadBackspace();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleApprovePayment();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, currentStep, pinDigits]);
 
   const handleApprovePayment = async () => {
     const enteredPin = pinDigits.join('');
@@ -574,39 +618,56 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 </div>
               )}
 
-              {/* Tactile On-Screen Interactive Keypad */}
-              <div className="max-w-xs mx-auto grid grid-cols-3 gap-2 pt-1">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+              {/* Tactile On-Screen Interactive Keypad (Randomized Security Layout) */}
+              <div className="max-w-xs mx-auto space-y-1.5 pt-1">
+                <div className="flex items-center justify-between px-1 text-[10px] text-slate-500 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Anti-Shoulder Surfing Randomized Keypad</span>
+                  </span>
                   <button
-                    key={num}
                     type="button"
-                    onClick={() => handleKeypadPress(num)}
+                    onClick={handleShuffleKeypad}
+                    className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-0.5 cursor-pointer hover:underline"
+                    title="Reshuffle keypad layout"
+                  >
+                    <span>🔀 Reshuffle</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {keypadDigits.slice(0, 9).map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleKeypadPress(num)}
+                      className="py-2.5 rounded-xl bg-white hover:bg-purple-50 text-slate-900 border border-slate-200 font-mono font-black text-sm sm:text-base shadow-2xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleClearPin}
+                    className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleKeypadPress(keypadDigits[9] || '0')}
                     className="py-2.5 rounded-xl bg-white hover:bg-purple-50 text-slate-900 border border-slate-200 font-mono font-black text-sm sm:text-base shadow-2xs active:scale-95 transition-all cursor-pointer"
                   >
-                    {num}
+                    {keypadDigits[9] || '0'}
                   </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleClearPin}
-                  className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleKeypadPress('0')}
-                  className="py-2.5 rounded-xl bg-white hover:bg-purple-50 text-slate-900 border border-slate-200 font-mono font-black text-sm sm:text-base shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  0
-                </button>
-                <button
-                  type="button"
-                  onClick={handleKeypadBackspace}
-                  className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  ⌫
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleKeypadBackspace}
+                    className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    ⌫
+                  </button>
+                </div>
               </div>
 
               {/* Privacy Shield Notice */}

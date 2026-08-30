@@ -892,8 +892,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       selectedTrain?.classes?.find((c) => c.classCode === (selectedClassCode || '3A')) ||
       resolvedTrain.classes?.[0];
 
+    const rawClassStatus = (chosenClass?.status || '').toUpperCase();
+    const isExplicitAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL'));
     const isWaitlistTrain = Boolean(
-      chosenClass && (chosenClass.status?.includes('WL') || chosenClass.status?.includes('GNWL') || chosenClass.availableSeats === 0)
+      chosenClass && !isExplicitAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL'))
     );
 
     // Multi-passenger resolution (do not inject dummy names if user specified passengers)

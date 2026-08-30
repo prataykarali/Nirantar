@@ -72,13 +72,31 @@ export const CompletionResultPage: React.FC = () => {
     classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
   };
 
+  const chosenClass = train.classes?.find((c) => c.classCode === (selectedClassCode || '3A'));
+  const rawClassStatus = (chosenClass?.status || '').toUpperCase();
+  const isClassAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL'));
+
   const isWaitlisted = Boolean(
     !guidanceActive &&
+    !isClassAvailable &&
     issuedTicket?.status !== 'ACTIVE' &&
     (issuedTicket?.status as string) !== 'CONFIRMED' &&
     (
-      (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL'))) ||
-      (bookingRecord && (bookingRecord.status === 'WAITLIST' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+      (issuedTicket && (
+        (issuedTicket.status as string) === 'WAITLIST' ||
+        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL') ||
+        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+        (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('Queue #') ||
+        (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('WL')
+      )) ||
+      (bookingRecord && (
+        bookingRecord.status === 'WAITLIST' ||
+        (bookingRecord.seatAllotment?.coach || '').includes('WL') ||
+        (bookingRecord.seatAllotment?.coach || '').includes('GNWL') ||
+        (bookingRecord.seatAllotment?.berthType || '').includes('WL')
+      )) ||
+      rawClassStatus.includes('WL') ||
+      rawClassStatus.includes('GNWL')
     )
   );
 

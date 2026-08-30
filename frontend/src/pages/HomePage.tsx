@@ -38,6 +38,7 @@ import { JargonHint } from '../components/JargonHint';
 export const HomePage: React.FC = () => {
   const {
     searchParams,
+    selectedTrain,
     executeSearch,
     navigateTo,
     startGuidanceTour,
@@ -652,7 +653,7 @@ export const HomePage: React.FC = () => {
               <span className="text-emerald-500 font-bold text-xs shrink-0">--➔</span>
               <button
                 type="button"
-                onClick={() => navigateTo('booking')}
+                onClick={() => navigateTo(selectedTrain ? 'booking' : 'trains')}
                 className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold shrink-0 transition-all flex items-center gap-1 shadow-2xs hover:scale-102 cursor-pointer"
               >
                 <span>Continue</span>

@@ -356,93 +356,76 @@ export function liveSeatInventory(
   trainNumber: string,
   classCode: string,
   initialSeats = 0,
-  now = Date.now()
+  now = Date.now(),
+  declaredStatus?: string
 ): LiveSeatInventory {
-  const seed = hash(`${trainNumber}:${classCode}:inventory`);
+  const seed = Math.abs(hash(`${trainNumber}:${classCode}:inventory`));
+  const rawStatus = (declaredStatus || '').toUpperCase().trim();
+  const isExplicitWlTrain =
+    trainNumber === '12232' ||
+    trainNumber === '12863' ||
+    trainNumber === '12864' ||
+    trainNumber === '12245' ||
+    rawStatus.includes('WL') ||
+    rawStatus.includes('GNWL') ||
+    rawStatus.includes('RLWL') ||
+    rawStatus.includes('PQWL');
 
-  // Category specific baseline settings
-  const isWaitlistFlagship = trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245';
-  let baseWl = isWaitlistFlagship ? 42 : 14;
-  let velocity = 4.2;
-  let occupancy = 98;
-  let racCount = 2;
+  const isExplicitRac = rawStatus.includes('RAC');
+  const isExplicitAvailable = rawStatus.includes('AVAILABLE') || rawStatus === 'CNF' || rawStatus === 'CONFIRMED' || (!isExplicitWlTrain && !isExplicitRac && initialSeats > 0);
 
-  if (isWaitlistFlagship) {
-    baseWl = 42;
-    velocity = 5.6;
-    occupancy = 99;
-    racCount = 2;
-  } else {
-    switch (classCode) {
-      case 'SL':
-        baseWl = 42; // Starts at 42 and clears dynamically
-        velocity = 4.8;
-        occupancy = 98;
-        racCount = 4;
-        break;
-      case '3A':
-      case '3E':
-        baseWl = 42; // Starts at 42 and clears dynamically
-        velocity = 3.8;
-        occupancy = 96;
-        racCount = 2;
-        break;
-      case '2A':
-        baseWl = 18 + (seed % 6);
-        velocity = 2.2;
-        occupancy = 94;
-        racCount = 2;
-        break;
-      case '1A':
-        baseWl = 6 + (seed % 3);
-        velocity = 1.0;
-        occupancy = 90;
-        racCount = 0;
-        break;
-      case 'CC':
-        baseWl = 24 + (seed % 8);
-        velocity = 3.2;
-        occupancy = 95;
-        racCount = 0;
-        break;
-      case 'EC':
-        baseWl = 8 + (seed % 4);
-        velocity = 1.4;
-        occupancy = 91;
-        racCount = 0;
-        break;
-      default:
-        baseWl = 42;
-        velocity = 3.8;
-        occupancy = 95;
-        racCount = 2;
-    }
-  }
-
-  // Dynamic simulated drop from 42 down to 1-2 over time
-  const elapsedSecs = Math.floor((now / 1000) % 3600);
-  const dropped = Math.min(baseWl - 2, Math.floor((elapsedSecs % 60) * (baseWl / 18)));
-  const currentWl = Math.max(1, baseWl - Math.max(dropped, 40)); // Drops down to 1-2 in real-time
-  const cleared = baseWl - currentWl;
-
-  if (initialSeats > 0 && currentWl <= 0) {
+  // 1. AVAILABLE SEATS: Realistic positive confirmed seat inventory
+  if (isExplicitAvailable) {
+    const elapsedMins = Math.floor((now / 60000) % 60);
+    const fluctuation = elapsedMins % 3;
+    const baseSeats = initialSeats > 0 ? initialSeats : (18 + (seed % 42));
+    const dynamicSeats = Math.max(1, baseSeats - fluctuation);
     return {
-      seats: initialSeats,
+      seats: dynamicSeats,
       waitlist: 0,
       racCount: 0,
       status: 'AVAILABLE',
-      initialWaitlist: baseWl,
-      positionsCleared: cleared,
-      cancellationVelocity: velocity,
-      occupancyPercent: occupancy,
+      initialWaitlist: 0,
+      positionsCleared: 0,
+      cancellationVelocity: 0,
+      occupancyPercent: Math.min(96, 68 + (seed % 24)),
     };
   }
+
+  // 2. RAC: Reservation Against Cancellation
+  if (isExplicitRac) {
+    const parsed = parseWaitlistStatus(rawStatus);
+    const racNum = parsed.number > 0 ? parsed.number : (1 + (seed % 6));
+    return {
+      seats: 0,
+      waitlist: 0,
+      racCount: racNum,
+      status: 'RAC',
+      initialWaitlist: 0,
+      positionsCleared: 0,
+      cancellationVelocity: 2.4,
+      occupancyPercent: 97,
+    };
+  }
+
+  // 3. WAITLIST: Live decreasing waitlist position
+  const parsed = parseWaitlistStatus(rawStatus);
+  const baseWl = parsed.number > 0 ? parsed.number : (isExplicitWlTrain ? 42 : (8 + (seed % 28)));
+  const velocity = isExplicitWlTrain ? 5.6 : 3.8;
+  const occupancy = 99;
+
+  // Dynamic simulated drop from base WL over time
+  const elapsedSecs = Math.floor((now / 1000) % 3600);
+  const maxDrop = Math.max(0, baseWl - 1);
+  const dropped = Math.min(maxDrop, Math.floor((elapsedSecs % 60) * (baseWl / 30)));
+  const currentWl = Math.max(1, baseWl - dropped);
+  const cleared = baseWl - currentWl;
 
   return {
     seats: 0,
     waitlist: currentWl,
-    racCount: currentWl <= 2 ? 2 : racCount,
-    status: currentWl <= 2 ? 'RAC' : 'WL',
+    racCount: 0,
+    status: 'WL',
     initialWaitlist: baseWl,
     positionsCleared: cleared,
     cancellationVelocity: velocity,

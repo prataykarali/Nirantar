@@ -457,8 +457,16 @@ export const TrainsPage: React.FC = () => {
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                     {(() => {
                       const selected = train.classes.find((c) => c.classCode === currentSelectedClass) || train.classes[0];
-                      const inventory = liveSeatInventory(train.trainNumber, selected?.classCode || currentSelectedClass, selected?.availableSeats || 4, inventoryClock);
-                      return <span>🔥 High Demand: {inventory.status === 'AVAILABLE' ? `Only ${inventory.seats} seats left` : `${inventory.status} ${inventory.waitlist}/100`} in {currentSelectedClass}!</span>;
+                      const inventory = liveSeatInventory(train.trainNumber, selected?.classCode || currentSelectedClass, selected?.availableSeats ?? (selected?.status === 'AVAILABLE' ? 24 : 0), inventoryClock, selected?.status);
+                      return (
+                        <span>
+                          {inventory.status === 'AVAILABLE'
+                            ? `🟢 Live Seats: ${inventory.seats} available in ${currentSelectedClass}`
+                            : inventory.status === 'RAC'
+                            ? `🟠 High Demand: RAC ${inventory.racCount} in ${currentSelectedClass}`
+                            : `🔴 High Demand: ${selected?.status || 'GNWL'} ${inventory.waitlist}/100 in ${currentSelectedClass}!`}
+                        </span>
+                      );
                     })()}
                   </div>
                   <span className="text-amber-800 font-semibold hidden sm:inline">
@@ -549,20 +557,28 @@ export const TrainsPage: React.FC = () => {
                             <span className="text-xs font-bold text-slate-900">{cls.classCode}</span>
                             <span className="text-xs font-bold text-purple-900">₹{cls.fare}</span>
                           </div>
-                          <span
-                            className={`text-[9px] font-bold block mt-0.5 ${
-                              cls.status === 'AVAILABLE'
-                                ? 'text-emerald-600'
-                                : cls.status === 'RAC'
-                                ? 'text-amber-600'
-                                : 'text-rose-600'
-                            }`}
-                          >
-                            {(() => {
-                              const inventory = liveSeatInventory(train.trainNumber, cls.classCode, cls.availableSeats, inventoryClock);
-                              return inventory.status === 'AVAILABLE' ? `AVL ${inventory.seats}` : `${inventory.status} ${inventory.waitlist}/100`;
-                            })()}
-                          </span>
+                          {(() => {
+                            const inventory = liveSeatInventory(train.trainNumber, cls.classCode, cls.availableSeats ?? (cls.status === 'AVAILABLE' ? 24 : 0), inventoryClock, cls.status);
+                            const isAvl = inventory.status === 'AVAILABLE';
+                            const isRac = inventory.status === 'RAC';
+                            return (
+                              <span
+                                className={`text-[9px] font-bold block mt-0.5 ${
+                                  isAvl
+                                    ? 'text-emerald-600'
+                                    : isRac
+                                    ? 'text-amber-600'
+                                    : 'text-rose-600'
+                                }`}
+                              >
+                                {isAvl
+                                  ? `AVL ${inventory.seats}`
+                                  : isRac
+                                  ? `RAC ${inventory.racCount}`
+                                  : `${cls.status || 'WL'} ${inventory.waitlist}`}
+                              </span>
+                            );
+                          })()}
                         </button>
                       );
                     })}
