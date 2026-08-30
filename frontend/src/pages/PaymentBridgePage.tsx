@@ -44,6 +44,7 @@ export const PaymentBridgePage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<PaymentTab>('upi');
   const [upiId, setUpiId] = useState('pratay@okhdfcbank');
+  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
@@ -86,6 +87,16 @@ export const PaymentBridgePage: React.FC = () => {
     }
     const method = activeTab === 'upi' ? 'UPI' : activeTab === 'cards' ? 'CARD' : activeTab === 'netbanking' ? 'NET_BANKING' : 'WALLET';
     await initiatePayment(method, totalAmount);
+    setShowGatewayModal(true);
+  };
+
+  const handlePayWithBank = async (bankName?: string) => {
+    if (isBookingIncomplete) {
+      navigateTo('workspace');
+      return;
+    }
+    if (bankName) setSelectedBank(bankName);
+    await initiatePayment('NET_BANKING', totalAmount);
     setShowGatewayModal(true);
   };
 
@@ -582,32 +593,41 @@ export const PaymentBridgePage: React.FC = () => {
           {/* 3. NETBANKING TAB */}
           {activeTab === 'netbanking' && (
             <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-              <label className="block text-xs font-bold text-slate-700">Select Bank</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">Select Bank</label>
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                  {selectedBank} Selected
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Kotak Mahindra'].map((b, i) => (
+                {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Kotak Mahindra'].map((b) => (
                   <button
                     key={b}
                     type="button"
-                    onClick={handlePay}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs ${
-                      i === 0
-                        ? 'bg-purple-50 border-purple-600 text-purple-950 ring-1 ring-purple-600'
+                    onClick={() => {
+                      setSelectedBank(b);
+                      handlePayWithBank(b);
+                    }}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs flex items-center justify-between ${
+                      selectedBank === b
+                        ? 'bg-purple-50 border-purple-600 text-purple-950 ring-1 ring-purple-600 shadow-xs'
                         : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    {b}
+                    <span>{b}</span>
+                    <span className="text-[10px] text-purple-600 font-bold">➔</span>
                   </button>
                 ))}
               </div>
 
               <button
                 type="button"
-                onClick={handlePay}
+                onClick={() => handlePayWithBank(selectedBank)}
                 disabled={isProcessing}
                 className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{isProcessing ? 'Redirecting to NetBanking...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                <span>{isProcessing ? 'Authorizing NetBanking...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} with ${selectedBank}`}</span>
               </button>
             </div>
           )}
@@ -804,6 +824,7 @@ export const PaymentBridgePage: React.FC = () => {
         onClose={() => setShowGatewayModal(false)}
         amount={totalAmount}
         selectedMethod={activeTab === 'upi' ? 'UPI' : activeTab === 'cards' ? 'CARD' : activeTab === 'netbanking' ? 'NET_BANKING' : 'WALLET'}
+        selectedBankName={selectedBank}
         onPaymentSuccess={() => navigateTo('ticket')}
       />
     </div>

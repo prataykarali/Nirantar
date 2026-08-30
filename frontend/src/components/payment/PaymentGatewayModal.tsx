@@ -23,6 +23,7 @@ interface PaymentGatewayModalProps {
   onClose: () => void;
   amount: number;
   selectedMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'WALLET';
+  selectedBankName?: string;
   onPaymentSuccess: () => void;
 }
 
@@ -33,6 +34,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   onClose,
   amount,
   selectedMethod,
+  selectedBankName = 'HDFC Bank',
   onPaymentSuccess,
 }) => {
   const { triggerMockPaymentResult, verifyPaymentStatus, walletBalance, setWalletBalance, payWithWallet } = useJourney();
@@ -563,11 +565,15 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-purple-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                    {activeTab === 'upi' ? '⚡' : '🏛️'}
+                    {activeTab === 'upi' ? '⚡' : activeTab === 'cards' ? '💳' : '🏛️'}
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-black text-slate-900">
-                      {activeTab === 'upi' ? `${selectedUpiApp.toUpperCase()} UPI Gateway` : `${selectedBank} 3D Secure Authorization`}
+                      {activeTab === 'upi'
+                        ? `${selectedUpiApp.toUpperCase()} UPI Gateway`
+                        : activeTab === 'cards'
+                        ? 'Card 3D-Secure 2-Factor Authorization'
+                        : `${selectedBankName || selectedBank} NetBanking Authorization`}
                     </h3>
                     <p className="text-[10px] text-slate-500 font-semibold">
                       Official NPCI / IRCTC Railway Transaction Settlement
@@ -583,12 +589,18 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               {/* Input Instruction Banner */}
               <div className="bg-purple-100/60 p-3 rounded-2xl border border-purple-200/80 space-y-1 text-center">
                 <p className="text-xs font-black text-purple-950">
-                  {activeTab === 'upi' ? 'Enter 4 or 6-Digit UPI PIN' : 'Enter 6-Digit Banking OTP'}
+                  {activeTab === 'upi'
+                    ? 'Enter 4 or 6-Digit UPI PIN'
+                    : activeTab === 'cards'
+                    ? 'Enter 6-Digit Card 3D-Secure OTP'
+                    : `Enter 6-Digit ${selectedBankName || selectedBank} NetBanking PIN / OTP`}
                 </p>
                 <p className="text-[11px] text-purple-800 font-medium">
                   {activeTab === 'upi'
                     ? 'Please enter your secret UPI PIN to authorize payment to Indian Railways (IRCTC).'
-                    : `Please enter the one-time password sent to your registered mobile +91 ••••••3210.`}
+                    : activeTab === 'cards'
+                    ? 'Please enter the 3D-Secure OTP sent to your card-registered mobile number +91 ••••••3210.'
+                    : `Please enter your ${selectedBankName || selectedBank} NetBanking authorization PIN or OTP sent to +91 ••••••3210.`}
                 </p>
               </div>
 

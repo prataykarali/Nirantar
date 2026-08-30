@@ -120,10 +120,48 @@ export interface PassengerSeatAllocation {
  * If multiple passengers share a class, they share the primary coach with adjacent/distributed seats.
  * If passengers have different classes (e.g. 1 3A + 1 SL), they are placed in their respective coaches.
  */
+export const OCCUPIED_SEATS_STORAGE_KEY = 'nirantar_occupied_seats_registry';
+
+/**
+ * Returns the list of occupied seat numbers for a given train and coach from persistent storage.
+ */
+export function getOccupiedSeatsForTrain(trainNumber: string, coachCode: string): number[] {
+  try {
+    const raw = localStorage.getItem(OCCUPIED_SEATS_STORAGE_KEY);
+    if (!raw) return [];
+    const map: Record<string, number[]> = JSON.parse(raw);
+    return map[`${trainNumber}:${coachCode}`] || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Registers newly booked seat numbers for a train and coach in persistent storage so they cannot be double-booked.
+ */
+export function registerOccupiedSeats(trainNumber: string, coachCode: string, seatNumbers: number[]): void {
+  try {
+    const raw = localStorage.getItem(OCCUPIED_SEATS_STORAGE_KEY);
+    const map: Record<string, number[]> = raw ? JSON.parse(raw) : {};
+    const key = `${trainNumber}:${coachCode}`;
+    const existing = map[key] || [];
+    const merged = Array.from(new Set([...existing, ...seatNumbers]));
+    map[key] = merged;
+    localStorage.setItem(OCCUPIED_SEATS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn('Failed to register occupied seats in persistent store:', e);
+  }
+}
+
+/**
+ * Assigns realistic, distinct coaches and UNIQUE seat numbers to all booked passengers.
+ * Guaranteed: No two passengers on the same train ever get the same seat number.
+ */
 export function allocatePassengerSeats(
   passengers: Array<{ id?: string; name?: string; assignedClassCode?: string; berthPreference?: string }>,
   primaryClass = '3A',
-  bookingSeed?: string
+  bookingSeed?: string,
+  trainNumber = '12951'
 ): PassengerSeatAllocation[] {
   const classCoachesMap: Record<string, string[]> = {
     '1A': ['H1'],
@@ -157,41 +195,54 @@ export function allocatePassengerSeats(
   });
 
   const result: PassengerSeatAllocation[] = new Array(passengers.length);
+  const newlyAllocatedInThisRun = new Set<string>();
 
   Object.entries(passengersByClass).forEach(([cls, group]) => {
     const coachList = classCoachesMap[cls] || ['B4'];
     const maxCapacity = classCapacities[cls] || 64;
     
-    // Choose dynamic coach & starting seat based on seed or random
-    const seedVal = bookingSeed ? hash(`${bookingSeed}:${cls}`) : (Date.now() ^ Math.floor(Math.random() * 100000));
+    // Choose coach deterministically based on seed or random
+    const seedVal = bookingSeed ? hash(`${bookingSeed}:${cls}:${trainNumber}`) : (Date.now() ^ Math.floor(Math.random() * 100000));
     const coachCode = coachList[Math.abs(seedVal) % coachList.length];
     
-    // Starting seat randomly distributed between 1 and (maxCapacity - group.length - 2)
-    const availableSpan = Math.max(1, maxCapacity - group.length - 3);
-    const startSeat = 1 + (Math.abs(seedVal >> 3) % availableSpan);
+    // Fetch persistently occupied seats on this train coach
+    const occupiedSeats = new Set(getOccupiedSeatsForTrain(trainNumber, coachCode));
 
-    group.forEach(({ p, idx }, offset) => {
-      const seatNumber = startSeat + offset;
+    // Starting search position
+    let candidateSeat = 1 + (Math.abs(seedVal >> 3) % Math.max(1, maxCapacity - group.length - 2));
+
+    group.forEach(({ p, idx }) => {
+      // Find the next available seat that is NOT already occupied in persistent store or in this run
+      while (
+        occupiedSeats.has(candidateSeat) ||
+        newlyAllocatedInThisRun.has(`${trainNumber}:${coachCode}:${candidateSeat}`)
+      ) {
+        candidateSeat = (candidateSeat % maxCapacity) + 1;
+      }
+
+      const assignedSeatNumber = candidateSeat;
+      newlyAllocatedInThisRun.add(`${trainNumber}:${coachCode}:${assignedSeatNumber}`);
+      candidateSeat = (candidateSeat % maxCapacity) + 1;
       
       // Compute authentic berth type based on seat number and class
       let calculatedBerth = 'Lower Berth';
       if (cls === '3A' || cls === 'SL' || cls === '3E') {
-        const mod = seatNumber % 8;
+        const mod = assignedSeatNumber % 8;
         if (mod === 1 || mod === 4) calculatedBerth = 'Lower Berth';
         else if (mod === 2 || mod === 5) calculatedBerth = 'Middle Berth';
         else if (mod === 3 || mod === 6) calculatedBerth = 'Upper Berth';
         else if (mod === 7) calculatedBerth = 'Side Lower';
         else calculatedBerth = 'Side Upper';
       } else if (cls === '2A') {
-        const mod = seatNumber % 6;
+        const mod = assignedSeatNumber % 6;
         if (mod === 1 || mod === 3) calculatedBerth = 'Lower Berth';
         else if (mod === 2 || mod === 4) calculatedBerth = 'Upper Berth';
         else if (mod === 5) calculatedBerth = 'Side Lower';
         else calculatedBerth = 'Side Upper';
       } else if (cls === '1A') {
-        calculatedBerth = seatNumber % 2 === 1 ? 'Lower Berth' : 'Upper Berth';
+        calculatedBerth = assignedSeatNumber % 2 === 1 ? 'Lower Berth' : 'Upper Berth';
       } else if (cls === 'CC' || cls === 'EC') {
-        const mod = seatNumber % 5;
+        const mod = assignedSeatNumber % 5;
         calculatedBerth = (mod === 1 || mod === 0) ? 'Window Seat' : (mod === 3) ? 'Middle Seat' : 'Aisle Seat';
       }
 
@@ -207,7 +258,7 @@ export function allocatePassengerSeats(
         classCode: cls,
         coachCode,
         coachLabel: `${coachCode} (${cls})`,
-        seatNumber,
+        seatNumber: assignedSeatNumber,
         berthType: finalBerth,
       };
     });

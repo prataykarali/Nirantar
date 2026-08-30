@@ -775,6 +775,13 @@ export const CompletionResultPage: React.FC = () => {
                 <span className="text-[10px] font-bold leading-tight">Share Ticket</span>
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => navigateTo('home')}
+              className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-bold text-xs flex items-center justify-center gap-1.5 border border-purple-200/80 cursor-pointer transition-all active:scale-95"
+            >
+              <span>🏠 Back to Start Page</span>
+            </button>
           </div>
         </div>
       </div>

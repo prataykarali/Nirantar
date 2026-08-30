@@ -30,7 +30,7 @@ import {
   apiMockVerify,
   apiGetTicket,
 } from '../services/journeyApi';
-import { allocatePassengerSeats, getDynamicInitialWaitlist, MidJourneyReallocation } from '../utils/seatInventory';
+import { allocatePassengerSeats, getDynamicInitialWaitlist, registerOccupiedSeats, MidJourneyReallocation } from '../utils/seatInventory';
 import { admitFairAccess } from '../services/niraApi';
 import { setFairAccessTicket } from '../lib/fairAccessStore';
 import { UiEventBus } from '../events/UiEventBus';
@@ -917,7 +917,12 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     }
 
-    const dynamicAllotments = allocatePassengerSeats(resolvedPassengers, selectedClassCode || '3A', pnr);
+    const dynamicAllotments = allocatePassengerSeats(
+      resolvedPassengers,
+      selectedClassCode || '3A',
+      pnr,
+      resolvedTrain.trainNumber
+    );
     const dynamicWlInfo = getDynamicInitialWaitlist(resolvedTrain.trainNumber, selectedClassCode || '3A', chosenClass?.status);
     const baseWlSeat = dynamicWlInfo.initialWl;
     const baseWlQuota = dynamicWlInfo.quotaType;
@@ -937,6 +942,15 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         berthType: allot?.berthType || 'Lower Berth',
       };
     });
+
+    // Register all booked confirmed seats in persistent store so subsequent passengers receive distinct seats
+    if (!isWaitlistTrain) {
+      seatAllotments.forEach((allot) => {
+        if (allot.coach && allot.seatNumber) {
+          registerOccupiedSeats(resolvedTrain.trainNumber, allot.coach, [allot.seatNumber]);
+        }
+      });
+    }
 
     const primarySeatAllotment = seatAllotments[0] || {
       coach: isWaitlistTrain ? baseWlQuota : (dynamicAllotments[0]?.coachCode || 'B1'),
@@ -1942,6 +1956,23 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const goBack = () => {
+    // If ticket is booked / payment completed, going back must redirect directly to start page (home)
+    const isTicketBooked = Boolean(
+      issuedTicket !== null ||
+      bookingState === 'CONFIRMED' ||
+      activePage === 'completion' ||
+      activePage === 'ticket'
+    );
+
+    if (isTicketBooked) {
+      // Clear transient checkout selection and redirect to home
+      setSelectedTrain(null);
+      setPaymentAttempt(null);
+      setPageHistory([]);
+      navigateTo('home');
+      return;
+    }
+
     if (activePage === 'payment') {
       navigateTo('workspace');
       return;
@@ -1956,6 +1987,10 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     if (pageHistory.length > 1) {
       const prev = pageHistory[pageHistory.length - 1];
+      if (prev === 'payment' || prev === 'workspace' || prev === 'booking') {
+        navigateTo('home');
+        return;
+      }
       setPageHistory((p) => p.slice(0, -1));
       setActivePage(prev);
       UiEventBus.emit('PAGE_CHANGED', prev, { from: activePage, to: prev, reason: 'goBack' });
