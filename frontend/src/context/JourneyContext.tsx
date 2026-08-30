@@ -291,6 +291,10 @@ export interface JourneyContextType {
   preferredTrackerTab: 'timeline' | 'coach' | 'waitlist';
   setPreferredTrackerTab: (tab: 'timeline' | 'coach' | 'waitlist') => void;
 
+  // Booked Tickets Ledger (supports multi-train bookings)
+  bookedTicketsList: TicketRecord[];
+  setBookedTicketsList: React.Dispatch<React.SetStateAction<TicketRecord[]>>;
+
   // Mid-Journey Vacant Berth Reallocations & Special Requests
   activeReallocations: MidJourneyReallocation[];
   requestMidJourneyReallocation: (reallocation: Omit<MidJourneyReallocation, 'id' | 'timestamp' | 'approvedBy' | 'status'>) => Promise<MidJourneyReallocation>;
@@ -556,6 +560,20 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {}
     return null;
   });
+
+  const [bookedTicketsList, setBookedTicketsList] = useState<TicketRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_booked_tickets_list');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nirantar_booked_tickets_list', JSON.stringify(bookedTicketsList));
+    } catch {}
+  }, [bookedTicketsList]);
 
   useEffect(() => {
     if (issuedTicket) {
@@ -935,6 +953,26 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setBookingRecord(newBooking);
     setBookingStateRaw('CONFIRMED');
     setRecentJourneys((prev) => [newRecentJourney, ...prev]);
+
+    // Append / update booked tickets list (combines seats if same train is booked again!)
+    setBookedTicketsList((prev) => {
+      const existingIdx = prev.findIndex((t) => t.train.trainNumber === resolvedTrain.trainNumber);
+      if (existingIdx !== -1) {
+        const existing = prev[existingIdx];
+        const mergedPassengers = [...existing.passengers, ...resolvedPassengers];
+        const mergedSeatAllotments = [...existing.seatAllotments, ...seatAllotments];
+        const updatedTicket: TicketRecord = {
+          ...newTicket,
+          passengers: mergedPassengers,
+          seatAllotments: mergedSeatAllotments,
+        };
+        setIssuedTicket(updatedTicket);
+        const copy = [...prev];
+        copy[existingIdx] = updatedTicket;
+        return copy;
+      }
+      return [newTicket, ...prev];
+    });
 
     // Real digital bank balance deduction
     setWalletBalance((prevBal) => {
@@ -2024,6 +2062,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // ─── Tracker Tab Preference ───
         preferredTrackerTab,
         setPreferredTrackerTab,
+        // ─── Booked Tickets Ledger ───
+        bookedTicketsList,
+        setBookedTicketsList,
       }}
     >
       {children}

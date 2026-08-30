@@ -585,39 +585,36 @@ export function getDynamicInitialWaitlist(
   customStatus?: string
 ): { initialWl: number; quotaType: string } {
   const parsed = parseWaitlistStatus(customStatus);
-  if (parsed.number > 0) {
-    return { initialWl: parsed.number, quotaType: parsed.quotaType };
-  }
-
-  const seed = hash(`${trainNumber}:${classCode}:dynamic_queue`);
-  let basePool = 24;
-
+  const seed = Math.abs(hash(`${trainNumber}:${classCode}:${new Date().getDate()}`));
+  
+  let dynamicRandomWl = 18;
   switch (classCode.toUpperCase()) {
     case '1A':
     case 'EC':
-      basePool = 3 + (seed % 5); // 3 to 7
+      dynamicRandomWl = 4 + (seed % 6); // 4 to 9
       break;
     case '2A':
-      basePool = 7 + (seed % 10); // 7 to 16
+      dynamicRandomWl = 8 + (seed % 12); // 8 to 19
       break;
     case '3A':
     case '3E':
-      basePool = 14 + (seed % 22); // 14 to 35
+      dynamicRandomWl = 14 + (seed % 22); // 14 to 35
       break;
     case 'CC':
-      basePool = 10 + (seed % 16); // 10 to 25
+      dynamicRandomWl = 9 + (seed % 16); // 9 to 24
       break;
     case 'SL':
-      basePool = 22 + (seed % 34); // 22 to 55
-      break;
-    case '2S':
-      basePool = 18 + (seed % 28); // 18 to 45
+      dynamicRandomWl = 16 + (seed % 32); // 16 to 47
       break;
     default:
-      basePool = 16 + (seed % 18);
+      dynamicRandomWl = 14 + (seed % 20); // 14 to 33
   }
 
-  return { initialWl: basePool, quotaType: 'GNWL' };
+  if (parsed.number > 0 && parsed.number !== 2 && parsed.number !== 42) {
+    return { initialWl: parsed.number, quotaType: parsed.quotaType };
+  }
+
+  return { initialWl: dynamicRandomWl, quotaType: parsed.quotaType || 'GNWL' };
 }
 
 /**
@@ -963,9 +960,13 @@ export function getCoachSegmentBays(
       };
     }
 
-    // Stoppage where this occupied berth deboards
-    const deboardStnIndex = 1 + ((seatNum * 7 + bayIdx * 3) % (defaultRoute.length - 1));
-    const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[defaultRoute.length - 1];
+    // Stoppage where this occupied berth deboards (ONLY 2 to 3 stoppages away from terminal platform)
+    const totalStoppages = defaultRoute.length;
+    const minDeboardIdx = Math.max(1, totalStoppages - 3);
+    const maxDeboardIdx = Math.max(minDeboardIdx, totalStoppages - 2);
+    const deboardStnIndex = minDeboardIdx + ((seatNum * 3 + bayIdx) % (maxDeboardIdx - minDeboardIdx + 1));
+    const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[totalStoppages - 2] || defaultRoute[totalStoppages - 1];
+    const stopsFromTerminal = totalStoppages - 1 - deboardStnIndex;
 
     // If current station has reached or passed deboarding station, seat is VACANT!
     const isDeboarded = currentStationIndex >= deboardStnIndex;
@@ -987,7 +988,7 @@ export function getCoachSegmentBays(
           travelFrom: defaultRoute[0].name,
           travelTo: deboardStn.name,
           deboardsAtStationIndex: deboardStnIndex,
-          deboardsAtStationName: deboardStn.name,
+          deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stops from terminal)`,
         },
       };
     }
@@ -1002,7 +1003,7 @@ export function getCoachSegmentBays(
         travelFrom: defaultRoute[0].name,
         travelTo: deboardStn.name,
         deboardsAtStationIndex: deboardStnIndex,
-        deboardsAtStationName: deboardStn.name,
+        deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stops from terminal)`,
       },
     };
   };

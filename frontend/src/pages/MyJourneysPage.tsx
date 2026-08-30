@@ -84,7 +84,7 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, searchParams, setTrackQuery, cancelTicket, securityPin, passengers, activeReallocations } = useJourney();
+  const { navigateTo, issuedTicket, bookedTicketsList, searchParams, setTrackQuery, cancelTicket, securityPin, passengers, activeReallocations } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
@@ -114,55 +114,61 @@ export const MyJourneysPage: React.FC = () => {
     return '/assets/images/avatars/avatar_3_techie.svg';
   };
 
-  // Dynamic ticket generated from active session
-  const dynamicUpcoming: JourneyRecord[] = issuedTicket ? [
-    {
-      id: issuedTicket.ticketId || 'j0',
-      pnr: issuedTicket.pnrNumber,
-      trainNumber: issuedTicket.train?.trainNumber || '12302',
-      trainName: issuedTicket.train?.trainName || 'Rajdhani Express',
-      fromCity: issuedTicket.origin?.city || searchParams.fromStation.city,
-      fromCode: issuedTicket.origin?.code || searchParams.fromStation.code,
-      fromPlatform: 'Platform 4',
-      toCity: issuedTicket.destination?.city || searchParams.toStation.city,
-      toCode: issuedTicket.destination?.code || searchParams.toStation.code,
-      toPlatform: 'Platform 8',
-      date: `Confirmed: ${issuedTicket.travelDate}`,
-      depTime: issuedTicket.train?.departureTime || '16:55',
-      arrTime: issuedTicket.train?.arrivalTime || '09:55',
-      arrivalDate: 'Next Day',
-      duration: issuedTicket.train?.durationHours || '17h 00m',
-      distanceKm: 1451,
-      status: 'CONFIRMED',
-      coach: `${issuedTicket.classCode} (${issuedTicket.seatAllotments[0]?.coach || 'B4'})`,
-      seat: `${issuedTicket.seatAllotments[0]?.seatNumber || 36} (${issuedTicket.seatAllotments[0]?.berthType || 'Lower'})`,
-      classCode: issuedTicket.classCode || '3A',
-      className: 'AC 3 Tier',
-      quota: 'General (GN)',
-      passengers: issuedTicket.passengers.map((p, idx) => ({
-        name: p.name,
-        age: p.age,
-        gender: p.gender,
-        coach: issuedTicket.seatAllotments[idx]?.coach || 'B4',
-        seatNumber: issuedTicket.seatAllotments[idx]?.seatNumber || 36 + idx,
-        berthType: issuedTicket.seatAllotments[idx]?.berthType || (idx % 2 === 0 ? 'Lower' : 'Middle'),
-        concession: (p as any).concessionType && (p as any).concessionType !== 'NONE' ? (p as any).concessionType : undefined,
-        status: 'CNF',
-      })),
-      fare: 2990,
-      rating: 4.9,
-      reviewCount: 8420,
-      amenities: ['Meals Included', 'RailTel High-Speed Wi-Fi', '220V Power Outlets', 'Clean Bedding'],
-      reviews: [
-        {
-          author: 'Pooja R., Verified Passenger',
-          rating: 5,
-          date: 'Last Week',
-          comment: 'Extremely punctual departure and arrival. Coach attendants were courteous and the food was hot and delicious.',
-        },
-      ],
+  // Dynamic tickets generated from active session (all booked trains)
+  const allSessionTickets = React.useMemo(() => {
+    const list = [...(bookedTicketsList || [])];
+    if (issuedTicket && !list.some((t) => t.pnrNumber === issuedTicket.pnrNumber || t.ticketId === issuedTicket.ticketId)) {
+      list.unshift(issuedTicket);
     }
-  ] : [];
+    return list;
+  }, [bookedTicketsList, issuedTicket]);
+
+  const dynamicUpcoming: JourneyRecord[] = allSessionTickets.map((ticket, tIdx) => ({
+    id: ticket.ticketId || `j_dyn_${tIdx}`,
+    pnr: ticket.pnrNumber,
+    trainNumber: ticket.train?.trainNumber || '12302',
+    trainName: ticket.train?.trainName || 'Rajdhani Express',
+    fromCity: ticket.origin?.city || searchParams.fromStation.city,
+    fromCode: ticket.origin?.code || searchParams.fromStation.code,
+    fromPlatform: 'Platform 4',
+    toCity: ticket.destination?.city || searchParams.toStation.city,
+    toCode: ticket.destination?.code || searchParams.toStation.code,
+    toPlatform: 'Platform 8',
+    date: `Confirmed: ${ticket.travelDate}`,
+    depTime: ticket.train?.departureTime || '16:55',
+    arrTime: ticket.train?.arrivalTime || '09:55',
+    arrivalDate: 'Next Day',
+    duration: ticket.train?.durationHours || '17h 00m',
+    distanceKm: ticket.train?.distanceKm || 1451,
+    status: (ticket.status as any) === 'CANCELLED' ? 'CANCELLED' : 'CONFIRMED',
+    coach: `${ticket.classCode} (${ticket.seatAllotments?.[0]?.coach || 'B4'})`,
+    seat: ticket.seatAllotments?.map((s) => s.seatNumber).join(', ') || '36',
+    classCode: ticket.classCode || '3A',
+    className: ticket.classCode === '1A' ? 'AC 1st Class' : ticket.classCode === '2A' ? 'AC 2 Tier' : 'AC 3 Tier',
+    quota: 'General (GN)',
+    passengers: ticket.passengers.map((p, idx) => ({
+      name: p.name,
+      age: p.age,
+      gender: p.gender,
+      coach: ticket.seatAllotments?.[idx]?.coach || 'B4',
+      seatNumber: ticket.seatAllotments?.[idx]?.seatNumber || 36 + idx,
+      berthType: ticket.seatAllotments?.[idx]?.berthType || (idx % 2 === 0 ? 'Lower' : 'Middle'),
+      concession: (p as any).concessionType && (p as any).concessionType !== 'NONE' ? (p as any).concessionType : undefined,
+      status: 'CNF',
+    })),
+    fare: 2990 * Math.max(1, ticket.passengers.length),
+    rating: 4.9,
+    reviewCount: 8420,
+    amenities: ['Meals Included', 'RailTel High-Speed Wi-Fi', '220V Power Outlets', 'Clean Bedding'],
+    reviews: [
+      {
+        author: 'Pooja R., Verified Passenger',
+        rating: 5,
+        date: 'Last Week',
+        comment: 'Extremely punctual departure and arrival. Coach attendants were courteous and the food was hot and delicious.',
+      },
+    ],
+  }));
 
   const journeys: JourneyRecord[] = [
     ...dynamicUpcoming,

@@ -39,6 +39,7 @@ export const CompletionResultPage: React.FC = () => {
     issuedTicket,
     bookingRecord,
     journeyState,
+    guidanceActive,
   } = useJourney();
 
   const [copiedPnr, setCopiedPnr] = useState(false);
@@ -55,7 +56,7 @@ export const CompletionResultPage: React.FC = () => {
     } catch {
       return { dateStr: rawDate, dayStr: 'Scheduled' };
     }
-  }, [issuedTicket?.travelDate, searchParams.travelDate]);
+  }, [issuedTicket, searchParams.travelDate]);
 
   // Train data fallback
   const train = issuedTicket?.train || selectedTrain || {
@@ -72,16 +73,32 @@ export const CompletionResultPage: React.FC = () => {
   };
 
   const isWaitlisted = Boolean(
-    (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.status as string) === 'RAC' || (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL'))) ||
-    (bookingRecord && (bookingRecord.status === 'WAITLIST' || bookingRecord.status === 'RAC' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+    !guidanceActive &&
+    issuedTicket?.status !== 'ACTIVE' &&
+    (issuedTicket?.status as string) !== 'CONFIRMED' &&
+    (
+      (issuedTicket && ((issuedTicket.status as string) === 'WAITLIST' || (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL'))) ||
+      (bookingRecord && (bookingRecord.status === 'WAITLIST' || (bookingRecord.seatAllotment?.coach || '').includes('WL')))
+    )
   );
 
-  const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(isWaitlisted);
+  const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(() => {
+    if (guidanceActive) return false;
+    if (issuedTicket?.status === 'ACTIVE' || (issuedTicket?.status as string) === 'CONFIRMED') return false;
+    try {
+      if (localStorage.getItem(`nirantar_wl_confirmed_${train.trainNumber}`) === 'true') return false;
+    } catch {}
+    return isWaitlisted;
+  });
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
 
   React.useEffect(() => {
-    setShowWaitlistPopup(isWaitlisted);
-  }, [isWaitlisted]);
+    if (guidanceActive || issuedTicket?.status === 'ACTIVE' || (issuedTicket?.status as string) === 'CONFIRMED') {
+      setShowWaitlistPopup(false);
+    } else {
+      setShowWaitlistPopup(isWaitlisted);
+    }
+  }, [isWaitlisted, guidanceActive, issuedTicket]);
 
   // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
   const parsedWlInfo = React.useMemo(() => {

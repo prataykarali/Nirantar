@@ -833,27 +833,38 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                 </div>
 
                 <div className="space-y-2.5 text-xs">
-                  <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Requested Vacant Berth</span>
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Requested Vacant Berth</span>
                     <div className="flex items-center justify-between">
-                      <strong className="text-slate-900 text-sm">
+                      <strong className="text-slate-900 text-sm font-black">
                         Coach {selectedCoachMeta.representativeCode} • Seat #{selectedVacantBerth.num} ({selectedVacantBerth.fullTypeName})
                       </strong>
-                      <span className="px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-[10px] font-black uppercase">
                         VACANT
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-600 block">
-                      Deboarding at: <strong>{activeStation.name}</strong> ({activeStation.code})
-                    </span>
+                    <div className="text-xs text-purple-950 font-bold bg-white/80 p-2 rounded-xl border border-purple-200/60 space-y-0.5">
+                      <span className="text-[10px] text-purple-600 font-extrabold uppercase block">📍 Station Vacancy Milestone:</span>
+                      <span>Vacant from: <strong>{activeStation.name}</strong> ({activeStation.code})</span>
+                      <span className="text-[10px] text-slate-500 font-medium block">
+                        Passenger deboards {selectedVacantBerth.coPassengerDetails?.deboardsAtStationName || '2-3 stoppages before terminal'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Booked Passenger Selector */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Which booked passenger is this vacant berth for?
-                    </label>
-                    <div className="space-y-1.5">
+                  {/* Booked Passenger Selector Toggle */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-purple-950 uppercase tracking-wider block">
+                        👤 Select WHICH passenger is requesting this vacant seat:
+                      </label>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {userBookedSeats.length} Pax Roster
+                      </span>
+                    </div>
+                    
+                    {/* Interactive Toggle Pill Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {userBookedSeats.length > 0 ? (
                         userBookedSeats.map((p, idx) => {
                           const isChosen = selectedPassengerIdx === idx;
@@ -862,35 +873,35 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                               key={idx}
                               type="button"
                               onClick={() => setSelectedPassengerIdx(idx)}
-                              className={`w-full p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                                 isChosen
-                                  ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-300 text-purple-950 font-bold'
-                                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
+                                  ? 'bg-purple-900 text-white border-purple-800 shadow-md ring-2 ring-purple-400/80 scale-[1.01]'
+                                  : 'bg-slate-50 hover:bg-purple-50/50 border-slate-200 text-slate-800'
                               }`}
                             >
                               <div className="flex items-center gap-2.5">
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                                  isChosen ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-600'
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                  isChosen ? 'bg-white text-purple-900' : 'bg-purple-100 text-purple-900'
                                 }`}>
                                   {idx + 1}
                                 </span>
                                 <div>
-                                  <span className="text-xs font-black block text-slate-900">{p.passengerName}</span>
-                                  <span className="text-[10px] text-slate-500 block">
-                                    Current Seat: Coach {p.coachCode || selectedCoachMeta.representativeCode} • #{p.seatNumber} ({p.berthType})
+                                  <span className="text-xs font-black block">{p.passengerName}</span>
+                                  <span className={`text-[10px] font-bold block ${isChosen ? 'text-purple-200' : 'text-slate-500'}`}>
+                                    Coach {p.coachCode || selectedCoachMeta.representativeCode} • #{p.seatNumber}
                                   </span>
                                 </div>
                               </div>
                               {isChosen && (
-                                <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white text-[9px] font-black">
-                                  SELECTED ✓
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black">
+                                  CHOSEN ✓
                                 </span>
                               )}
                             </button>
                           );
                         })
                       ) : (
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold">
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold col-span-2">
                           Pratay Karali (Coach B4 • Seat #36 LB)
                         </div>
                       )}
