@@ -213,13 +213,13 @@ export const PaymentsPage: React.FC = () => {
         {/* Search and Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-50 pb-3">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-purple-50/60 border border-purple-100 text-xs">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-purple-50/60 border border-purple-100 text-xs overflow-x-auto no-scrollbar touch-scroll">
             {(['ALL', 'PAID', 'REFUNDED', 'PROCESSING'] as StatusFilter[]).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setFilter(tab)}
-                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   filter === tab
                     ? 'bg-white text-purple-950 shadow-xs border border-purple-200'
                     : 'text-slate-600 hover:text-purple-900'

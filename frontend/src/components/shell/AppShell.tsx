@@ -119,7 +119,7 @@ export const AppShell: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F8F6FC] dark:bg-[#0B0813] font-sans antialiased text-slate-900 dark:text-slate-100 relative transition-colors duration-300">
+    <div className="flex h-screen h-[100dvh] w-screen overflow-hidden bg-[#F8F6FC] dark:bg-[#0B0813] font-sans antialiased text-slate-900 dark:text-slate-100 relative transition-colors duration-300">
       {/* 1. DESKTOP: PERSISTENT REUSABLE SIDEBAR */}
       <Sidebar
         className="hidden md:flex"
@@ -171,7 +171,7 @@ export const AppShell: React.FC = () => {
         <FairAccessBanner />
 
         {/* 3. CENTER: MAIN APPLICATION CONTENT */}
-        <main className={`flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-2 pb-24 md:pb-6 transition-all duration-300 ${
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden px-2.5 sm:px-6 lg:px-8 py-2 pb-24 md:pb-6 transition-all duration-300 touch-scroll ${
           showChatDrawer ? '2xl:mr-[420px]' : ''
         }`}>
           {renderActivePage()}
@@ -190,7 +190,7 @@ export const AppShell: React.FC = () => {
       {!showChatDrawer && (
         <aside
           aria-label="Ask Nira Copilot Floating Trigger"
-          className="fixed bottom-20 md:bottom-6 right-4 md:right-7 z-40 flex items-center gap-3 group animate-in fade-in slide-in-from-bottom-3 duration-300"
+          className="fixed bottom-20 md:bottom-6 right-3 sm:right-4 md:right-7 z-40 flex items-center gap-2 sm:gap-3 group animate-in fade-in slide-in-from-bottom-3 duration-300"
         >
           {/* Animated Tooltip Bubble */}
           <div
@@ -209,7 +209,7 @@ export const AppShell: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowChatDrawer(true)}
-            className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 p-1 shadow-[0_10px_35px_rgba(109,40,217,0.45)] hover:shadow-[0_12px_45px_rgba(109,40,217,0.6)] transform hover:scale-108 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white"
+            className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 p-1 shadow-[0_10px_35px_rgba(109,40,217,0.45)] hover:shadow-[0_12px_45px_rgba(109,40,217,0.6)] transform hover:scale-108 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white"
             title="Open Nira AI Assistant"
             aria-label="Open Nira AI Assistant"
           >
@@ -221,9 +221,9 @@ export const AppShell: React.FC = () => {
               />
             </div>
             {/* Pulsing Status Dot */}
-            <span className="absolute top-0 right-0 flex h-4 w-4">
+            <span className="absolute top-0 right-0 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-xs" />
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 bg-emerald-500 border-2 border-white shadow-xs" />
             </span>
           </button>
         </aside>

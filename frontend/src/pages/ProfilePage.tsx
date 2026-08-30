@@ -679,8 +679,8 @@ export const ProfilePage: React.FC = () => {
           3. CITIZEN AVATAR PICKER MODAL (10 PERSONAS)
           ═══════════════════════════════════════════════════════════════════ */}
       {showAvatarModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-purple-100 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-lg w-full shadow-2xl border border-purple-100 space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-purple-50 pb-3">
               <div>
                 <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
@@ -702,7 +702,7 @@ export const ProfilePage: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {CITIZEN_AVATARS.map((av) => {
                 const isSelected = currentAvatar === av.url;
                 return (

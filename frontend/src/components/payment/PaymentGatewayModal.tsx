@@ -196,8 +196,8 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-[28px] max-w-2xl w-full border border-purple-200 shadow-2xl overflow-hidden font-sans select-none flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-[28px] max-w-2xl w-full border border-purple-200 shadow-2xl overflow-hidden font-sans select-none flex flex-col max-h-[92dvh]">
         {/* ═══════════════════════════════════════════════════════════════════
             1. GATEWAY TOP BAR BRANDING (Razorpay / NPCI Inspired)
             ═══════════════════════════════════════════════════════════════════ */}

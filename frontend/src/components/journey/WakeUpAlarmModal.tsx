@@ -52,8 +52,8 @@ export const WakeUpAlarmModal: React.FC<WakeUpAlarmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in select-none">
-      <div className="bg-white rounded-[28px] max-w-md w-full border border-purple-200 shadow-2xl overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in select-none overflow-y-auto">
+      <div className="bg-white rounded-2xl sm:rounded-[28px] max-w-md w-full max-h-[90dvh] overflow-y-auto border border-purple-200 shadow-2xl font-sans">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 p-5 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">

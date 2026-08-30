@@ -860,12 +860,12 @@ export const TrainsPage: React.FC = () => {
           FLOATING BOTTOM COMPARE DOCK (ALWAYS VISIBLE OVER ALL DRAWERS)
           ═══════════════════════════════════════════════════════════════════ */}
       {compareList.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 backdrop-blur-md text-white px-4 sm:px-6 py-3 rounded-full shadow-[0_16px_50px_rgba(88,28,135,0.4)] border-2 border-purple-400/50 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200 select-none">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 backdrop-blur-md text-white px-3 sm:px-6 py-2 sm:py-3 rounded-full shadow-[0_16px_50px_rgba(88,28,135,0.4)] border-2 border-purple-400/50 flex items-center gap-2 sm:gap-3 max-w-[95vw] animate-in slide-in-from-bottom-4 duration-200 select-none">
           <Scale className="w-4 h-4 text-purple-300 animate-pulse shrink-0" />
-          <div className="flex items-center gap-1.5 text-xs font-bold">
+          <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span className="hidden sm:inline">Comparing ({compareList.length}):</span>
             {compareList.map((t) => (
-              <span key={t.trainNumber} className="bg-purple-900/80 border border-purple-400/30 px-2.5 py-0.5 rounded-full font-mono text-[11px] text-amber-300">
+              <span key={t.trainNumber} className="bg-purple-900/80 border border-purple-400/30 px-2 py-0.5 rounded-full font-mono text-[10px] sm:text-[11px] text-amber-300">
                 #{t.trainNumber}
               </span>
             ))}
@@ -879,9 +879,9 @@ export const TrainsPage: React.FC = () => {
               }
               setShowCompareModal(true);
             }}
-            className="px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
+            className="px-3 sm:px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-[11px] sm:text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center gap-1 sm:gap-1.5 shrink-0"
           >
-            <span>⚡ Compare Side-by-Side</span>
+            <span>⚡ Compare</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <button

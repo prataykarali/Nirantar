@@ -520,7 +520,7 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
             </span>
           </div>
 
-          <div className="space-y-1">
+          <div className="flex flex-row lg:flex-col overflow-x-auto no-scrollbar touch-scroll gap-1.5 p-1">
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isActive = activeCategory === cat.id;
@@ -532,18 +532,18 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
                     setActiveCategory(cat.id);
                     setExpandedIndex(0);
                   }}
-                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`shrink-0 lg:shrink lg:w-full flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
                       : 'text-slate-700 hover:bg-purple-50/70 hover:text-purple-950'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-purple-600'}`} />
                     <span>{cat.label}</span>
                   </div>
                   <ArrowRight
-                    className={`w-3.5 h-3.5 transition-transform ${
+                    className={`w-3.5 h-3.5 transition-transform hidden lg:block ${
                       isActive ? 'translate-x-0.5 text-white' : 'opacity-30'
                     }`}
                   />

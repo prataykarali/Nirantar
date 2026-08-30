@@ -224,8 +224,8 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border border-purple-100 flex flex-col font-sans select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92dvh] overflow-y-auto border border-purple-100 flex flex-col font-sans select-none">
         {/* ═══════════════════════════════════════════════════════════════════
             1. TOP HEADER & ACTION BUTTONS
             ═══════════════════════════════════════════════════════════════════ */}

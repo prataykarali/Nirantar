@@ -122,8 +122,8 @@ export const TopUpWalletModal: React.FC<TopUpWalletModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-none font-sans">
-      <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-purple-100 space-y-4 text-slate-800 relative overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 select-none font-sans overflow-y-auto">
+      <div className="bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-purple-100 space-y-4 text-slate-800 relative">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-100 pb-3">
           <div className="flex items-center gap-2.5">

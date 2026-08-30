@@ -288,8 +288,8 @@ export const ImStuckModal: React.FC<ImStuckModalProps> = ({ isOpen, onClose }) =
     : options;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-purple-100 overflow-hidden space-y-4 p-5 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-purple-100 space-y-4 p-4 sm:p-5 animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-50 pb-3">
           <div className="flex items-center gap-2.5">

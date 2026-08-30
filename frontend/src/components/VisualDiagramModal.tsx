@@ -682,8 +682,8 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 font-sans select-none">
-      <div className="relative bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] text-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-300/80 overflow-hidden space-y-3 animate-in zoom-in-95 duration-200 max-h-[94vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 font-sans select-none overflow-y-auto">
+      <div className="relative bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] text-slate-900 rounded-2xl sm:rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-purple-300/80 overflow-hidden space-y-3 animate-in zoom-in-95 duration-200 max-h-[94dvh] flex flex-col">
         {/* Background Decorative Pattern & Station Image */}
         <div className="absolute top-0 right-0 left-0 h-36 overflow-hidden pointer-events-none opacity-25">
           <img
@@ -752,7 +752,7 @@ export const VisualDiagramModal: React.FC<VisualDiagramModalProps> = ({ isOpen, 
 
         {/* Interactive Page Diagram Switcher Tabs */}
         <div className="px-5 shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-scroll pb-1">
             {PAGE_TABS.map((tab) => {
               const TabIcon = tab.icon;
               const isCurrentScreen = tab.targetPage === currentNormPage;

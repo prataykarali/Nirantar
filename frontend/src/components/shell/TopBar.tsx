@@ -203,7 +203,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {showRewards && (
-            <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-72 max-w-xs bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="fixed left-3 right-3 sm:left-auto sm:right-0 sm:absolute top-16 sm:top-12 sm:w-72 max-w-sm bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-purple-50 pb-2">
                 <span className="font-bold text-xs text-purple-950 flex items-center gap-1.5">
                   <Gift className="w-3.5 h-3.5 text-purple-700" />
@@ -255,7 +255,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-80 max-w-sm bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="fixed left-3 right-3 sm:left-auto sm:right-0 sm:absolute top-16 sm:top-12 sm:w-80 max-w-sm bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-purple-50 pb-2">
                 <span className="font-bold text-xs text-purple-950 flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-purple-700" />
@@ -337,7 +337,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             4. DROPDOWN MENU (MATCHING REFERENCE IMAGE 1)
             ═══════════════════════════════════════════════════════════════════ */}
         {showDropdown && (
-          <div className="absolute right-0 top-12 w-[calc(100vw-32px)] sm:w-64 max-w-xs bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed left-3 right-3 sm:left-auto sm:right-0 sm:absolute top-16 sm:top-12 sm:w-64 max-w-sm bg-white rounded-3xl shadow-[0_12px_40px_rgba(88,28,135,0.14)] border border-purple-100 p-3 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150">
             {/* Header User Card */}
             <div className="p-2.5 rounded-2xl bg-purple-50/50 border border-purple-50 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-purple-200 shrink-0 bg-purple-100">

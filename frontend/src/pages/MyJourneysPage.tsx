@@ -1078,8 +1078,8 @@ export const MyJourneysPage: React.FC = () => {
         };
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl border-2 border-red-200 animate-in zoom-in-95">
               <div className="flex items-start justify-between border-b border-red-100 pb-4">
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 overflow-hidden rounded-2xl shadow-lg shrink-0">

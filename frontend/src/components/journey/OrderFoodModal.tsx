@@ -133,8 +133,8 @@ export const OrderFoodModal: React.FC<OrderFoodModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-in fade-in select-none">
-      <div className="bg-white rounded-[28px] max-w-lg w-full border border-purple-200 shadow-2xl overflow-hidden font-sans my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-2.5 sm:p-4 overflow-y-auto animate-in fade-in select-none">
+      <div className="bg-white rounded-2xl sm:rounded-[28px] max-w-lg w-full border border-purple-200 shadow-2xl overflow-hidden font-sans my-auto max-h-[92dvh] flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">

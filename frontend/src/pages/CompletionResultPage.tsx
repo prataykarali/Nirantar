@@ -266,10 +266,10 @@ export const CompletionResultPage: React.FC = () => {
           WAITLIST NIRA BOT JUMP POPUP (FOR TRAIN 12232 / WAITLIST BOOKINGS)
           ═══════════════════════════════════════════════════════════════════ */}
       {showWaitlistPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
           <div
             onClick={handleMascotTap}
-            className="relative w-full max-w-lg bg-white overflow-hidden rounded-[32px] p-6 sm:p-7 shadow-[0_24px_80px_rgba(124,58,237,0.35)] border-2 border-purple-300 text-center space-y-4 cursor-pointer transform hover:scale-[1.01] transition-all group ring-8 ring-purple-100/80"
+            className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-white rounded-2xl sm:rounded-[32px] p-5 sm:p-7 shadow-[0_24px_80px_rgba(124,58,237,0.35)] border-2 border-purple-300 text-center space-y-4 cursor-pointer transform hover:scale-[1.01] transition-all group ring-4 sm:ring-8 ring-purple-100/80 mt-10 sm:mt-0"
           >
             {/* Waitlist Dedicated PNG Background Image Layer */}
             <div className="absolute inset-0 pointer-events-none opacity-35 overflow-hidden">

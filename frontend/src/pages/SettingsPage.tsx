@@ -216,7 +216,7 @@ export const SettingsPage: React.FC = () => {
               <ChevronRight className="w-4 h-4 ml-auto text-purple-400 group-hover:translate-x-0.5 transition-transform" />
             </div>
 
-            <div className="space-y-1.5 px-1">
+            <div className="flex flex-row md:flex-col overflow-x-auto no-scrollbar touch-scroll gap-1.5 px-1 py-1">
               {categories.map((cat) => {
                 const Icon = cat.icon;
                 const isActive = activeTab === cat.id;
@@ -225,21 +225,21 @@ export const SettingsPage: React.FC = () => {
                     key={cat.id}
                     type="button"
                     onClick={() => setActiveTab(cat.id)}
-                    className={`group w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
+                    className={`group shrink-0 md:shrink md:w-full flex items-center gap-2 sm:gap-3.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap ${
                       isActive
                         ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
                         : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-950'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                       isActive 
                         ? 'bg-white/20 text-white' 
                         : 'bg-purple-100 text-purple-700 group-hover:bg-purple-200'
                     }`}>
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                     <span className="truncate">{cat.label}</span>
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto text-purple-200" />}
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto text-purple-200 hidden md:block" />}
                   </button>
                 );
               })}

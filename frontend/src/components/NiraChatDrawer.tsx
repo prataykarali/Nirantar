@@ -1981,7 +1981,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       />
 
       <aside
-        className="fixed inset-x-2 bottom-2 top-8 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[410px] md:w-[430px] sm:h-[700px] max-h-[92vh] bg-white rounded-3xl sm:rounded-[32px] shadow-[0_20px_60px_rgba(88,28,135,0.28)] border-2 border-purple-200/80 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200 backdrop-blur-sm"
+        className="fixed inset-x-2 bottom-2 top-3 sm:top-auto sm:inset-x-auto sm:bottom-4 sm:right-6 w-auto sm:w-[410px] md:w-[430px] h-[calc(100dvh-16px)] sm:h-[700px] max-h-[96vh] bg-white rounded-2xl sm:rounded-[32px] shadow-[0_20px_60px_rgba(88,28,135,0.28)] border-2 border-purple-200/80 flex flex-col z-50 overflow-hidden font-sans select-none animate-in slide-in-from-bottom-5 duration-200 backdrop-blur-sm"
         aria-label="Nira AI Chat Window"
       >
       {/* ═══════════════════════════════════════════════════════════════════
@@ -1998,34 +1998,34 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           : { src: '/assets/images/characters/nira_happy_mascot.png', mood: 'Nira', emoji: '✨' };
 
         return (
-          <div className="p-3 px-4 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md border border-purple-200/80 bg-purple-50/50 shrink-0 transition-transform hover:scale-105">
+          <div className="p-2.5 sm:p-3 px-3 sm:px-4 flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90 gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl overflow-hidden shadow-md border border-purple-200/80 bg-purple-50/50 shrink-0 transition-transform hover:scale-105">
                 <img
                   src={activeHeaderAvatar.src}
                   alt={activeHeaderAvatar.mood}
                   className="w-full h-full object-contain animate-bounce-gentle transition-all duration-300"
                 />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-black text-base text-slate-950 tracking-tight">Nira AI</h3>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200/70 px-2 py-0.5 rounded-full transition-all">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-black text-sm sm:text-base text-slate-950 tracking-tight truncate">Nira AI</h3>
+                  <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200/70 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full transition-all shrink-0">
                     <span>✨ Active</span>
                   </span>
                 </div>
-                <p className="text-[11px] font-medium text-slate-500">
-                  Your Intelligent Railway Assistant
+                <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 truncate">
+                  Your Railway Assistant
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* 30 Examples Drawer Toggle */}
               <button
                 type="button"
                 onClick={() => setShowExamplesModal(!showExamplesModal)}
-                className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="p-1 sm:p-1.5 px-1.5 sm:px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 title="Open 30 Test Examples"
               >
                 <ListFilter className="w-3.5 h-3.5" />
@@ -2045,17 +2045,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                   };
                   setMessages([resetMsg]);
                 }}
-                className="p-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="p-1 sm:p-1.5 px-1.5 sm:px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 title="Reset Journey State & Start New Search"
               >
                 <RefreshCw className="w-3 h-3 text-purple-700" />
-                <span>Reset</span>
+                <span className="hidden xs:inline">Reset</span>
               </button>
 
               <button
                 type="button"
                 onClick={onClose}
-                className="w-7 h-7 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 title="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -2085,7 +2085,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
           </div>
 
           {/* 5 Category Filter Pills */}
-          <div className="grid grid-cols-5 gap-1 p-0.5 rounded-xl bg-white border border-purple-100 text-[10px] font-bold">
+          <div className="flex items-center overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 gap-1 p-0.5 rounded-xl bg-white border border-purple-100 text-[10px] font-bold">
             {[
               { id: 'booking' as ExampleCategory, label: '🚆 Book' },
               { id: 'tatkal' as ExampleCategory, label: '⚡ Tatkal' },
@@ -2097,7 +2097,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveCategory(tab.id)}
-                className={`py-1 rounded-lg transition-all text-center cursor-pointer truncate px-0.5 ${
+                className={`py-1 px-2 sm:px-0.5 rounded-lg transition-all text-center cursor-pointer shrink-0 sm:shrink truncate ${
                   activeCategory === tab.id
                     ? 'bg-[#7C3AED] text-white shadow-2xs'
                     : 'text-slate-600 hover:text-purple-900'

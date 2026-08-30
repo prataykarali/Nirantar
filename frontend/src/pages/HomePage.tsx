@@ -330,25 +330,25 @@ export const HomePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           0. PERMANENT TOP GUIDED WALKTHROUGH BANNER (Always accessible)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-r from-[#2E1065] via-[#3B0764] to-[#1E1B4B] text-white p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-purple-600/50 animate-in fade-in">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-700/80 border border-purple-500/60 flex items-center justify-center shrink-0 shadow-inner">
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+      <div className="bg-gradient-to-r from-[#2E1065] via-[#3B0764] to-[#1E1B4B] text-white p-3 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-purple-600/50 animate-in fade-in">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-700/80 border border-purple-500/60 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-pulse" />
           </div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-xs sm:text-sm text-white block">
-                Want a Step-by-Step Guided Walkthrough?
-              </span>
-            </div>
-            <p className="text-[11px] text-purple-200 font-medium mt-0.5">
+          <div>
+            <span className="font-bold text-xs sm:text-sm text-white block">
+              Want a Step-by-Step Guided Walkthrough?
+            </span>
+            <p className="text-[10px] sm:text-[11px] text-purple-200 font-medium mt-0.5 leading-snug">
               Experience the full guided walkthrough with blurred overlays, live arrows, voice audio, and 1-tap booking!
             </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 justify-end">
           <button
             type="button"
             onClick={() => startGuidanceTour(0)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
           >
             <span>Start Interactive Tour ➔</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -359,7 +359,7 @@ export const HomePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           1. IMMERSIVE HERO SECTION (Higher elevation & seamless)
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative rounded-2xl sm:rounded-[32px] overflow-hidden min-h-[280px] sm:min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
+      <section className="relative rounded-2xl sm:rounded-[32px] overflow-hidden min-h-[260px] sm:min-h-[350px] lg:min-h-[380px] bg-gradient-to-r from-[#F9F7FD] via-purple-50/50 to-[#EFEAFF] shadow-[0_4px_25px_rgba(88,28,135,0.04)]">
         {/* Clean Background Station Scene */}
         <img
           src="/assets/images/hero_station_bg.jpg"
@@ -371,16 +371,16 @@ export const HomePage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 via-[50%] to-transparent pointer-events-none" />
 
         {/* Hero Content Container */}
-        <div className="relative z-10 flex flex-col justify-between h-full min-h-[280px] sm:min-h-[350px] lg:min-h-[380px] p-4 sm:p-10 lg:p-11">
-          <div className="max-w-xl space-y-3 sm:space-y-4">
+        <div className="relative z-10 flex flex-col justify-between h-full min-h-[260px] sm:min-h-[350px] lg:min-h-[380px] p-3.5 sm:p-10 lg:p-11">
+          <div className="max-w-xl space-y-2.5 sm:space-y-4">
             {/* HEADLINE */}
-            <h1 className="font-display font-black text-2xl sm:text-4xl lg:text-[3.2rem] text-slate-950 leading-[1.15] sm:leading-[1.1] tracking-tight">
+            <h1 className="font-display font-black text-xl sm:text-4xl lg:text-[3.2rem] text-slate-950 leading-[1.15] sm:leading-[1.1] tracking-tight">
               Let's plan<br />
               your next<br />
               <span className="text-[#7C3AED]">
                 journey
               </span>
-              <span className="text-[#C4B5FD] ml-2 text-xl sm:text-2xl lg:text-3xl">✦</span>
+              <span className="text-[#C4B5FD] ml-2 text-lg sm:text-2xl lg:text-3xl">✦</span>
             </h1>
 
             {/* SEARCH BAR (Pill shaped with mic on left & arrow on right) */}
@@ -388,7 +388,7 @@ export const HomePage: React.FC = () => {
               <form onSubmit={handleNLSubmit} className="relative">
                 <div className="flex items-center bg-white rounded-full p-1 sm:p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
                   {/* Search Icon */}
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
 
@@ -408,7 +408,7 @@ export const HomePage: React.FC = () => {
                   {/* Submit Arrow Button */}
                   <button
                     type="submit"
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
+                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
                     title="Search Trains"
                   >
                     <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -418,7 +418,7 @@ export const HomePage: React.FC = () => {
 
               {/* ── VERIFIED STATION & ROUTE AUTOCOMPLETE DROPDOWN ── */}
               {showSuggestions && autocompleteSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[300px] sm:max-h-[340px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-purple-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[260px] sm:max-h-[340px] overflow-y-auto touch-scroll">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-purple-900 px-3 py-1.5 flex items-center justify-between border-b border-purple-50 mb-1">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-[#7C3AED]" />
@@ -450,9 +450,9 @@ export const HomePage: React.FC = () => {
                           setShowSuggestions(true);
                         }
                       }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-purple-50/90 transition-all flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-100 mb-1"
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-purple-50/90 transition-all flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-100 mb-1"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
                           {item.type === 'ROUTE' ? <Train className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </div>
@@ -546,13 +546,13 @@ export const HomePage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {featureCards.map((card) => (
             <button
               key={card.id}
               type="button"
               onClick={card.onClick}
-              className="relative bg-white rounded-2xl sm:rounded-[28px] p-3.5 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-48 sm:h-60 text-left group cursor-pointer border border-purple-50"
+              className="relative bg-white rounded-2xl sm:rounded-[28px] p-3 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-purple-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[170px] h-auto sm:h-60 text-left group cursor-pointer border border-purple-50"
             >
               {/* Top: Pillar Badge + Live Tag */}
               <div className="flex items-center justify-between w-full">
@@ -571,7 +571,7 @@ export const HomePage: React.FC = () => {
                 <img
                   src={card.image}
                   alt={card.alt}
-                  className="w-16 h-16 sm:w-24 sm:h-24 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                  className="w-14 h-14 sm:w-24 sm:h-24 object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
                 />
               </div>
 
@@ -969,8 +969,8 @@ export const HomePage: React.FC = () => {
         {guideViewMode === 'flowchart' && (
           <div className="mt-6 space-y-6 animate-in fade-in duration-200">
             {/* Connected Journey Pipeline Rail */}
-            <div className="relative overflow-x-auto pb-3 pt-2">
-              <div className="min-w-[680px] relative">
+            <div className="relative overflow-x-auto no-scrollbar touch-scroll pb-3 pt-2">
+              <div className="min-w-[620px] sm:min-w-[680px] relative">
                 {/* Connecting Track Line */}
                 <div className="absolute top-1/2 left-8 right-8 -translate-y-1/2 h-1.5 bg-gradient-to-r from-indigo-300 via-purple-300 to-rose-300 rounded-full z-0" />
 

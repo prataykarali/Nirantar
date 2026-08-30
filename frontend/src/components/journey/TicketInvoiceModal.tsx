@@ -58,8 +58,8 @@ export const TicketInvoiceModal: React.FC<TicketInvoiceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-2xl w-full border border-purple-200 shadow-2xl overflow-hidden font-sans select-none flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full border border-purple-200 shadow-2xl overflow-hidden font-sans select-none flex flex-col max-h-[92dvh]">
         {/* Header with Print & Close CTA */}
         <div className="p-4 px-6 bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
