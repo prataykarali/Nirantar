@@ -904,9 +904,9 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       resolvedTrain.classes?.[0];
 
     const rawClassStatus = (chosenClass?.status || '').toUpperCase();
-    const isExplicitAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL'));
+    const isExplicitAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL') && !rawClassStatus.includes('RLWL') && !rawClassStatus.includes('PQWL') && !rawClassStatus.includes('RAC'));
     const isWaitlistTrain = Boolean(
-      chosenClass && !isExplicitAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL'))
+      chosenClass && !isExplicitAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL') || rawClassStatus.includes('RAC') || chosenClass?.availableSeats === 0)
     );
 
     // Multi-passenger resolution (do not inject dummy names if user specified passengers)

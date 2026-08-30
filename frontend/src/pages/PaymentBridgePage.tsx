@@ -77,34 +77,20 @@ export const PaymentBridgePage: React.FC = () => {
   const gstCharges = Math.round(adultFare * 0.05); // 5% GST for IRCTC AC classes
   const totalAmount = adultFare + reservationCharges + superfastCharges + gstCharges;
 
-  const isBookingIncomplete = !selectedClassCode || !searchParams.travelDate || passengers.length === 0 || passengers.some((p) => !p.name || !p.name.trim());
-
   const handlePay = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (isBookingIncomplete) {
-      navigateTo('workspace');
-      return;
-    }
     const method = activeTab === 'upi' ? 'UPI' : activeTab === 'cards' ? 'CARD' : activeTab === 'netbanking' ? 'NET_BANKING' : 'WALLET';
     await initiatePayment(method, totalAmount);
     setShowGatewayModal(true);
   };
 
   const handlePayWithBank = async (bankName?: string) => {
-    if (isBookingIncomplete) {
-      navigateTo('workspace');
-      return;
-    }
     if (bankName) setSelectedBank(bankName);
     await initiatePayment('NET_BANKING', totalAmount);
     setShowGatewayModal(true);
   };
 
   const handlePayWithWallet = async () => {
-    if (isBookingIncomplete) {
-      navigateTo('workspace');
-      return;
-    }
     setIsProcessing(true);
     const res = await payWithWallet(totalAmount);
     setIsProcessing(false);
@@ -225,24 +211,7 @@ export const PaymentBridgePage: React.FC = () => {
         </div>
       </div>
 
-      {/* MISSING DETAILS WARNING BANNER */}
-      {isBookingIncomplete && (
-        <div className="p-3 sm:p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs font-bold flex items-center justify-between flex-wrap gap-2 shadow-sm animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-black shrink-0 text-xs">⚠️</span>
-            <span>
-              <strong>Missing Booking Information:</strong> Please provide coach class (e.g. 3A, 2A, SL), travel date, and passenger names before making payment.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigateTo('workspace')}
-            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
-          >
-            Complete Booking Details ➔
-          </button>
-        </div>
-      )}
+
 
       {/* PAYMENT STATE MACHINE BANNER & UNKNOWN RECOVERY */}
       {paymentState === 'UNKNOWN' && (

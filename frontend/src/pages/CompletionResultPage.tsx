@@ -72,51 +72,46 @@ export const CompletionResultPage: React.FC = () => {
     classes: [{ classCode: '3A', className: 'AC 3 Tier', fare: 2990, status: 'AVAILABLE', availableSeats: 48 }],
   };
 
-  const chosenClass = train.classes?.find((c) => c.classCode === (selectedClassCode || '3A'));
+  const chosenClass = train.classes?.find((c) => c.classCode === (selectedClassCode || '3A')) || train.classes?.[0];
   const rawClassStatus = (chosenClass?.status || '').toUpperCase();
-  const isClassAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL'));
+  const isClassAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL') && !rawClassStatus.includes('RLWL') && !rawClassStatus.includes('PQWL') && !rawClassStatus.includes('RAC'));
 
   const isWaitlisted = Boolean(
     !guidanceActive &&
-    !isClassAvailable &&
-    issuedTicket?.status !== 'ACTIVE' &&
-    (issuedTicket?.status as string) !== 'CONFIRMED' &&
     (
       (issuedTicket && (
         (issuedTicket.status as string) === 'WAITLIST' ||
+        (issuedTicket.status as string) === 'RAC' ||
         (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL') ||
         (issuedTicket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RLWL') ||
+        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('PQWL') ||
+        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RAC') ||
         (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('Queue #') ||
         (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('WL')
       )) ||
       (bookingRecord && (
         bookingRecord.status === 'WAITLIST' ||
+        bookingRecord.status === 'RAC' ||
         (bookingRecord.seatAllotment?.coach || '').includes('WL') ||
         (bookingRecord.seatAllotment?.coach || '').includes('GNWL') ||
+        (bookingRecord.seatAllotment?.coach || '').includes('RLWL') ||
+        (bookingRecord.seatAllotment?.coach || '').includes('PQWL') ||
+        (bookingRecord.seatAllotment?.coach || '').includes('RAC') ||
         (bookingRecord.seatAllotment?.berthType || '').includes('WL')
       )) ||
-      rawClassStatus.includes('WL') ||
-      rawClassStatus.includes('GNWL')
+      (!isClassAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL') || rawClassStatus.includes('RAC') || chosenClass?.availableSeats === 0))
     )
   );
 
-  const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(() => {
-    if (guidanceActive) return false;
-    if (issuedTicket?.status === 'ACTIVE' || (issuedTicket?.status as string) === 'CONFIRMED') return false;
-    try {
-      if (localStorage.getItem(`nirantar_wl_confirmed_${train.trainNumber}`) === 'true') return false;
-    } catch {}
-    return isWaitlisted;
-  });
+  const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(() => isWaitlisted);
   const [mascotReaction, setMascotReaction] = useState<'SAD' | 'HAPPY'>('SAD');
 
   React.useEffect(() => {
-    if (guidanceActive || issuedTicket?.status === 'ACTIVE' || (issuedTicket?.status as string) === 'CONFIRMED') {
-      setShowWaitlistPopup(false);
-    } else {
-      setShowWaitlistPopup(isWaitlisted);
+    if (isWaitlisted) {
+      setShowWaitlistPopup(true);
     }
-  }, [isWaitlisted, guidanceActive, issuedTicket]);
+  }, [isWaitlisted]);
 
   // Initial Waitlist allocation (Decreasing happens on next page: Track Radar)
   const parsedWlInfo = React.useMemo(() => {

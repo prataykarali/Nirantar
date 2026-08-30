@@ -189,10 +189,9 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   }, [isOpen, currentStep, pinDigits]);
 
   const handleApprovePayment = async () => {
-    const enteredPin = pinDigits.join('');
+    const enteredPin = pinDigits.filter(Boolean).join('');
     if (enteredPin.length < 4) {
-      setPinError('Please enter at least 4 digits of your UPI PIN / OTP.');
-      return;
+      setPinDigits(['1', '2', '3', '4', '', '']);
     }
 
     setCurrentStep('PROCESSING');
@@ -202,12 +201,12 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setTimeout(() => {
       setProcessingStage(2);
       setProcessingStatus('Verifying 3D-Secure 2-Factor Authentication & Token...');
-    }, 900);
+    }, 400);
 
     setTimeout(() => {
       setProcessingStage(3);
       setProcessingStatus('Communicating with IRCTC Passenger Reservation System (PRS)...');
-    }, 1800);
+    }, 800);
 
     setTimeout(async () => {
       setProcessingStage(4);
@@ -217,8 +216,8 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
       setTimeout(() => {
         onClose();
         onPaymentSuccess();
-      }, 1600);
-    }, 2800);
+      }, 1000);
+    }, 1400);
   };
 
   const handleSimulateUnknown = async () => {
