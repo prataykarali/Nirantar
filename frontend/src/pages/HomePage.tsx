@@ -239,8 +239,15 @@ export const HomePage: React.FC = () => {
       navigateTo('payments');
       return;
     }
-    const from = parsed.entities.from || searchParams.fromStation;
-    const to = parsed.entities.to || searchParams.toStation;
+    const from = parsed.entities.from || (parsed.entities.origin ? findStation(parsed.entities.origin) : null);
+    const to = parsed.entities.to || (parsed.entities.destination ? findStation(parsed.entities.destination) : null);
+
+    if (!from || !to) {
+      // Station not found or off-network — open suggestion dropdown showing Station Unavailable Notice
+      setShowSuggestions(true);
+      return;
+    }
+
     executeSearch({
       fromStation: from,
       toStation: to,

@@ -1,4 +1,5 @@
 import rawData from './realTrainsData.json';
+import { findStation } from './stationData';
 
 export interface TrainClassAvailability {
   classCode: '1A' | '2A' | '3A' | 'SL' | 'CC' | 'EC' | string;
@@ -310,8 +311,9 @@ export function randomizeTrainAvailability(trains: TrainDetail[], seedDate?: str
 
 /**
  * Deterministic Real Train Search.
- * Searches across 550+ authentic Indian Railway trains.
+ * Searches across 1,000+ authentic Indian Railway trains.
  * Supports direct endpoints, city aliases, and intermediate corridor stoppages.
+ * If either station is unrecognized / unavailable, DENIES and returns an empty array.
  */
 export function searchTrains(fromCode: string, toCode: string, date?: string): TrainDetail[] {
   if (!fromCode || !toCode) return [];
@@ -320,24 +322,38 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
 
   if (fromClean === toClean) return [];
 
+  // Strict Validation: Both stations MUST exist in the verified station network
+  const validFromStation = findStation(fromClean);
+  const validToStation = findStation(toClean);
+
+  if (!validFromStation || !validToStation) {
+    // DENY: Unknown or off-network station requested
+    return [];
+  }
+
+  const fromCodeCanonical = validFromStation.code;
+  const toCodeCanonical = validToStation.code;
+
   // 1. Direct station code match
   const matches = MOCK_TRAINS_DATABASE.filter(
-    (t) => t.fromStationCode === fromClean && t.toStationCode === toClean
+    (t) =>
+      (t.fromStationCode === fromClean && t.toStationCode === toClean) ||
+      (t.fromStationCode === fromCodeCanonical && t.toStationCode === toCodeCanonical)
   );
   if (matches.length > 0) return randomizeTrainAvailability(matches, date);
 
   // 2. City name match
   const cityMatches = MOCK_TRAINS_DATABASE.filter(
     (t) =>
-      (t.fromStationCode === fromClean || t.fromCity.toUpperCase() === fromClean || t.fromCity.toUpperCase().includes(fromClean)) &&
-      (t.toStationCode === toClean || t.toCity.toUpperCase() === toClean || t.toCity.toUpperCase().includes(toClean))
+      (t.fromStationCode === fromCodeCanonical || t.fromCity.toUpperCase() === validFromStation.city.toUpperCase()) &&
+      (t.toStationCode === toCodeCanonical || t.toCity.toUpperCase() === validToStation.city.toUpperCase())
   );
   if (cityMatches.length > 0) return randomizeTrainAvailability(cityMatches, date);
 
   // 3. Corridor & intermediate stoppage search
   for (const corridor of MAJOR_CORRIDORS) {
-    const fromIdx = corridor.indexOf(fromClean);
-    const toIdx = corridor.indexOf(toClean);
+    const fromIdx = corridor.indexOf(fromCodeCanonical);
+    const toIdx = corridor.indexOf(toCodeCanonical);
     if (fromIdx !== -1 && toIdx !== -1 && fromIdx < toIdx) {
       const corridorStart = corridor[0];
       const corridorEnd = corridor[corridor.length - 1];
@@ -350,8 +366,12 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
       if (corridorTrains.length > 0) {
         const sliced = corridorTrains.slice(0, 4).map((t) => ({
           ...t,
-          fromStationCode: fromClean,
-          toStationCode: toClean,
+          fromStationCode: fromCodeCanonical,
+          fromStationName: validFromStation.name,
+          fromCity: validFromStation.city,
+          toStationCode: toCodeCanonical,
+          toStationName: validToStation.name,
+          toCity: validToStation.city,
         }));
         return randomizeTrainAvailability(sliced, date);
       }
@@ -362,8 +382,12 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
       if (reverseTrains.length > 0) {
         const sliced = reverseTrains.slice(0, 4).map((t) => ({
           ...t,
-          fromStationCode: fromClean,
-          toStationCode: toClean,
+          fromStationCode: fromCodeCanonical,
+          fromStationName: validFromStation.name,
+          fromCity: validFromStation.city,
+          toStationCode: toCodeCanonical,
+          toStationName: validToStation.name,
+          toCity: validToStation.city,
         }));
         return randomizeTrainAvailability(sliced, date);
       }
@@ -371,7 +395,7 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
   }
 
   // 4. Dynamic authentic train synthesis for any valid Indian station pair
-  const hash = Math.abs(fromClean.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 31 + toClean.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+  const hash = Math.abs(fromCodeCanonical.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 31 + toCodeCanonical.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
   const baseNum1 = 12000 + (hash % 800);
   const baseNum2 = 22000 + ((hash * 7) % 600);
   const baseNum3 = 12800 + ((hash * 13) % 400);
@@ -379,14 +403,14 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
   const synthesized: TrainDetail[] = [
     {
       trainNumber: `${baseNum2}`,
-      trainName: `${fromClean} - ${toClean} Vande Bharat Express`,
+      trainName: `${validFromStation.city} - ${validToStation.city} Vande Bharat Express`,
       trainType: 'VANDE_BHARAT',
-      fromStationCode: fromClean,
-      fromStationName: fromClean,
-      fromCity: fromClean,
-      toStationCode: toClean,
-      toStationName: toClean,
-      toCity: toClean,
+      fromStationCode: validFromStation.code,
+      fromStationName: validFromStation.name,
+      fromCity: validFromStation.city,
+      toStationCode: validToStation.code,
+      toStationName: validToStation.name,
+      toCity: validToStation.city,
       departureTime: '06:00',
       arrivalTime: '14:20',
       durationHours: '8h 20m',
@@ -405,14 +429,14 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
     },
     {
       trainNumber: `${baseNum1}`,
-      trainName: `${fromClean} - ${toClean} Superfast Express`,
+      trainName: `${validFromStation.city} - ${validToStation.city} Superfast Express`,
       trainType: 'SUPERFAST',
-      fromStationCode: fromClean,
-      fromStationName: fromClean,
-      fromCity: fromClean,
-      toStationCode: toClean,
-      toStationName: toClean,
-      toCity: toClean,
+      fromStationCode: validFromStation.code,
+      fromStationName: validFromStation.name,
+      fromCity: validFromStation.city,
+      toStationCode: validToStation.code,
+      toStationName: validToStation.name,
+      toCity: validToStation.city,
       departureTime: '16:55',
       arrivalTime: '08:35',
       durationHours: '15h 40m',
@@ -433,14 +457,14 @@ export function searchTrains(fromCode: string, toCode: string, date?: string): T
     },
     {
       trainNumber: `${baseNum3}`,
-      trainName: `${fromClean} - ${toClean} SF Mail`,
+      trainName: `${validFromStation.city} - ${validToStation.city} SF Mail`,
       trainType: 'MAIL_EXPRESS',
-      fromStationCode: fromClean,
-      fromStationName: fromClean,
-      fromCity: fromClean,
-      toStationCode: toClean,
-      toStationName: toClean,
-      toCity: toClean,
+      fromStationCode: validFromStation.code,
+      fromStationName: validFromStation.name,
+      fromCity: validFromStation.city,
+      toStationCode: validToStation.code,
+      toStationName: validToStation.name,
+      toCity: validToStation.city,
       departureTime: '20:30',
       arrivalTime: '14:45',
       durationHours: '18h 15m',

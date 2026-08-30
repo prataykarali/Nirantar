@@ -109,9 +109,21 @@ export const DiscoverPage: React.FC = () => {
   // Submit Journey Search
   const handleFormSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    const resolvedFrom = selectedFrom || findStation(fromQuery);
+    const resolvedTo = selectedTo || findStation(toQuery);
+
+    if (!resolvedFrom) {
+      setShowFromDropdown(true);
+      return;
+    }
+    if (!resolvedTo) {
+      setShowToDropdown(true);
+      return;
+    }
+
     executeSearch({
-      fromStation: selectedFrom,
-      toStation: selectedTo,
+      fromStation: resolvedFrom,
+      toStation: resolvedTo,
       travelDate,
       passengersCount: searchParams.passengersCount || 1,
       classType: 'All Classes',

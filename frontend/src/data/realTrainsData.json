@@ -6,13 +6,14 @@
                   "city": "Delhi",
                   "state": "Delhi",
                   "aliases": [
+                        "NDLS",
+                        "DLI",
+                        "ANVT",
+                        "NZM",
                         "NEW DELHI",
                         "DELHI",
-                        "DLI",
-                        "NZM",
-                        "ANVT",
-                        "HAZRAT NIZAMUDDIN",
-                        "ANAND VIHAR"
+                        "ANAND VIHAR",
+                        "HAZRAT NIZAMUDDIN"
                   ]
             },
             {
@@ -21,13 +22,14 @@
                   "city": "Kolkata",
                   "state": "West Bengal",
                   "aliases": [
+                        "SEALDAH",
                         "HOWRAH",
                         "KOLKATA",
+                        "SHM",
                         "CALCUTTA",
+                        "HWH",
                         "SDAH",
-                        "SEALDAH",
-                        "KOAA",
-                        "SHM"
+                        "KOAA"
                   ]
             },
             {
@@ -38,12 +40,14 @@
                   "aliases": [
                         "MUMBAI",
                         "BOMBAY",
-                        "BCT",
                         "MMCT",
+                        "CSMT",
+                        "BDTS",
                         "MUMBAI CENTRAL",
-                        "CSTM",
+                        "VT",
                         "LTT",
-                        "BDTS"
+                        "BCT",
+                        "CSTM"
                   ]
             },
             {
@@ -52,37 +56,43 @@
                   "city": "Bengaluru",
                   "state": "Karnataka",
                   "aliases": [
-                        "BANGALORE",
+                        "SMVB",
                         "BENGALURU",
-                        "YPR",
                         "YESVANTPUR",
-                        "SMVB"
+                        "BANGALORE",
+                        "SBC",
+                        "YPR",
+                        "KSR BENGALURU"
                   ]
             },
             {
                   "code": "MAS",
-                  "name": "Chennai Central",
+                  "name": "MGR Chennai Central",
                   "city": "Chennai",
                   "state": "Tamil Nadu",
                   "aliases": [
-                        "CHENNAI",
-                        "MADRAS",
-                        "MS",
                         "CHENNAI EGMORE",
+                        "MS",
+                        "CHENNAI CENTRAL",
+                        "MADRAS",
+                        "MAS",
+                        "CHENNAI",
                         "TBM"
                   ]
             },
             {
                   "code": "HYB",
-                  "name": "Hyderabad Deccan",
+                  "name": "Hyderabad Deccan (Nampally)",
                   "city": "Hyderabad",
                   "state": "Telangana",
                   "aliases": [
-                        "HYDERABAD",
+                        "KACHEGUDA",
                         "SC",
-                        "SECUNDERABAD",
                         "KCG",
-                        "KACHEGUDA"
+                        "SECUNDERABAD",
+                        "HYDERABAD",
+                        "HYB",
+                        "NAMPALLY"
                   ]
             },
             {
@@ -91,10 +101,12 @@
                   "city": "Ahmedabad",
                   "state": "Gujarat",
                   "aliases": [
-                        "AHMEDABAD",
-                        "AMDAVAD",
+                        "SABARMATI",
+                        "KALUPUR",
                         "SBT",
-                        "SABARMATI"
+                        "ADI",
+                        "AMDAVAD",
+                        "AHMEDABAD"
                   ]
             },
             {
@@ -103,9 +115,10 @@
                   "city": "Pune",
                   "state": "Maharashtra",
                   "aliases": [
+                        "SVJR",
                         "PUNE",
                         "POONA",
-                        "SVJR"
+                        "PUNE JN"
                   ]
             },
             {
@@ -114,10 +127,12 @@
                   "city": "Patna",
                   "state": "Bihar",
                   "aliases": [
+                        "PATNA JN",
                         "PATNA",
+                        "RJPB",
                         "DNR",
                         "DANAPUR",
-                        "RJPB"
+                        "PNBE"
                   ]
             },
             {
@@ -126,19 +141,21 @@
                   "city": "Varanasi",
                   "state": "Uttar Pradesh",
                   "aliases": [
+                        "BSBS",
+                        "BSB",
+                        "MUV",
                         "VARANASI",
                         "BANARAS",
-                        "KASHI",
-                        "BSBS",
-                        "MUV"
+                        "KASHI"
                   ]
             },
             {
                   "code": "LKO",
-                  "name": "Lucknow Charbagh",
+                  "name": "Lucknow Charbagh NR",
                   "city": "Lucknow",
                   "state": "Uttar Pradesh",
                   "aliases": [
+                        "CHARBAGH",
                         "LUCKNOW",
                         "LJN",
                         "LKO"
@@ -193,9 +210,11 @@
                   "state": "Madhya Pradesh",
                   "aliases": [
                         "BHOPAL",
+                        "BPL",
+                        "BHOPAL JN",
                         "RKMP",
-                        "RANI KAMALAPATI",
-                        "HABIBGANJ"
+                        "HABIBGANJ",
+                        "RANI KAMALAPATI"
                   ]
             },
             {
@@ -308,21 +327,23 @@
                   "city": "Jammu",
                   "state": "Jammu & Kashmir",
                   "aliases": [
+                        "JAT",
+                        "J&K",
                         "JAMMU",
                         "JAMMU TAWI",
-                        "KASHMIR",
-                        "J&K"
+                        "KASHMIR"
                   ]
             },
             {
                   "code": "SVDK",
-                  "name": "Shri Mata Vaishno Devi Katra",
+                  "name": "SMVD Katra",
                   "city": "Katra",
                   "state": "Jammu & Kashmir",
                   "aliases": [
-                        "KATRA",
+                        "KASHMIR",
+                        "SVDK",
                         "VAISHNO DEVI",
-                        "SVDK"
+                        "KATRA"
                   ]
             },
             {
@@ -351,9 +372,10 @@
                   "city": "Agra",
                   "state": "Uttar Pradesh",
                   "aliases": [
-                        "AGRA",
+                        "AGRA CANTT",
                         "TAJ MAHAL",
-                        "AGC"
+                        "AGC",
+                        "AGRA"
                   ]
             },
             {
@@ -1179,7 +1201,9 @@
                   "city": "Kolkata",
                   "state": "West Bengal",
                   "aliases": [
+                        "CALCUTTA",
                         "CHITPUR",
+                        "KOLKATA",
                         "KOAA"
                   ]
             },
@@ -1724,6 +1748,349 @@
                         "VASCO",
                         "VSG",
                         "VASCO DA GAMA"
+                  ]
+            },
+            {
+                  "code": "SDAH",
+                  "name": "Sealdah Terminus",
+                  "city": "Kolkata",
+                  "state": "West Bengal",
+                  "aliases": [
+                        "SEALDAH",
+                        "KOLKATA",
+                        "SDAH",
+                        "CALCUTTA"
+                  ]
+            },
+            {
+                  "code": "SHM",
+                  "name": "Shalimar",
+                  "city": "Kolkata",
+                  "state": "West Bengal",
+                  "aliases": [
+                        "SHALIMAR",
+                        "KOLKATA",
+                        "SHM"
+                  ]
+            },
+            {
+                  "code": "DLI",
+                  "name": "Old Delhi Junction",
+                  "city": "Delhi",
+                  "state": "Delhi",
+                  "aliases": [
+                        "OLD DELHI",
+                        "DELHI",
+                        "DLI"
+                  ]
+            },
+            {
+                  "code": "NZM",
+                  "name": "Hazrat Nizamuddin",
+                  "city": "Delhi",
+                  "state": "Delhi",
+                  "aliases": [
+                        "NIZAMUDDIN",
+                        "DELHI",
+                        "NZM",
+                        "HAZRAT NIZAMUDDIN"
+                  ]
+            },
+            {
+                  "code": "ANVT",
+                  "name": "Anand Vihar Terminus",
+                  "city": "Delhi",
+                  "state": "Delhi",
+                  "aliases": [
+                        "ANAND VIHAR",
+                        "DELHI",
+                        "ANVT"
+                  ]
+            },
+            {
+                  "code": "DEC",
+                  "name": "Delhi Cantt",
+                  "city": "Delhi",
+                  "state": "Delhi",
+                  "aliases": [
+                        "DELHI CANTT",
+                        "DEC",
+                        "DELHI"
+                  ]
+            },
+            {
+                  "code": "MMCT",
+                  "name": "Mumbai Central",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "MUMBAI CENTRAL",
+                        "MUMBAI",
+                        "MMCT",
+                        "BCT"
+                  ]
+            },
+            {
+                  "code": "LTT",
+                  "name": "Lokmanya Tilak Terminus",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "LOKMANYA TILAK",
+                        "MUMBAI",
+                        "LTT",
+                        "KURLA"
+                  ]
+            },
+            {
+                  "code": "BDTS",
+                  "name": "Bandra Terminus",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "BANDRA",
+                        "MUMBAI",
+                        "BDTS"
+                  ]
+            },
+            {
+                  "code": "DR",
+                  "name": "Dadar Central",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "DADAR",
+                        "MUMBAI",
+                        "DR"
+                  ]
+            },
+            {
+                  "code": "KYN",
+                  "name": "Kalyan Junction",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "KALYAN",
+                        "MUMBAI",
+                        "KYN"
+                  ]
+            },
+            {
+                  "code": "TNA",
+                  "name": "Thane",
+                  "city": "Mumbai",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "THANE",
+                        "MUMBAI",
+                        "TNA"
+                  ]
+            },
+            {
+                  "code": "YPR",
+                  "name": "Yesvantpur Junction",
+                  "city": "Bengaluru",
+                  "state": "Karnataka",
+                  "aliases": [
+                        "YESVANTPUR",
+                        "BENGALURU",
+                        "BANGALORE",
+                        "YPR"
+                  ]
+            },
+            {
+                  "code": "SMVB",
+                  "name": "SMVT Bengaluru",
+                  "city": "Bengaluru",
+                  "state": "Karnataka",
+                  "aliases": [
+                        "SMVT",
+                        "BENGALURU",
+                        "BANGALORE",
+                        "SMVB",
+                        "SIR M VISVESVARAYA"
+                  ]
+            },
+            {
+                  "code": "BNC",
+                  "name": "Bengaluru Cantt",
+                  "city": "Bengaluru",
+                  "state": "Karnataka",
+                  "aliases": [
+                        "BANGALORE CANTT",
+                        "BENGALURU CANTT",
+                        "BNC",
+                        "BENGALURU"
+                  ]
+            },
+            {
+                  "code": "MS",
+                  "name": "Chennai Egmore",
+                  "city": "Chennai",
+                  "state": "Tamil Nadu",
+                  "aliases": [
+                        "CHENNAI EGMORE",
+                        "CHENNAI",
+                        "MADRAS",
+                        "MS",
+                        "EGMORE"
+                  ]
+            },
+            {
+                  "code": "TBM",
+                  "name": "Tambaram",
+                  "city": "Chennai",
+                  "state": "Tamil Nadu",
+                  "aliases": [
+                        "TAMBARAM",
+                        "CHENNAI",
+                        "TBM"
+                  ]
+            },
+            {
+                  "code": "SC",
+                  "name": "Secunderabad Junction",
+                  "city": "Hyderabad",
+                  "state": "Telangana",
+                  "aliases": [
+                        "SECUNDERABAD",
+                        "HYDERABAD",
+                        "SC"
+                  ]
+            },
+            {
+                  "code": "KCG",
+                  "name": "Kacheguda",
+                  "city": "Hyderabad",
+                  "state": "Telangana",
+                  "aliases": [
+                        "KACHEGUDA",
+                        "HYDERABAD",
+                        "KCG"
+                  ]
+            },
+            {
+                  "code": "SBT",
+                  "name": "Sabarmati Junction",
+                  "city": "Ahmedabad",
+                  "state": "Gujarat",
+                  "aliases": [
+                        "SABARMATI",
+                        "AHMEDABAD",
+                        "SBT"
+                  ]
+            },
+            {
+                  "code": "SVJR",
+                  "name": "Shivajinagar",
+                  "city": "Pune",
+                  "state": "Maharashtra",
+                  "aliases": [
+                        "SHIVAJINAGAR",
+                        "PUNE",
+                        "SVJR"
+                  ]
+            },
+            {
+                  "code": "LJN",
+                  "name": "Lucknow Junction NER",
+                  "city": "Lucknow",
+                  "state": "Uttar Pradesh",
+                  "aliases": [
+                        "LUCKNOW JN",
+                        "LUCKNOW",
+                        "LJN"
+                  ]
+            },
+            {
+                  "code": "RJPB",
+                  "name": "Rajendra Nagar Terminal",
+                  "city": "Patna",
+                  "state": "Bihar",
+                  "aliases": [
+                        "RAJENDRA NAGAR",
+                        "PATNA",
+                        "RJPB"
+                  ]
+            },
+            {
+                  "code": "DNR",
+                  "name": "Danapur",
+                  "city": "Patna",
+                  "state": "Bihar",
+                  "aliases": [
+                        "DANAPUR",
+                        "PATNA",
+                        "DNR"
+                  ]
+            },
+            {
+                  "code": "PPTA",
+                  "name": "Patliputra Junction",
+                  "city": "Patna",
+                  "state": "Bihar",
+                  "aliases": [
+                        "PATLIPUTRA",
+                        "PATNA",
+                        "PPTA"
+                  ]
+            },
+            {
+                  "code": "BSBS",
+                  "name": "Banaras (Manduadih)",
+                  "city": "Varanasi",
+                  "state": "Uttar Pradesh",
+                  "aliases": [
+                        "BANARAS",
+                        "MANDUADIH",
+                        "VARANASI",
+                        "BSBS",
+                        "MUV"
+                  ]
+            },
+            {
+                  "code": "AF",
+                  "name": "Agra Fort",
+                  "city": "Agra",
+                  "state": "Uttar Pradesh",
+                  "aliases": [
+                        "AGRA FORT",
+                        "AGRA",
+                        "AF"
+                  ]
+            },
+            {
+                  "code": "RKMP",
+                  "name": "Rani Kamalapati",
+                  "city": "Bhopal",
+                  "state": "Madhya Pradesh",
+                  "aliases": [
+                        "RANI KAMALAPATI",
+                        "HABIBGANJ",
+                        "BHOPAL",
+                        "RKMP"
+                  ]
+            },
+            {
+                  "code": "UHP",
+                  "name": "Udhampur",
+                  "city": "Udhampur",
+                  "state": "Jammu & Kashmir",
+                  "aliases": [
+                        "UDHAMPUR",
+                        "UHP",
+                        "KASHMIR"
+                  ]
+            },
+            {
+                  "code": "SINA",
+                  "name": "Srinagar",
+                  "city": "Srinagar",
+                  "state": "Jammu & Kashmir",
+                  "aliases": [
+                        "SRINAGAR",
+                        "SINA",
+                        "KASHMIR"
                   ]
             }
       ],

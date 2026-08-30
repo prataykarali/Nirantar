@@ -201,8 +201,14 @@ export class SafeAssistParser {
 
       const s1 = findStation(cleanFromStr) || findStation(match[1].trim());
       const s2 = findStation(cleanToStr) || findStation(match[2].trim());
-      if (s1) entities.origin = s1.city;
-      if (s2) entities.destination = s2.city;
+      if (s1) {
+        entities.origin = s1.city;
+        entities.from = s1;
+      }
+      if (s2) {
+        entities.destination = s2.city;
+        entities.to = s2;
+      }
     }
 
     if (!entities.origin || !entities.destination) {
@@ -213,8 +219,10 @@ export class SafeAssistParser {
         if (st) {
           if (!entities.origin) {
             entities.origin = st.city;
+            entities.from = st;
           } else if (!entities.destination && entities.origin !== st.city) {
             entities.destination = st.city;
+            entities.to = st;
           }
         }
       }
