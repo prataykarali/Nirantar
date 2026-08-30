@@ -373,6 +373,31 @@ export const DiscoverPage: React.FC = () => {
                 ))}
               </div>
             )}
+
+            {/* From Unavailable Notice */}
+            {showFromDropdown && fromSuggestions.length === 0 && fromQuery.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-amber-200 p-3 z-50 animate-in fade-in space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-700 text-sm">📍</span>
+                  <div>
+                    <h5 className="text-xs font-black text-amber-950">Station Unavailable for Now</h5>
+                    <p className="text-[11px] text-amber-900/90 font-medium">"{fromQuery.trim()}" is not on the direct network. Try a major nearby hub:</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 pt-1 border-t border-amber-100">
+                  {POPULAR_STATIONS.slice(0, 4).map((hub) => (
+                    <button
+                      key={hub.code}
+                      type="button"
+                      onClick={() => handleSelectFrom(hub)}
+                      className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-[11px] font-bold border border-purple-200 cursor-pointer"
+                    >
+                      {hub.city} ({hub.code})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SWAP BUTTON */}
@@ -426,6 +451,31 @@ export const DiscoverPage: React.FC = () => {
                     </span>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* To Unavailable Notice */}
+            {showToDropdown && toSuggestions.length === 0 && toQuery.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-amber-200 p-3 z-50 animate-in fade-in space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-700 text-sm">📍</span>
+                  <div>
+                    <h5 className="text-xs font-black text-amber-950">Station Unavailable for Now</h5>
+                    <p className="text-[11px] text-amber-900/90 font-medium">"{toQuery.trim()}" is not on the direct network. Try a major nearby hub:</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 pt-1 border-t border-amber-100">
+                  {POPULAR_STATIONS.slice(0, 4).map((hub) => (
+                    <button
+                      key={hub.code}
+                      type="button"
+                      onClick={() => handleSelectTo(hub)}
+                      className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-[11px] font-bold border border-purple-200 cursor-pointer"
+                    >
+                      {hub.city} ({hub.code})
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

@@ -1601,6 +1601,7 @@ export const JourneyTrackerPage: React.FC = () => {
                 currentStationIndex={activeStationIndex}
                 userBookedSeats={allocatedSeats}
                 isUserBookedTrain={isUserBookedTrain}
+                isWaitlisted={isWaitlistBooking}
               />
             </div>
           )}

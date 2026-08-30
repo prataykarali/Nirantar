@@ -31,6 +31,7 @@ interface CoachSegmentShowcaseProps {
   currentStationIndex?: number;
   userBookedSeats?: Array<{ seatNumber: number; passengerName?: string; berthType?: string; coachCode?: string }>;
   isUserBookedTrain?: boolean;
+  isWaitlisted?: boolean;
 }
 
 export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
@@ -41,6 +42,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
   currentStationIndex = 0,
   userBookedSeats = [],
   isUserBookedTrain = false,
+  isWaitlisted: isWaitlistedProp,
 }) => {
   const { activeReallocations, requestMidJourneyReallocation, navigateTo } = useJourney();
 
@@ -90,11 +92,12 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
   }, [representativeCoaches, selectedClassCode]);
 
   // Check if current coach class or train suffers from waitlist
-  const isWaitlisted = useMemo(() => {
+  const effectiveIsWaitlisted = useMemo(() => {
+    if (isWaitlistedProp !== undefined) return isWaitlistedProp;
     const inv = liveSeatInventory(trainNumber, selectedClassCode);
     const hasClassWl = availableClasses?.find((c) => c.classCode === selectedClassCode)?.status?.includes('WL');
     return inv.status === 'WL' || inv.waitlist > 0 || !!hasClassWl;
-  }, [trainNumber, selectedClassCode, availableClasses]);
+  }, [isWaitlistedProp, trainNumber, selectedClassCode, availableClasses]);
 
   // Generate all segment bays for selected coach class (8 bays for 3A to show all 64 berths including user seats #36 & #37)
   const bays: CoachBay[] = useMemo(() => {
@@ -121,9 +124,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
       activeReallocations,
       totalSegments,
       trainNumber,
-      isWaitlisted
+      effectiveIsWaitlisted
     );
-  }, [selectedClassCode, selectedStationIndex, routeStations, userBookedSeats, activeReallocations, trainNumber, isWaitlisted]);
+  }, [selectedClassCode, selectedStationIndex, routeStations, userBookedSeats, activeReallocations, trainNumber, effectiveIsWaitlisted]);
 
   // Current station object
   const activeStation = routeStations[selectedStationIndex] || routeStations[0] || {

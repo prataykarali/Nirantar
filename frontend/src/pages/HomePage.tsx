@@ -481,6 +481,54 @@ export const HomePage: React.FC = () => {
                   ))}
                 </div>
               )}
+
+              {/* ── STATION UNAVAILABLE NOTICE DROPDOWN (Item Mentioned Not in List) ── */}
+              {showSuggestions && nlQuery.trim().length >= 2 && autocompleteSuggestions.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-amber-200 p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-800 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-sm shrink-0">
+                      📍
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-amber-950">
+                        Station Unavailable for Now
+                      </h4>
+                      <p className="text-[11px] text-amber-900/90 font-medium leading-relaxed mt-0.5">
+                        We couldn't locate "<strong>{nlQuery.trim()}</strong>" on the direct railway network. Nirantar currently supports 550+ verified major Indian Railway stations.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-1.5 border-t border-amber-100/90">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">
+                      Select a nearby major junction:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { code: 'NDLS', name: 'New Delhi' },
+                        { code: 'HWH', name: 'Howrah' },
+                        { code: 'CSMT', name: 'Mumbai CSMT' },
+                        { code: 'SBC', name: 'Bengaluru' },
+                        { code: 'MAS', name: 'Chennai Central' },
+                        { code: 'PUNE', name: 'Pune' },
+                      ].map((hub) => (
+                        <button
+                          key={hub.code}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setNlQuery(`${hub.name} (${hub.code}) to `);
+                            setShowSuggestions(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold border border-purple-200 transition-colors cursor-pointer"
+                        >
+                          {hub.name} ({hub.code})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* QUICK PILLS */}

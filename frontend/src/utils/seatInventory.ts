@@ -992,6 +992,7 @@ export interface ScatteredVacantSeat {
 
 /**
  * Returns the scattered vacant seats for a waitlisted train/class, IF AND ONLY IF seats scatter.
+ * Spreads 3-5 scattered vacancies across multiple coach tiers towards the last 2 stoppages.
  */
 export function getWaitlistScatteredVacancies(
   trainNumber: string,
@@ -1014,17 +1015,20 @@ export function getWaitlistScatteredVacancies(
   if (totalStoppages <= 2) return [];
 
   const seed = Math.abs(hash(`${trainNumber}:${classCode}:scatter_vacancies`));
-  const count = 1 + (seed % 2); // 1 or 2 scattered vacancies
+  const count = 3 + (seed % 3); // 3, 4, or 5 scattered vacancies across coaches
   const vacancies: ScatteredVacantSeat[] = [];
 
   const repCoaches = getRepresentativeCoaches(trainNumber, [{ classCode }]);
-  const coachCode = repCoaches[0]?.representativeCode || 'B4';
+  const baseCoach = repCoaches[0]?.representativeCode || 'B4';
+  const alternateCoaches = [baseCoach, 'B2', 'B3', 'A1', 'S4'];
 
-  const candidateSeats = [7, 14, 22, 35, 41, 48, 55];
+  const candidateSeats = [14, 22, 35, 41, 48, 55, 62];
   for (let i = 0; i < count; i++) {
-    const seatNum = candidateSeats[(seed + i * 3) % candidateSeats.length];
-    const stnIdx = 1 + ((seed + i) % (totalStoppages - 2));
-    const stn = defaultRoute[stnIdx] || defaultRoute[1];
+    const seatNum = candidateSeats[(seed + i * 2) % candidateSeats.length];
+    // Deboards generally towards the last 2 stoppages
+    const stnIdx = Math.max(1, totalStoppages - 2 - (i % 2));
+    const stn = defaultRoute[stnIdx] || defaultRoute[totalStoppages - 2] || defaultRoute[1];
+    const coachCode = alternateCoaches[i % alternateCoaches.length];
 
     let berthType = 'Lower Berth';
     if (classCode === '3A' || classCode === 'SL') {
@@ -1115,16 +1119,18 @@ export function getCoachSegmentBays(
     // Stoppage where this occupied berth deboards
     let deboardStnIndex: number;
     let boardStnIndex = 0;
+    let isInitiallyVacant = false;
 
     if (effectiveIsWaitlisted) {
-      // WAITLISTED TRAIN:
-      // In waitlist, seats MAY scatter: ONLY if scattered, passengers deboard at intermediate stops.
+      // WAITLISTED / LOW-SEAT (<10 seats or WL) TRAIN:
+      // Show lesser vacant seats: 3 to 7 MAX across the coach, generally deboarding towards the last 2 stoppages
       const hasScatter = isWaitlistSeatScattered(trainNumber || '12951', classCode);
       if (hasScatter && totalStoppages > 2) {
-        // ~5% of berths across coach deboard early at an intermediate station
-        const isScatteredBerth = (berthSeed % 100) < 6;
+        // Deterministically select ~6-9% of berths (3 to 6 seats in a 64-seat coach)
+        const isScatteredBerth = (berthSeed % 100) < 9;
         if (isScatteredBerth) {
-          deboardStnIndex = 1 + ((berthSeed >> 3) % (totalStoppages - 2));
+          // Deboards generally towards the last 2 stoppages (e.g. stop N-2 or N-3)
+          deboardStnIndex = Math.max(1, totalStoppages - 2 - (berthSeed % 2));
         } else {
           deboardStnIndex = totalStoppages - 1;
         }
@@ -1133,23 +1139,22 @@ export function getCoachSegmentBays(
         deboardStnIndex = totalStoppages - 1;
       }
     } else {
-      // AVAILABLE TRAIN:
-      // Realistic random passenger distribution across all intermediate stations:
-      // ~65% travel end-to-end, and ~35% deboard randomly across intermediate stations (stations 1 to totalStoppages - 2).
-      const isEndToEnd = (berthSeed % 100) < 65 || totalStoppages <= 2;
-      if (isEndToEnd) {
-        deboardStnIndex = totalStoppages - 1;
-      } else {
-        // Randomly deboard at any intermediate stoppage (not just the last 2-3 stops)
+      // AVAILABLE TRAIN (>10 seats available):
+      // Show MORE vacant seats across random stations!
+      // ~22% of berths are unbooked from the origin, plus ~45% of remaining berths deboard at random intermediate stops.
+      isInitiallyVacant = (berthSeed % 100) < 22;
+      const isIntermediateDeboard = (berthSeed % 100) >= 22 && (berthSeed % 100) < 65 && totalStoppages > 2;
+      if (isIntermediateDeboard) {
         const intermediateOptions = Math.max(1, totalStoppages - 1);
         deboardStnIndex = 1 + ((berthSeed >> 3) % intermediateOptions);
         if (deboardStnIndex >= totalStoppages) {
           deboardStnIndex = totalStoppages - 1;
         }
-        // Realistic boarding station (origin or intermediate prior station)
         if (deboardStnIndex > 1 && (berthSeed % 2 === 0)) {
           boardStnIndex = (berthSeed >> 6) % deboardStnIndex;
         }
+      } else {
+        deboardStnIndex = totalStoppages - 1;
       }
     }
 
@@ -1157,8 +1162,8 @@ export function getCoachSegmentBays(
     const boardStn = defaultRoute[boardStnIndex] || defaultRoute[0];
     const stopsFromTerminal = totalStoppages - 1 - deboardStnIndex;
 
-    // If current station has reached or passed deboarding station, seat is VACANT!
-    const isDeboarded = currentStationIndex >= deboardStnIndex;
+    // If seat was unbooked from origin OR current station has reached or passed deboarding station, seat is VACANT!
+    const isDeboarded = isInitiallyVacant || currentStationIndex >= deboardStnIndex;
 
     // Check if this berth is right beside the user's seat in the bay
     const isBeside = userSeatNums.some((uNum) => {
