@@ -1387,24 +1387,116 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setGuidanceActive(false);
   }, []);
 
-  const startGuidanceTour = useCallback((initialStep: number = 0) => {
-    setGuidanceStepIndex(initialStep);
-    setGuidanceActive(true);
-  }, []);
+  const navigateToGuidanceStep = useCallback(
+    (targetIndex: number) => {
+      if (targetIndex < 0 || targetIndex >= 8) {
+        setGuidanceActive(false);
+        return;
+      }
+      setGuidanceStepIndex(targetIndex);
+
+      switch (targetIndex) {
+        case 0: // Step 1: Home (Nira Assistant)
+          setActivePage('home');
+          setShowChatDrawer(true);
+          break;
+
+        case 1: // Step 2: Passenger Workspace & Seat Lock
+          {
+            const topTrain =
+              availableTrains[0] ||
+              localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] ||
+              MOCK_TRAINS_DATABASE[0];
+            if (topTrain) {
+              selectTrain(topTrain, selectedClassCode || '3A');
+            }
+            setActivePage('workspace');
+          }
+          break;
+
+        case 2: // Step 3: Citizen Profile & Virtual Wallet Top-Up
+          setActivePage('profile');
+          break;
+
+        case 3: // Step 4: Citizen Virtual Wallet & 1-Click Pay
+          setActivePage('payment');
+          break;
+
+        case 4: // Step 5: DigiLocker Verified e-Ticket
+          {
+            const trainToBook = selectedTrain || availableTrains[0] || MOCK_TRAINS_DATABASE[0];
+            if (trainToBook) {
+              selectTrain(trainToBook, selectedClassCode || '3A');
+            }
+            setActivePage('ticket');
+          }
+          break;
+
+        case 5: // Step 6: Live Radar & Satellite Telemetry (Timeline)
+          setPreferredTrackerTab('timeline');
+          setActivePage('track');
+          break;
+
+        case 6: // Step 7: Live Coach Layout & 24-Berth Matrix
+          setPreferredTrackerTab('coach');
+          setActivePage('track');
+          // Smooth scroll down to the rectangular 24-berth coach matrix
+          setTimeout(() => {
+            const el =
+              document.getElementById('coach-berth-matrix-section') ||
+              document.querySelector('[data-coach-matrix="true"]');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+              window.scrollTo({ top: 580, behavior: 'smooth' });
+            }
+          }, 250);
+          break;
+
+        case 7: // Step 8: Interactive Keywords & Plain-English Jargon Decoder (Home Page)
+          setActivePage('home');
+          // Smoothly trigger real 1-liner popup for dotted keyword
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('nirantar-show-jargon-preview', { detail: { termKey: 'GNWL' } })
+            );
+          }, 400);
+          break;
+
+        default:
+          break;
+      }
+    },
+    [availableTrains, searchParams, selectedClassCode, selectedTrain, selectTrain, setActivePage, setShowChatDrawer, setPreferredTrackerTab]
+  );
+
+  const startGuidanceTour = useCallback(
+    (initialStep: number = 0) => {
+      setGuidanceActive(true);
+      navigateToGuidanceStep(initialStep);
+    },
+    [navigateToGuidanceStep]
+  );
 
   const prevGuidanceStep = useCallback(() => {
-    setGuidanceStepIndex((prev) => Math.max(0, prev - 1));
-  }, []);
+    setGuidanceStepIndex((curr) => {
+      const prevIdx = Math.max(0, curr - 1);
+      navigateToGuidanceStep(prevIdx);
+      return prevIdx;
+    });
+  }, [navigateToGuidanceStep]);
 
   const nextGuidanceStep = useCallback(() => {
-    setGuidanceStepIndex((prev) => {
-      if (prev >= 7) {
+    setGuidanceStepIndex((curr) => {
+      if (curr >= 7) {
         setGuidanceActive(false);
         return 0;
       }
-      return prev + 1;
+      const nextIdx = curr + 1;
+      navigateToGuidanceStep(nextIdx);
+      return nextIdx;
     });
-  }, []);
+  }, [navigateToGuidanceStep]);
 
   const guidanceStepsList: GuidanceStep[] = [
     {
@@ -1418,12 +1510,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '🤖 Nira AI Chatbot & Voice Assistant',
       cardPosition: 'left',
       onAction: () => {
-        const topTrain = availableTrains[0] || localSearchTrains(searchParams.fromStation.code, searchParams.toStation.code)[0] || MOCK_TRAINS_DATABASE[0];
-        if (topTrain) {
-          selectTrain(topTrain, selectedClassCode || '3A');
-        }
-        setActivePage('workspace');
-        setGuidanceStepIndex(1);
+        navigateToGuidanceStep(1);
       },
     },
     {
@@ -1437,8 +1524,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '👤 Safe Passenger Details & Seat Preferences',
       cardPosition: 'right',
       onAction: () => {
-        setActivePage('profile');
-        setGuidanceStepIndex(2);
+        navigateToGuidanceStep(2);
       },
     },
     {
@@ -1452,8 +1538,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '💳 Pre-Loaded ₹10,000 Citizen Wallet & Instant Top-Up',
       cardPosition: 'left',
       onAction: () => {
-        setActivePage('payment');
-        setGuidanceStepIndex(3);
+        navigateToGuidanceStep(3);
       },
     },
     {
@@ -1467,13 +1552,8 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '💳 Enter UPI ID or 1-Click Wallet Pay',
       cardPosition: 'right',
       onAction: async () => {
-        const trainToBook = selectedTrain || availableTrains[0] || MOCK_TRAINS_DATABASE[0];
-        if (trainToBook) {
-          selectTrain(trainToBook, selectedClassCode || '3A');
-        }
         await payWithWallet(3120);
-        setActivePage('ticket');
-        setGuidanceStepIndex(4);
+        navigateToGuidanceStep(4);
       },
     },
     {
@@ -1487,9 +1567,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '🎟️ DigiLocker Verified e-Ticket & PNR',
       cardPosition: 'right',
       onAction: () => {
-        setPreferredTrackerTab('timeline');
-        setActivePage('track');
-        setGuidanceStepIndex(5);
+        navigateToGuidanceStep(5);
       },
     },
     {
@@ -1503,9 +1581,7 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       arrowLabel: '📡 Live GPS Satellite Telemetry & Platform Radar',
       cardPosition: 'right',
       onAction: () => {
-        setPreferredTrackerTab('coach');
-        setActivePage('track');
-        setGuidanceStepIndex(6);
+        navigateToGuidanceStep(6);
       },
     },
     {
@@ -1515,11 +1591,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       speech: 'Explore interactive coach layouts across S1, B4, A1, and H1 with live 24-berth matrix, booked seat indicators, and corridor occupancy balance.',
       actionCue: 'Switch coaches and view your confirmed booked berths in the live matrix.',
       actionButtonText: 'Explore Dotted Keywords & Jargon Decoder ➔',
-      arrowPlacement: { top: '55%', left: '20%' },
+      arrowPlacement: { top: '62%', left: '20%' },
       arrowLabel: '💺 Interactive Coach Layout & 24-Berth Grid',
       cardPosition: 'right',
       onAction: () => {
-        setGuidanceStepIndex(7);
+        navigateToGuidanceStep(7);
       },
     },
     {
@@ -1529,11 +1605,11 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       speech: 'Notice the dotted underline on terms like PNR, GNWL, RAC, and Platform Alignment across the entire platform! Hover or tap on any underlined keyword anywhere on the website for instant, crystal-clear plain-English definitions and railway policy explanations.',
       actionCue: 'Hover or tap any dotted underlined keyword across Nirantar to view instant definitions.',
       actionButtonText: 'Finish Guided Tour 🎉',
-      arrowPlacement: { top: '42%', left: '30%' },
+      arrowPlacement: { top: '48%', left: '28%' },
       arrowLabel: '✨ Plain-English Dotted Keyword Definitions & Hover Hints',
       cardPosition: 'left',
       onAction: () => {
-        setGuidanceActive(false);
+        stopGuidanceTour();
       },
     },
   ];

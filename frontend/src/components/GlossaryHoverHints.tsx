@@ -177,6 +177,24 @@ export const GlossaryHoverHints: React.FC = () => {
     document.addEventListener('mouseout', handleMouseLeave);
     document.addEventListener('click', handleClick);
 
+    window.addEventListener('nirantar-show-jargon-preview', (e: Event) => {
+      const customEvt = e as CustomEvent<{ termKey?: string }>;
+      const termKey = customEvt.detail?.termKey || 'GNWL';
+      const termData = getRailwayTerm(termKey) || getRailwayTerm('GNWL') || RAILWAY_TERMS[0];
+      if (!termData) return;
+
+      const target =
+        (document.querySelector(`[data-jargon-hint="true"][data-term-key="${termKey}"]`) as HTMLElement) ||
+        (document.querySelector('[data-jargon-hint="true"]') as HTMLElement);
+
+      if (target) {
+        showTooltip(termData, target);
+      } else {
+        const fakeRect = new DOMRect(window.innerWidth / 2 - 140, 280, 280, 36);
+        setActiveTooltip({ term: termData, rect: fakeRect });
+      }
+    });
+
     return () => {
       document.removeEventListener('mouseover', handleMouseEnter);
       document.removeEventListener('mouseout', handleMouseLeave);

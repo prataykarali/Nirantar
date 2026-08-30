@@ -131,6 +131,7 @@ export interface BookingRecord {
   trainNumber: string;
   trainName: string;
   classCode: string;
+  passengerName?: string;
   status: 'CONFIRMED' | 'RAC' | 'WAITLIST' | 'CANCELLED';
   seatAllotment: SeatAllotment | null;
   createdAt: string;

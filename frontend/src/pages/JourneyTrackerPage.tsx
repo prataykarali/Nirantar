@@ -313,28 +313,46 @@ export const JourneyTrackerPage: React.FC = () => {
 
   // Check if current tracked train is booked by this passenger
   const isUserBookedTrain = useMemo(() => {
-    if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.status !== 'CANCELLED') return true;
-    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.status !== 'CANCELLED') return true;
-    if (trainNumber === '12951') return true; // Default pre-confirmed upcoming citizen journey
-    return false;
+    if (issuedTicket && issuedTicket.status !== 'CANCELLED') {
+      return issuedTicket.train?.trainNumber === trainNumber;
+    }
+    if (bookingRecord && bookingRecord.status !== 'CANCELLED') {
+      return bookingRecord.trainNumber === trainNumber;
+    }
+    // Only default to 12951 if user has never booked any custom ticket
+    return trainNumber === '12951';
   }, [issuedTicket, bookingRecord, trainNumber]);
 
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
     if (!isUserBookedTrain) return [];
-    if (issuedTicket?.passengers && issuedTicket.passengers.length > 0) {
+    if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.passengers && issuedTicket.passengers.length > 0) {
       return issuedTicket.passengers;
     }
-    if (passengers && passengers.length > 0) {
-      return passengers;
+    if (bookingRecord && bookingRecord.trainNumber === trainNumber) {
+      return [{
+        id: 'pax-1',
+        name: bookingRecord.passengerName || 'Pratay Karali',
+        age: 26,
+        gender: 'Male',
+        berthPreference: 'Lower Berth (LB)',
+        classCode: '3A',
+        status: 'CONFIRMED',
+      }];
+    }
+    if (trainNumber === '12951' && !issuedTicket && !bookingRecord) {
+      return [
+        { id: 'pax-1', name: 'Pratay Karali (You)', age: 26, gender: 'Male', berthPreference: 'Lower Berth (LB)', classCode: '3A', status: 'CONFIRMED' },
+        { id: 'pax-2', name: 'Rahul Sharma', age: 28, gender: 'Male', berthPreference: 'Middle Berth (MB)', classCode: '3A', status: 'CONFIRMED' }
+      ];
     }
     return [];
-  }, [isUserBookedTrain, issuedTicket, passengers]);
+  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber]);
 
   // User's allocated seats across specific coaches (e.g. Coach B4 for 3A)
   const allocatedSeats = useMemo(() => {
     if (!isUserBookedTrain) return [];
-    if (issuedTicket?.seatAllotments && issuedTicket.seatAllotments.length > 0) {
+    if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.seatAllotments && issuedTicket.seatAllotments.length > 0) {
       return issuedTicket.seatAllotments.map((s, idx) => ({
         coachCode: s.coach,
         seatNumber: s.seatNumber,
@@ -342,14 +360,22 @@ export const JourneyTrackerPage: React.FC = () => {
         passengerName: issuedTicket.passengers?.[idx]?.name || (passengers[idx]?.name) || `Passenger ${idx + 1}`,
       }));
     }
-    if (trainNumber === '12951') {
+    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.seatAllotment) {
+      return [{
+        coachCode: bookingRecord.seatAllotment.coach,
+        seatNumber: bookingRecord.seatAllotment.seatNumber,
+        berthType: bookingRecord.seatAllotment.berthType,
+        passengerName: bookingRecord.passengerName || 'Pratay Karali',
+      }];
+    }
+    if (trainNumber === '12951' && !issuedTicket && !bookingRecord) {
       return [
         { coachCode: 'B4', seatNumber: 36, berthType: 'Lower Berth (LB)', passengerName: 'Pratay Karali (You)' },
         { coachCode: 'B4', seatNumber: 37, berthType: 'Middle Berth (MB)', passengerName: 'Rahul Sharma' }
       ];
     }
     return allocatePassengerSeats(userPassengers, userBookedClass);
-  }, [isUserBookedTrain, issuedTicket, trainNumber, userPassengers, userBookedClass, passengers]);
+  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber, userPassengers, userBookedClass, passengers]);
 
   // Auto-focus user's booked coach by default
   useEffect(() => {

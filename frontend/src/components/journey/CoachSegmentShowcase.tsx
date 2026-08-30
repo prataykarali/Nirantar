@@ -559,7 +559,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
           )}
 
           {/* Interactive Bay Segment Cards */}
-          <div className="space-y-3">
+          <div id="coach-berth-matrix-section" data-coach-matrix="true" className="space-y-3 pt-2 scroll-mt-6">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
