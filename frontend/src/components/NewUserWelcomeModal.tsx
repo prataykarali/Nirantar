@@ -7,33 +7,40 @@ export const NewUserWelcomeModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Show welcome modal once per user session/browser
-    const hasSeen = localStorage.getItem('nirantar_new_user_welcome_seen');
-    if (!hasSeen) {
-      // Small natural delay so initial page loads smoothly
+    // Show welcome modal once per user session
+    const hasSeenSession = sessionStorage.getItem('nirantar_welcome_modal_dismissed');
+    if (!hasSeenSession) {
+      // Natural brief delay so initial page and styles render smoothly
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 900);
+      }, 600);
       return () => clearTimeout(timer);
     }
   }, []);
 
+  // Listen for global open events from Page Guide / TopBar / Banner
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('nirantar-open-welcome-modal', handleOpen);
+    return () => window.removeEventListener('nirantar-open-welcome-modal', handleOpen);
+  }, []);
+
   const handleStartTour = () => {
-    localStorage.setItem('nirantar_new_user_welcome_seen', 'true');
+    sessionStorage.setItem('nirantar_welcome_modal_dismissed', 'true');
     setIsOpen(false);
     startGuidanceTour(0);
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('nirantar_new_user_welcome_seen', 'true');
+    sessionStorage.setItem('nirantar_welcome_modal_dismissed', 'true');
     setIsOpen(false);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300 select-none">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border-2 border-purple-200 ring-8 ring-purple-100/60 space-y-4 animate-in zoom-in-95 duration-200 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300 select-none overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white rounded-3xl p-4.5 sm:p-6 shadow-2xl border-2 border-purple-200 ring-8 ring-purple-100/60 space-y-4 animate-in zoom-in-95 duration-200 max-h-[92dvh] overflow-y-auto">
         {/* Decorative Top Accent Gradient */}
         <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-500" />
 
