@@ -310,34 +310,33 @@ const CITY_ALIASES: Record<string, string> = {
   JAMMU: 'JAMMU', KASHMIR: 'JAMMU',
 };
 
+/**
+ * Returns individual stations for a city-level query. Booking flows use this
+ * to ask for a terminal instead of silently selecting a default station.
+ */
+export function getCityStationChoices(query: string): Station[] {
+  const cityKey = CITY_ALIASES[query.trim().toUpperCase()];
+  if (!cityKey || !MULTI_STATION_CITIES[cityKey]) return [];
+
+  return MULTI_STATION_CITIES[cityKey].map((sub) => {
+    const station = POPULAR_STATIONS.find((candidate) => candidate.code === sub.code);
+    return station || {
+      code: sub.code,
+      name: sub.name,
+      city: cityKey.charAt(0) + cityKey.slice(1).toLowerCase(),
+      state: '',
+      aliases: [sub.code],
+    };
+  });
+}
+
 export function searchStations(query: string, limit: number = 10): Station[] {
   if (!query || query.trim().length === 0) return POPULAR_STATIONS.slice(0, limit);
   const q = query.trim().toUpperCase();
 
   // Check if query matches a multi-station city — expand sub-stations
-  const cityKey = CITY_ALIASES[q];
-  if (cityKey && MULTI_STATION_CITIES[cityKey]) {
-    const subStations = MULTI_STATION_CITIES[cityKey];
-    // Return actual Station objects from POPULAR_STATIONS for each sub-station
-    const results: Station[] = [];
-    for (const sub of subStations) {
-      const found = POPULAR_STATIONS.find((s) => s.code === sub.code);
-      if (found) {
-        results.push(found);
-      } else {
-        // Fallback: create a minimal station entry from the hub data
-        const cityName = cityKey.charAt(0) + cityKey.slice(1).toLowerCase();
-        results.push({
-          code: sub.code,
-          name: sub.name,
-          city: cityName,
-          state: '',
-          aliases: [sub.code],
-        });
-      }
-    }
-    return results.slice(0, limit);
-  }
+  const cityChoices = getCityStationChoices(q);
+  if (cityChoices.length > 0) return cityChoices.slice(0, limit);
 
   // Also check prefix match for multi-station cities (e.g. "kol" → Kolkata)
   if (q.length >= 3) {
@@ -363,4 +362,3 @@ export function searchStations(query: string, limit: number = 10): Station[] {
       (s.aliases && s.aliases.some((a) => a.toUpperCase().includes(q)))
   ).slice(0, limit);
 }
-

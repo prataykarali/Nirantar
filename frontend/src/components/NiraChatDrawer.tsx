@@ -28,7 +28,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useJourney, PassengerProfile, TicketRecord } from '../context/JourneyContext';
-import { Station, findStation, POPULAR_STATIONS } from '../data/stationData';
+import { Station, findStation, getCityStationChoices, POPULAR_STATIONS } from '../data/stationData';
 import { searchTrains, TrainDetail, MOCK_TRAINS_DATABASE } from '../data/mockTrains';
 import { sendCitizenQuery } from '../services/api';
 import { streamNiraChat } from '../services/niraApi';
@@ -94,6 +94,16 @@ interface ChatMessage {
     trainNumber?: string;
     fromStation: Station;
     toStation: Station;
+  };
+  stationChoicePrompt?: {
+    fromStation: Station;
+    toStation: Station;
+    fromOptions?: Station[];
+    toOptions?: Station[];
+    travelDate: string;
+    passengers: number;
+    classCode: string;
+    quota: string;
   };
   autoBookCard?: AutoBookData;
   trackCard?: TrackData;
@@ -370,6 +380,7 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   const [activeCategory, setActiveCategory] = useState<ExampleCategory>('booking');
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [routeCtx, setRouteCtx] = useState<RouteContext>({});
+  const [stationChoiceSelections, setStationChoiceSelections] = useState<Record<string, { from?: Station; to?: Station }>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ═══════════════════════════════════════════════════════════════════
@@ -655,6 +666,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     isTrack: boolean;
     isTatkal: boolean;
     trainNumber?: string;
+    stationChoices?: { fromOptions?: Station[]; toOptions?: Station[] };
+    unavailableStations?: { from?: string; to?: string };
   } => {
     const lower = text.toLowerCase();
     const updated = { ...current };
@@ -756,6 +769,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
     // 2. Station Extraction: explicit route regex or verified station names
     let extractedFrom: Station | undefined = undefined;
     let extractedTo: Station | undefined = undefined;
+    let stationChoices: { fromOptions?: Station[]; toOptions?: Station[] } | undefined;
+    let unavailableStations: { from?: string; to?: string } | undefined;
 
     if (!isQuestion) {
       // Strip conversational prefixes so station extraction is clean
@@ -777,6 +792,20 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
 
         const s1 = findStation(cleanFromStr) || findStation(match[1].trim());
         const s2 = findStation(cleanToStr) || findStation(match[2].trim());
+        const fromOptions = getCityStationChoices(cleanFromStr);
+        const toOptions = getCityStationChoices(cleanToStr);
+        if (fromOptions.length > 1 || toOptions.length > 1) {
+          stationChoices = {
+            ...(fromOptions.length > 1 ? { fromOptions } : {}),
+            ...(toOptions.length > 1 ? { toOptions } : {}),
+          };
+        }
+        if (!s1 || !s2) {
+          unavailableStations = {
+            ...(!s1 ? { from: cleanFromStr || match[1].trim() } : {}),
+            ...(!s2 ? { to: cleanToStr || match[2].trim() } : {}),
+          };
+        }
         if (s1) extractedFrom = s1;
         if (s2) extractedTo = s2;
       }
@@ -862,6 +891,8 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       isTrack,
       isTatkal,
       trainNumber: explicitTrainInCurrentQuery,
+      stationChoices,
+      unavailableStations,
     };
   };
 
@@ -1131,6 +1162,22 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       setIsLoading(false);
       setMessages((prev) =>
         prev.map((m) => (m.id === botMsgId ? { ...m, text: invalidMsg, isStreaming: false } : m))
+      );
+      return;
+    }
+
+    const unavailableStations = intentData.unavailableStations;
+    if (unavailableStations) {
+      const missingFrom = unavailableStations.from;
+      const missingTo = unavailableStations.to;
+      const unavailableMsg = missingFrom && missingTo
+        ? `⚠️ **Stations unavailable**: I could not find **${missingFrom}** as the origin or **${missingTo}** as the destination in the available station list. Please choose valid stations and try again.`
+        : missingFrom
+          ? `⚠️ **Origin station unavailable**: I could not find **${missingFrom}** in the available station list. Please enter or select a valid origin station.`
+          : `⚠️ **Destination station unavailable**: I could not find **${missingTo}** in the available station list. Please enter or select a valid destination station.`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: unavailableMsg, isStreaming: false } : m))
       );
       return;
     }
@@ -1585,6 +1632,42 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       const classCode = nextRouteCtx.classCode || '3A';
       const fromSt = nextRouteCtx.fromStation;
       const toSt = nextRouteCtx.toStation;
+
+      // A city can have several terminals. Pause here instead of accepting the
+      // parser's first/default match, then let the traveller select the exact
+      // origin and/or destination in the chat.
+      if (fromSt && toSt && intentData.stationChoices) {
+        const needsFrom = Boolean(intentData.stationChoices.fromOptions);
+        const needsTo = Boolean(intentData.stationChoices.toOptions);
+        const choiceText = needsFrom && needsTo
+          ? 'Both cities have more than one railway station. Choose your origin and destination terminals below before I search trains.'
+          : needsFrom
+            ? 'Your origin city has more than one railway station. Choose the exact origin terminal below before I search trains.'
+            : 'Your destination city has more than one railway station. Choose the exact destination terminal below before I search trains.';
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text: `📍 **Station choice needed**\n\n${choiceText}`,
+                  isStreaming: false,
+                  stationChoicePrompt: {
+                    fromStation: fromSt,
+                    toStation: toSt,
+                    fromOptions: intentData.stationChoices?.fromOptions,
+                    toOptions: intentData.stationChoices?.toOptions,
+                    travelDate,
+                    passengers: paxCount,
+                    classCode,
+                    quota: intentData.isTatkal ? 'Tatkal (TQ)' : 'General (GN)',
+                  },
+                }
+              : m
+          )
+        );
+        return;
+      }
 
       // 1. Route Discovery & Booking: Always navigate to the Trains Page so citizen can compare & select train
       if (fromSt && toSt) {
@@ -2259,6 +2342,89 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                       </div>
                     </div>
                   </div>
+
+                  {m.stationChoicePrompt && (() => {
+                    const prompt = m.stationChoicePrompt;
+                    const selection = stationChoiceSelections[m.id] || {};
+                    const requiresFromChoice = Boolean(prompt.fromOptions?.length);
+                    const requiresToChoice = Boolean(prompt.toOptions?.length);
+                    const selectedFrom = selection.from || (!requiresFromChoice ? prompt.fromStation : undefined);
+                    const selectedTo = selection.to || (!requiresToChoice ? prompt.toStation : undefined);
+                    const canSearch = Boolean(selectedFrom && selectedTo);
+
+                    const chooseStation = (side: 'from' | 'to', station: Station) => {
+                      setStationChoiceSelections((current) => ({
+                        ...current,
+                        [m.id]: { ...current[m.id], [side]: station },
+                      }));
+                    };
+
+                    return (
+                      <div className="ml-8 rounded-2xl border-2 border-purple-300 bg-white p-3.5 shadow-md space-y-3 animate-in zoom-in-95 duration-200">
+                        {prompt.fromOptions && (
+                          <fieldset className="space-y-1.5">
+                            <legend className="text-[10px] font-black uppercase tracking-wider text-purple-900">Choose origin station</legend>
+                            <div className="grid gap-1.5">
+                              {prompt.fromOptions.map((station) => {
+                                const checked = selection.from?.code === station.code;
+                                return (
+                                  <label key={station.code} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-xs font-semibold cursor-pointer transition ${checked ? 'border-purple-600 bg-purple-50 text-purple-950' : 'border-slate-200 hover:border-purple-300 text-slate-700'}`}>
+                                    <input type="radio" name={`origin-station-${m.id}`} checked={checked} onChange={() => chooseStation('from', station)} className="accent-purple-700" />
+                                    <span className="flex-1">{station.name}</span>
+                                    <span className="font-mono text-[10px] font-black text-purple-700">{station.code}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </fieldset>
+                        )}
+
+                        {prompt.toOptions && (
+                          <fieldset className="space-y-1.5">
+                            <legend className="text-[10px] font-black uppercase tracking-wider text-purple-900">Choose destination station</legend>
+                            <div className="grid gap-1.5">
+                              {prompt.toOptions.map((station) => {
+                                const checked = selection.to?.code === station.code;
+                                return (
+                                  <label key={station.code} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-xs font-semibold cursor-pointer transition ${checked ? 'border-purple-600 bg-purple-50 text-purple-950' : 'border-slate-200 hover:border-purple-300 text-slate-700'}`}>
+                                    <input type="radio" name={`destination-station-${m.id}`} checked={checked} onChange={() => chooseStation('to', station)} className="accent-purple-700" />
+                                    <span className="flex-1">{station.name}</span>
+                                    <span className="font-mono text-[10px] font-black text-purple-700">{station.code}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </fieldset>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={!canSearch}
+                          onClick={() => {
+                            if (!selectedFrom || !selectedTo) return;
+                            setRouteCtx((current) => ({ ...current, fromStation: selectedFrom, toStation: selectedTo }));
+                            executeSearch({
+                              fromStation: selectedFrom,
+                              toStation: selectedTo,
+                              travelDate: prompt.travelDate,
+                              passengersCount: prompt.passengers,
+                              classType: prompt.classCode,
+                              quota: prompt.quota,
+                            });
+                            navigateTo('trains');
+                            setMessages((prev) => prev.map((msg) => msg.id === m.id ? {
+                              ...msg,
+                              text: `Searching trains from **${selectedFrom.name} (${selectedFrom.code})** to **${selectedTo.name} (${selectedTo.code})**.`,
+                              stationChoicePrompt: undefined,
+                            } : msg));
+                          }}
+                          className="w-full rounded-xl bg-purple-700 px-3 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                          Search trains with selected stations →
+                        </button>
+                      </div>
+                    );
+                  })()}
 
                   {/* ─────────────────────────────────────────────────────────────
                       INTERACTIVE YES/NO BOOKING CONFIRMATION PROMPT (Clean, Zero Spam)

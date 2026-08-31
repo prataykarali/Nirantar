@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
-import { POPULAR_STATIONS, Station, searchStations, findStation, VERIFIED_PLATFORM_HUBS } from '../data/stationData';
+import { POPULAR_STATIONS, Station, searchStations, findStation, getCityStationChoices, VERIFIED_PLATFORM_HUBS } from '../data/stationData';
 import { CitizenCharacter } from '../components/characters/CitizenCharacter';
 import { NiraRobot } from '../components/characters/NiraRobot';
 import { Card } from '../design-system/components/Card';
@@ -31,8 +31,9 @@ export const DiscoverPage: React.FC = () => {
   // Station Form States
   const [fromQuery, setFromQuery] = useState(searchParams.fromStation.city);
   const [toQuery, setToQuery] = useState(searchParams.toStation.city);
-  const [selectedFrom, setSelectedFrom] = useState<Station>(searchParams.fromStation);
-  const [selectedTo, setSelectedTo] = useState<Station>(searchParams.toStation);
+  const [selectedFrom, setSelectedFrom] = useState<Station | null>(searchParams.fromStation);
+  const [selectedTo, setSelectedTo] = useState<Station | null>(searchParams.toStation);
+  const [stationError, setStationError] = useState<{ from: boolean; to: boolean } | null>(null);
   const [activeZoneTab, setActiveZoneTab] = useState<'all' | 'north' | 'central' | 'east' | 'west' | 'south'>('all');
   const todayIso = new Date().toISOString().split('T')[0];
   const tomorrowIso = (() => {
@@ -65,6 +66,8 @@ export const DiscoverPage: React.FC = () => {
   // Handle Autocomplete
   const handleFromChange = (val: string) => {
     setFromQuery(val);
+    setSelectedFrom(null);
+    setStationError(null);
     if (val.trim().length > 0) {
       setFromSuggestions(searchStations(val, 5));
       setShowFromDropdown(true);
@@ -76,6 +79,8 @@ export const DiscoverPage: React.FC = () => {
 
   const handleToChange = (val: string) => {
     setToQuery(val);
+    setSelectedTo(null);
+    setStationError(null);
     if (val.trim().length > 0) {
       setToSuggestions(searchStations(val, 5));
       setShowToDropdown(true);
@@ -89,12 +94,14 @@ export const DiscoverPage: React.FC = () => {
     setSelectedFrom(station);
     setFromQuery(`${station.city} (${station.code})`);
     setShowFromDropdown(false);
+    setStationError(null);
   };
 
   const handleSelectTo = (station: Station) => {
     setSelectedTo(station);
     setToQuery(`${station.city} (${station.code})`);
     setShowToDropdown(false);
+    setStationError(null);
   };
 
   const handleSwapStations = () => {
@@ -109,21 +116,23 @@ export const DiscoverPage: React.FC = () => {
   // Submit Journey Search
   const handleFormSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const resolvedFrom = selectedFrom || findStation(fromQuery);
-    const resolvedTo = selectedTo || findStation(toQuery);
+    const fromNeedsChoice = !selectedFrom && getCityStationChoices(fromQuery).length > 1;
+    const toNeedsChoice = !selectedTo && getCityStationChoices(toQuery).length > 1;
+    const resolvedFrom = fromNeedsChoice ? null : (selectedFrom || findStation(fromQuery));
+    const resolvedTo = toNeedsChoice ? null : (selectedTo || findStation(toQuery));
+    const invalid = { from: !resolvedFrom, to: !resolvedTo };
 
-    if (!resolvedFrom) {
-      setShowFromDropdown(true);
+    if (invalid.from || invalid.to) {
+      setStationError(invalid);
+      if (invalid.from) setShowFromDropdown(true);
+      if (invalid.to) setShowToDropdown(true);
       return;
     }
-    if (!resolvedTo) {
-      setShowToDropdown(true);
-      return;
-    }
 
+    setStationError(null);
     executeSearch({
-      fromStation: resolvedFrom,
-      toStation: resolvedTo,
+      fromStation: resolvedFrom!,
+      toStation: resolvedTo!,
       travelDate,
       passengersCount: searchParams.passengersCount || 1,
       classType: 'All Classes',
@@ -367,6 +376,11 @@ export const DiscoverPage: React.FC = () => {
             {/* From Autocomplete Dropdown */}
             {showFromDropdown && fromSuggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-50 max-h-56 overflow-y-auto">
+                {getCityStationChoices(fromQuery).length > 1 && (
+                  <p className="px-4 pb-2 text-[10px] font-black uppercase tracking-wider text-purple-700 border-b border-purple-100">
+                    Choose your station in {fromQuery.trim()}
+                  </p>
+                )}
                 {fromSuggestions.map((s) => (
                   <button
                     key={s.code}
@@ -461,6 +475,11 @@ export const DiscoverPage: React.FC = () => {
             {/* To Autocomplete Dropdown */}
             {showToDropdown && toSuggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-50 max-h-56 overflow-y-auto">
+                {getCityStationChoices(toQuery).length > 1 && (
+                  <p className="px-4 pb-2 text-[10px] font-black uppercase tracking-wider text-purple-700 border-b border-purple-100">
+                    Choose your station in {toQuery.trim()}
+                  </p>
+                )}
                 {toSuggestions.map((s) => (
                   <button
                     key={s.code}
@@ -551,6 +570,16 @@ export const DiscoverPage: React.FC = () => {
           </button>
         </form>
 
+        {stationError && (
+          <div role="alert" className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">
+            {stationError.from && stationError.to
+              ? 'Please select valid origin and destination stations from the available list before searching.'
+              : stationError.from
+                ? 'Please select a valid origin station from the available list before searching.'
+                : 'Please select a valid destination station from the available list before searching.'}
+          </div>
+        )}
+
         {/* TOP VERIFIED POPULAR PLATFORMS & STATIONS QUICK SELECTOR */}
         <div className="mt-2.5 pt-2 border-t border-purple-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs text-purple-950 font-black shrink-0">
@@ -575,7 +604,7 @@ export const DiscoverPage: React.FC = () => {
                 onClick={() => {
                   const match = findStation(st.code);
                   if (match) {
-                    if (selectedFrom.code === match.code) {
+                    if (selectedFrom?.code === match.code) {
                       setSelectedTo(match);
                       setToQuery(`${match.city} (${match.code})`);
                     } else {
