@@ -320,11 +320,41 @@ export interface AppNotification {
   id: string;
   title: string;
   body: string;
-  type: 'track' | 'ticket' | 'info';
+  type: 'track' | 'ticket' | 'delay' | 'cancel' | 'warning' | 'info';
   time: string;
   read: boolean;
   dismissed: boolean;
 }
+
+export const DEFAULT_INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'ntf-init-delay-1',
+    title: '⚠️ Train Delay Advisory: #12863',
+    body: 'Howrah - SMVB SF Express is running 25 mins late due to speed restrictions. Approaching Kharagpur on PF 3.',
+    type: 'delay',
+    time: '10 mins ago',
+    read: false,
+    dismissed: false,
+  },
+  {
+    id: 'ntf-init-cancel-1',
+    title: '📢 Train Cancellation & Full Refund Policy',
+    body: 'If your train is delayed >3 hours or cancelled, claim 100% statutory refund with zero deduction via instant TDR to Citizen Wallet.',
+    type: 'cancel',
+    time: '30 mins ago',
+    read: false,
+    dismissed: false,
+  },
+  {
+    id: 'ntf-init-pf-1',
+    title: '🚉 Platform Assignment: NDLS PF 1',
+    body: 'Howrah Rajdhani (#12302) departs from New Delhi on PF 1 (Platform 1). Coach B4 halts near Pillar 12.',
+    type: 'track',
+    time: '1 hour ago',
+    read: false,
+    dismissed: false,
+  },
+];
 
 const defaultFrom = POPULAR_STATIONS[0]; // NDLS (New Delhi)
 const defaultTo = POPULAR_STATIONS[1];   // HWH (Howrah)
@@ -649,7 +679,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showImStuck, setShowImStuck] = useState(false);
   const [showVisualDiagram, setShowVisualDiagram] = useState(false);
   const [niraPendingQuery, setNiraPendingQuery] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('nirantar_notifications');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_INITIAL_NOTIFICATIONS;
+  });
 
   const addNotification = useCallback((n: Omit<AppNotification, 'id' | 'time' | 'read' | 'dismissed'>) => {
     const item: AppNotification = {
@@ -1327,9 +1363,13 @@ export const JourneyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
     const isLowSeats = typeof targetClassObj?.availableSeats === 'number' && targetClassObj.availableSeats > 0 && targetClassObj.availableSeats < 10;
 
-    if (isWl || isLowSeats) {
-      // High chance (~80% chance) to redirect to oh-no-waitlist alert page
-      const shouldRedirect = Math.random() < 0.80;
+    if (isWl) {
+      // 100% guarantee redirect to Oh-No waitlist alert page for all waitlisted / RAC trains
+      navigateTo('waitlist-alert');
+      return;
+    } else if (isLowSeats) {
+      // Probability-based trigger (~60% chance) for scarce seats
+      const shouldRedirect = Math.random() < 0.60;
       if (shouldRedirect) {
         navigateTo('waitlist-alert');
         return;

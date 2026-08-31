@@ -543,11 +543,11 @@ export const RAILWAY_TERMS: Record<string, RailwayTerm> = {
 
   PLATFORM: {
     id: 'PLATFORM',
-    short: 'Platform Number',
-    simple: 'The specific track platform where your train will arrive at the station.',
-    why_it_matters: 'Walk directly to the correct platform with your luggage without rushing across footbridges.',
-    example: 'Platform 8 at New Delhi (NDLS) station.',
-    how_it_works: 'Synchronized with station control room announcements and LED board feeds.',
+    short: 'Platform Number (PF / Plat)',
+    simple: 'The specific track and boarding platform (abbreviated as PF or Plat) where your train halts.',
+    why_it_matters: 'PF is the universal railway shortform for Platform. Knowing your PF number in advance lets you walk directly to your coach position.',
+    example: 'PF 1 at New Delhi (NDLS), PF 4 at Kanpur Central (CNB).',
+    how_it_works: 'Synchronized with station control room announcements and LED electronic display feeds.',
     category: 'coach',
     relatedTerms: ['PLATFORM_ALIGNMENT', 'COACH_POSITION'],
   },

@@ -269,16 +269,41 @@ export const TopBar: React.FC<TopBarProps> = ({
               </div>
 
               {notifications.length > 0 ? (
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {notifications.slice(0, 8).map((n) => (
-                    <div key={n.id} className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-purple-950">
-                        <span>{n.title}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold">{n.time}</span>
+                <div className="max-h-72 overflow-y-auto space-y-2 pr-0.5">
+                  {notifications.slice(0, 8).map((n) => {
+                    const isDelay = n.type === 'delay' || n.type === 'warning';
+                    const isCancel = n.type === 'cancel';
+                    const isTicket = n.type === 'ticket';
+
+                    return (
+                      <div
+                        key={n.id}
+                        className={`p-3 rounded-2xl border space-y-1 transition-all ${
+                          isDelay
+                            ? 'bg-amber-50/80 border-amber-200/90 text-amber-950'
+                            : isCancel
+                            ? 'bg-rose-50/80 border-rose-200/90 text-rose-950'
+                            : isTicket
+                            ? 'bg-emerald-50/80 border-emerald-200/90 text-emerald-950'
+                            : 'bg-purple-50/60 border-purple-100 text-purple-950'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs font-black">
+                          <span className="flex items-center gap-1.5 truncate">
+                            {isDelay && <span className="text-amber-600 font-bold">⚠️</span>}
+                            {isCancel && <span className="text-rose-600 font-bold">❌</span>}
+                            {isTicket && <span className="text-emerald-600 font-bold">🎫</span>}
+                            {!isDelay && !isCancel && !isTicket && <span className="text-purple-600 font-bold">🚆</span>}
+                            <span className="truncate">{n.title}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold shrink-0 ml-1.5">{n.time}</span>
+                        </div>
+                        <p className={`text-[11px] leading-relaxed ${isDelay ? 'text-amber-900' : isCancel ? 'text-rose-900' : isTicket ? 'text-emerald-900' : 'text-slate-600'}`}>
+                          {n.body}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-600">{n.body}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : issuedTicket ? (
                 <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">

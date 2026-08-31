@@ -325,7 +325,9 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
                   <span className="text-[10px] uppercase font-bold text-emerald-800 bg-emerald-100 px-2 py-0.2 rounded">
                     FIRST STOPPAGE (ORIGIN)
                   </span>
-                  <span className="text-[10px] font-bold text-purple-900">{ticket.fromPlatform}</span>
+                  <span className="text-[10px] font-mono font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded-md border border-purple-200">
+                    {ticket.fromPlatform ? ticket.fromPlatform.replace(/Platform/i, 'PF') : 'PF 1'}
+                  </span>
                 </div>
                 <h4 className="font-black text-sm text-slate-900">
                   {ticket.fromCity} ({ticket.fromCode})
@@ -342,7 +344,9 @@ export const DigitalTicketModal: React.FC<DigitalTicketModalProps> = ({
                   <span className="text-[10px] uppercase font-bold text-purple-800 bg-purple-100 px-2 py-0.2 rounded">
                     LAST STOPPAGE (DESTINATION)
                   </span>
-                  <span className="text-[10px] font-bold text-purple-900">{ticket.toPlatform}</span>
+                  <span className="text-[10px] font-mono font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded-md border border-purple-200">
+                    {ticket.toPlatform ? ticket.toPlatform.replace(/Platform/i, 'PF') : 'PF 9'}
+                  </span>
                 </div>
                 <h4 className="font-black text-sm text-slate-900">
                   {ticket.toCity} ({ticket.toCode})

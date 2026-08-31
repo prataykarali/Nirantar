@@ -974,6 +974,27 @@ export const JourneyTrackerPage: React.FC = () => {
     }
   }, [phase, activeStationIndex, routeStations, trainName, trainNumber, addNotification]);
 
+  // Real-time train delay / cancellation notification trigger
+  const lastDelayRef = useRef<string>('');
+  useEffect(() => {
+    if (lastDelayRef.current === delayStatus) return;
+    lastDelayRef.current = delayStatus;
+
+    if (delayStatus === 'DELAY_25M') {
+      addNotification({
+        type: 'delay',
+        title: `⚠️ Delay Advisory: ${trainName} (#${trainNumber})`,
+        body: `Train is currently running 25 mins behind schedule due to route traffic. Station halts updated. 100% full refund available if delayed >3 hrs.`,
+      });
+    } else if (delayStatus === 'DELAY_8M') {
+      addNotification({
+        type: 'delay',
+        title: `⏱️ Minor Delay: ${trainName} (#${trainNumber})`,
+        body: `Train is running 8 mins behind schedule. Expected arrival updated on PF radar.`,
+      });
+    }
+  }, [delayStatus, trainName, trainNumber, addNotification]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchInput.trim()) return;

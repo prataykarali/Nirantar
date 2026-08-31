@@ -107,6 +107,12 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'berths', termKey: 'BERTH_PREFERENCE' },
   { phrase: 'quota', termKey: 'GENERAL_QUOTA' },
   { phrase: 'quotas', termKey: 'GENERAL_QUOTA' },
+  { phrase: 'pf no', termKey: 'PLATFORM' },
+  { phrase: 'pf number', termKey: 'PLATFORM' },
+  { phrase: 'pf', termKey: 'PLATFORM' },
+  { phrase: 'plat', termKey: 'PLATFORM' },
+  { phrase: 'platform', termKey: 'PLATFORM' },
+  { phrase: 'platforms', termKey: 'PLATFORM' },
 ];
 
 // Sort longest phrase first so compound phrases match before single words

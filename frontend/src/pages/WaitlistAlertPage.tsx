@@ -1,25 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
   AlertTriangle,
   Sparkles,
-  Train,
   CheckCircle2,
   Zap,
-  MapPin,
-  Clock,
   ShieldCheck,
-  RefreshCw,
-  Info,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
-import {
-  isWaitlistSeatScattered,
-  getWaitlistScatteredVacancies,
-  parseWaitlistStatus,
-  ScatteredVacantSeat,
-} from '../utils/seatInventory';
+import { parseWaitlistStatus } from '../utils/seatInventory';
 import { getTrainStoppages } from '../data/trainStoppages';
 
 export const WaitlistAlertPage: React.FC = () => {
@@ -28,12 +18,7 @@ export const WaitlistAlertPage: React.FC = () => {
     selectedTrain,
     selectedClassCode,
     navigateTo,
-    requestMidJourneyReallocation,
-    activeReallocations,
   } = useJourney();
-
-  const [claimedSeats, setClaimedSeats] = useState<Record<number, boolean>>({});
-  const [claimingSeatNum, setClaimingSeatNum] = useState<number | null>(null);
 
   // Fallback train if loaded directly
   const train = selectedTrain || {
@@ -79,37 +64,6 @@ export const WaitlistAlertPage: React.FC = () => {
   const isLowSeats = typeof chosenClass.availableSeats === 'number' && chosenClass.availableSeats > 0 && chosenClass.availableSeats < 10;
 
   const parsedWl = parseWaitlistStatus(chosenClass.status);
-
-  // In waitlist, seats MAY scatter: check if scattered vacancies exist
-  const scatteredVacancies: ScatteredVacantSeat[] = useMemo(() => {
-    return getWaitlistScatteredVacancies(train.trainNumber, chosenClass.classCode, routeStations);
-  }, [train.trainNumber, chosenClass.classCode, routeStations]);
-
-  const hasScatteredSeats = scatteredVacancies.length > 0;
-
-  const handleClaimScatteredSeat = async (seat: ScatteredVacantSeat) => {
-    setClaimingSeatNum(seat.seatNumber);
-    try {
-      await requestMidJourneyReallocation({
-        trainNumber: train.trainNumber,
-        passengerName: 'Passenger 1',
-        fromCoach: seat.coachCode,
-        fromSeat: seat.seatNumber,
-        fromBerthType: seat.berthType,
-        toCoach: seat.coachCode,
-        toSeat: seat.seatNumber,
-        toBerthType: seat.berthType,
-        effectiveFromStation: seat.stationName,
-        effectiveFromStationCode: seat.stationCode,
-      });
-      setClaimedSeats((prev) => ({ ...prev, [seat.seatNumber]: true }));
-    } catch {
-      // Local fallback
-      setClaimedSeats((prev) => ({ ...prev, [seat.seatNumber]: true }));
-    } finally {
-      setClaimingSeatNum(null);
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-8 select-none font-sans text-slate-800 animate-in fade-in">
@@ -210,128 +164,74 @@ export const WaitlistAlertPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3. SCATTERED SEAT RADAR (ONLY SHOWN IF SEATS SCATTER)
+          3. WAITLIST QUEUE INTELLIGENCE & POST-BOOKING VACANT SEAT NOTICE
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-3xl p-5 border border-purple-100 shadow-sm space-y-3.5">
+      <div className="bg-white rounded-3xl p-5 border border-purple-100 shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+            <span className="p-1.5 rounded-lg bg-purple-100 text-purple-800">
               <Zap className="w-4 h-4" />
             </span>
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
-                Mid-Journey Scattered Seat Radar
+                Waitlist Clearance & Queue Analytics
               </h3>
               <p className="text-[11px] text-slate-500 font-medium">
-                Live sensor scanning for passengers deboarding at intermediate stations
+                AI telemetry analysis for {train.trainNumber} ({chosenClass.classCode})
               </p>
             </div>
           </div>
 
-          <span
-            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
-              hasScatteredSeats
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
-            }`}
-          >
-            {hasScatteredSeats ? '🟢 Scattered Berths Found' : '🔴 No Scatter Available'}
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase border bg-amber-50 text-amber-800 border-amber-300">
+            ⚡ {chosenClass.confirmationProbability || 78}% High Clearance Probability
           </span>
         </div>
 
-        {/* CONDITIONAL RENDERING: ONLY THEN SHOW VACANT SEAT & REQUEST, OTHERWISE DONT */}
-        {hasScatteredSeats ? (
-          <div className="space-y-3 pt-1">
-            <div className="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <span className="font-bold block">
-                  Good news! Intermediate station vacancies detected:
-                </span>
-                <span className="text-[11px] text-emerald-900 font-medium">
-                  Passengers on this train deboard mid-journey at intermediate stations. You can claim a scattered vacant berth for your travel segment at <strong>₹0 Extra Cost</strong>!
-                </span>
-              </div>
+        {/* 3 Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Queue Position</span>
+            <div className="text-sm sm:text-base font-black text-purple-950 font-mono">
+              {chosenClass.status}
             </div>
-
-            {/* Scattered Vacant Seat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {scatteredVacancies.map((vac) => {
-                const isClaimed = Boolean(claimedSeats[vac.seatNumber]);
-                const isClaiming = claimingSeatNum === vac.seatNumber;
-
-                return (
-                  <div
-                    key={vac.seatNumber}
-                    className={`p-4 rounded-2xl border-2 transition-all space-y-2.5 ${
-                      isClaimed
-                        ? 'bg-emerald-50/90 border-emerald-400 shadow-sm ring-2 ring-emerald-300'
-                        : 'bg-white border-emerald-200/90 hover:border-emerald-400 shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
-                        Coach {vac.coachCode}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase">
-                        🟢 VACANT
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-black text-sm text-slate-900">
-                        Seat #{vac.seatNumber} • {vac.berthType}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-purple-600" />
-                        <span>Vacant from <strong>{vac.stationName}</strong> ({vac.platform})</span>
-                      </p>
-                    </div>
-
-                    <div className="pt-1 border-t border-emerald-100 flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-emerald-700">₹0 Free Mid-Journey Claim</span>
-                      {isClaimed ? (
-                        <span className="px-3 py-1 rounded-xl bg-emerald-600 text-white font-bold text-[11px] flex items-center gap-1">
-                          ✓ Claim Requested
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={isClaiming}
-                          onClick={() => handleClaimScatteredSeat(vac)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-all hover:scale-102 cursor-pointer"
-                        >
-                          {isClaiming ? (
-                            <>
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                              <span>Requesting...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Zap className="w-3 h-3" />
-                              <span>Request Berth #{vac.seatNumber}</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          /* OTHERWISE DONT: NO VACANT SEATS OR REQUEST BUTTONS */
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1">
-            <div className="flex items-center gap-2 text-slate-800 font-bold">
-              <Info className="w-4 h-4 text-slate-500" />
-              <span>No Scattered Vacant Berths on this Service</span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium">
-              100% of booked passengers are travelling end-to-end to the destination station. No intermediate segment vacancies are currently available.
+            <p className="text-[10px] text-slate-500">
+              {parsedWl.statusType === 'RAC' ? 'Reserved Against Cancellation (Confirmed travel guarantee)' : 'General Waitlist Queue'}
             </p>
           </div>
-        )}
+
+          <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Clearance Velocity</span>
+            <div className="text-sm sm:text-base font-black text-emerald-900 font-mono">
+              ~4.2 Berths/Hr
+            </div>
+            <p className="text-[10px] text-emerald-700">
+              Strong historical cancellation movement before chart preparation
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">Statutory Protection</span>
+            <div className="text-sm sm:text-base font-black text-blue-950">
+              100% Full Refund
+            </div>
+            <p className="text-[10px] text-blue-700">
+              Automatic zero-clerkage refund if unconfirmed at chart preparation
+            </p>
+          </div>
+        </div>
+
+        {/* POST-BOOKING VACANT SEAT UNLOCK NOTICE */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-indigo-50/80 border border-emerald-200 text-xs text-emerald-950 space-y-1.5 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+            <strong className="text-emerald-950 font-bold text-xs sm:text-sm">
+              Mid-Journey Vacant Berths Unlocked After Booking
+            </strong>
+          </div>
+          <p className="text-[11px] text-emerald-900 leading-relaxed font-medium">
+            Vacant seats and mid-journey seat shifts are unlocked strictly <strong>after booking confirmation</strong>. Once your ticket is issued, your Live Radar will monitor intermediate stations where passengers deboard, allowing you to submit mid-journey shift requests to vacant berths at ₹0 extra cost.
+          </p>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════

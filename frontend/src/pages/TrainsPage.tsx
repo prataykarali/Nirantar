@@ -403,16 +403,21 @@ export const TrainsPage: React.FC = () => {
                 {/* MIDDLE ROW: TIMELINE SCHEDULE */}
                 <div className="grid grid-cols-3 items-center text-center sm:text-left gap-2 pt-0.5">
                   {/* Departure */}
-                  <div className="text-left">
+                  <div className="text-left space-y-0.5">
                     <span className="text-[10px] font-semibold text-slate-500 block truncate">
                       {train.fromStationName} ({train.fromStationCode})
                     </span>
                     <span className="text-base sm:text-lg font-bold text-slate-900 block leading-tight">
                       {train.departureTime}
                     </span>
-                    <span className="text-[10px] font-medium text-slate-400 block">
-                      24 May, Sat
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-medium text-slate-400">
+                        24 May, Sat
+                      </span>
+                      <span className="text-[9px] font-mono font-bold text-purple-700 bg-purple-50 border border-purple-200/70 px-1.5 py-0.2 rounded">
+                        PF 1
+                      </span>
+                    </div>
                   </div>
 
                   {/* Center Timeline Track */}
@@ -438,16 +443,21 @@ export const TrainsPage: React.FC = () => {
                   </div>
 
                   {/* Arrival */}
-                  <div className="text-right">
+                  <div className="text-right space-y-0.5">
                     <span className="text-[10px] font-semibold text-slate-500 block truncate">
                       {train.toStationName} ({train.toStationCode})
                     </span>
                     <span className="text-base sm:text-lg font-bold text-slate-900 block leading-tight">
                       {train.arrivalTime}
                     </span>
-                    <span className="text-[10px] font-medium text-slate-400 block">
-                      25 May, Sun
-                    </span>
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.2 rounded">
+                        PF {(Number.parseInt(train.trainNumber.slice(-1), 10) % 6) + 1}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-400">
+                        25 May, Sun
+                      </span>
+                    </div>
                   </div>
                 </div>
 

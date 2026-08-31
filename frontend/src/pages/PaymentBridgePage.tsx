@@ -19,6 +19,10 @@ import {
   Sparkles,
   ExternalLink,
   User,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Smartphone,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 
@@ -43,8 +47,33 @@ export const PaymentBridgePage: React.FC = () => {
   } = useJourney();
 
   const [activeTab, setActiveTab] = useState<PaymentTab>('upi');
+  const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim' | 'cred'>('gpay');
   const [upiId, setUpiId] = useState('pratay@okhdfcbank');
+  const [upiPin, setUpiPin] = useState('4829');
+  const [showUpiPin, setShowUpiPin] = useState(false);
+
+  // NetBanking state
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [netBankingUserId, setNetBankingUserId] = useState('849201948');
+  const [netBankingPassword, setNetBankingPassword] = useState('Nirantar@2026');
+  const [showNetBankingPassword, setShowNetBankingPassword] = useState(false);
+  const [netBankingOtp, setNetBankingOtp] = useState('849201');
+  const [showNetBankingOtp, setShowNetBankingOtp] = useState(false);
+
+  // Card state
+  const [cardNumber, setCardNumber] = useState('4532 9402 1849 8492');
+  const [cardExpiry, setCardExpiry] = useState('08/29');
+  const [cardCvv, setCardCvv] = useState('892');
+  const [cardHolder, setCardHolder] = useState('Pratay Karali');
+  const [cardPassword, setCardPassword] = useState('982');
+  const [showCardPassword, setShowCardPassword] = useState(false);
+
+  // Wallet state
+  const [selectedWallet, setSelectedWallet] = useState('Amazon Pay');
+  const [walletId, setWalletId] = useState('9876543210');
+  const [walletPin, setWalletPin] = useState('4829');
+  const [showWalletPin, setShowWalletPin] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
@@ -420,85 +449,122 @@ export const PaymentBridgePage: React.FC = () => {
 
           {/* 1. UPI TAB */}
           {activeTab === 'upi' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1 animate-in fade-in duration-200">
-              {/* Left QR Box */}
-              <div className="flex flex-col items-center text-center space-y-1.5 p-2 rounded-2xl bg-purple-50/30 border border-purple-100">
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">Scan & pay</h3>
-                  <p className="text-[10px] text-slate-500 font-medium">Scan any UPI QR to pay securely</p>
-                </div>
-
-                {/* QR Code Container with interactive hover */}
-                <div
-                  onClick={handlePay}
-                  className="w-36 h-36 bg-white rounded-2xl p-2.5 border border-purple-200 shadow-sm relative flex items-center justify-center cursor-pointer group hover:border-purple-600 transition-all"
-                  title="Click QR to simulate instant mobile scan"
-                >
-                  <div className="w-full h-full relative flex items-center justify-center">
-                    <QrCode className="w-full h-full text-slate-900 group-hover:scale-105 transition-transform" />
-                    <div className="absolute inset-0 m-auto w-7 h-7 bg-white rounded-lg p-0.5 shadow-md flex items-center justify-center border border-purple-100">
-                      <div className="w-5 h-4 bg-gradient-to-r from-orange-500 via-white to-emerald-500 rounded-sm" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Supported apps */}
-                <div className="space-y-0.5 pt-1">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Accepted on</span>
-                  <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-600">
-                    <span className="text-blue-600">G Pay</span>
-                    <span>•</span>
-                    <span className="text-purple-700">PhonePe</span>
-                    <span>•</span>
-                    <span className="text-sky-600">Paytm</span>
-                    <span>•</span>
-                    <span className="text-orange-600">BHIM</span>
-                  </div>
-                  <span className="text-[9px] text-slate-400">& more</span>
+            <div className="space-y-3.5 pt-1 animate-in fade-in duration-200">
+              {/* UPI Apps Row */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Choose UPI App / Interface</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {[
+                    { id: 'gpay', name: 'Google Pay', color: 'text-blue-600', border: 'border-blue-200', bg: 'bg-blue-50/50' },
+                    { id: 'phonepe', name: 'PhonePe', color: 'text-purple-700', border: 'border-purple-200', bg: 'bg-purple-50/50' },
+                    { id: 'paytm', name: 'Paytm UPI', color: 'text-sky-600', border: 'border-sky-200', bg: 'bg-sky-50/50' },
+                    { id: 'bhim', name: 'BHIM UPI', color: 'text-orange-600', border: 'border-orange-200', bg: 'bg-orange-50/50' },
+                    { id: 'cred', name: 'CRED UPI', color: 'text-slate-800', border: 'border-slate-300', bg: 'bg-slate-50' },
+                  ].map((app) => (
+                    <button
+                      key={app.id}
+                      type="button"
+                      onClick={() => setSelectedUpiApp(app.id as any)}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                        selectedUpiApp === app.id
+                          ? `${app.border} ${app.bg} ring-2 ring-purple-600 shadow-xs font-black text-purple-950`
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold'
+                      }`}
+                    >
+                      <Smartphone className={`w-4 h-4 ${app.color}`} />
+                      <span className="text-[11px] truncate">{app.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Right OR & Enter UPI ID */}
-              <div className="space-y-3">
-                <div className="text-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start pt-1">
+                {/* Left QR Box */}
+                <div className="flex flex-col items-center text-center space-y-1.5 p-3 rounded-2xl bg-purple-50/40 border border-purple-100">
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900">Scan & Pay via any UPI App</h3>
+                    <p className="text-[10px] text-slate-500 font-medium">Auto-detects payment on mobile</p>
+                  </div>
+
+                  {/* QR Code Container with interactive click */}
+                  <div
+                    onClick={handlePay}
+                    className="w-32 h-32 bg-white rounded-2xl p-2 border border-purple-200 shadow-sm relative flex items-center justify-center cursor-pointer group hover:border-purple-600 transition-all"
+                    title="Click QR to simulate instant mobile scan"
+                  >
+                    <div className="w-full h-full relative flex items-center justify-center">
+                      <QrCode className="w-full h-full text-slate-900 group-hover:scale-105 transition-transform" />
+                      <div className="absolute inset-0 m-auto w-6 h-6 bg-white rounded-lg p-0.5 shadow-md flex items-center justify-center border border-purple-100">
+                        <div className="w-4 h-3 bg-gradient-to-r from-orange-500 via-white to-emerald-500 rounded-sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-slate-500 font-medium">Click QR to simulate instant scan</span>
                 </div>
 
-                <form onSubmit={handlePay} className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Enter UPI ID
-                  </label>
-                  <input
-                    type="text"
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    placeholder="name@upi"
-                    className="w-full bg-purple-50/40 border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
-                    required
-                  />
+                {/* Right UPI ID & Secret MPIN Password Entry */}
+                <form onSubmit={handlePay} className="space-y-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Enter UPI ID / VPA
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        placeholder="username@okhdfcbank"
+                        className="w-full bg-purple-50/40 border border-purple-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white"
+                        required
+                      />
+                      <span className="absolute right-2.5 top-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Verified ✓
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Secret UPI PIN / Password Entry Field */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Secret 4/6-Digit UPI PIN
+                      </label>
+                      <span className="text-[10px] text-purple-700 font-bold">256-Bit Encrypted</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showUpiPin ? 'text' : 'password'}
+                        value={upiPin}
+                        onChange={(e) => setUpiPin(e.target.value)}
+                        placeholder="••••"
+                        maxLength={6}
+                        className="w-full bg-purple-50/40 border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowUpiPin(!showUpiPin)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                        title={showUpiPin ? 'Hide PIN' : 'Show PIN'}
+                      >
+                        {showUpiPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Never share your UPI PIN or bank OTP with anyone.
+                    </p>
+                  </div>
 
                   <button
                     type="submit"
                     disabled={isProcessing}
-                    className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Lock className="w-3.5 h-3.5" />
-                    <span>{isProcessing ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                    <span>{isProcessing ? 'Authorizing UPI...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} via UPI`}</span>
                   </button>
                 </form>
-
-                {/* 100% Secure badge */}
-                <div className="bg-emerald-50/80 rounded-xl p-2 px-2.5 border border-emerald-200 flex items-center gap-2 text-xs">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <div className="space-y-0.2">
-                    <span className="font-bold text-emerald-950 block text-[11px]">
-                      100% secure payments
-                    </span>
-                    <span className="text-[10px] text-emerald-800 font-medium">
-                      Your data is safe with us
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -506,44 +572,75 @@ export const PaymentBridgePage: React.FC = () => {
           {/* 2. CARDS TAB */}
           {activeTab === 'cards' && (
             <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-              <div className="p-3 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2">
+              <div className="p-3 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Card Number</label>
                   <input
                     type="text"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
                     placeholder="4532 •••• •••• 8492"
-                    defaultValue="4532 9402 1849 8492"
-                    className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                    className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Expiry Date</label>
                     <input
                       type="text"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
                       placeholder="MM/YY"
-                      defaultValue="08/29"
-                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">CVV</label>
                     <input
                       type="password"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value)}
                       placeholder="•••"
-                      defaultValue="892"
                       maxLength={4}
-                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
                     />
                   </div>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Cardholder Name</label>
                   <input
                     type="text"
-                    defaultValue="Pratay Karali"
+                    value={cardHolder}
+                    onChange={(e) => setCardHolder(e.target.value)}
+                    placeholder="Full Name on Card"
                     className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600"
                   />
+                </div>
+
+                {/* 3D-Secure Card Password / Bank OTP */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">3D-Secure 2FA Card Password / OTP</label>
+                    <span className="text-[10px] text-purple-700 font-bold">RuPay / Visa Secure</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showCardPassword ? 'text' : 'password'}
+                      value={cardPassword}
+                      onChange={(e) => setCardPassword(e.target.value)}
+                      placeholder="Enter 3D-Secure Password or OTP"
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-slate-900 focus:outline-none focus:border-purple-600 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCardPassword(!showCardPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      {showCardPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -554,7 +651,7 @@ export const PaymentBridgePage: React.FC = () => {
                 className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>{isProcessing ? 'Authorizing Card...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                <span>{isProcessing ? 'Authorizing Card...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} with Card`}</span>
               </button>
             </div>
           )}
@@ -568,25 +665,87 @@ export const PaymentBridgePage: React.FC = () => {
                   {selectedBank} Selected
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Kotak Mahindra'].map((b) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Kotak Mahindra', 'Bank of Baroda', 'Canara Bank'].map((b) => (
                   <button
                     key={b}
                     type="button"
-                    onClick={() => {
-                      setSelectedBank(b);
-                      handlePayWithBank(b);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs flex items-center justify-between ${
+                    onClick={() => setSelectedBank(b)}
+                    className={`p-2 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs flex items-center justify-between ${
                       selectedBank === b
                         ? 'bg-purple-50 border-purple-600 text-purple-950 ring-1 ring-purple-600 shadow-xs'
                         : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <span>{b}</span>
-                    <span className="text-[10px] text-purple-600 font-bold">➔</span>
+                    <span className="truncate">{b}</span>
+                    <span className="text-[10px] text-purple-600 font-bold ml-1">✓</span>
                   </button>
                 ))}
+              </div>
+
+              {/* NetBanking Credentials Form */}
+              <div className="p-3.5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {selectedBank} Customer ID / User ID
+                  </label>
+                  <input
+                    type="text"
+                    value={netBankingUserId}
+                    onChange={(e) => setNetBankingUserId(e.target.value)}
+                    placeholder="Customer / User ID"
+                    className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700">NetBanking Password</label>
+                      <span className="text-[10px] text-purple-700 font-semibold">Login Secret</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showNetBankingPassword ? 'text' : 'password'}
+                        value={netBankingPassword}
+                        onChange={(e) => setNetBankingPassword(e.target.value)}
+                        placeholder="Enter NetBanking Password"
+                        className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600 pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNetBankingPassword(!showNetBankingPassword)}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showNetBankingPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700">Transaction Password / OTP</label>
+                      <span className="text-[10px] text-purple-700 font-semibold">2FA Security</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showNetBankingOtp ? 'text' : 'password'}
+                        value={netBankingOtp}
+                        onChange={(e) => setNetBankingOtp(e.target.value)}
+                        placeholder="6-Digit OTP / PIN"
+                        maxLength={6}
+                        className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600 pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNetBankingOtp(!showNetBankingOtp)}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showNetBankingOtp ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -634,22 +793,76 @@ export const PaymentBridgePage: React.FC = () => {
                   className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>{isProcessing ? 'Processing Wallet Payment...' : `1-Click Pay ₹${totalAmount.toLocaleString('en-IN')} from Wallet ➔`}</span>
+                  <span>{isProcessing ? 'Processing Wallet Payment...' : `1-Click Pay ₹${totalAmount.toLocaleString('en-IN')} from Citizen Wallet ➔`}</span>
                 </button>
               </div>
 
-              {/* Other Wallets */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {['Amazon Pay (₹4,200)', 'Paytm Wallet', 'PhonePe Wallet', 'MobiKwik'].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={handlePay}
-                    className="p-2.5 rounded-xl border border-slate-200 text-slate-700 text-left font-semibold transition-all hover:bg-slate-50 cursor-pointer"
-                  >
-                    {w}
-                  </button>
-                ))}
+              {/* External Wallets with PIN input */}
+              <div className="p-3.5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-2.5">
+                <label className="block text-xs font-bold text-slate-700">Or Pay via External Wallet</label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {['Amazon Pay', 'Paytm Wallet', 'PhonePe Wallet', 'MobiKwik'].map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setSelectedWallet(w)}
+                      className={`p-2 rounded-xl border text-left font-bold transition-all cursor-pointer text-xs ${
+                        selectedWallet === w
+                          ? 'bg-purple-50 border-purple-600 text-purple-950 ring-1 ring-purple-600 shadow-2xs'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Registered Mobile / ID</label>
+                    <input
+                      type="text"
+                      value={walletId}
+                      onChange={(e) => setWalletId(e.target.value)}
+                      placeholder="9876543210"
+                      className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-slate-600">Wallet Security PIN</label>
+                      <span className="text-[10px] text-purple-700 font-semibold">Auth PIN</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showWalletPin ? 'text' : 'password'}
+                        value={walletPin}
+                        onChange={(e) => setWalletPin(e.target.value)}
+                        placeholder="••••"
+                        maxLength={6}
+                        className="w-full bg-white border border-purple-100 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600 pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowWalletPin(!showWalletPin)}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showWalletPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={isProcessing}
+                  className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{isProcessing ? 'Authorizing Wallet...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} with ${selectedWallet}`}</span>
+                </button>
               </div>
             </div>
           )}

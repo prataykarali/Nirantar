@@ -15,6 +15,9 @@ import {
   Smartphone,
   Check,
   Sparkles,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
 import { useJourney } from '../../context/JourneyContext';
 
@@ -81,6 +84,9 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim'>('gpay');
   const [upiVpa, setUpiVpa] = useState('pratay.karali@okhdfcbank');
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [netBankingUserId, setNetBankingUserId] = useState('849201948');
+  const [netBankingPassword, setNetBankingPassword] = useState('Nirantar@2026');
+  const [showNetBankingPassword, setShowNetBankingPassword] = useState(false);
   const [pinDigits, setPinDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [activePinIndex, setActivePinIndex] = useState<number>(0);
   const [pinError, setPinError] = useState<string | null>(null);
@@ -585,6 +591,57 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 </div>
               </div>
 
+              {/* NetBanking Credentials Card if NetBanking */}
+              {activeTab === 'netbanking' && (
+                <div className="p-3 rounded-2xl bg-white border border-purple-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-0.5">User / Customer ID</label>
+                    <input
+                      type="text"
+                      value={netBankingUserId}
+                      onChange={(e) => setNetBankingUserId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-purple-50/50 border border-purple-200 text-xs font-mono font-bold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="block text-[11px] font-bold text-slate-600">NetBanking Password</label>
+                      <span className="text-[9px] text-purple-700 font-semibold">Bank Secret</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showNetBankingPassword ? 'text' : 'password'}
+                        value={netBankingPassword}
+                        onChange={(e) => setNetBankingPassword(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-xl bg-purple-50/50 border border-purple-200 text-xs font-mono font-bold text-slate-900 pr-8"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNetBankingPassword(!showNetBankingPassword)}
+                        className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showNetBankingPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* UPI App Banner if UPI */}
+              {activeTab === 'upi' && (
+                <div className="p-2.5 rounded-2xl bg-white border border-purple-100 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-purple-700" />
+                    <span className="font-bold text-slate-800">
+                      Authorizing on <span className="text-purple-900 font-extrabold">{selectedUpiApp.toUpperCase()}</span>
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] font-bold text-slate-500 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                    {upiVpa}
+                  </span>
+                </div>
+              )}
+
               {/* Input Instruction Banner */}
               <div className="bg-purple-100/60 p-3 rounded-2xl border border-purple-200/80 space-y-1 text-center">
                 <p className="text-xs font-black text-purple-950">
@@ -592,14 +649,14 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                     ? 'Enter 4 or 6-Digit UPI PIN'
                     : activeTab === 'cards'
                     ? 'Enter 6-Digit Card 3D-Secure OTP'
-                    : `Enter 6-Digit ${selectedBankName || selectedBank} NetBanking PIN / OTP`}
+                    : `Enter 6-Digit ${selectedBankName || selectedBank} High Security Transaction OTP / PIN`}
                 </p>
                 <p className="text-[11px] text-purple-800 font-medium">
                   {activeTab === 'upi'
                     ? 'Please enter your secret UPI PIN to authorize payment to Indian Railways (IRCTC).'
                     : activeTab === 'cards'
                     ? 'Please enter the 3D-Secure OTP sent to your card-registered mobile number +91 ••••••3210.'
-                    : `Please enter your ${selectedBankName || selectedBank} NetBanking authorization PIN or OTP sent to +91 ••••••3210.`}
+                    : `Please enter the 6-digit transaction PIN / OTP sent to your ${selectedBankName || selectedBank} registered phone +91 ••••••3210.`}
                 </p>
               </div>
 
