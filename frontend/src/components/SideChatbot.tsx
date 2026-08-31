@@ -15,6 +15,7 @@ import {
 import { sendCitizenQuery } from '../services/api';
 import { apiSearchTrains } from '../services/journeyApi';
 import { searchTrains as localSearchTrains } from '../data/mockTrains';
+import { findStation } from '../data/stationData';
 import { TrainCard } from './TrainCard';
 import { deterministicNiraReply } from '../services/niraRules';
 
@@ -174,8 +175,22 @@ export const SideChatbot: React.FC<SideChatbotProps> = ({
           }));
         } else {
           // Dynamic train query matching user route
-          const srcCode = qLower.includes('kolkata') || qLower.includes('howrah') ? 'HWH' : 'NDLS';
-          const dstCode = qLower.includes('mumbai') ? 'MMCT' : qLower.includes('kolkata') ? 'HWH' : 'NDLS';
+          const routeMatch = userText.match(/(?:from\s+)?([a-zA-Z\s]+?)\s+(?:to|->|towards|–|-)\s+([a-zA-Z\s]+?)(?:\s+(?:on|tomorrow|today|next|for|in|\d)|\b|$)/i);
+          let parsedSrc = routeMatch ? findStation(routeMatch[1].trim()) : null;
+          let parsedDst = routeMatch ? findStation(routeMatch[2].trim()) : null;
+          if (!parsedSrc || !parsedDst) {
+            const words = userText.split(/[\s,]+/);
+            for (const w of words) {
+              if (w.length < 3) continue;
+              const st = findStation(w);
+              if (st) {
+                if (!parsedSrc) parsedSrc = st;
+                else if (!parsedDst && parsedSrc.code !== st.code) parsedDst = st;
+              }
+            }
+          }
+          const srcCode = parsedSrc ? parsedSrc.code : (qLower.includes('kolkata') ? 'HWH' : 'NDLS');
+          const dstCode = parsedDst ? parsedDst.code : (qLower.includes('mumbai') ? 'MMCT' : qLower.includes('kolkata') ? 'HWH' : 'NDLS');
           let realTrains: any[] = [];
           try {
             const apiRes = await apiSearchTrains(srcCode, dstCode);
