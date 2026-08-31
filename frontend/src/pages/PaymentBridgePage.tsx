@@ -353,7 +353,7 @@ export const PaymentBridgePage: React.FC = () => {
             </span>
           </div>
 
-          {/* Virtual Citizen Wallet Highlight Card (₹10,000 New User Credit) */}
+          {/* Virtual Citizen Wallet Highlight Card (₹10,000 New User Credit - ONLY 1-CLICK AUTO PAY) */}
           <div id="citizen-wallet-card" className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-950 text-white shadow-md border border-purple-400/30 space-y-2.5 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -361,9 +361,14 @@ export const PaymentBridgePage: React.FC = () => {
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-xs block leading-tight">
-                    Nirantar Citizen Virtual Wallet
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs block leading-tight">
+                      Nirantar Citizen Virtual Wallet
+                    </span>
+                    <span className="text-[9px] font-bold text-emerald-300 bg-emerald-500/20 px-1.5 py-0.2 rounded border border-emerald-400/30">
+                      ⚡ 1-Click Auto Pay
+                    </span>
+                  </div>
                   <span className="text-[10px] text-purple-200">
                     Active Balance: <strong className="text-emerald-300 font-mono text-xs">₹{walletBalance.toLocaleString('en-IN')}.00</strong>
                   </span>
@@ -381,15 +386,18 @@ export const PaymentBridgePage: React.FC = () => {
               <button
                 type="button"
                 onClick={handlePayWithWallet}
-                className="py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs font-black shadow-sm transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs font-black shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <span>Pay with Wallet ➔</span>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>1-Click Auto Pay ➔</span>
               </button>
             </div>
           </div>
 
           <div className="text-center">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">OR PAY VIA UPI / CARDS / NET BANKING</span>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
+              OR PAY VIA STANDARD GATEWAYS (REQUIRES 2FA PIN / PASSWORD VERIFICATION)
+            </span>
           </div>
 
           {/* 4 Payment Method Tabs */}
@@ -562,7 +570,7 @@ export const PaymentBridgePage: React.FC = () => {
                     className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Lock className="w-3.5 h-3.5" />
-                    <span>{isProcessing ? 'Authorizing UPI...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} via UPI`}</span>
+                    <span>{isProcessing ? 'Authorizing UPI...' : `Authorize & Pay ₹${totalAmount.toLocaleString('en-IN')} via UPI (NPCI 2FA)`}</span>
                   </button>
                 </form>
               </div>
@@ -651,7 +659,7 @@ export const PaymentBridgePage: React.FC = () => {
                 className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>{isProcessing ? 'Authorizing Card...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} with Card`}</span>
+                <span>{isProcessing ? 'Authorizing Card...' : `Authorize & Pay ₹${totalAmount.toLocaleString('en-IN')} with Card (3D-Secure 2FA)`}</span>
               </button>
             </div>
           )}
@@ -755,7 +763,7 @@ export const PaymentBridgePage: React.FC = () => {
                 className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{isProcessing ? 'Authorizing NetBanking...' : `Pay ₹${totalAmount.toLocaleString('en-IN')} with ${selectedBank}`}</span>
+                <span>{isProcessing ? 'Authorizing NetBanking...' : `Authorize & Pay ₹${totalAmount.toLocaleString('en-IN')} with ${selectedBank} (2FA)`}</span>
               </button>
             </div>
           )}
