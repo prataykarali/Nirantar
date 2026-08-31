@@ -208,27 +208,37 @@ export function allocatePassengerSeats(
     const coachList = classCoachesMap[cls] || ['B4'];
     const maxCapacity = classCapacities[cls] || 64;
     
-    // Choose coach deterministically based on seed or random
+    // Choose default coach deterministically based on seed or random
     const seedVal = bookingSeed ? hash(`${bookingSeed}:${cls}:${trainNumber}`) : (Date.now() ^ Math.floor(Math.random() * 100000));
-    const coachCode = coachList[Math.abs(seedVal) % coachList.length];
+    const defaultCoachCode = coachList[Math.abs(seedVal) % coachList.length];
     
     // Fetch persistently occupied seats on this train coach
-    const occupiedSeats = new Set(getOccupiedSeatsForTrain(trainNumber, coachCode));
+    const occupiedSeats = new Set(getOccupiedSeatsForTrain(trainNumber, defaultCoachCode));
 
     // Starting search position
     let candidateSeat = 1 + (Math.abs(seedVal >> 3) % Math.max(1, maxCapacity - group.length - 2));
 
     group.forEach(({ p, idx }) => {
+      // Respect personal choiced coach if provided
+      const pCoachPref = (p as any).coachPreference || (p as any).coachCode || (p as any).coach;
+      const passengerCoachCode = (pCoachPref && typeof pCoachPref === 'string' && pCoachPref.trim())
+        ? pCoachPref.trim().toUpperCase()
+        : defaultCoachCode;
+
+      const coachOccupied = passengerCoachCode === defaultCoachCode
+        ? occupiedSeats
+        : new Set(getOccupiedSeatsForTrain(trainNumber, passengerCoachCode));
+
       // Find the next available seat that is NOT already occupied in persistent store or in this run
       while (
-        occupiedSeats.has(candidateSeat) ||
-        newlyAllocatedInThisRun.has(`${trainNumber}:${coachCode}:${candidateSeat}`)
+        coachOccupied.has(candidateSeat) ||
+        newlyAllocatedInThisRun.has(`${trainNumber}:${passengerCoachCode}:${candidateSeat}`)
       ) {
         candidateSeat = (candidateSeat % maxCapacity) + 1;
       }
 
       const assignedSeatNumber = candidateSeat;
-      newlyAllocatedInThisRun.add(`${trainNumber}:${coachCode}:${assignedSeatNumber}`);
+      newlyAllocatedInThisRun.add(`${trainNumber}:${passengerCoachCode}:${assignedSeatNumber}`);
       candidateSeat = (candidateSeat % maxCapacity) + 1;
       
       // Compute authentic berth type based on seat number and class
@@ -263,8 +273,8 @@ export function allocatePassengerSeats(
         passengerId: p.id || `p_${idx + 1}`,
         passengerName: p.name || `Passenger ${idx + 1}`,
         classCode: cls,
-        coachCode,
-        coachLabel: `${coachCode} (${cls})`,
+        coachCode: passengerCoachCode,
+        coachLabel: `${passengerCoachCode} (${cls})`,
         seatNumber: assignedSeatNumber,
         berthType: finalBerth,
       };
@@ -1057,15 +1067,54 @@ export function getWaitlistScatteredVacancies(
 /**
  * Builds realistic rectangular segment bays/coupes with live vacancy tracking (NO stranger names).
  */
+/**
+ * Checks if a passenger's allocated coach matches the coach/class currently being viewed.
+ */
+export function isCoachMatch(
+  passengerCoach?: string,
+  viewingCoach?: string,
+  viewingClass?: string
+): boolean {
+  if (!passengerCoach) return true;
+  const pCoach = passengerCoach.trim().toUpperCase();
+  const vCoach = viewingCoach?.trim().toUpperCase();
+  const vClass = viewingClass?.trim().toUpperCase();
+
+  // 1. Direct coach code exact match (e.g. "S2" === "S2", "B4" === "B4")
+  if (vCoach && pCoach === vCoach) return true;
+
+  // 2. If viewing a specific coach code with a number (e.g. "S2", "S3", "B1", "B4")
+  // and passenger is in a different numbered coach (e.g. "S3" vs "S2"), DO NOT MATCH!
+  if (vCoach && /\d/.test(vCoach) && /\d/.test(pCoach)) {
+    return pCoach === vCoach;
+  }
+
+  // 3. Match against classCode (e.g. "SL", "3A", "2A", "1A")
+  if (vClass) {
+    if (pCoach === vClass) return true;
+    if (vClass === 'SL' && (pCoach.startsWith('S') || pCoach.includes('SL') || pCoach.includes('SLEEPER'))) return true;
+    if (vClass === '3A' && (pCoach.startsWith('B') || pCoach.includes('3A') || pCoach.includes('3 TIER'))) return true;
+    if (vClass === '2A' && (pCoach.startsWith('A') || pCoach.includes('2A') || pCoach.includes('2 TIER'))) return true;
+    if (vClass === '1A' && (pCoach.startsWith('H') || pCoach.includes('1A') || pCoach.includes('1ST'))) return true;
+    if (vClass === '3E' && (pCoach.startsWith('M') || pCoach.includes('3E') || pCoach.includes('ECONOMY'))) return true;
+    if (vClass === 'CC' && (pCoach.startsWith('C') || pCoach.includes('CC') || pCoach.includes('CHAIR'))) return true;
+    if (vClass === 'EC' && (pCoach.startsWith('E') || pCoach.includes('EC') || pCoach.includes('EXECUTIVE'))) return true;
+    if (vClass === '2S' && (pCoach.startsWith('D') || pCoach.includes('2S') || pCoach.includes('SECOND'))) return true;
+  }
+
+  return false;
+}
+
 export function getCoachSegmentBays(
   classCode: string,
   currentStationIndex = 0,
   routeStations: StationStop[] = [],
-  userBookedSeats: Array<{ seatNumber: number; passengerName?: string; berthType?: string }> = [],
+  userBookedSeats: Array<{ seatNumber: number; passengerName?: string; berthType?: string; coachCode?: string }> = [],
   activeReallocations: MidJourneyReallocation[] = [],
   segmentCount = 8,
   trainNumber?: string,
-  isWaitlisted?: boolean
+  isWaitlisted?: boolean,
+  viewingCoachCode?: string
 ): CoachBay[] {
   const bays: CoachBay[] = [];
   const defaultRoute = routeStations.length > 0 ? routeStations : [
@@ -1077,7 +1126,17 @@ export function getCoachSegmentBays(
     { code: 'MMCT', name: 'Mumbai Central', platform: 'Pf 3', distanceKm: 1386, scheduledArr: '08:35', scheduledDep: '08:35', haltMins: 0 },
   ];
 
-  const userSeatNums = userBookedSeats.map((s) => s.seatNumber);
+  // User seats specifically inside THIS viewed coach
+  const userSeatsInThisCoach = userBookedSeats.filter((s) =>
+    isCoachMatch(s.coachCode, viewingCoachCode, classCode)
+  );
+  const userSeatNumsInThisCoach = userSeatsInThisCoach.map((s) => s.seatNumber);
+
+  // Active reallocations specifically inside THIS viewed coach
+  const reallocsInThisCoach = activeReallocations.filter((r) =>
+    isCoachMatch(r.toCoach, viewingCoachCode, classCode)
+  );
+
   const totalStoppages = defaultRoute.length;
 
   // Determine whether this train suffers from waitlist
@@ -1088,8 +1147,8 @@ export function getCoachSegmentBays(
 
   // Helper to construct a single berth
   const buildBerth = (seatNum: number, typeCode: string, fullType: string, bayIdx: number): SegmentBerth => {
-    // Check if reallocated / requested by user
-    const reallocatedItem = activeReallocations.find((r) => r.toSeat === seatNum);
+    // Check if reallocated / requested by user in THIS coach
+    const reallocatedItem = reallocsInThisCoach.find((r) => r.toSeat === seatNum);
     if (reallocatedItem) {
       return {
         num: seatNum,
@@ -1101,8 +1160,8 @@ export function getCoachSegmentBays(
       };
     }
 
-    // Check if user booked seat
-    const userSeat = userBookedSeats.find((s) => s.seatNumber === seatNum);
+    // Check if user booked seat in THIS coach
+    const userSeat = userSeatsInThisCoach.find((s) => s.seatNumber === seatNum);
     if (userSeat) {
       return {
         num: seatNum,
@@ -1165,10 +1224,10 @@ export function getCoachSegmentBays(
     // If seat was unbooked from origin OR current station has reached or passed deboarding station, seat is VACANT!
     const isDeboarded = isInitiallyVacant || currentStationIndex >= deboardStnIndex;
 
-    // Check if this berth is right beside the user's seat in the bay
-    const isBeside = userSeatNums.some((uNum) => {
+    // Check if this berth is right beside the user's seat in the bay (in this coach only)
+    const isBeside = userSeatNumsInThisCoach.some((uNum) => {
       const diff = Math.abs(uNum - seatNum);
-      return diff <= 2;
+      return diff <= 2 && diff > 0;
     });
 
     if (isDeboarded) {

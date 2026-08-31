@@ -15,6 +15,7 @@ import {
   getRepresentativeCoaches,
   getCoachSegmentBays,
   liveSeatInventory,
+  isCoachMatch,
   RepresentativeCoachInfo,
   CoachBay,
   SegmentBerth,
@@ -47,15 +48,29 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
   const { activeReallocations, requestMidJourneyReallocation, navigateTo } = useJourney();
 
   // Representative coaches: 1 of each of 1A, 2A, 3A (and SL if present)
+  // If user booked a specific coach (e.g. S3 or B2), represent that class with their booked coach!
   const representativeCoaches = useMemo(() => {
-    return getRepresentativeCoaches(trainNumber, availableClasses);
-  }, [trainNumber, availableClasses]);
+    const defaultReps = getRepresentativeCoaches(trainNumber, availableClasses);
+    return defaultReps.map((rep) => {
+      const userSeatInThisClass = userBookedSeats.find((s) =>
+        isCoachMatch(s.coachCode, undefined, rep.classCode) && s.coachCode && /\d/.test(s.coachCode)
+      );
+      if (userSeatInThisClass && userSeatInThisClass.coachCode) {
+        return {
+          ...rep,
+          representativeCode: userSeatInThisClass.coachCode,
+          label: `${userSeatInThisClass.coachCode} (${rep.classCode})`,
+        };
+      }
+      return rep;
+    });
+  }, [trainNumber, availableClasses, userBookedSeats]);
 
   // Selected coach class type
   const [selectedClassCode, setSelectedClassCode] = useState<string>(() => {
     if (userBookedSeats.length > 0 && userBookedSeats[0].coachCode) {
       const match = representativeCoaches.find((c) =>
-        userBookedSeats[0].coachCode?.includes(c.classCode) || userBookedSeats[0].coachCode?.startsWith(c.representativeCode[0])
+        isCoachMatch(userBookedSeats[0].coachCode, c.representativeCode, c.classCode)
       );
       if (match) return match.classCode;
     }
@@ -66,7 +81,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
   useEffect(() => {
     if (userBookedSeats.length > 0 && userBookedSeats[0].coachCode && isUserBookedTrain) {
       const match = representativeCoaches.find((c) =>
-        userBookedSeats[0].coachCode?.includes(c.classCode) || userBookedSeats[0].coachCode?.startsWith(c.representativeCode[0])
+        isCoachMatch(userBookedSeats[0].coachCode, c.representativeCode, c.classCode)
       );
       if (match) {
         setSelectedClassCode(match.classCode);
@@ -99,7 +114,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
     return inv.status === 'WL' || inv.waitlist > 0 || !!hasClassWl;
   }, [isWaitlistedProp, trainNumber, selectedClassCode, availableClasses]);
 
-  // Generate all segment bays for selected coach class (8 bays for 3A to show all 64 berths including user seats #36 & #37)
+  // Generate all segment bays for selected coach class (8 bays for 3A to show all 64 berths)
   const bays: CoachBay[] = useMemo(() => {
     const totalSegments =
       selectedClassCode === '1A'
@@ -124,9 +139,10 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
       activeReallocations,
       totalSegments,
       trainNumber,
-      effectiveIsWaitlisted
+      effectiveIsWaitlisted,
+      selectedCoachMeta.representativeCode
     );
-  }, [selectedClassCode, selectedStationIndex, routeStations, userBookedSeats, activeReallocations, trainNumber, effectiveIsWaitlisted]);
+  }, [selectedClassCode, selectedStationIndex, routeStations, userBookedSeats, activeReallocations, trainNumber, effectiveIsWaitlisted, selectedCoachMeta.representativeCode]);
 
   // Current station object
   const activeStation = routeStations[selectedStationIndex] || routeStations[0] || {
@@ -135,7 +151,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
     platform: 'Pf 14',
   };
 
-  // Find user's bay and the berth beside them
+  // Find user's bay and the berth beside them (only inside this specific coach)
   const besideStatus = useMemo(() => {
     if (!isUserBookedTrain) return null;
     for (const bay of bays) {
@@ -212,7 +228,12 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {representativeCoaches.map((c) => {
             const isSelected = selectedClassCode === c.classCode;
-            const hasUserInClass = isUserBookedTrain && userBookedSeats.some((s) => s.coachCode?.includes(c.classCode) || s.coachCode?.startsWith(c.representativeCode[0]));
+            const hasUserInClass = isUserBookedTrain && userBookedSeats.some((s) =>
+              isCoachMatch(s.coachCode, c.representativeCode, c.classCode)
+            );
+            const userSeatsCount = userBookedSeats.filter((s) =>
+              isCoachMatch(s.coachCode, c.representativeCode, c.classCode)
+            ).length;
 
             return (
               <button
@@ -236,7 +257,7 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                     </span>
                     {hasUserInClass ? (
                       <span className="px-2 py-0.5 rounded-full bg-amber-400 text-[10px] text-slate-950 font-black animate-pulse">
-                        ★ Your Coach
+                        ★ Your Coach ({userSeatsCount} {userSeatsCount === 1 ? 'Berth' : 'Berths'})
                       </span>
                     ) : (
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -586,12 +607,17 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                 </p>
               </div>
 
-              {isUserBookedTrain && userBookedSeats.length > 0 && (() => {
-                const firstSeatNum = userBookedSeats[0]?.seatNumber || 1;
+              {isUserBookedTrain && (() => {
+                const userSeatsInThisCoach = userBookedSeats.filter((s) =>
+                  isCoachMatch(s.coachCode, selectedCoachMeta.representativeCode, selectedCoachMeta.classCode)
+                );
+                if (userSeatsInThisCoach.length === 0) return null;
+
+                const firstSeatNum = userSeatsInThisCoach[0].seatNumber;
                 // 3A/SL = 8 berths per bay, 2A = 6, 1A = varies
                 const berthsPerBay = selectedCoachMeta.classCode === '2A' ? 6 : selectedCoachMeta.classCode === '1A' ? 4 : 8;
                 const userBayIdx = Math.ceil(firstSeatNum / berthsPerBay);
-                const seatLabel = userBookedSeats.map((s) => `#${s.seatNumber}`).join(' & ');
+                const seatLabel = userSeatsInThisCoach.map((s) => `#${s.seatNumber}`).join(' & ');
                 return (
                   <div className="flex items-center gap-2">
                     <button
