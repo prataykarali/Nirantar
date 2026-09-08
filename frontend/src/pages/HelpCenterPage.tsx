@@ -23,6 +23,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import { SectionExplainerButton } from '../components/SectionExplainer';
 
 interface FAQItem {
   question: string;
@@ -167,9 +168,29 @@ export const HelpCenterPage: React.FC<{ onOpenNiraChat?: () => void }> = ({ onOp
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 text-center md:text-left max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-bold backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-              <span>Nirantar Knowledge & AI Support</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-bold backdrop-blur-md">
+                <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                <span>Nirantar Knowledge & AI Support</span>
+              </div>
+              <SectionExplainerButton
+                sectionId="help-center-knowledge"
+                title="Help Center & AI Railway Copilot"
+                subtitle="Interactive Guides, IRCTC Rules & FAQs"
+                badge="Nira AI Guide"
+                description="Get plain-English explanations for complex railway rules, refund escalations, and live travel support powered by Nira AI."
+                howItWorks={[
+                  'Categorized Knowledge Base: Covers booking quotas, Tatkal timings, RAC split, and GPS tracking.',
+                  '1-Tap AI Chat: Connects directly with Nira Copilot for contextual issue resolution.',
+                  'Priority SOS Escalation: Instant 139 railway helpline dialing and RailMadad grievance logging.'
+                ]}
+                userActions={[
+                  'Search any question in the search bar (e.g. "How does RAC work?")',
+                  'Click any topic pill to filter relevant guides',
+                  'Tap "Ask Nira AI" to start an interactive chat session'
+                ]}
+                actionTip="Type your question or click any category to find instant answers!"
+              />
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
               How can we assist your journey today?

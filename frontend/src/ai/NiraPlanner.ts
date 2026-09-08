@@ -333,14 +333,14 @@ export class NiraPlanner {
       };
     }
 
-    // ── 11. DETERMINISTIC KNOWLEDGE BASE QUERY ANSWERING (Zero-LLM) ──
+    // ── 11. PASS GENERAL / KNOWLEDGE / RAILWAY QUERIES TO NVIDIA NIM LLM ──
     const deterministicReply = deterministicNiraReply(cleanQuery);
     return {
       intent: 'GENERAL_HELP',
       message: deterministicReply,
       actionCue: { type: 'NONE', requiresConfirmation: false },
-      shouldPassToLlm: false,
-      source: 'SAFE_ASSIST_DETERMINISTIC',
+      shouldPassToLlm: true,
+      source: 'LLM_NVIDIA',
     };
   }
 

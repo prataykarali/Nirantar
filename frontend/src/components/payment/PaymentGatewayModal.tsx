@@ -46,7 +46,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setCurrentStep('PROCESSING');
     setProcessingStatus('Debiting from Nirantar Citizen Virtual Wallet...');
     setProcessingStage(2);
-    setTimeout(async () => {
+    try {
       const res = await payWithWallet(amount);
       if (res && (res.state === 'BOOKING_CONFIRMED' || res.state === 'SUCCESS')) {
         setCurrentStep('SUCCESS');
@@ -57,7 +57,9 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
       } else {
         setCurrentStep('FAILED');
       }
-    }, 600);
+    } catch {
+      setCurrentStep('FAILED');
+    }
   };
 
   const getShuffledKeypad = () => {
@@ -95,19 +97,22 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [processingStage, setProcessingStage] = useState<number>(1);
   const [keypadDigits, setKeypadDigits] = useState<string[]>(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
 
-  // Reset step and PIN on open - pop up Bank 3D Secure / PIN step directly
+  // Reset step and PIN on open
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep('BANK_3D_SECURE');
-      setActiveTab(
-        selectedMethod === 'CARD'
-          ? 'cards'
-          : selectedMethod === 'NET_BANKING'
-          ? 'netbanking'
-          : selectedMethod === 'WALLET'
-          ? 'wallets'
-          : 'upi'
-      );
+      if (selectedMethod === 'WALLET') {
+        setCurrentStep('METHOD_SELECT');
+        setActiveTab('wallets');
+      } else {
+        setCurrentStep('BANK_3D_SECURE');
+        setActiveTab(
+          selectedMethod === 'CARD'
+            ? 'cards'
+            : selectedMethod === 'NET_BANKING'
+            ? 'netbanking'
+            : 'upi'
+        );
+      }
       setPinDigits(['', '', '', '', '', '']);
       setActivePinIndex(0);
       setPinError(null);
@@ -504,8 +509,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                     <button
                       type="button"
                       onClick={handleQuickPayWithCitizenWallet}
-                      disabled={walletBalance < amount}
-                      className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>1-Click Pay ₹{amount.toLocaleString('en-IN')} from Wallet</span>

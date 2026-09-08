@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useJourney, PassengerProfile } from '../context/JourneyContext';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 // Explicit allowed-field filter whitelist (Zero PII / Zero Auth credentials)
 const ALLOWED_AI_FIELDS = [
@@ -291,16 +292,34 @@ export const BookingPage: React.FC = () => {
           </div>
 
           {/* Temporary Seat Lock Banner */}
-          <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/20 border border-amber-400/40 text-xs text-amber-200 mt-2">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              <strong className="text-white">10-Min Seat Lock Active:</strong>
-              <span className="hidden sm:inline">Your berths are temporarily reserved.</span>
+          <ExplainableSection sectionId="booking-lock">
+            <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/20 border border-amber-400/40 text-xs text-amber-200 mt-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <strong className="text-white">10-Min Seat Lock Active:</strong>
+                <span className="hidden sm:inline">Your berths are temporarily reserved.</span>
+                <SectionExplainerButton
+                  sectionId="booking-lock"
+                  title="10-Minute Seat Reservation Lock"
+                  badge="Inventory Lock"
+                  description="When you initiate checkout, Nirantar places a temporary cryptographic 10-minute hold on your selected berths across railway passenger reservation systems (PRS)."
+                  howItWorks={[
+                    "Temporary Hold: Holds your berths in Indian Railways reservation pool while you fill passenger info.",
+                    "Countdown Timer: Shows live remaining seconds before inventory returns to general availability.",
+                    "Anti-Poaching Shield: Prevents other travelers from taking your seats during payment gateway checkout."
+                  ]}
+                  userActions={[
+                    "Complete passenger details before the 10-minute timer expires",
+                    "Click 'Proceed to Payment' to finalize berth confirmation"
+                  ]}
+                  actionTip="Fill passenger details promptly to ensure your berths remain locked."
+                />
+              </div>
+              <span className="font-mono font-black text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-400/30">
+                ⏱️ {formatLockTimer(lockSeconds)} remaining
+              </span>
             </div>
-            <span className="font-mono font-black text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-400/30">
-              ⏱️ {formatLockTimer(lockSeconds)} remaining
-            </span>
-          </div>
+          </ExplainableSection>
         </div>
       </section>
 
@@ -309,20 +328,40 @@ export const BookingPage: React.FC = () => {
           ═══════════════════════════════════════════════════════════════════ */}
       <form onSubmit={handleContinueToPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 items-start">
         {/* ──────────────── LEFT COLUMN: PASSENGER FORMS (2 Cols) ──────────────── */}
-        <div className="lg:col-span-2 space-y-2">
+        <ExplainableSection sectionId="booking-passengers" className="lg:col-span-2 space-y-2">
           {/* TRAVEL CLASS SELECTION SECTION */}
           {train.classes && train.classes.length > 0 && (
             <div className="bg-white rounded-2xl p-3 shadow-xs border border-purple-100 space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-1.5">
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Train className="w-3.5 h-3.5 text-purple-700" />
-                  <span>
-                    Travel Class:{' '}
-                    <strong className="text-purple-900 font-mono">
-                      {classBreakdown ? `${classBreakdown}` : `${selectedClass.classCode} (${selectedClass.className})`}
-                    </strong>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <Train className="w-3.5 h-3.5 text-purple-700" />
+                    <span>
+                      Travel Class:{' '}
+                      <strong className="text-purple-900 font-mono">
+                        {classBreakdown ? `${classBreakdown}` : `${selectedClass.classCode} (${selectedClass.className})`}
+                      </strong>
+                    </span>
                   </span>
-                </span>
+                  <SectionExplainerButton
+                    sectionId="booking-passengers"
+                    title="SafeAssist Zero-PII Passenger Vault"
+                    badge="Privacy Vault"
+                    description="Safely auto-fills passenger names, ages, and berth preferences with local cryptographic tokenization and zero server persistence."
+                    howItWorks={[
+                      "Allowed-Field Whitelist: Passes only basic booking parameters (name, age, gender, berth preference).",
+                      "Zero PII Leakage: AI agents are physically isolated from credit card numbers, passwords, and banking secrets.",
+                      "Berth Preference Optimization: Matches lower, middle, upper, or side berths based on age and party layout."
+                    ]}
+                    userActions={[
+                      "Click 'Prepare details' (AI Autofill) to fill verified passenger profiles",
+                      "Add up to 6 passengers per reservation",
+                      "Select individual berth preferences (Lower, Middle, Upper, Side Lower)"
+                    ]}
+                    onTryAction={handleAiAutofill}
+                    tryActionLabel="Autofill Details"
+                  />
+                </div>
                 <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                   {train.classes.length} Classes Available
                 </span>
@@ -540,15 +579,34 @@ export const BookingPage: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
+        </ExplainableSection>
 
         {/* ──────────────── RIGHT COLUMN: FARE SUMMARY & BIGGER ANANYA GIRL MASCOT (1 Col) ──────────────── */}
-        <div className="space-y-2">
+        <ExplainableSection sectionId="booking-fare" className="space-y-2">
           {/* FARE BREAKDOWN CARD */}
           <div className="bg-white rounded-2xl p-3.5 border border-purple-100 shadow-sm space-y-2">
-            <h4 className="text-xs sm:text-sm font-bold text-slate-900 border-b border-purple-50 pb-1.5">
-              Fare Summary
-            </h4>
+            <div className="flex items-center justify-between border-b border-purple-50 pb-1.5">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                Fare Summary
+              </h4>
+              <SectionExplainerButton
+                sectionId="booking-fare"
+                title="Transparent Railway Fare Breakdown"
+                badge="Pricing Ledger"
+                description="Zero-hidden-fee pricing breakdown reflecting official railway tariff tables, dynamic flexi-fare tiers, catering choices, and zero-fee Citizen Wallet checkout."
+                howItWorks={[
+                  "Itemized Calculation: Multiplies base tariff by passenger count with explicit concession deductions.",
+                  "Zero Convenience Fee: Direct IRCTC payment bridge eliminates third-party gateway surcharges.",
+                  "Refund Guarantee: 100% statutory auto-refund within 15 seconds if waitlist drops or train cancels."
+                ]}
+                userActions={[
+                  "Review itemized ticket cost before proceeding to payment",
+                  "Verify senior citizen or child concessions apply accurately",
+                  "Click 'Pay & Lock Berth' to proceed to checkout"
+                ]}
+                actionTip="Review your itemized breakdown and click 'Pay & Lock Berth'."
+              />
+            </div>
 
             <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between text-slate-600">
@@ -560,33 +618,32 @@ export const BookingPage: React.FC = () => {
                 <span className="font-bold text-emerald-700 text-xs">₹0 (Free)</span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
-                <span className="text-xs font-medium">Safe Travel Insurance</span>
-                <span className="font-bold text-emerald-700 text-xs">Included ✓</span>
+                <span className="text-xs font-medium">Travel Insurance (Optional)</span>
+                <span className="font-bold text-slate-900 text-xs">₹0.35/person</span>
               </div>
-              <div className="border-t border-purple-100 pt-1 flex items-center justify-between text-xs font-bold text-purple-950">
-                <span className="text-xs">Total Amount</span>
-                <span className="text-base font-bold text-[#7C3AED]">₹{totalFare.toLocaleString('en-IN')}</span>
+              <div className="border-t border-purple-50 pt-1.5 flex items-center justify-between font-bold text-slate-900 text-xs sm:text-sm">
+                <span>Total Amount</span>
+                <span className="text-purple-950 font-mono font-black text-sm sm:text-base">
+                  ₹{totalFare.toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 
-            {/* Explicit Validation Error Alert Banner */}
+            {/* ERROR ALERT NOTICE */}
             {validationError && (
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold flex items-start gap-2 animate-in fade-in shadow-2xs">
-                <span className="w-4 h-4 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-black shrink-0 text-[11px] mt-0.5">⚠️</span>
-                <span className="leading-snug">{validationError}</span>
+              <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold animate-in shake duration-200">
+                ⚠️ {validationError}
               </div>
             )}
 
-            {/* Primary Action Button */}
-            <div className="pt-1">
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#581C87] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/25 active:scale-95 transition-all cursor-pointer"
-              >
-                <span>Review & Continue</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {/* CONTINUE CTA BUTTON */}
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-900/30 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+            >
+              <span>Pay & Lock Berth (₹{totalFare.toLocaleString('en-IN')})</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
 
           {/* SAFE BOOKING CARD */}
@@ -610,7 +667,7 @@ export const BookingPage: React.FC = () => {
               <span>DigiLocker Verified Citizen</span>
             </div>
           </div>
-        </div>
+        </ExplainableSection>
       </form>
 
       {/* PASSENGER DETAILS VERIFICATION & CONFIRMATION MODAL */}

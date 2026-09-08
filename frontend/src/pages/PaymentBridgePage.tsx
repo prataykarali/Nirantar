@@ -27,6 +27,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 
 import { PaymentGatewayModal } from '../components/payment/PaymentGatewayModal';
+import { SectionExplainerButton } from '../components/SectionExplainer';
 
 type PaymentTab = 'upi' | 'cards' | 'netbanking' | 'wallets';
 
@@ -178,6 +179,24 @@ export const PaymentBridgePage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <SectionExplainerButton
+              sectionId="payment-gateway-bridge"
+              title="Payment Bridge & Double Verification"
+              subtitle="Zero Ghost Charges & Instant Refunds"
+              badge="Nira AI Guide"
+              description="Nirantar eliminates phantom deductions and unconfirmed debits with a real-time double-verification handshake between IRCTC and NPCI/Bank gateways."
+              howItWorks={[
+                'Dual Ledger Lock: Atomically confirms seat issuance before finalizing debit settlement.',
+                'Instant Auto-Refund Daemon: If IRCTC confirmation drops after debit, funds credit back to Citizen Wallet within 3 seconds.',
+                'Multi-Rail Gateway: Supports UPI intent, NetBanking, RuPay, and Zero-Interest Postpaid.'
+              ]}
+              userActions={[
+                'Select your preferred payment method (UPI, Card, NetBanking, Wallet)',
+                'Authenticate via secure UPI PIN or Bank OTP',
+                'Verify instant PNR generation and digital ticket dispatch'
+              ]}
+              actionTip="Select UPI or your preferred payment option to complete your reservation!"
+            />
             <button
               type="button"
               onClick={() => console.log('📞 Nirantar 24x7 Priority Railway Helpline: 139')}

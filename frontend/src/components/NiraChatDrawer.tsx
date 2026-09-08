@@ -39,6 +39,7 @@ import { PiiRedactor } from '../ai/PiiRedactor';
 import { ActionPolicyEngine } from '../actions/ActionPolicy';
 import { UiEventBus } from '../events/UiEventBus';
 import { Explain } from './Explain';
+import { MultimodalAiService } from '../services/multimodalAiService';
 
 interface AutoBookData {
   train: TrainDetail;
@@ -381,7 +382,13 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [routeCtx, setRouteCtx] = useState<RouteContext>({});
   const [stationChoiceSelections, setStationChoiceSelections] = useState<Record<string, { from?: Station; to?: Station }>>({});
+  const [isMuted, setIsMuted] = useState(MultimodalAiService.isMuted());
+  const [isAiOnline, setIsAiOnline] = useState(MultimodalAiService.isOnline());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return MultimodalAiService.subscribeOnlineStatus((online) => setIsAiOnline(online));
+  }, []);
 
   // ═══════════════════════════════════════════════════════════════════
   // 30 DIRECT TEST QUERY EXAMPLES (CATEGORIZED FOR JUDGES & REVIEWERS)
@@ -1555,14 +1562,50 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
       return;
     }
 
+    // ─── 1A.0: Invalid Class Code Detection (e.g. 4A, 5A, 4AC, etc.) ───
+    const invalidClassMatch = query.match(/\b([4-9]A|[4-9]AC|[4-9]-tier|[4-9]\s*tier|4th\s*ac|5th\s*ac)\b/i);
+    if (invalidClassMatch) {
+      const badClass = invalidClassMatch[1].toUpperCase();
+      const guideMsg = `⚠️ **Invalid Travel Class '${badClass}'**: Indian Railways does not have a \`${badClass}\` class.\n\n### 🚆 Official Indian Railways Travel Classes:\n• **1A**: AC First Class\n• **2A**: AC 2-Tier\n• **3A**: AC 3-Tier\n• **3E**: AC 3 Economy\n• **CC**: AC Chair Car\n• **EC**: Executive Chair Car\n• **SL**: Sleeper Class\n• **2S**: Second Sitting (General/Reserved)\n\nPlease enter your passenger details again with a valid class (e.g. *Paimon, 24, Female, CC* or *Paimon, 24, Female, 3A*).`;
+      setIsLoading(false);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: guideMsg, isStreaming: false }
+            : m
+        )
+      );
+      return;
+    }
+
     // ─── 1A: Conversational Passenger Autofill (Evaluated First) ───
     const parsedPaxResult = parsePassengerDetailsFromText(query);
     if (parsedPaxResult && parsedPaxResult.passengers.length > 0) {
+      const targetTrain = selectedTrain || (nextRouteCtx.trainNumber ? resolveTrainDetail(nextRouteCtx.trainNumber) : null) || resolveTrainDetail('12232');
+      const trainAvailableClasses = (targetTrain.classes && targetTrain.classes.length > 0)
+        ? targetTrain.classes.map((c) => c.classCode.toUpperCase())
+        : ['3A', '2A', 'SL'];
+
+      // Check if user requested a class that doesn't exist on this specific train (e.g. 3A on Vande Bharat which only has CC/EC)
+      if (parsedPaxResult.classCode && !trainAvailableClasses.includes(parsedPaxResult.classCode.toUpperCase())) {
+        const reqClass = parsedPaxResult.classCode.toUpperCase();
+        const availableClassList = trainAvailableClasses.join(', ');
+        const unavailableMsg = `⚠️ **Class '${reqClass}' Not Available on this Train**:\n\nTrain **#${targetTrain.trainNumber} (${targetTrain.trainName})** does **not** offer **${reqClass}** accommodation.\n\n### 📋 Available Classes on #${targetTrain.trainNumber}:\n${targetTrain.classes?.map((c) => `• **${c.classCode}** (${c.className}): ₹${c.fare} — ${c.status || 'AVAILABLE'}`).join('\n')}\n\nWould you like to book in **${availableClassList}** instead? Please specify your preferred class.`;
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? { ...m, text: unavailableMsg, isStreaming: false }
+              : m
+          )
+        );
+        return;
+      }
+
       const extractedPassengers = parsedPaxResult.passengers;
       setPassengers(extractedPassengers);
       emitUiEvent('PASSENGERS_UPDATED', { count: extractedPassengers.length });
       const passengerNames = extractedPassengers.map((p) => p.name).join(' & ');
-      const targetTrain = selectedTrain || (nextRouteCtx.trainNumber ? resolveTrainDetail(nextRouteCtx.trainNumber) : null) || resolveTrainDetail('12232');
       const targetClass = parsedPaxResult.classCode || selectedClassCode || nextRouteCtx.classCode || '3A';
       if (parsedPaxResult.classCode) {
         setSelectedClassCode(parsedPaxResult.classCode);
@@ -2062,9 +2105,17 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-black text-sm sm:text-base text-slate-950 tracking-tight truncate">Nira AI</h3>
-                  <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200/70 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full transition-all shrink-0">
-                    <span>✨ Active</span>
-                  </span>
+                  {isAiOnline ? (
+                    <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-full shadow-2xs transition-all shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Online ↗</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full shadow-2xs transition-all shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>Offline ⚡</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 truncate">
                   Your Railway Assistant
@@ -2073,6 +2124,25 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
             </div>
 
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* Global Voice Mute / Unmute Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMuted = !isMuted;
+                  setIsMuted(nextMuted);
+                  MultimodalAiService.setMuted(nextMuted);
+                }}
+                className={`p-1 sm:p-1.5 px-1.5 sm:px-2 rounded-xl border text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                  isMuted
+                    ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+                }`}
+                title={isMuted ? 'Unmute voice output' : 'Mute voice output'}
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-purple-700" />}
+                <span className="hidden xs:inline">{isMuted ? 'Muted' : 'Voice'}</span>
+              </button>
+
               {/* 30 Examples Drawer Toggle */}
               <button
                 type="button"
@@ -2314,11 +2384,23 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                       />
                     </div>
                     <div className="max-w-[88%] space-y-1">
-                      <div className="flex items-center gap-1.5 ml-1">
-                        <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs">
-                          ✨ Nira
+                      <div className="flex items-center gap-2 ml-1">
+                        <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100/70 border border-purple-200/60 px-2 py-0.2 rounded-full shadow-2xs flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5 text-purple-600" />
+                          <span>Nira AI</span>
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">{m.timestamp}</span>
+                        {m.text && !m.isStreaming && (
+                          <button
+                            type="button"
+                            onClick={() => MultimodalAiService.speakText(m.text)}
+                            className="p-1 rounded text-purple-600 hover:bg-purple-100/80 transition-colors flex items-center gap-1 text-[9px] font-bold"
+                            title="Speak with Murf AI"
+                          >
+                            <Volume2 className="w-3 h-3 text-purple-600" />
+                            <span>Listen</span>
+                          </button>
+                        )}
                       </div>
                       <div className="p-3.5 rounded-2xl rounded-tl-sm bg-purple-50/90 border border-purple-100 text-slate-800 text-xs font-medium space-y-1.5 shadow-2xs">
                         {m.isStreaming && !m.text ? (
@@ -2559,7 +2641,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             setPassengers(autoPax);
                             emitUiEvent('PASSENGERS_UPDATED', { count: autoPax.length });
                             selectTrain(pTrain, pClass);
-                            navigateTo('workspace');
                             const confirmStep2Msg: ChatMessage = {
                               id: `nira-step2-${Date.now()}`,
                               sender: 'nira',
@@ -2994,7 +3075,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                               type="button"
                               onClick={() => {
                                 selectTrain(topTrain, bestClass.classCode);
-                                navigateTo('workspace');
                                 const selectMsg: ChatMessage = {
                                   id: `nira-select-${Date.now()}`,
                                   sender: 'nira',
@@ -3084,7 +3164,6 @@ export const NiraChatDrawer: React.FC<NiraChatDrawerProps> = ({ isOpen, onClose 
                             const abTrain = m.autoBookCard!.train;
                             const abClass = m.autoBookCard!.classCode;
                             selectTrain(abTrain, abClass);
-                            navigateTo('workspace');
                             const confirmStep2Msg: ChatMessage = {
                               id: `nira-step2-ab-${Date.now()}`,
                               sender: 'nira',

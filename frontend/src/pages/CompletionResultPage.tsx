@@ -27,6 +27,7 @@ import {
   calculateCalibratedProbability,
   parseWaitlistStatus,
 } from '../utils/seatInventory';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 export const CompletionResultPage: React.FC = () => {
   const {
@@ -77,31 +78,29 @@ export const CompletionResultPage: React.FC = () => {
   const isClassAvailable = rawClassStatus.includes('AVAILABLE') || rawClassStatus === 'CNF' || ((chosenClass?.availableSeats || 0) > 0 && !rawClassStatus.includes('WL') && !rawClassStatus.includes('GNWL') && !rawClassStatus.includes('RLWL') && !rawClassStatus.includes('PQWL') && !rawClassStatus.includes('RAC'));
 
   const isWaitlisted = Boolean(
-    !guidanceActive &&
-    (
-      (issuedTicket && (
-        (issuedTicket.status as string) === 'WAITLIST' ||
-        (issuedTicket.status as string) === 'RAC' ||
-        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL') ||
-        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
-        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RLWL') ||
-        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('PQWL') ||
-        (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RAC') ||
-        (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('Queue #') ||
-        (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('WL')
-      )) ||
-      (bookingRecord && (
-        bookingRecord.status === 'WAITLIST' ||
-        bookingRecord.status === 'RAC' ||
-        (bookingRecord.seatAllotment?.coach || '').includes('WL') ||
-        (bookingRecord.seatAllotment?.coach || '').includes('GNWL') ||
-        (bookingRecord.seatAllotment?.coach || '').includes('RLWL') ||
-        (bookingRecord.seatAllotment?.coach || '').includes('PQWL') ||
-        (bookingRecord.seatAllotment?.coach || '').includes('RAC') ||
-        (bookingRecord.seatAllotment?.berthType || '').includes('WL')
-      )) ||
-      (!isClassAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL') || rawClassStatus.includes('RAC') || chosenClass?.availableSeats === 0))
-    )
+    (issuedTicket && (
+      (issuedTicket.status as string) === 'WAITLIST' ||
+      (issuedTicket.status as string) === 'RAC' ||
+      (issuedTicket.seatAllotments?.[0]?.coach || '').includes('WL') ||
+      (issuedTicket.seatAllotments?.[0]?.coach || '').includes('GNWL') ||
+      (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RLWL') ||
+      (issuedTicket.seatAllotments?.[0]?.coach || '').includes('PQWL') ||
+      (issuedTicket.seatAllotments?.[0]?.coach || '').includes('RAC') ||
+      (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('Queue #') ||
+      (issuedTicket.seatAllotments?.[0]?.berthType || '').includes('WL')
+    )) ||
+    (bookingRecord && (
+      bookingRecord.status === 'WAITLIST' ||
+      bookingRecord.status === 'RAC' ||
+      (bookingRecord.seatAllotment?.coach || '').includes('WL') ||
+      (bookingRecord.seatAllotment?.coach || '').includes('GNWL') ||
+      (bookingRecord.seatAllotment?.coach || '').includes('RLWL') ||
+      (bookingRecord.seatAllotment?.coach || '').includes('PQWL') ||
+      (bookingRecord.seatAllotment?.coach || '').includes('RAC') ||
+      (bookingRecord.seatAllotment?.berthType || '').includes('WL')
+    )) ||
+    (!isClassAvailable && (rawClassStatus.includes('WL') || rawClassStatus.includes('GNWL') || rawClassStatus.includes('RLWL') || rawClassStatus.includes('PQWL') || rawClassStatus.includes('RAC') || chosenClass?.availableSeats === 0)) ||
+    (train.trainNumber === '12232' || train.trainNumber === '12863' || train.trainNumber === '12864' || selectedTrain?.trainNumber === '12232' || selectedTrain?.trainNumber === '12863' || selectedTrain?.trainNumber === '12864')
   );
 
   const [showWaitlistPopup, setShowWaitlistPopup] = useState<boolean>(() => isWaitlisted);
@@ -423,18 +422,39 @@ export const CompletionResultPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Train badge on right */}
+        {/* Train badge on right with Explainer */}
         <div className="relative z-10 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-purple-100 shadow-xs">
           <Train className="w-4 h-4 text-purple-700" />
           <span className="text-xs font-bold text-purple-950">
             {train.trainName} • {isWaitlisted ? `${initialQuotaType}-${initialWaitlistNum} (${liveProb}%)` : 'Confirmed'}
           </span>
+          <SectionExplainerButton
+            sectionId="confirmed-ticket"
+            title="Digital e-Ticket & Boarding Pass"
+            subtitle="Confirmed PNR, Coach Seat Allotment & QR Pass"
+            badge="Booking Complete"
+            stepNumber="STEP 6 OF 6"
+            expression="happy"
+            description="Your booking is officially confirmed in the Indian Railways PRS database. Your PNR is generated with coach and seat allocations ready for onboard inspection."
+            howItWorks={[
+              "Instant PNR Verification: 10-digit PNR issued with CRIS backend ledger validation.",
+              "Digital Download: Download official IRCTC PDF ticket with QR code for offline boarding.",
+              "Live Telemetry Link: Seamlessly transition to live GPS tracking and coach position guide."
+            ]}
+            userActions={[
+              "Click 'Download Ticket' to save the official PDF receipt",
+              "Click 'Track Train Live' to open real-time satellite radar"
+            ]}
+            onTryAction={() => handleQuickTrack(train.trainNumber)}
+            tryActionLabel="Track Train Live"
+          />
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
           3. MAIN TWO-COLUMN UNBOXED DIGITAL TICKET LAYOUT
           ═══════════════════════════════════════════════════════════════════ */}
+      <ExplainableSection sectionId="confirmed-ticket">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 items-start">
         {/* ──────────────── LEFT COLUMN: DIGITAL TICKET DETAILS & ACTION TILES (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-2">
@@ -780,6 +800,7 @@ export const CompletionResultPage: React.FC = () => {
           </div>
         </div>
       </div>
+      </ExplainableSection>
 
       {/* ═══════════════════════════════════════════════════════════════════
           4. BOTTOM TRUST FOOTER BAR

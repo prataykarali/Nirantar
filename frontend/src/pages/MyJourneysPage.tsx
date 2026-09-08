@@ -31,6 +31,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 import { DigitalTicketModal, TicketDetails } from '../components/journey/DigitalTicketModal';
 import { getTrainStoppages } from '../data/trainStoppages';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 type JourneyTab = 'upcoming' | 'completed' | 'cancelled';
 
@@ -84,7 +85,7 @@ interface JourneyRecord {
 }
 
 export const MyJourneysPage: React.FC = () => {
-  const { navigateTo, issuedTicket, bookedTicketsList, searchParams, setTrackQuery, cancelTicket, securityPin, passengers, activeReallocations } = useJourney();
+  const { navigateTo, issuedTicket, bookedTicketsList, searchParams, setTrackQuery, setPreferredTrackerTab, cancelTicket, securityPin, passengers, activeReallocations } = useJourney();
   const [activeTab, setActiveTab] = useState<JourneyTab>('upcoming');
   const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>('j1');
   const [selectedTicketForModal, setSelectedTicketForModal] = useState<TicketDetails | null>(null);
@@ -501,104 +502,146 @@ export const MyJourneysPage: React.FC = () => {
       {journeys.find((j) => j.status === 'CONFIRMED') && (() => {
         const topJourney = journeys.find((j) => j.status === 'CONFIRMED')!;
         return (
-          <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center justify-between gap-5 overflow-hidden">
-            {/* Background Graphic */}
-            <div className="absolute inset-0 pointer-events-none opacity-5 overflow-hidden">
-              <img src="/assets/images/booking_train_bg.jpg" alt="Train Background" className="w-full h-full object-cover object-center" />
-            </div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
-            
-            <div className="flex items-center gap-4 min-w-0 z-10">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-200 flex items-center justify-center overflow-hidden shadow-sm">
-                <img
-                  src="/assets/images/ananya_celebrating_transparent.png"
-                  alt="Ananya Bookings"
-                  className="w-full h-full object-contain drop-shadow-xs"
-                />
+          <ExplainableSection sectionId="active-booking">
+            <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center justify-between gap-5 overflow-hidden">
+              {/* Background Graphic */}
+              <div className="absolute inset-0 pointer-events-none opacity-5 overflow-hidden">
+                <img src="/assets/images/booking_train_bg.jpg" alt="Train Background" className="w-full h-full object-cover object-center" />
               </div>
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shadow-sm">
-                    ✓ Active Confirmed Booking
-                  </span>
-                  <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">#{topJourney.trainNumber}</span>
-                  <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">PNR: {topJourney.pnr}</span>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full blur-3xl -z-10 opacity-50"></div>
+              
+              <div className="flex items-center gap-4 min-w-0 z-10">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-200 flex items-center justify-center overflow-hidden shadow-sm">
+                  <img
+                    src="/assets/images/ananya_celebrating_transparent.png"
+                    alt="Ananya Bookings"
+                    className="w-full h-full object-contain drop-shadow-xs"
+                  />
                 </div>
-                <h3 className="font-black text-lg sm:text-xl text-slate-900 truncate">
-                  {topJourney.trainName} ({topJourney.fromCode} ➔ {topJourney.toCode})
-                </h3>
-                <p className="text-sm text-slate-600 font-medium">
-                  {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')} • {topJourney.date}
-                </p>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shadow-sm">
+                      ✓ Active Confirmed Booking
+                    </span>
+                    <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">#{topJourney.trainNumber}</span>
+                    <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">PNR: {topJourney.pnr}</span>
+                    <SectionExplainerButton
+                      sectionId="active-booking"
+                      title="Confirmed e-Ticket & Passenger Pass"
+                      subtitle="Active Reservation & Onboard Digital Pass"
+                      badge="Confirmed PNR"
+                      stepNumber="TICKET PASS"
+                      expression="happy"
+                      description="Your confirmed reservation contains coach allotment, seat numbers, QR validation pass, and live train tracker shortcuts."
+                      howItWorks={[
+                        "Digital e-Ticket: Click 'View / Download e-Ticket' to see official IRCTC ticket with QR code and printable PDF receipt.",
+                        "Live Tracking: Click 'Track Live' to jump directly into the live satellite GPS tracking map for this exact train.",
+                        "Instant Cancellation: Secure 2-step PIN cancellation with automated IRCTC clerkage calculation and Citizen Wallet refund."
+                      ]}
+                      userActions={[
+                        "Click 'View / Download e-Ticket' to generate the boarding pass",
+                        "Click 'Track Live' to follow train telemetry in real-time"
+                      ]}
+                      onTryAction={() => openTicketModal(topJourney)}
+                      tryActionLabel="View Digital Ticket"
+                    />
+                  </div>
+                  <h3 className="font-black text-lg sm:text-xl text-slate-900 truncate">
+                    {topJourney.trainName} ({topJourney.fromCode} ➔ {topJourney.toCode})
+                  </h3>
+                  <p className="text-sm text-slate-600 font-medium">
+                    {topJourney.passengers.length} Passenger(s): {topJourney.passengers.map((p) => `${p.name} (${p.coach} / Seat ${p.seatNumber})`).join(', ')} • {topJourney.date}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto z-10 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => openTicketModal(topJourney)}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View / Download e-Ticket</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTrackQuery(topJourney.trainNumber);
+                    setPreferredTrackerTab('coach');
+                    navigateTo('track');
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <MapPin className="w-4 h-4 text-purple-600" />
+                  <span>Track Live</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancellingJourney(topJourney)}
+                  className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-bold border border-rose-200 text-xs sm:text-sm transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                >
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span>Cancel / Delete</span>
+                </button>
               </div>
             </div>
-
-            <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto z-10 flex-wrap">
-              <button
-                type="button"
-                onClick={() => openTicketModal(topJourney)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <Eye className="w-4 h-4" />
-                <span>View / Download e-Ticket</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTrackQuery(topJourney.trainNumber);
-                  navigateTo('track');
-                }}
-                className="px-4 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <MapPin className="w-4 h-4 text-purple-600" />
-                <span>Track Live</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCancellingJourney(topJourney)}
-                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 font-bold border border-rose-200 text-xs sm:text-sm transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-              >
-                <XCircle className="w-4 h-4 text-rose-600" />
-                <span>Cancel / Delete</span>
-              </button>
-            </div>
-          </div>
+          </ExplainableSection>
         );
       })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
           2. BOOKINGS LEDGER TAB BAR & SEARCH QUERY FILTER
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-2 sm:p-3 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-4 z-30">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 px-2">
-            <Train className="w-5 h-5 text-purple-700" />
-            <span className="font-bold text-sm sm:text-base text-slate-900">
-              Bookings Ledger
-            </span>
-          </div>
+      <ExplainableSection sectionId="bookings-ledger">
+        <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-2 sm:p-3 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-4 z-30">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-2">
+              <Train className="w-5 h-5 text-purple-700" />
+              <span className="font-bold text-sm sm:text-base text-slate-900">
+                Bookings Ledger
+              </span>
+              <SectionExplainerButton
+                sectionId="bookings-ledger"
+                title="Bookings Ledger & Records Filter"
+                subtitle="Upcoming, Past Journeys & Cancellation History"
+                badge="Travel Ledger"
+                stepNumber="RESERVATION LOG"
+                expression="idea"
+                description="View your entire travel history categorized into Upcoming confirmed trains, Completed trips with reviews, and Cancelled bookings with instant refund status."
+                howItWorks={[
+                  "Tab Filters: Switch between Upcoming, Completed, and Cancelled tickets seamlessly.",
+                  "Instant Search: Filter by train number, PNR, station code, or passenger name.",
+                  "Zero-Loss Refund Audit: Cancelled tickets display the exact bank refund UTR reference and time elapsed."
+                ]}
+                userActions={[
+                  "Filter past or upcoming journeys",
+                  "Search bookings by passenger name or PNR"
+                ]}
+              />
+            </div>
 
-          {/* Search Query Input */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search train #, PNR, name..."
-              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
+            {/* Search Query Input */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search train #, PNR, name..."
+                className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
         <div className="flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-xl self-start md:self-center border border-slate-200/50 flex-wrap">
           <button
@@ -636,6 +679,7 @@ export const MyJourneysPage: React.FC = () => {
           </button>
         </div>
       </div>
+      </ExplainableSection>
 
       {/* ═══════════════════════════════════════════════════════════════════
           3. JOURNEY CARDS WITH PASSENGERS, REVIEWS & DIGITAL TICKET MODAL
@@ -774,6 +818,7 @@ export const MyJourneysPage: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setTrackQuery(j.trainNumber);
+                            setPreferredTrackerTab('coach');
                             navigateTo('track');
                           }}
                           className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"

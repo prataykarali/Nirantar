@@ -15,9 +15,215 @@ import {
   Palette,
   Sparkles,
   ArrowLeft,
+  Mic,
 } from 'lucide-react';
 import { useJourney, THEME_OPTIONS } from '../../context/JourneyContext';
 import { OAuthLoginModal } from '../auth/OAuthLoginModal';
+import { AskNirantarModal } from '../AskNirantarModal';
+import { SectionExplainerButton } from '../SectionExplainer';
+
+const PAGE_EXPLAINERS: Record<string, {
+  title: string;
+  subtitle: string;
+  description: string;
+  howItWorks: string[];
+  userActions: string[];
+  actionTip: string;
+}> = {
+  home: {
+    title: 'Home & Intent Overview',
+    subtitle: 'Where Are You Going? Find & Book',
+    description: 'Nirantar AI analyzes natural language routes, calibrated waitlist odds, and provides verified direct booking.',
+    howItWorks: [
+      'NVIDIA Intent Parser: Extracts travel origin, destination, and dates in plain English.',
+      'Calibrated Waitlist Radar: Projects Poisson cancellation odds and scattered seats.',
+      'Zero-PII SafeAssist: Protects citizen identity while auto-filling IRCTC forms.'
+    ],
+    userActions: [
+      'Type an intent query or train number into the search bar',
+      'Select departure date and passenger count',
+      'Click Find Trains to see real-time route inventory'
+    ],
+    actionTip: 'Type origin & destination or train number to search!'
+  },
+  discover: {
+    title: 'Discover Railway Services',
+    subtitle: 'Explore Routes, Platform Hubs & Railway Tools',
+    description: 'Comprehensive directory of Indian Railways services, popular station hubs, and plain-English travel assistance.',
+    howItWorks: [
+      'Service Match Engine: Instant access to PNR status, live running status, and catering.',
+      'Zone & Hub Directory: Platform counts and verified connectivity across all railway zones.',
+      'Smart Suggestions: AI-curated travel ideas based on season and popularity.'
+    ],
+    userActions: [
+      'Filter services by category (Tickets, Tracking, Station Amenities)',
+      'Click popular station hubs to view platform directories',
+      'Start a direct search for any train or route'
+    ],
+    actionTip: 'Select any service or route to begin discovery!'
+  },
+  trains: {
+    title: 'Train Comparison & Seat Radar',
+    subtitle: 'Calibrated Poisson Odds & Direct Routes',
+    description: 'Compare available trains, travel durations, and historical confirmation probabilities for waitlisted quotas.',
+    howItWorks: [
+      'Calibrated Probability Engine: Evaluates dynamic Tatkal, HO quota releases, and RAC clearance.',
+      'Scattered Seat Radar: Locates split-coach seats when full-journey contiguous berths are sold out.',
+      'Punctuality & Rating Score: Historical on-time metrics streamed from NTES signaling blocks.'
+    ],
+    userActions: [
+      'Filter trains by departure slot (Morning, Evening, Tatkal)',
+      'Select preferred class (1A, 2A, 3A, SL, CC)',
+      'Click Book Now to lock seats for 10 minutes'
+    ],
+    actionTip: 'Select your preferred train and class to lock seats!'
+  },
+  'waitlist-alert': {
+    title: 'Waitlist Confirmation Radar',
+    subtitle: 'Poisson Clearance & High-Demand Forecast',
+    description: 'Advanced statistical modeling that estimates your probability of securing a confirmed berth before chart preparation.',
+    howItWorks: [
+      'Poisson Clearance Formula: Projects cancellation velocity against days-to-journey.',
+      'Seat Lock Buffer: Prevents double-booking during Tatkal rush windows.',
+      'Alternative Train Recommender: Instantly spots higher-odds alternatives.'
+    ],
+    userActions: [
+      'Toggle Comfort Window (Safe >80%, Balanced >60%, Flexible)',
+      'Test dynamic clearance scenarios with simulation controls',
+      'Proceed to lock seats with Fair Access protection'
+    ],
+    actionTip: 'Review your confirmation odds and proceed to booking!'
+  },
+  booking: {
+    title: 'Passenger & Booking Workspace',
+    subtitle: '10-Minute Seat Lock & Zero-PII Autofill',
+    description: 'Fill passenger credentials locally on your device with cryptographic zero-PII protection before IRCTC submission.',
+    howItWorks: [
+      'Local-First Vault: Passenger names and ID credentials are encrypted in local device storage.',
+      '10-Minute IRCTC Lock: Guarantees your selected berths will not be taken while you complete payment.',
+      'Instant Validation: Validates age concessions and berth preferences automatically.'
+    ],
+    userActions: [
+      'Autofill from saved citizen profile with 1 tap',
+      'Select berth preferences (Lower Berth for seniors, Side Lower)',
+      'Proceed to the double-verification Payment Bridge'
+    ],
+    actionTip: 'Autofill passenger details and click Proceed to Pay!'
+  },
+  payment: {
+    title: 'Payment Bridge & Double Verification',
+    subtitle: 'Resilient Payment Gateway & Zero Ghost Charges',
+    description: 'Fail-safe payment routing with instant double-verification to ensure your money and ticket are never left in limbo.',
+    howItWorks: [
+      'Dual Ledger Verification: Confirms debit with bank and reservation with IRCTC simultaneously.',
+      'Instant Auto-Refund Daemon: If IRCTC fails after debit, refunds to Citizen Wallet in <3 seconds.',
+      '3D-Secure UPI & Cards: Direct gateway integrations with zero ghost charges.'
+    ],
+    userActions: [
+      'Choose payment method: UPI Apps, Cards, NetBanking, or Citizen Wallet',
+      'Scan the dynamic UPI QR code or enter VPA',
+      'Authorize transaction securely'
+    ],
+    actionTip: 'Choose your payment method and authorize securely!'
+  },
+  track: {
+    title: 'Live Train Radar & GPS Telemetry',
+    subtitle: 'Real-Time ISRO/CRIS Satellite Tracking & Delays',
+    description: 'Direct locomotive GPS transponder streaming with synchronized speeds, platform alignments, and delay forecasts.',
+    howItWorks: [
+      'RTIS Satellite Stream: Locomotives transmit coordinates and speed every few seconds via NavIC/ISRO.',
+      'Kinematic Speedometer: Real-time speed micro-fluctuations and halt countdown.',
+      'Contextual AI Copilot: Tells you exactly what to do next based on train progress and platform assignments.'
+    ],
+    userActions: [
+      'Select a train preset from the top radar switcher',
+      'Switch map layers (Dark Canvas, OpenStreetMap, Vector)',
+      'Set a station arrival wake-up alarm or play station audio announcements'
+    ],
+    actionTip: 'Click any train in the top switcher to track its live GPS stream!'
+  },
+  'my-journeys': {
+    title: 'My Journeys & Booking Ledger',
+    subtitle: 'DigiLocker Verified e-Tickets & Active Passes',
+    description: 'Central citizen repository of all active reservations, downloadable PDF e-tickets, and travel history.',
+    howItWorks: [
+      'Cryptographic Ticket Vault: Stored locally with QR verification for TTE inspection.',
+      'Live GPS Integration: Direct link from ticket to real-time train tracking.',
+      'One-Tap Statutory Refunds: Claim statutory TDR refunds according to railway cancellation slabs.'
+    ],
+    userActions: [
+      'Click View e-Ticket to inspect boarding pass and QR code',
+      'Click Track Live to open satellite radar for your train',
+      'Filter upcoming, completed, and cancelled journeys'
+    ],
+    actionTip: 'Click View e-Ticket to see your DigiLocker verified pass!'
+  },
+  payments: {
+    title: 'Payments Ledger & Refund Audit',
+    subtitle: 'Double-Verification Audit Trail & Citizen Wallet',
+    description: 'Transparent cryptographic audit trail of all charges, UPI transactions, and instant wallet refunds.',
+    howItWorks: [
+      'Immutable Transaction Log: Every debit, credit, and TDR refund recorded with bank UTR.',
+      'Instant Wallet Top-Up: Pre-fund your Citizen Wallet for zero-delay Tatkal booking.',
+      'No Ghost Charge Guarantee: 100% statutory refund reconciliation.'
+    ],
+    userActions: [
+      'Top-up Citizen Wallet balance with 1 tap',
+      'Search transaction history by UTR or PNR',
+      'Download GST-compliant travel tax receipts'
+    ],
+    actionTip: 'Top up your Citizen Wallet or audit recent transactions!'
+  },
+  help: {
+    title: 'Nirantar Help & AI Companion',
+    subtitle: 'Plain-English Railway Decoder & Helplines',
+    description: 'Ask anything about Indian Railways, Tatkal rules, cancellation charges, or platform procedures in plain English.',
+    howItWorks: [
+      'Railway Knowledge Graph: Built on official Indian Railways passenger codes and refund rules.',
+      'Jargon Decoder: Plain English explanations for GNWL, PQWL, RAC, TDR, and Tatkal.',
+      'Emergency Helplines: Direct access to RailMadad, Security 139, and Medical support.'
+    ],
+    userActions: [
+      'Search questions or browse popular topic categories',
+      'Chat with Nira AI for personalized assistance',
+      'Access emergency railway helpline numbers'
+    ],
+    actionTip: 'Type your railway question or browse the guide categories!'
+  },
+  profile: {
+    title: 'Citizen Profile & DigiLocker',
+    subtitle: 'Verified Identity & Zero-PII Passenger Vault',
+    description: 'Manage your verified citizen credentials, Aadhaar/DigiLocker links, and saved family passengers.',
+    howItWorks: [
+      'DigiLocker Integration: Verifies age and identity for senior citizen & student concessions.',
+      'Zero-PII Storage: Passenger data remains encrypted on your local device.',
+      'Fair Access Pass: Citizen reputation score unlocking queue priority.'
+    ],
+    userActions: [
+      'Add or edit family passenger profiles for 1-tap booking',
+      'Link DigiLocker credentials for verified passenger status',
+      'Customize your citizen avatar and travel preferences'
+    ],
+    actionTip: 'Save family passenger profiles for fast 1-tap checkout!'
+  },
+  settings: {
+    title: 'Settings & Accessibility',
+    subtitle: 'Language, Audio Chimes & High Contrast Preferences',
+    description: 'Customize Nirantar to your comfort: high contrast modes, regional languages, station chimes, and privacy options.',
+    howItWorks: [
+      'Accessibility Engine: High-contrast themes, large typography, and audio announcements.',
+      'Local-First Privacy: Toggle local data clearing and zero-cloud profile storage.',
+      'Multi-Language Localization: Instant switching between English, Hindi, and regional languages.'
+    ],
+    userActions: [
+      'Switch between Dark Canvas, Light, and High-Contrast modes',
+      'Toggle station arrival chimes and voice notifications',
+      'Manage local privacy and data retention settings'
+    ],
+    actionTip: 'Configure your accessibility and audio preferences!'
+  },
+};
+
 
 export interface TopBarProps {
   pageTitle?: string;
@@ -56,6 +262,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [showRewards, setShowRewards] = useState(false);
   const [showThemePalette, setShowThemePalette] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  const [showAskModal, setShowAskModal] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -176,6 +383,19 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* RIGHT: TOP ACTION BUTTONS */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
+
+        {/* 🤖 GLOBAL PAGE EXPLAINER (NIRA ROBOT) */}
+        <SectionExplainerButton
+          sectionId={`topbar-guide-${activePage}`}
+          title={PAGE_EXPLAINERS[activePage]?.title || 'Page Feature Guide'}
+          badge="Nira AI Guide"
+          subtitle={PAGE_EXPLAINERS[activePage]?.subtitle || 'Guided Overview'}
+          description={PAGE_EXPLAINERS[activePage]?.description || 'Interactive AI assistance for this page.'}
+          howItWorks={PAGE_EXPLAINERS[activePage]?.howItWorks}
+          userActions={PAGE_EXPLAINERS[activePage]?.userActions}
+          actionTip={PAGE_EXPLAINERS[activePage]?.actionTip || 'Click any feature to explore or ask Nira for help!'}
+        />
+
         {/* 🧭 VISUAL PAGE GUIDE / ARCHITECTURE DIAGRAM */}
         <button
           type="button"
@@ -186,6 +406,18 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="text-sm">🧭</span>
           <span className="hidden md:inline">Page Guide</span>
         </button>
+
+        {/* ⚡ GENOVATE 2.0 LIVE INTELLIGENCE DEMO */}
+        <button
+          type="button"
+          onClick={() => navigateTo('track')}
+          className="px-2.5 sm:px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/30 transition-all hover:scale-105 cursor-pointer shrink-0"
+          title="GENOVATE 2.0 — Live Railway Intelligence & Operations Center"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>⚡ Live Intel Map</span>
+        </button>
+
 
 
 
@@ -454,6 +686,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       <OAuthLoginModal
         isOpen={showOAuthModal}
         onClose={() => setShowOAuthModal(false)}
+      />
+
+      {/* 🎙️ Ask Nirantar Multimodal Copilot */}
+      <AskNirantarModal
+        isOpen={showAskModal}
+        onClose={() => setShowAskModal(false)}
+        onNavigate={navigateTo}
       />
     </header>
   );

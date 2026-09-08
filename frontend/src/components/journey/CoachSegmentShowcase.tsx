@@ -15,6 +15,7 @@ import {
   getRepresentativeCoaches,
   getCoachSegmentBays,
   liveSeatInventory,
+  stationLoadProjection,
   isCoachMatch,
   RepresentativeCoachInfo,
   CoachBay,
@@ -95,6 +96,11 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
 
   // Simulated station index for downstream vacancy radar
   const [selectedStationIndex, setSelectedStationIndex] = useState<number>(currentStationIndex);
+
+  // Sync with parent real-time GPS station tracker
+  useEffect(() => {
+    setSelectedStationIndex(currentStationIndex);
+  }, [currentStationIndex]);
 
   // Selected berth for Special Mid-Journey Reallocation modal
   const [selectedVacantBerth, setSelectedVacantBerth] = useState<SegmentBerth | null>(null);
@@ -255,15 +261,9 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                     >
                       Class {c.classCode}
                     </span>
-                    {hasUserInClass ? (
+                    {hasUserInClass && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-400 text-[10px] text-slate-950 font-black animate-pulse">
                         ★ Your Coach ({userSeatsCount} {userSeatsCount === 1 ? 'Berth' : 'Berths'})
-                      </span>
-                    ) : (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        isSelected ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}>
-                        {c.seatsAvailable} Seats Left
                       </span>
                     )}
                   </div>
@@ -452,6 +452,16 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                 const isSelected = selectedStationIndex === idx;
                 const isOrigin = idx === 0;
                 const isDest = idx === routeStations.length - 1;
+                const stLoad = stationLoadProjection(
+                  trainNumber || '12951',
+                  routeStations,
+                  idx,
+                  selectedCoachMeta.capacity,
+                  effectiveIsWaitlisted,
+                  availableClasses,
+                  userBookedSeats,
+                  selectedClassCode
+                );
 
                 return (
                   <button
@@ -477,6 +487,21 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
                         <span className={`text-[9px] font-mono ${isSelected ? 'text-purple-200' : 'text-slate-400'}`}>
                           ({st.code})
                         </span>
+                        <span
+                          className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full border ${
+                            stLoad.vacantSeats === 0
+                              ? isSelected
+                                ? 'bg-white/20 text-purple-100 border-white/20'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                              : isSelected
+                              ? 'bg-emerald-400/30 text-emerald-100 border-emerald-300/30'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}
+                        >
+                          {stLoad.vacantSeats === 0
+                            ? '0 Vacant'
+                            : `🟢 ${stLoad.coachVacantSeats ?? 0} in Coach • ${stLoad.vacantSeats} train-wide`}
+                        </span>
                       </div>
                       <span className={`text-[9px] block ${isSelected ? 'text-purple-200' : 'text-slate-500'}`}>
                         {isOrigin ? 'Origin' : isDest ? 'Final Destination' : `Dep: ${st.scheduledDep || 'On Time'}`}
@@ -488,17 +513,31 @@ export const CoachSegmentShowcase: React.FC<CoachSegmentShowcaseProps> = ({
             </div>
 
             {/* Station Milestone Context Notice */}
-            <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-100/60 border border-purple-200/80 text-purple-950 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-purple-700 shrink-0" />
-                <div className="font-medium text-[11px]">
-                  Viewing coach state <strong>after departing {activeStation.name}</strong> ({activeStation.platform || 'Platform 1'}). Downstream vacant berths are highlighted in <strong>Green (🟢)</strong>.
+            {(() => {
+              const curLoad = stationLoadProjection(
+                trainNumber || '12951',
+                routeStations,
+                selectedStationIndex,
+                selectedCoachMeta.capacity,
+                effectiveIsWaitlisted,
+                availableClasses,
+                userBookedSeats,
+                selectedClassCode
+              );
+              return (
+                <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-purple-100/60 border border-purple-200/80 text-purple-950 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-700 shrink-0" />
+                    <div className="font-medium text-[11px]">
+                      Viewing coach state <strong>after departing {activeStation.name}</strong> ({activeStation.platform || 'Platform 1'}). <strong>{curLoad.coachVacantSeats ?? 0} vacant berths in Coach {selectedCoachMeta.representativeCode}</strong> ({curLoad.vacantSeats} total vacant seats summed across all coaches of train #{trainNumber}) are currently highlighted in <strong>Green (🟢)</strong>.
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">
+                    Coach {selectedCoachMeta.representativeCode} • {selectedCoachMeta.className}
+                  </span>
                 </div>
-              </div>
-              <span className="text-[10px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">
-                Coach {selectedCoachMeta.representativeCode} • {selectedCoachMeta.className}
-              </span>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Beside Seat Status Banner */}

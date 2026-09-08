@@ -126,6 +126,8 @@ export async function fetchPublicRailwayInfo(query = ''): Promise<any> {
   }
 }
 
+import { MultimodalAiService } from './multimodalAiService';
+
 export async function streamNiraChat(
   query: string,
   language = 'en',
@@ -135,13 +137,35 @@ export async function streamNiraChat(
   history: { role: string; content: string }[] = [],
   context = ''
 ): Promise<void> {
-  const reply = deterministicNiraReply(query, context);
-  for (const token of reply.match(/\S+\s*/g) || [reply]) onToken(token);
-  onComplete();
+  try {
+    const formattedHistory = history.map((h) => ({
+      role: h.role === 'user' ? ('user' as const) : ('assistant' as const),
+      content: h.content,
+    }));
+    await MultimodalAiService.chatCompletion(query, formattedHistory, onToken);
+    onComplete();
+  } catch (err) {
+    console.warn('streamNiraChat error, using fallback:', err);
+    const reply = deterministicNiraReply(query, context);
+    for (const token of reply.match(/\S+\s*/g) || [reply]) onToken(token);
+    onComplete();
+  }
 }
 
 export async function transcribeAudio(audioBase64: string, language = 'en'): Promise<string> {
   try {
+    const cleanB64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
+    const byteCharacters = atob(cleanB64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'audio/webm' });
+
+    const result = await MultimodalAiService.transcribeAudio(blob, language);
+    if (result.transcript) return result.transcript;
+
     const res = await fetch(`${API_BASE}/voice/transcribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -154,3 +178,4 @@ export async function transcribeAudio(audioBase64: string, language = 'en'): Pro
     return '';
   }
 }
+

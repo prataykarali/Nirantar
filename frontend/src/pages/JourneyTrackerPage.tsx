@@ -32,6 +32,8 @@ import {
   FastForward,
   Activity,
   TrendingUp,
+  VolumeX,
+  BookOpen,
 } from 'lucide-react';
 import { useJourney, TicketRecord } from '../context/JourneyContext';
 import { MOCK_TRAINS_DATABASE } from '../data/mockTrains';
@@ -58,9 +60,138 @@ import { WakeUpAlarmModal } from '../components/journey/WakeUpAlarmModal';
 import { ShareTripModal } from '../components/journey/ShareTripModal';
 import { OrderFoodModal } from '../components/journey/OrderFoodModal';
 import { CoachSegmentShowcase } from '../components/journey/CoachSegmentShowcase';
+import { MultimodalAiService } from '../services/multimodalAiService';
+import { MapboxTrainMap } from '../components/map/MapboxTrainMap';
+import { SimulationControlPanel } from '../components/telemetry/SimulationControlPanel';
+import { PredictiveCongestionCard } from '../components/telemetry/PredictiveCongestionCard';
+import { VoiceAiWidget } from '../components/telemetry/VoiceAiWidget';
+import { RazorpayAssistanceModal } from '../components/telemetry/RazorpayAssistanceModal';
+import { CompetitionDemoGuideModal } from '../components/telemetry/CompetitionDemoGuideModal';
+import { railwayApiService } from '../lib/railway/railwayApiService';
+import { NormalizedTelemetry, RouteGeometry, PassengerLocation, SimulationScenario } from '../lib/railway/types';
+import { findNearestStation, STATION_COORDINATES } from '../data/stationGeoCoordinates';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
+
 
 type TravelPhase = 'DEPARTING' | 'TRAVELING' | 'APPROACHING' | 'HALTED' | 'DESTINATION_ARRIVED';
 type DelayStatus = 'ON_TIME' | 'BEFORE_TIME' | 'DELAY_8M' | 'DELAY_25M';
+
+export interface TrainOperationalProfile {
+  category: 'Vande Bharat' | 'Rajdhani' | 'Shatabdi' | 'Superfast' | 'Express';
+  initialPhase: TravelPhase;
+  targetCruisingSpeed: number;
+  initialDelayStatus: DelayStatus;
+  initialDelayMinutes: number;
+  statusHeadline: string;
+  haltDurationSeconds?: number;
+  initialCountdownSeconds?: number;
+  activeStationOffsetRatio?: number;
+  stationOffsetIdx?: number;
+}
+
+export const TRAIN_OPERATIONAL_PROFILES: Record<string, TrainOperationalProfile> = {
+  // 1. #22436: Varanasi Vande Bharat — HIGH SPEED CRUISING (128 km/h, on time)
+  '22436': {
+    category: 'Vande Bharat',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 128,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Cruising at High Speed (Vande Bharat 130 km/h Corridor)',
+    initialCountdownSeconds: 210,
+    activeStationOffsetRatio: 0.35,
+  },
+  // 2. #12302: Howrah Rajdhani — FAST TRUNK CRUISING (112 km/h, +6m delay)
+  '12302': {
+    category: 'Rajdhani',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 112,
+    initialDelayStatus: 'DELAY_8M',
+    initialDelayMinutes: 6,
+    statusHeadline: 'Cruising on Grand Chord Trunk Line',
+    initialCountdownSeconds: 180,
+    activeStationOffsetRatio: 0.45,
+  },
+  // 3. #12951: Mumbai Rajdhani — HIGH SPEED CRUISING (106 km/h, on time)
+  '12951': {
+    category: 'Rajdhani',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 106,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Cruising on Western Trunk Corridor',
+    initialCountdownSeconds: 195,
+    activeStationOffsetRatio: 0.5,
+  },
+  // 4. #12232: Chandigarh - Lucknow SF — HALTED AT PLATFORM (0 km/h, doors open!)
+  '12232': {
+    category: 'Express',
+    initialPhase: 'HALTED',
+    targetCruisingSpeed: 0,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Halted on Platform • Scheduled 5-min commercial stop',
+    haltDurationSeconds: 45,
+    initialCountdownSeconds: 0,
+    activeStationOffsetRatio: 0.4,
+  },
+  // 5. #12863: Howrah - SMVB SF — APPROACHING STATION (38 km/h, decelerating, +25m delay)
+  '12863': {
+    category: 'Superfast',
+    initialPhase: 'APPROACHING',
+    targetCruisingSpeed: 38,
+    initialDelayStatus: 'DELAY_25M',
+    initialDelayMinutes: 25,
+    statusHeadline: 'Decelerating • Approaching Station yard under caution aspect',
+    initialCountdownSeconds: 45,
+    activeStationOffsetRatio: 0.25,
+  },
+  // 6. #12002: Bhopal Shatabdi — ACCELERATING FROM STATION (68 km/h, running 4m early)
+  '12002': {
+    category: 'Shatabdi',
+    initialPhase: 'DEPARTING',
+    targetCruisingSpeed: 68,
+    initialDelayStatus: 'BEFORE_TIME',
+    initialDelayMinutes: -4,
+    statusHeadline: 'Departed Station • Accelerating to cruising velocity',
+    initialCountdownSeconds: 220,
+    activeStationOffsetRatio: 0.3,
+  },
+  // 7. #20835: Puri Vande Bharat — HIGH SPEED CRUISING (122 km/h)
+  '20835': {
+    category: 'Vande Bharat',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 122,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Cruising at High Speed',
+    initialCountdownSeconds: 230,
+    activeStationOffsetRatio: 0.6,
+  },
+  // 8. #12115: Siddheshwar SF — OVERNIGHT EXPRESS CRUISING (82 km/h)
+  '12115': {
+    category: 'Superfast',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 82,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Cruising on Central Railway Corridor',
+    initialCountdownSeconds: 160,
+    activeStationOffsetRatio: 0.55,
+  },
+  // 9. #22692: Bengaluru Rajdhani — FAST TRUNK EXPRESS (116 km/h)
+  '22692': {
+    category: 'Rajdhani',
+    initialPhase: 'TRAVELING',
+    targetCruisingSpeed: 116,
+    initialDelayStatus: 'ON_TIME',
+    initialDelayMinutes: 0,
+    statusHeadline: 'Cruising on South Central Trunk Section',
+    initialCountdownSeconds: 190,
+    activeStationOffsetRatio: 0.4,
+  },
+};
+
 
 const KNOWN_TRAIN_NAMES: Record<string, string> = {
   '12863': 'Howrah - KSR Bengaluru SF Express',
@@ -274,16 +405,26 @@ export const JourneyTrackerPage: React.FC = () => {
   const [activeAlarm, setActiveAlarm] = useState<{ station: string; leadMinutes: number } | null>(null);
   const [showNiraHappyBanner, setShowNiraHappyBanner] = useState<boolean>(true);
   const [isPoofingOff, setIsPoofingOff] = useState<boolean>(false);
-  const [activeTrackerTab, setActiveTrackerTab] = useState<'timeline' | 'coach' | 'waitlist'>(() => {
+  const [isPlayingLiveAnnouncement, setIsPlayingLiveAnnouncement] = useState<boolean>(false);
+  const [activeTrackerTab, setActiveTrackerTab] = useState<'map' | 'timeline' | 'coach' | 'waitlist'>(() => {
     if (preferredTrackerTab) return preferredTrackerTab;
-    return 'timeline';
+    return 'map';
   });
+
+  // Telemetry, Mapbox, and Real-Time State Hooks
+  const [liveTelemetry, setLiveTelemetry] = useState<NormalizedTelemetry | null>(null);
+  const [routeGeometry, setRouteGeometry] = useState<RouteGeometry | null>(null);
+  const [passengerLocation, setPassengerLocation] = useState<PassengerLocation | null>(null);
+  const [isTelemetryLoading, setIsTelemetryLoading] = useState<boolean>(false);
+  const [showRazorpayModal, setShowRazorpayModal] = useState<boolean>(false);
+  const [showDemoGuideModal, setShowDemoGuideModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (preferredTrackerTab) {
       setActiveTrackerTab(preferredTrackerTab);
     }
   }, [preferredTrackerTab]);
+
 
   // ─── DYNAMIC TRAIN IDENTITY & ROUTE RESOLUTION ───
   const trainNumber = activeTrainNumber.trim() || '12951';
@@ -316,40 +457,56 @@ export const JourneyTrackerPage: React.FC = () => {
   // Check if current tracked train is booked by this passenger
   const isUserBookedTrain = useMemo(() => {
     if (issuedTicket && issuedTicket.status !== 'CANCELLED') {
-      return issuedTicket.train?.trainNumber === trainNumber;
+      if (issuedTicket.train?.trainNumber === trainNumber) return true;
     }
     if (bookingRecord && bookingRecord.status !== 'CANCELLED') {
-      return bookingRecord.trainNumber === trainNumber;
+      if (bookingRecord.trainNumber === trainNumber) return true;
     }
-    // Only default to 12951 if user has never booked any custom ticket
-    return trainNumber === '12951';
-  }, [issuedTicket, bookingRecord, trainNumber]);
+    if (bookedTicketsList && bookedTicketsList.length > 0) {
+      if (bookedTicketsList.some((t) => t.train?.trainNumber === trainNumber && t.status !== 'CANCELLED')) return true;
+    }
+    return true; // Always unlock interactive coach layout and vacant seats for all trains
+  }, [issuedTicket, bookingRecord, bookedTicketsList, trainNumber]);
 
   // Real booked passengers from Citizen profile / ticket database
   const userPassengers = useMemo(() => {
-    if (!isUserBookedTrain) return [];
     if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.passengers && issuedTicket.passengers.length > 0) {
       return issuedTicket.passengers;
     }
-    if (bookingRecord && bookingRecord.trainNumber === trainNumber) {
-      return [{
-        id: 'pax-1',
-        name: bookingRecord.passengerName || 'Pratay Karali',
-        age: 26,
-        gender: 'Male',
-        berthPreference: 'Lower Berth (LB)',
-        classCode: '3A',
-        status: 'CONFIRMED',
-      }];
+    const bookedMatch = (bookedTicketsList || []).find((t) => t.train?.trainNumber === trainNumber);
+    if (bookedMatch && bookedMatch.passengers && bookedMatch.passengers.length > 0) {
+      return bookedMatch.passengers;
     }
-    if (trainNumber === '12951' && !issuedTicket && !bookingRecord) {
+    if (passengers && passengers.length > 0) {
+      return passengers;
+    }
+    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.passengerName) {
       return [
-        { id: 'pax-1', name: 'Pratay Karali (You)', age: 26, gender: 'Male', berthPreference: 'Lower Berth (LB)', classCode: '3A', status: 'CONFIRMED' },
-        { id: 'pax-2', name: 'Rahul Sharma', age: 28, gender: 'Male', berthPreference: 'Middle Berth (MB)', classCode: '3A', status: 'CONFIRMED' }
+        {
+          id: 'pax-1',
+          name: bookingRecord.passengerName,
+          age: 26,
+          gender: 'M' as const,
+          berthPreference: 'LOWER' as const,
+          classCode: userBookedClass || '3A',
+          status: 'CONFIRMED',
+        },
+        {
+          id: 'pax-2',
+          name: 'Rahul Sharma (Co-passenger)',
+          age: 28,
+          gender: 'M' as const,
+          berthPreference: 'MIDDLE' as const,
+          classCode: userBookedClass || '3A',
+          status: 'CONFIRMED',
+        },
       ];
     }
-    return [];
-  }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber]);
+    return [
+      { id: 'pax-1', name: 'Pratay Karali (You)', age: 26, gender: 'M' as const, berthPreference: 'LOWER' as const, classCode: '3A', status: 'CONFIRMED' },
+      { id: 'pax-2', name: 'Rahul Sharma', age: 28, gender: 'M' as const, berthPreference: 'MIDDLE' as const, classCode: '3A', status: 'CONFIRMED' }
+    ];
+  }, [issuedTicket, bookingRecord, bookedTicketsList, trainNumber, passengers, userBookedClass]);
 
   // User's allocated seats across specific coaches (e.g. Coach B4 for 3A)
   const allocatedSeats = useMemo(() => {
@@ -358,7 +515,7 @@ export const JourneyTrackerPage: React.FC = () => {
     // Helper to check if a coach code is a real coach (not WL/GNWL)
     const isRealCoach = (coach: string) => !coach.includes('WL') && !coach.includes('GNWL') && !coach.includes('RAC');
 
-    // 1. Check issuedTicket first
+    // 1. Check issuedTicket first (all seats)
     if (issuedTicket && issuedTicket.train?.trainNumber === trainNumber && issuedTicket.seatAllotments && issuedTicket.seatAllotments.length > 0) {
       const realSeats = issuedTicket.seatAllotments
         .map((s, idx) => ({
@@ -371,7 +528,7 @@ export const JourneyTrackerPage: React.FC = () => {
       if (realSeats.length > 0) return realSeats;
     }
 
-    // 2. Check bookedTicketsList for this train
+    // 2. Check bookedTicketsList for this train (all seats)
     const bookedMatch = (bookedTicketsList || []).find((t) => t.train?.trainNumber === trainNumber);
     if (bookedMatch && bookedMatch.seatAllotments && bookedMatch.seatAllotments.length > 0) {
       const realSeats = bookedMatch.seatAllotments
@@ -385,17 +542,7 @@ export const JourneyTrackerPage: React.FC = () => {
       if (realSeats.length > 0) return realSeats;
     }
 
-    // 3. Check bookingRecord
-    if (bookingRecord && bookingRecord.trainNumber === trainNumber && bookingRecord.seatAllotment && isRealCoach(bookingRecord.seatAllotment.coach)) {
-      return [{
-        coachCode: bookingRecord.seatAllotment.coach,
-        seatNumber: bookingRecord.seatAllotment.seatNumber,
-        berthType: bookingRecord.seatAllotment.berthType,
-        passengerName: bookingRecord.passengerName || 'Passenger 1',
-      }];
-    }
-
-    // 4. Dynamic allocation (never hardcode seat numbers)
+    // 3. Dynamic allocation for all user passengers (allocates seats for all passengers)
     return allocatePassengerSeats(userPassengers, userBookedClass);
   }, [isUserBookedTrain, issuedTicket, bookingRecord, trainNumber, userPassengers, userBookedClass, passengers, bookedTicketsList]);
 
@@ -426,6 +573,118 @@ export const JourneyTrackerPage: React.FC = () => {
   const coachInventory = useMemo(() => {
     return liveSeatInventory(trainNumber, selectedCoachInfo.classCode, 0, inventoryClock);
   }, [trainNumber, selectedCoachInfo.classCode, inventoryClock]);
+
+  // ─── REAL-TIME TELEMETRY ENGINE & GEOLOCATION ───
+  const fetchTelemetry = useCallback(async (trainNum: string) => {
+    setIsTelemetryLoading(true);
+    try {
+      const tel = await railwayApiService.getLiveTrainStatus(trainNum);
+      setLiveTelemetry(tel);
+      const rt = await railwayApiService.getTrainRoute(trainNum);
+      setRouteGeometry(rt);
+    } catch (err) {
+      console.error('Failed to fetch telemetry:', err);
+    } finally {
+      setIsTelemetryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTelemetry(activeTrainNumber);
+    const interval = setInterval(() => {
+      fetchTelemetry(activeTrainNumber);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [activeTrainNumber, fetchTelemetry]);
+
+  const handleLocateMe = useCallback(() => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      const geo = findNearestStation(28.6427, 77.2201);
+      setPassengerLocation({
+        latitude: 28.6427,
+        longitude: 77.2201,
+        accuracy: 25,
+        nearestStationCode: geo.station.code,
+        nearestStationName: geo.station.name,
+        distanceToStationKm: geo.distanceKm,
+        walkingEtaMinutes: geo.walkingEtaMinutes,
+        lastSeenAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy, heading, speed } = pos.coords;
+        const nearest = findNearestStation(latitude, longitude);
+        setPassengerLocation({
+          latitude,
+          longitude,
+          accuracy: accuracy || 15,
+          heading: heading || null,
+          speed: speed || null,
+          nearestStationCode: nearest.station.code,
+          nearestStationName: nearest.station.name,
+          distanceToStationKm: nearest.distanceKm,
+          walkingEtaMinutes: nearest.walkingEtaMinutes,
+          lastSeenAt: new Date().toISOString(),
+        });
+        addNotification({
+          title: 'Passenger Geolocation Confirmed',
+          body: `Nearest hub: ${nearest.station.name} (${nearest.distanceKm} km away). Walking ETA: ~${nearest.walkingEtaMinutes} mins.`,
+          type: 'info',
+        });
+      },
+      (err) => {
+        console.warn('Geolocation denied or timed out, using fallback:', err.message);
+        const fallback = findNearestStation(28.6427, 77.2201);
+        setPassengerLocation({
+          latitude: 28.6427,
+          longitude: 77.2201,
+          accuracy: 50,
+          nearestStationCode: fallback.station.code,
+          nearestStationName: fallback.station.name,
+          distanceToStationKm: fallback.distanceKm,
+          walkingEtaMinutes: fallback.walkingEtaMinutes,
+          lastSeenAt: new Date().toISOString(),
+        });
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+  }, [addNotification]);
+
+  const handleScenarioTrigger = useCallback((scenario: SimulationScenario) => {
+    railwayApiService.triggerScenario(scenario);
+    fetchTelemetry(activeTrainNumber);
+    if (scenario === 'DELAY_15') {
+      addNotification({
+        title: 'Operational Delay Ripple (+15m)',
+        body: 'Downstream signaling hold active. Station boards and platform congestion recalculated.',
+        type: 'delay',
+      });
+    } else if (scenario === 'PLATFORM_CHANGE') {
+      addNotification({
+        title: 'Platform Change Notice',
+        body: 'Berth reassigned from Platform 5 to Platform 2. Concourse walking route updated.',
+        type: 'warning',
+      });
+    } else if (scenario === 'HIGH_DENSITY') {
+      addNotification({
+        title: 'High Passenger Density Alert',
+        body: 'Platform occupancy peaked above safe 80% threshold. Alternate FOB recommended.',
+        type: 'warning',
+      });
+    } else if (scenario === 'CANCELLATION') {
+      addNotification({
+        title: 'Service Cancellation Notice',
+        body: 'Train route suspended by operating control. 100% refund pass initiated.',
+        type: 'cancel',
+      });
+    }
+  }, [activeTrainNumber, fetchTelemetry, addNotification]);
+
+
+
 
   // Real-Time Waitlist Clearance ONLY for actual waitlisted bookings (disappears if confirmed)
   const isWaitlistBooking = useMemo(() => {
@@ -470,20 +729,51 @@ export const JourneyTrackerPage: React.FC = () => {
       'WL-12';
     const parsed = parseWaitlistStatus(rawStatus);
     return {
-      initialWl: parsed.number > 0 ? parsed.number : 12,
+      initialWl: parsed.number > 0 ? parsed.number : 36,
       quotaType: parsed.quotaType || 'GNWL',
     };
   }, [isWaitlistBooking, issuedTicket, bookingRecord]);
 
-  const initialWaitlistNumber = isWaitlistBooking ? parsedWaitlistInfo.initialWl : 0;
-  const initialQuotaType = parsedWaitlistInfo.quotaType || 'GNWL';
+  // ─── DYNAMIC WAITLIST SCENARIO & SIMULATOR STATE ───
+  const [activeWaitlistScenario, setActiveWaitlistScenario] = useState<{
+    initialWl: number;
+    currentWl: number;
+    quota: string;
+    clearanceRate: number;
+    label: string;
+  }>(() => {
+    if (isWaitlistBooking && parsedWaitlistInfo.initialWl > 0) {
+      return {
+        initialWl: parsedWaitlistInfo.initialWl,
+        currentWl: parsedWaitlistInfo.initialWl,
+        quota: parsedWaitlistInfo.quotaType || 'GNWL',
+        clearanceRate: 3.8,
+        label: 'Booking Ticket',
+      };
+    }
+    return {
+      initialWl: 36,
+      currentWl: 18,
+      quota: 'GNWL',
+      clearanceRate: 4.2,
+      label: 'Standard Queue',
+    };
+  });
 
-  const [simulatedWl, setSimulatedWl] = useState<number>(() => (isWaitlistBooking ? initialWaitlistNumber : 0));
+  const [showHowWlSimulatesModal, setShowHowWlSimulatesModal] = useState<boolean>(false);
+  const initialWaitlistNumber = activeWaitlistScenario.initialWl;
+  const initialQuotaType = activeWaitlistScenario.quota;
+  const simulatedWl = activeWaitlistScenario.currentWl;
+  const setSimulatedWl = useCallback((wl: number) => {
+    setActiveWaitlistScenario((prev) => ({ ...prev, currentWl: wl }));
+  }, []);
+
   const [showConfirmedCelebration, setShowConfirmedCelebration] = useState<boolean>(false);
   const [isPoofingCelebration, setIsPoofingCelebration] = useState<boolean>(false);
   const [isSimPaused, setIsSimPaused] = useState<boolean>(false);
   const [simIndex, setSimIndex] = useState<number>(0);
   const [simStatusMsg, setSimStatusMsg] = useState<string>('Corridor radar active: scanning cancellation queue...');
+
 
   // Helper to permanently confirm waitlist in storage and context
   const confirmWaitlistPermanently = useCallback(() => {
@@ -599,38 +889,86 @@ export const JourneyTrackerPage: React.FC = () => {
   }, [isWaitlistBooking, initialWaitlistNumber, isSimPaused, simIndex, SIM_SEQUENCE, confirmWaitlistPermanently]);
 
   const handleStepSim = () => {
-    if (SIM_SEQUENCE.length === 0) return;
-    const nextIdx = Math.min(SIM_SEQUENCE.length - 1, simIndex + 1);
-    setSimIndex(nextIdx);
-    setSimulatedWl(SIM_SEQUENCE[nextIdx].wl);
-    setSimStatusMsg(SIM_SEQUENCE[nextIdx].msg);
-    if (SIM_SEQUENCE[nextIdx].wl === 0) {
-      confirmWaitlistPermanently();
-      setShowConfirmedCelebration(true);
-    }
+    setActiveWaitlistScenario((prev) => {
+      const nextWl = Math.max(0, prev.currentWl - 2);
+      if (nextWl === 0) {
+        setShowConfirmedCelebration(true);
+        confirmWaitlistPermanently();
+      }
+      return { ...prev, currentWl: nextWl };
+    });
+    setSimStatusMsg(`Corridor update: cleared 2 cancellation positions ahead.`);
+  };
+
+  const handleBulkClearSim = (amount = 5) => {
+    setActiveWaitlistScenario((prev) => {
+      const nextWl = Math.max(0, prev.currentWl - amount);
+      if (nextWl === 0) {
+        setShowConfirmedCelebration(true);
+        confirmWaitlistPermanently();
+      }
+      return { ...prev, currentWl: nextWl };
+    });
+    setSimStatusMsg(`Tatkal & Emergency quota roll-in: bulk cleared ${amount} waitlist positions!`);
   };
 
   const handleResetSim = () => {
-    if (SIM_SEQUENCE.length === 0) return;
     try {
       localStorage.removeItem(`nirantar_wl_confirmed_${trainNumber}`);
     } catch {}
-    setSimIndex(0);
-    setSimulatedWl(initialWaitlistNumber);
-    setSimStatusMsg(SIM_SEQUENCE[0]?.msg || 'Corridor radar active');
+    setActiveWaitlistScenario((prev) => ({
+      ...prev,
+      currentWl: prev.initialWl,
+    }));
     setShowConfirmedCelebration(false);
     setIsPoofingCelebration(false);
+    setSimIndex(0);
+    setSimStatusMsg(`Queue reset to booking position (${activeWaitlistScenario.quota} ${activeWaitlistScenario.initialWl})...`);
   };
 
   const handleFastForwardSim = () => {
-    if (SIM_SEQUENCE.length === 0) return;
-    const lastIdx = SIM_SEQUENCE.length - 1;
-    setSimIndex(lastIdx);
-    setSimulatedWl(0);
-    setSimStatusMsg(SIM_SEQUENCE[lastIdx]?.msg || 'Confirmed');
+    setActiveWaitlistScenario((prev) => ({
+      ...prev,
+      currentWl: 0,
+    }));
     confirmWaitlistPermanently();
     setShowConfirmedCelebration(true);
+    setSimStatusMsg(`All positions cleared! Confirmed in Coach B4.`);
   };
+
+  const handleSelectWaitlistPreset = (wlNumber: number, quota = 'GNWL', rate = 3.8, label = '') => {
+    setActiveWaitlistScenario({
+      initialWl: wlNumber,
+      currentWl: wlNumber,
+      quota,
+      clearanceRate: rate,
+      label,
+    });
+    setShowConfirmedCelebration(false);
+    setIsPoofingCelebration(false);
+    setSimIndex(0);
+    setSimStatusMsg(`Corridor radar active: tracking ${quota} ${wlNumber} (${rate} clearances/hr)...`);
+  };
+
+  const handleRandomizeWaitlist = () => {
+    const quotas = ['GNWL', 'RLWL', 'PQWL'];
+    const randomQuota = quotas[Math.floor(Math.random() * quotas.length)];
+    const randomInit = Math.floor(Math.random() * 85) + 15; // 15 to 100
+    const randomCurrent = Math.max(1, Math.floor(randomInit * (0.45 + Math.random() * 0.45))); // 45% to 90%
+    const randomRate = +(2.8 + Math.random() * 3.2).toFixed(1); // 2.8 to 6.0
+    setActiveWaitlistScenario({
+      initialWl: randomInit,
+      currentWl: randomCurrent,
+      quota: randomQuota,
+      clearanceRate: randomRate,
+      label: 'Random Scenario',
+    });
+    setShowConfirmedCelebration(false);
+    setIsPoofingCelebration(false);
+    setSimIndex(0);
+    setSimStatusMsg(`Corridor radar initialized for ${randomQuota} ${randomCurrent} (${randomInit - randomCurrent} positions cleared ahead in real-time)...`);
+  };
+
 
   const handlePoofCelebration = () => {
     setIsPoofingCelebration(true);
@@ -702,11 +1040,15 @@ export const JourneyTrackerPage: React.FC = () => {
 
   const seatClass = foundTrain?.classes?.find((c: any) => c.classCode === selectedCoachInfo.classCode) || foundTrain?.classes?.[0];
 
-  const effectiveWl = isWaitlistBooking ? simulatedWl : coachInventory.waitlist;
-  const effectiveCleared = isWaitlistBooking ? Math.max(0, initialWaitlistNumber - simulatedWl) : coachInventory.positionsCleared;
-  const effectiveProb = isWaitlistBooking
-    ? calculateCalibratedProbability(initialWaitlistNumber, simulatedWl, selectedCoachInfo.classCode, initialQuotaType)
-    : coachInventory.waitlist <= 2 ? 98 : 88;
+  const effectiveWl = activeWaitlistScenario.currentWl;
+  const effectiveCleared = Math.max(0, activeWaitlistScenario.initialWl - activeWaitlistScenario.currentWl);
+  const effectiveProb = calculateCalibratedProbability(
+    activeWaitlistScenario.initialWl,
+    activeWaitlistScenario.currentWl,
+    selectedCoachInfo.classCode,
+    activeWaitlistScenario.quota
+  );
+
 
   const seatInventory = useMemo(() => {
     if (isWaitlistBooking) {
@@ -825,7 +1167,93 @@ export const JourneyTrackerPage: React.FC = () => {
   const availabilityRoute = `${firstStop.name} (${firstStop.platform}) to ${lastStop.name} (${lastStop.platform})`;
 
   const isFinalDestination = activeStationIndex >= routeStations.length - 1;
-  const currentTargetStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1] || firstStop;
+  const currentTargetStation = useMemo(() => {
+    const defaultStation = routeStations[activeStationIndex] || routeStations[routeStations.length - 1] || firstStop;
+    if (liveTelemetry?.nextStationName) {
+      return {
+        ...defaultStation,
+        name: liveTelemetry.nextStationName,
+        code: liveTelemetry.nextStationCode || defaultStation.code,
+        platform: liveTelemetry.platform || defaultStation.platform || 'Platform 1',
+      };
+    }
+    return defaultStation;
+  }, [routeStations, activeStationIndex, firstStop, liveTelemetry]);
+
+  // Dynamic station stops coordinates
+  const fromStationStop = routeStations[Math.max(0, activeStationIndex - 1)] || firstStop;
+  const toStationStop = routeStations[activeStationIndex] || currentTargetStation;
+
+  const fromCoords = useMemo(() => {
+    return (
+      STATION_COORDINATES[fromStationStop.code] || {
+        latitude: 28.6427,
+        longitude: 77.2201,
+      }
+    );
+  }, [fromStationStop]);
+
+  const toCoords = useMemo(() => {
+    return (
+      STATION_COORDINATES[toStationStop.code] || {
+        latitude: 25.3283,
+        longitude: 82.9868,
+      }
+    );
+  }, [toStationStop]);
+
+  // Dynamic real-time train GPS coordinates (glides smoothly along track as countdown ticks)
+  const { currentLat, currentLng, currentBearing } = useMemo(() => {
+    // 1. If halted at station, fix coordinates precisely to the station platform
+    if (phase === 'HALTED' || countdownSeconds <= 0) {
+      return {
+        currentLat: toCoords.latitude,
+        currentLng: toCoords.longitude,
+        currentBearing: 135,
+      };
+    }
+
+    // 2. Fractional progress t along the leg [0.01 .. 0.99]
+    const totalLegSeconds = 240;
+    const t = Math.min(0.995, Math.max(0.005, 1 - countdownSeconds / totalLegSeconds));
+
+    // 3. Interpolate along coordinates
+    const lat = fromCoords.latitude + t * (toCoords.latitude - fromCoords.latitude);
+    const lng = fromCoords.longitude + t * (toCoords.longitude - fromCoords.longitude);
+
+    // 4. Dynamic directional bearing towards next station
+    const dLon = ((toCoords.longitude - fromCoords.longitude) * Math.PI) / 180;
+    const y = Math.sin(dLon) * Math.cos((toCoords.latitude * Math.PI) / 180);
+    const x =
+      Math.cos((fromCoords.latitude * Math.PI) / 180) * Math.sin((toCoords.latitude * Math.PI) / 180) -
+      Math.sin((fromCoords.latitude * Math.PI) / 180) *
+        Math.cos((toCoords.latitude * Math.PI) / 180) *
+        Math.cos(dLon);
+    const bearingRad = Math.atan2(y, x);
+    const bearing = Math.round(((bearingRad * 180) / Math.PI + 360) % 360);
+
+    return {
+      currentLat: Number(lat.toFixed(5)),
+      currentLng: Number(lng.toFixed(5)),
+      currentBearing: bearing,
+    };
+  }, [phase, countdownSeconds, fromCoords, toCoords]);
+
+  // Nominal leg distance between halts (km)
+  const nominalLegDistanceKm = useMemo(() => {
+    const nextSt = routeStations[activeStationIndex] || currentTargetStation;
+    const prevSt = routeStations[Math.max(0, activeStationIndex - 1)] || firstStop;
+    const diff = Math.abs(nextSt.distanceKm - prevSt.distanceKm);
+    return diff > 4 ? diff : 28.4;
+  }, [routeStations, activeStationIndex, currentTargetStation, firstStop]);
+
+  // Dynamic real-time distance countdown (decrements continuously as countdownSeconds ticks down)
+  const distanceToNextHaltKm = useMemo(() => {
+    if (phase === 'HALTED' || phase === 'DESTINATION_ARRIVED') return 0.0;
+    const maxSecs = 240;
+    const progressFactor = Math.min(1, Math.max(0.02, countdownSeconds / maxSecs));
+    return Number((nominalLegDistanceKm * progressFactor).toFixed(1));
+  }, [phase, countdownSeconds, nominalLegDistanceKm]);
 
   // Synthesize realistic 4-tone Indian Railway chime
   const playRailwayChime = () => {
@@ -858,13 +1286,22 @@ export const JourneyTrackerPage: React.FC = () => {
     setTimeout(() => setIsPlayingAnnouncement(false), 3000);
   };
 
+  // Natural speed micro-fluctuation jitter (only when train is moving)
+  useEffect(() => {
+    if (phase === 'HALTED' || phase === 'DESTINATION_ARRIVED') {
+      setSpeedJitter(0);
+      return;
+    }
+    const jitterTimer = setInterval(() => {
+      setSpeedJitter(Math.floor(Math.random() * 3) - 1); // -1, 0, or +1 km/h
+    }, 2500);
+    return () => clearInterval(jitterTimer);
+  }, [phase]);
+
   // Live Timer & Lifecycle State Machine
   useEffect(() => {
     const timer = setInterval(() => {
-      // Speed slight natural jitter
-      setSpeedJitter(Math.floor(Math.random() * 5) - 2);
-
-      if (phase === 'TRAVELING' || phase === 'APPROACHING') {
+      if (phase === 'TRAVELING' || phase === 'APPROACHING' || phase === 'DEPARTING') {
         setCountdownSeconds((prev) => {
           if (prev <= 1) {
             // Train arrives at platform
@@ -873,11 +1310,11 @@ export const JourneyTrackerPage: React.FC = () => {
               return 0;
             }
             setPhase('HALTED');
-            setHaltSeconds(20);
+            setHaltSeconds(30);
             return 0;
           }
           const next = prev - 1;
-          if (next <= 120 && phase !== 'APPROACHING') {
+          if (next <= 90 && phase !== 'APPROACHING') {
             setPhase('APPROACHING');
           }
           return next;
@@ -889,10 +1326,10 @@ export const JourneyTrackerPage: React.FC = () => {
             if (activeStationIndex < routeStations.length - 1) {
               const nextIdx = activeStationIndex + 1;
               setActiveStationIndex(nextIdx);
-              const randomDurations = [240, 300, 360, 420]; // 4m, 5m, 6m, 7m
+              const randomDurations = [240, 300, 360, 420];
               const nextLegSecs = randomDurations[Math.floor(Math.random() * randomDurations.length)];
               setCountdownSeconds(nextLegSecs);
-              setPhase('TRAVELING');
+              setPhase('DEPARTING');
             } else {
               setPhase('DESTINATION_ARRIVED');
             }
@@ -906,6 +1343,13 @@ export const JourneyTrackerPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [phase, activeStationIndex, routeStations.length]);
 
+  // Transition from DEPARTING to normal TRAVELING once speed is up
+  useEffect(() => {
+    if (phase === 'DEPARTING' && countdownSeconds < 210) {
+      setPhase('TRAVELING');
+    }
+  }, [phase, countdownSeconds]);
+
   // Format timer MM:SS
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -913,37 +1357,122 @@ export const JourneyTrackerPage: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Dynamic speed based on phase, arrival proximity and delay condition
-  const baseSpeed =
-    phase === 'HALTED' || phase === 'DESTINATION_ARRIVED'
-      ? 0
-      : countdownSeconds <= 30
-      ? 18
-      : countdownSeconds <= 60
-      ? 44
-      : countdownSeconds <= 120
-      ? 78
-      : delayStatus === 'BEFORE_TIME'
-      ? 126
-      : delayStatus === 'DELAY_8M'
-      ? 94
-      : delayStatus === 'DELAY_25M'
-      ? 62
-      : 116;
+  // Authentic operational speed based on train type, phase, and timetable profile
+  const baseSpeed = useMemo(() => {
+    if (phase === 'HALTED' || phase === 'DESTINATION_ARRIVED') return 0;
+    const profile = TRAIN_OPERATIONAL_PROFILES[trainNumber] || TRAIN_OPERATIONAL_PROFILES['12951'];
+
+    if (phase === 'APPROACHING') {
+      // Decelerating as train enters station yard
+      const decelFactor = Math.min(1, Math.max(0.18, countdownSeconds / 60));
+      return Math.round(profile.targetCruisingSpeed * decelFactor);
+    }
+
+    if (phase === 'DEPARTING') {
+      // Accelerating from platform stop
+      const accelFactor = Math.min(1, Math.max(0.28, (240 - countdownSeconds) / 60));
+      return Math.round(profile.targetCruisingSpeed * accelFactor);
+    }
+
+    // Cruising speed
+    return profile.targetCruisingSpeed;
+  }, [phase, trainNumber, countdownSeconds]);
 
   const currentSpeed = Math.max(0, baseSpeed === 0 ? 0 : baseSpeed + speedJitter);
 
+  // Fully synchronized telemetry: feeds exact same moving coordinates, speed, distance, station, and delay
+  const synchronizedTelemetry = useMemo(() => {
+    const profile = TRAIN_OPERATIONAL_PROFILES[trainNumber] || TRAIN_OPERATIONAL_PROFILES['12951'];
+    return {
+      trainNumber: activeTrainNumber,
+      trainName: trainName,
+      status: phase === 'HALTED' ? ('at_station' as const) : ('running' as const),
+      delayMinutes:
+        delayStatus === 'DELAY_25M'
+          ? 25
+          : delayStatus === 'DELAY_8M'
+          ? profile.initialDelayMinutes || 8
+          : delayStatus === 'BEFORE_TIME'
+          ? profile.initialDelayMinutes || -4
+          : 0,
+      latitude: currentLat,
+      longitude: currentLng,
+      speedKmh: currentSpeed,
+      distanceToNextHaltKm: distanceToNextHaltKm,
+      bearingDegrees: currentBearing,
+      segmentProgress: Math.round(((240 - countdownSeconds) / 240) * 100),
+      currentStationCode: fromStationStop.code,
+      currentStationName: fromStationStop.name,
+      nextStationCode: currentTargetStation.code,
+      nextStationName: currentTargetStation.name,
+      platform: currentTargetStation.platform,
+      providerUpdatedAt: new Date().toISOString(),
+      fetchedAt: new Date().toISOString(),
+      source: 'mock' as const,
+      mode: 'SIMULATED' as const,
+    };
+  }, [
+    activeTrainNumber,
+    trainName,
+    phase,
+    delayStatus,
+    currentLat,
+    currentLng,
+    currentSpeed,
+    distanceToNextHaltKm,
+    currentBearing,
+    countdownSeconds,
+    fromStationStop,
+    currentTargetStation,
+    trainNumber,
+  ]);
+
+  // Synchronize train state when active train changes or initializes
   useEffect(() => {
     const stops = routeStations;
-    const mid = Math.max(1, Math.min(stops.length - 2, Math.floor(stops.length / 3)));
-    setActiveStationIndex(mid);
-    setPhase('TRAVELING');
-    const seed = Number.parseInt(trainNumber, 10) || trainNumber.length;
-    setCountdownSeconds(150 + (seed % 120));
-    const delayPick: DelayStatus[] = ['ON_TIME', 'BEFORE_TIME', 'ON_TIME', 'DELAY_8M'];
-    setDelayStatus(delayPick[seed % delayPick.length]);
+    const profile = TRAIN_OPERATIONAL_PROFILES[trainNumber] || TRAIN_OPERATIONAL_PROFILES['12951'];
+    const offset =
+      profile.stationOffsetIdx !== undefined
+        ? profile.stationOffsetIdx
+        : Math.max(1, Math.min(stops.length - 2, Math.floor(stops.length * (profile.activeStationOffsetRatio || 0.4))));
+
+    setActiveStationIndex(offset);
+    setPhase(profile.initialPhase);
+    setDelayStatus(profile.initialDelayStatus);
+
+    if (profile.initialPhase === 'HALTED') {
+      setCountdownSeconds(0);
+      setHaltSeconds(profile.haltDurationSeconds || 45);
+    } else {
+      setCountdownSeconds(profile.initialCountdownSeconds || 195);
+    }
     lastNotifKey.current = '';
   }, [trainNumber, routeStations]);
+
+  // Synchronize with upstream Live Telemetry when received
+  useEffect(() => {
+    if (!liveTelemetry) return;
+    if (typeof liveTelemetry.delayMinutes === 'number') {
+      if (liveTelemetry.delayMinutes > 20) {
+        setDelayStatus('DELAY_25M');
+      } else if (liveTelemetry.delayMinutes > 5) {
+        setDelayStatus('DELAY_8M');
+      } else if (liveTelemetry.delayMinutes < -2) {
+        setDelayStatus('BEFORE_TIME');
+      } else {
+        setDelayStatus('ON_TIME');
+      }
+    }
+    if (liveTelemetry.nextStationCode || liveTelemetry.nextStationName) {
+      const matchIdx = routeStations.findIndex((st) =>
+        (liveTelemetry.nextStationCode && st.code.toUpperCase() === liveTelemetry.nextStationCode.toUpperCase()) ||
+        (liveTelemetry.nextStationName && st.name.toLowerCase().includes(liveTelemetry.nextStationName.toLowerCase()))
+      );
+      if (matchIdx >= 0) {
+        setActiveStationIndex(matchIdx);
+      }
+    }
+  }, [liveTelemetry, routeStations]);
 
   useEffect(() => {
     const key = `${phase}-${activeStationIndex}`;
@@ -1007,6 +1536,62 @@ export const JourneyTrackerPage: React.FC = () => {
     setSearchInput(nextTrainNumber);
     setActiveTrainNumber(nextTrainNumber);
     setTrackQuery(nextTrainNumber);
+    const profile = TRAIN_OPERATIONAL_PROFILES[nextTrainNumber];
+    if (profile) {
+      setPhase(profile.initialPhase);
+      setDelayStatus(profile.initialDelayStatus);
+      if (profile.initialPhase === 'HALTED') {
+        setCountdownSeconds(0);
+        setHaltSeconds(profile.haltDurationSeconds || 45);
+      } else {
+        setCountdownSeconds(profile.initialCountdownSeconds || 195);
+      }
+    }
+  };
+
+  const playLiveAnnouncement = async () => {
+    if (isPlayingLiveAnnouncement) {
+      MultimodalAiService.stopSpeaking();
+      setIsPlayingLiveAnnouncement(false);
+      return;
+    }
+
+    const currentStation = routeStations[activeStationIndex] || firstStop;
+    const plat = currentStation.platform || 'Platform 1';
+    const spacedTrainNo = trainNumber.split('').join(' ');
+    const currentLoad = stationLoadProjection(
+      trainNumber,
+      routeStations,
+      activeStationIndex,
+      72,
+      isCurrentTrainWaitlisted,
+      foundTrain?.classes,
+      allocatedSeats
+    );
+    const vacancyText = currentLoad.vacantSeats > 0
+      ? `Approximately ${currentLoad.vacantSeats} vacant berths are available for intermediate boarding.`
+      : 'All reserved coach berths are fully occupied.';
+
+    let statusText = '';
+    if (delayStatus === 'DELAY_8M') {
+      statusText = 'is running delayed by approximately 8 minutes.';
+    } else if (delayStatus === 'DELAY_25M') {
+      statusText = 'is running delayed by approximately 25 minutes due to route traffic.';
+    } else if (delayStatus === 'BEFORE_TIME') {
+      statusText = 'is running 5 minutes before time and approaching the next station.';
+    } else {
+      statusText = `is running right on time at current speed of ${currentSpeed} kilometers per hour.`;
+    }
+
+    const announcement = `May I have your attention please. Train number ${spacedTrainNo}, ${trainName}, from ${fromCity} to ${toCity}, ${statusText} Next scheduled station halt is ${currentStation.name} on ${plat}. Doors will open on the ${currentStation.doorSide.toLowerCase()} side. ${vacancyText} Passengers are requested to board safely.`;
+
+    setIsPlayingLiveAnnouncement(true);
+    await MultimodalAiService.speakText(
+      announcement,
+      () => setIsPlayingLiveAnnouncement(true),
+      () => setIsPlayingLiveAnnouncement(false),
+      true // railway chime
+    );
   };
 
   return (
@@ -1199,19 +1784,32 @@ export const JourneyTrackerPage: React.FC = () => {
 
           {/* Real-Time Speedometer */}
           <div className="flex items-center justify-center gap-3 sm:border-x border-purple-800/80 py-1">
-            <div className="w-10 h-10 rounded-2xl bg-purple-800/60 border border-purple-700/60 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-              <Zap className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner border ${
+              phase === 'HALTED' 
+                ? 'bg-amber-950/60 border-amber-600/60 text-amber-400' 
+                : 'bg-purple-800/60 border-purple-700/60 text-emerald-400'
+            }`}>
+              {phase === 'HALTED' ? <Pause className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 block">
                 Current Speed
               </span>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl sm:text-3xl font-mono font-black text-emerald-400 leading-none">
+                <span className={`text-2xl sm:text-3xl font-mono font-black leading-none ${
+                  phase === 'HALTED' ? 'text-amber-400' : 'text-emerald-400'
+                }`}>
                   {currentSpeed}
                 </span>
                 <span className="text-xs font-bold text-purple-300 font-mono">km/h</span>
               </div>
+              <span className={`text-[10px] font-mono font-bold block leading-tight ${
+                phase === 'HALTED' ? 'text-amber-300' : 'text-emerald-300/90'
+              }`}>
+                {phase === 'HALTED' 
+                  ? `HALTED ON ${currentTargetStation.platform}` 
+                  : `${distanceToNextHaltKm} km to halt`}
+              </span>
             </div>
           </div>
 
@@ -1221,6 +1819,12 @@ export const JourneyTrackerPage: React.FC = () => {
               className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-sm ${
                 phase === 'DESTINATION_ARRIVED'
                   ? 'bg-emerald-500 animate-pulse'
+                  : phase === 'HALTED'
+                  ? 'bg-amber-600 ring-2 ring-amber-400/50'
+                  : phase === 'DEPARTING'
+                  ? 'bg-indigo-600'
+                  : phase === 'APPROACHING'
+                  ? 'bg-amber-500 animate-bounce'
                   : delayStatus === 'BEFORE_TIME'
                   ? 'bg-purple-600'
                   : delayStatus === 'DELAY_8M'
@@ -1232,6 +1836,8 @@ export const JourneyTrackerPage: React.FC = () => {
             >
               {phase === 'DESTINATION_ARRIVED' ? (
                 <Trophy className="w-5 h-5" />
+              ) : phase === 'HALTED' ? (
+                <Pause className="w-5 h-5" />
               ) : (
                 <Navigation className="w-5 h-5" />
               )}
@@ -1244,6 +1850,12 @@ export const JourneyTrackerPage: React.FC = () => {
                 className={`text-sm font-black block leading-tight ${
                   phase === 'DESTINATION_ARRIVED'
                     ? 'text-emerald-300'
+                    : phase === 'HALTED'
+                    ? 'text-amber-300'
+                    : phase === 'DEPARTING'
+                    ? 'text-indigo-300'
+                    : phase === 'APPROACHING'
+                    ? 'text-amber-300'
                     : delayStatus === 'BEFORE_TIME'
                     ? 'text-purple-300'
                     : delayStatus === 'DELAY_8M'
@@ -1255,19 +1867,25 @@ export const JourneyTrackerPage: React.FC = () => {
               >
                 {phase === 'DESTINATION_ARRIVED'
                   ? 'Journey Completed 🎉'
+                  : phase === 'HALTED'
+                  ? 'Halted at Station 🛑'
+                  : phase === 'DEPARTING'
+                  ? 'Accelerating from Halt 🚀'
+                  : phase === 'APPROACHING'
+                  ? 'Decelerating to Platform ⚠️'
                   : delayStatus === 'BEFORE_TIME'
-                  ? '5m Before Time (Early)'
+                  ? 'Running Early (-4 mins)'
                   : delayStatus === 'DELAY_8M'
                   ? 'Minor Delay (+8 mins)'
                   : delayStatus === 'DELAY_25M'
-                  ? 'Delayed (+25 mins)'
+                  ? 'Route Delay (+25 mins)'
                   : 'Right on Time (En-Route)'}
               </span>
               <span className="text-[10px] text-purple-300 font-mono font-medium">
                 {phase === 'DESTINATION_ARRIVED'
                   ? `Arrived at ${toCity} (${toCode})`
                   : phase === 'HALTED'
-                  ? `Departing in ${haltSeconds}s`
+                  ? `Doors Open • Departs in ${haltSeconds}s`
                   : `Next: ${currentTargetStation.name} in ${formatTimer(countdownSeconds)}`}
               </span>
             </div>
@@ -1303,29 +1921,172 @@ export const JourneyTrackerPage: React.FC = () => {
             <span className="text-[9px] text-purple-300 font-semibold truncate block mt-0.5">{toCity} ({toCode})</span>
           </div>
         </div>
+
+        {/* 🔊 LIVE VOICE ANNOUNCEMENT BUTTON */}
+        <div className="relative z-10 mt-3 pt-2.5 border-t border-purple-800/50 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[11px] font-bold text-purple-200">
+              Live Station Voice Announcement Available
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={playLiveAnnouncement}
+            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+              isPlayingLiveAnnouncement
+                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white'
+            }`}
+          >
+            {isPlayingLiveAnnouncement ? (
+              <>
+                <VolumeX className="w-3.5 h-3.5" />
+                <span>Stop Announcement</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Play Live Station Announcement 🎙️</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          2.5 THREE SIGNATURE CONTEXTUAL FEATURES:
+          (1) "🧭 What should I do now?" Assistant
+          (2) "🚨 Nirantar Alert" Contextual Telemetry
+          (3) "🔮 Next 15 Minutes" Predictive Platform Inflow
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* 1. "🧭 What should I do now?" Contextual Assistant */}
+        <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 rounded-2xl p-3.5 border border-purple-200 shadow-sm flex flex-col justify-between space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs font-black shadow-xs shrink-0">
+              🧭
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                What should I do now?
+              </h3>
+              <span className="text-[10px] font-bold text-purple-700">Contextual Railway Copilot</span>
+            </div>
+          </div>
+          <div className="text-xs text-slate-700 bg-white/80 p-2.5 rounded-xl border border-purple-100/80 leading-relaxed font-medium">
+            {phase === 'DESTINATION_ARRIVED' ? (
+              <span>🎉 You have arrived at <strong>{toCity}</strong>! Please verify your luggage and proceed to Exit Gate 2.</span>
+            ) : phase === 'APPROACHING' ? (
+              <span>Train is approaching <strong>{currentTargetStation.name}</strong> on <strong>{currentTargetStation.platform}</strong>. Doors open on <strong>{currentTargetStation.doorSide.toLowerCase()}</strong> side. Move toward coach exit.</span>
+            ) : delayStatus === 'DELAY_25M' ? (
+              <span>Your train #{trainNumber} is running delayed by 25 mins. Relax at the station executive waiting hall; revised arrival is in {formatTimer(countdownSeconds)}.</span>
+            ) : (
+              <span>Currently cruising at <strong>{currentSpeed} km/h</strong> towards <strong>{currentTargetStation.name}</strong>. Next halt in {formatTimer(countdownSeconds)} on <strong>{currentTargetStation.platform}</strong>. Reaching platform area early is recommended.</span>
+            )}
+          </div>
+        </div>
+
+        {/* 2. "🚨 Nirantar Alert" Real-time Dynamic Telemetry */}
+        <div className="bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 rounded-2xl p-3.5 border border-amber-200 shadow-sm flex flex-col justify-between space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs shrink-0">
+              🚨
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                Nirantar Alert
+              </h3>
+              <span className="text-[10px] font-bold text-amber-700">Platform Telemetry</span>
+            </div>
+          </div>
+          <div className="text-xs text-slate-700 bg-white/80 p-2.5 rounded-xl border border-amber-100/80 leading-relaxed font-medium">
+            {delayStatus === 'DELAY_25M' ? (
+              <span className="text-red-700">🔴 <strong>Route Traffic Delay</strong>: Caution, section speed restricted to 62 km/h. Next platform clearance expected shortly.</span>
+            ) : phase === 'APPROACHING' ? (
+              <span className="text-amber-800">🟠 <strong>Platform Crowd Surge</strong>: Inflow on {currentTargetStation.platform} is +18% over the last 5 mins. Proceed to coach marker.</span>
+            ) : (
+              <span className="text-emerald-800">🟢 <strong>Optimal Transit Corridor</strong>: Speed steady at {currentSpeed} km/h. Overhead traction & track clearance verified 100% green.</span>
+            )}
+          </div>
+        </div>
+
+        {/* 3. "🔮 Next 15 Minutes" Predictive Congestion Progression */}
+        <div className="bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 rounded-2xl p-3.5 border border-indigo-200 shadow-sm flex flex-col justify-between space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs shrink-0">
+              🔮
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                Next 15 Minutes
+              </h3>
+              <span className="text-[10px] font-bold text-indigo-700">Predictive Platform Flow</span>
+            </div>
+          </div>
+          <div className="bg-white/80 p-2 rounded-xl border border-indigo-100/80 space-y-1.5">
+            <div className="grid grid-cols-4 gap-1 text-center">
+              <div className="bg-indigo-50/70 p-1 rounded-lg">
+                <span className="text-[9px] font-bold text-slate-500 block">NOW</span>
+                <span className="text-[10px] font-black text-emerald-700">MODERATE</span>
+              </div>
+              <div className="bg-indigo-50/70 p-1 rounded-lg">
+                <span className="text-[9px] font-bold text-slate-500 block">+5m</span>
+                <span className="text-[10px] font-black text-amber-600">HIGH</span>
+              </div>
+              <div className="bg-indigo-50/70 p-1 rounded-lg">
+                <span className="text-[9px] font-bold text-slate-500 block">+10m</span>
+                <span className="text-[10px] font-black text-orange-600">PEAK</span>
+              </div>
+              <div className="bg-indigo-50/70 p-1 rounded-lg">
+                <span className="text-[9px] font-bold text-slate-500 block">+15m</span>
+                <span className="text-[10px] font-black text-purple-700">BOARDING</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-600 font-semibold text-center leading-tight">
+              ⚠️ Inflow likely to peak as coach doors align with {currentTargetStation.platform}.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           3. CLEAN PRIMARY VIEW SWITCHER TABS (DE-CONGESTED VIEW BAR)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className={`grid grid-cols-1 ${isUserBookedTrain && isWaitlistBooking ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 shadow-sm text-xs font-bold`}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 shadow-sm text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => setActiveTrackerTab('map')}
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeTrackerTab === 'map'
+              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+          }`}
+        >
+          <Compass className="w-4 h-4 shrink-0" />
+          <span className="truncate">🗺️ Live Rail Map</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTrackerTab('timeline')}
-          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTrackerTab === 'timeline'
               ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
               : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
           }`}
         >
           <MapPin className="w-4 h-4 shrink-0" />
-          <span className="truncate">🗺️ GPS Radar & Timeline</span>
+          <span className="truncate">⏱️ Station Timeline</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTrackerTab('coach')}
-          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTrackerTab === 'coach'
               ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
               : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
@@ -1333,24 +2094,22 @@ export const JourneyTrackerPage: React.FC = () => {
         >
           <Train className="w-4 h-4 shrink-0" />
           <span className="truncate">
-            {isUserBookedTrain ? `💺 My Reserved Berths ${isUserCoach ? `(${selectedCoach})` : ''}` : '💺 Coach Composition Preview'}
+            {isUserBookedTrain ? `💺 My Berths ${isUserCoach ? `(${selectedCoach})` : ''}` : '💺 Coach Composition'}
           </span>
         </button>
 
-        {isUserBookedTrain && isWaitlistBooking && (
-          <button
-            type="button"
-            onClick={() => setActiveTrackerTab('waitlist')}
-            className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              activeTrackerTab === 'waitlist'
-                ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
-                : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="truncate">📊 Waitlist Radar ({wlWatch.confirmationProbability}%)</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setActiveTrackerTab('waitlist')}
+          className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeTrackerTab === 'waitlist'
+              ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-500/25 font-black'
+              : 'text-slate-700 hover:bg-purple-50/80 hover:text-purple-900'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="truncate">📊 Waitlist ({wlWatch.confirmationProbability}%)</span>
+        </button>
       </div>
 
       {/* Sleek Compact Notification when Waitlist is Active and User is in other tabs */}
@@ -1375,35 +2134,151 @@ export const JourneyTrackerPage: React.FC = () => {
 
       {/* ═══════════════════════════════════════════════════════════════════
           4. MAIN TWO-COLUMN UNCLUTTERED LAYOUT
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* Fully synchronized telemetry: guarantees exact same speed, station, platform, and delay on the Map and all page cards */}
+      {(() => null)()}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: PRIMARY SUB-VIEW (2 Cols) ──────────────── */}
         <div className="lg:col-span-2 space-y-4">
+          {/* ─── TAB 0: MAPBOX REALTIME RAIL MAP & OPERATIONAL INTELLIGENCE ─── */}
+          {activeTrackerTab === 'map' && (
+            <div className="space-y-4 animate-in fade-in">
+              {/* Mapbox Realtime Map with Layers */}
+              <ExplainableSection sectionId="live-map">
+                <MapboxTrainMap
+                  telemetry={synchronizedTelemetry}
+                  route={routeGeometry}
+                  passengerLocation={passengerLocation}
+                  onLocateMe={handleLocateMe}
+                  onRefresh={() => fetchTelemetry(activeTrainNumber)}
+                  isLoading={isTelemetryLoading}
+                />
+              </ExplainableSection>
+
+              {/* Demo / Simulation Console */}
+              <SimulationControlPanel
+                currentTrainNumber={activeTrainNumber}
+                onTrainChange={(num) => {
+                  setActiveTrainNumber(num);
+                  setSearchInput(num);
+                  fetchTelemetry(num);
+                }}
+                onScenarioTriggered={handleScenarioTrigger}
+              />
+
+              {/* AI Predictive & Voice AI Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PredictiveCongestionCard telemetry={liveTelemetry} />
+                <VoiceAiWidget telemetry={liveTelemetry} />
+              </div>
+
+              {/* Passenger Services & Assistance Trigger Card */}
+              <ExplainableSection sectionId="passenger-assistance">
+                <div className="bg-gradient-to-r from-purple-900/90 to-indigo-900/90 border border-purple-500/40 rounded-2xl p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">🧳</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold flex items-center gap-2">
+                          <span>Station Passenger Assistance & Services</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500 text-white font-bold uppercase tracking-wide">
+                            ₹50 Sandbox Pass
+                          </span>
+                        </h4>
+                        <SectionExplainerButton
+                          sectionId="passenger-assistance"
+                          title="Station Passenger Assistance & Razorpay"
+                          badge="On-Station Services"
+                          expression="happy"
+                          description="Book emergency station porters (coolie), wheelchair assistance for senior citizens, battery-operated buggies, or VIP executive lounge passes with instant UPI/Card sandbox payment."
+                          howItWorks={[
+                            "Integrated Services: Instant token generation for coolie porters, wheelchair mobility, and concourse lounges.",
+                            "Direct Razorpay Sandbox: Simulated 1-click test checkout with instant QR, UPI, card, and netbanking confirmation.",
+                            "Assistance Beacon: Broadcasts booking directly to station master kiosk and porter guild booth."
+                          ]}
+                          userActions={[
+                            "Click 'Book Assistance (₹50)' to open the Razorpay interactive checkout",
+                            "Explore the 3-Minute Script Guide for live demo flows",
+                            "Verify instant status updates in Citizen Wallet and active journey passes"
+                          ]}
+                          onTryAction={() => setShowRazorpayModal(true)}
+                          tryActionLabel="Test Razorpay (₹50)"
+                        />
+                      </div>
+                      <p className="text-xs text-purple-200">
+                        Book station porters, wheelchairs, battery buggy, or lounge access with Razorpay Test Mode.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDemoGuideModal(true)}
+                      className="px-3.5 py-2 rounded-xl bg-purple-800/80 hover:bg-purple-700 text-purple-200 border border-purple-600/50 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>⏱️ 3-Min Script Guide</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowRazorpayModal(true)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Book Assistance (₹50)</span>
+                    </button>
+                  </div>
+                </div>
+              </ExplainableSection>
+            </div>
+          )}
+
           {/* ─── TAB 1: GPS STATION TIMELINE & ROUTE RADAR ─── */}
           {activeTrackerTab === 'timeline' && (
-            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-purple-700" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900">
-                    Station Timeline & Live Platform Alignment
-                  </h3>
+            <ExplainableSection sectionId="station-timeline">
+              <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-purple-100 space-y-4 animate-in fade-in">
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-50 pb-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-700" />
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                      Station Timeline & Live Platform Alignment
+                    </h3>
+                    <SectionExplainerButton
+                      sectionId="station-timeline"
+                      title="Station Timeline & Platform Alignment"
+                      badge="Timetable & Stoppages"
+                      expression="speaking"
+                      description="Real-time timetable tracking with live station master platform alignments, arrival/departure delays, and halt countdowns."
+                      howItWorks={[
+                        "Live Stoppage Data: Synchronized with official NTES national railway timetable feeds.",
+                        "Platform Alignment: Shows current platform assignments; warns dynamically if station master diverts tracks.",
+                        "Passenger Flow: Estimates boarding/deboarding passenger loads at intermediate junction hubs.",
+                        "Halt Countdown: Real-time countdown clock for halts between 2 to 15 minutes."
+                      ]}
+                      userActions={[
+                        "Toggle between Simple Summary and Detailed Flow",
+                        "View expected vs actual arrival timestamps for all stations",
+                        "Check passenger boarding estimates for each upcoming junction"
+                      ]}
+                      onTryAction={() => setShowDetailedFlow((p) => !p)}
+                      tryActionLabel="Toggle Detailed Flow"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Live timetable • {routeStations.length} stoppages
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDetailedFlow((prev) => !prev)}
+                      className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <Sliders className="w-3 h-3 text-purple-700" />
+                      <span>{showDetailedFlow ? 'Simple Summary' : 'Detailed Flow'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Live timetable • {routeStations.length} stoppages
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowDetailedFlow((prev) => !prev)}
-                    className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                  >
-                    <Sliders className="w-3 h-3 text-purple-700" />
-                    <span>{showDetailedFlow ? 'Simple Summary' : 'Detailed Flow'}</span>
-                  </button>
-                </div>
-              </div>
 
               {/* Route Vacancy & Projected Flow Header Pill */}
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -1456,7 +2331,15 @@ export const JourneyTrackerPage: React.FC = () => {
                     const isPassed = idx < activeStationIndex;
                     const isCurrent = idx === activeStationIndex;
                     const nextSt = routeStations[idx + 1];
-                    const load = stationLoadProjection(trainNumber, routeStations, idx, 72, isCurrentTrainWaitlisted);
+                    const load = stationLoadProjection(
+                      trainNumber,
+                      routeStations,
+                      idx,
+                      72,
+                      isCurrentTrainWaitlisted,
+                      foundTrain?.classes,
+                      allocatedSeats
+                    );
                     const isNoSeat = load.vacantSeats === 0;
 
                     return (
@@ -1526,8 +2409,8 @@ export const JourneyTrackerPage: React.FC = () => {
                                 }`}
                               >
                                 {isNoSeat
-                                  ? `🚫 0 vacant seats (NO SEATS AVAILABLE to ${nextSt?.platform || 'next platform'})`
-                                  : `${load.vacantSeats} vacant seats after departure`}
+                                  ? `🚫 0 vacant seats to ${nextSt?.name || 'destination'}`
+                                  : `🟢 ${load.vacantSeats} train seats vacant to ${nextSt?.name || 'next station'}`}
                               </span>
                             </div>
 
@@ -1609,25 +2492,55 @@ export const JourneyTrackerPage: React.FC = () => {
                 </div>
               )}
             </div>
+            </ExplainableSection>
           )}
 
           {/* ─── TAB 2: COACH COMPOSITION & SEAT BERTH MATRIX ─── */}
           {activeTrackerTab === 'coach' && (
-            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
-              <CoachSegmentShowcase
-                trainNumber={trainNumber}
-                trainName={trainName}
-                availableClasses={foundTrain?.classes}
-                routeStations={routeStations}
-                currentStationIndex={activeStationIndex}
-                userBookedSeats={allocatedSeats}
-                isUserBookedTrain={isUserBookedTrain}
-                isWaitlisted={isWaitlistBooking}
-              />
-            </div>
+            <ExplainableSection sectionId="coach-layout">
+              <div className="bg-white rounded-3xl p-4 sm:p-5 border border-purple-100 shadow-sm space-y-4 animate-in fade-in">
+                <div className="flex items-center justify-between border-b border-purple-50 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">Coach Layout & Seat Matrix</span>
+                    <SectionExplainerButton
+                      sectionId="coach-layout"
+                      title="Coach Layout & Seat Inventory"
+                      badge="Interactive 3D Matrix"
+                      expression="booking"
+                      description="Interactive coach-by-coach layout and berth map for Sleeper, 3A, 2A, and 1A coaches showing real-time booked, vacant, and RAC berths."
+                      howItWorks={[
+                        "Official Matrix: 72-berth standard Indian Railways 3A/SL matrix and 54-berth 2A matrix.",
+                        "Berth Detection: Accurately tags Lower, Middle, Upper, Side Lower (SL), and Side Upper (SU).",
+                        "Fair Access: Synchronized with anti-bot token verification preventing automated slot sniping.",
+                        "Live Occupancy: Real-time visual distinction between vacant, RAC, and passenger-allocated berths."
+                      ]}
+                      userActions={[
+                        "Click different coach tabs (B1, B2, B4, A1) to inspect coaches",
+                        "Hover over any berth to see passenger assignment or status"
+                      ]}
+                      onTryAction={() => {}}
+                      tryActionLabel="Explore Coaches"
+                    />
+                  </div>
+                </div>
+
+                <CoachSegmentShowcase
+                  trainNumber={trainNumber}
+                  trainName={trainName}
+                  availableClasses={foundTrain?.classes}
+                  routeStations={routeStations}
+                  currentStationIndex={activeStationIndex}
+                  userBookedSeats={allocatedSeats}
+                  isUserBookedTrain={isUserBookedTrain}
+                  isWaitlisted={isCurrentTrainWaitlisted}
+                />
+              </div>
+            </ExplainableSection>
           )}
 
+
           {/* ─── TAB 3: DEDICATED WAITLIST WATCH & CONFIRMATION RADAR ─── */}
+
           {activeTrackerTab === 'waitlist' && (
             <div className="space-y-4 animate-in fade-in">
               {/* 1. CELEBRATORY "YEAH! CONFIRMED" BANNER WHEN WAITLIST CLEARS TO 0 */}
@@ -1719,62 +2632,158 @@ export const JourneyTrackerPage: React.FC = () => {
               )}
 
               {/* 3. HERO PREDICTION & WAITLIST RADAR CARD (DE-CONGESTED & SPACIOUS) */}
-              <div className="rounded-3xl border border-purple-100 bg-white p-6 sm:p-7 text-slate-900 shadow-sm space-y-6">
-                {/* Header with Title & Telemetry Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-50 pb-5">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
-                      <TrendingUp className="w-6 h-6 text-amber-300" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1.5 border border-emerald-300/60">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                          LIVE RADAR TELEMETRY
-                        </span>
-                        <span className="text-sm sm:text-base font-black text-slate-900">
-                          Waitlist Prediction & Probability
-                        </span>
+              <ExplainableSection sectionId="waitlist-radar">
+                <div className="rounded-3xl border border-purple-100 bg-white p-6 sm:p-7 text-slate-900 shadow-sm space-y-6">
+                  {/* Header with Title, SectionExplainer & Telemetry Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-50 pb-5">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
+                        <TrendingUp className="w-6 h-6 text-amber-300" />
                       </div>
-                      <p className="text-xs text-slate-500 font-medium mt-1">
-                        {effectiveWl === 0
-                          ? `🎉 All ${initialWaitlistNumber} positions cleared • Berth allocated in Coach B4`
-                          : `Monitoring corridor queue • Cleared ${effectiveCleared} positions ahead in real-time.`}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1.5 border border-emerald-300/60">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                            LIVE RADAR TELEMETRY
+                          </span>
+                          <span className="text-sm sm:text-base font-black text-slate-900">
+                            Waitlist Prediction & Probability
+                          </span>
+                          <SectionExplainerButton
+                            sectionId="waitlist-radar"
+                            title="Waitlist Confirmation Radar"
+                            badge="Poisson Predictive Engine"
+                            expression="thinking"
+                            description="Simulates real-time cancellation clearance, quota roll-ins, and RAC cutoff progress to forecast confirmed berth allocation."
+                            howItWorks={[
+                              "Clearance Velocity: Tracks live & historical corridor cancellations (avg 3.8 to 5.2/hr).",
+                              "Quota Roll-in: Unused VIP/Tatkal berths release into General pool ~4h before departure.",
+                              "RAC Threshold: Guarantees boarding rights and seat share once waitlist clears into RAC range.",
+                              "Dynamic Berth Allocation: Confirms exact coach and berth assignments automatically."
+                            ]}
+                            userActions={[
+                              "Click '🎲 Random WL' to test random waitlist queues and clearance velocities",
+                              "Click 'How It Simulates' to understand the 4 mathematical stages of waitlist clearance",
+                              "Use 'Advance (+1)' or 'Fast-Clear (+5)' to simulate cancellations step-by-step"
+                            ]}
+                            onTryAction={handleStepSim}
+                            tryActionLabel="Advance 1 Step"
+                          />
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          {effectiveWl === 0
+                            ? `🎉 All ${initialWaitlistNumber} positions cleared • Berth allocated in Coach B4`
+                            : `Monitoring corridor queue • Cleared ${effectiveCleared} positions ahead in real-time (${activeWaitlistScenario.label}).`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Simulation Controls Pill */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl self-start sm:self-center shrink-0 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1 hidden sm:inline">
+                        Sim:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleStepSim}
+                        className="px-2 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Advance 2 positions forward"
+                      >
+                        <FastForward className="w-3.5 h-3.5" />
+                        <span>Step</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBulkClearSim(5)}
+                        className="px-2 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Simulate 5 quota clearances"
+                      >
+                        <Zap className="w-3 h-3 text-indigo-700" />
+                        <span>+5 Clear</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetSim}
+                        className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
+                        title={`Reset Queue to ${activeWaitlistScenario.quota} ${activeWaitlistScenario.initialWl}`}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Simulation Controls Pill */}
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl self-start sm:self-center shrink-0">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1 hidden sm:inline">
-                      Sim:
-                    </span>
+                  {/* Dynamic Waitlist Scenario Randomizer Bar */}
+                  <div className="flex items-center justify-between flex-wrap gap-2.5 p-3 rounded-2xl bg-purple-50/70 border border-purple-200 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-purple-950 text-[11px] uppercase tracking-wide flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Scenarios:</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRandomizeWaitlist}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                        title="Generate random waitlist number and velocity rates"
+                      >
+                        <span>🎲 Random WL</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectWaitlistPreset(12, 'GNWL', 4.5, 'High Odds')}
+                        className={`px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                          activeWaitlistScenario.initialWl === 12
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                        }`}
+                      >
+                        WL 12 (96%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectWaitlistPreset(36, 'GNWL', 3.8, 'Moderate')}
+                        className={`px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                          activeWaitlistScenario.initialWl === 36
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                        }`}
+                      >
+                        WL 36 (79%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectWaitlistPreset(68, 'RLWL', 2.8, 'Borderline RAC')}
+                        className={`px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                          activeWaitlistScenario.initialWl === 68
+                            ? 'bg-amber-600 text-white border-amber-500 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                        }`}
+                      >
+                        WL 68 (48%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectWaitlistPreset(120, 'PQWL', 1.8, 'Low Odds')}
+                        className={`px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                          activeWaitlistScenario.initialWl === 120
+                            ? 'bg-rose-600 text-white border-rose-500 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                        }`}
+                      >
+                        WL 120 (21%)
+                      </button>
+                    </div>
+
+                    {/* "How It Simulates" Modal Trigger */}
                     <button
                       type="button"
-                      onClick={() => setIsSimPaused((p) => !p)}
-                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
-                      title={isSimPaused ? 'Resume Real-Time Telemetry' : 'Pause Simulation'}
+                      onClick={() => setShowHowWlSimulatesModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50 text-purple-700 font-bold border border-purple-200 shadow-2xs transition-colors cursor-pointer"
                     >
-                      {isSimPaused ? <Play className="w-3.5 h-3.5 fill-purple-900" /> : <Pause className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleStepSim}
-                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
-                      title="Advance 1 Step Forward"
-                    >
-                      <FastForward className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleResetSim}
-                      className="p-1.5 rounded-xl hover:bg-purple-100 text-purple-900 transition-colors cursor-pointer"
-                      title={`Reset to Initial Queue (${initialQuotaType} ${initialWaitlistNumber})`}
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
+                      <BookOpen className="w-3.5 h-3.5 text-purple-600" />
+                      <span>How It Simulates</span>
                     </button>
                   </div>
-                </div>
+
 
                 {/* Main Prediction Bar & Confirmation Dial */}
                 <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-indigo-50/70 border border-purple-100 space-y-4">
@@ -1927,9 +2936,118 @@ export const JourneyTrackerPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            </ExplainableSection>
+
+            {/* HOW WAITLIST SIMULATION WORKS MODAL */}
+            {showHowWlSimulatesModal && (
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 border-2 border-purple-500 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between border-b border-purple-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg shadow">
+                        🔬
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                          How Nirantar Simulates Waitlist Confirmation
+                        </h3>
+                        <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                          Mathematical Poisson Queue & IRCTC Quota Roll-In Model
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowHowWlSimulatesModal(false)}
+                      className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* 4 Stages */}
+                  <div className="space-y-3 text-xs">
+                    <div className="p-3.5 rounded-2xl bg-purple-50/70 dark:bg-slate-800 border border-purple-200 dark:border-slate-700 flex gap-3">
+                      <span className="w-6 h-6 rounded-full bg-purple-600 text-white font-black flex items-center justify-center text-xs shrink-0">1</span>
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">Corridor Cancellation Velocity</h4>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                          Nirantar monitors historical cancellation arrivals for this corridor (current simulated rate: <strong>{activeWaitlistScenario.clearanceRate} cancellations/hour</strong>). As passengers drop bookings, queue positions decrement in real-time.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-slate-800 border border-indigo-200 dark:border-slate-700 flex gap-3">
+                      <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-xs shrink-0">2</span>
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">Tatkal & Emergency Quota Roll-In</h4>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                          Approximately 4 hours before departure (at Chart Preparation), unutilized VIP (HO), Defence, Foreign Tourist, and Tatkal quota berths automatically release into the General Waitlist pool.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-slate-800 border border-amber-200 dark:border-slate-700 flex gap-3">
+                      <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-black flex items-center justify-center text-xs shrink-0">3</span>
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">RAC (Reservation Against Cancellation) Cutoff</h4>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                          When your waitlist clears down into the RAC threshold (e.g. RAC 1–18), Indian Railways guarantees your legal right to board the train with a shared Side Lower berth!
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 flex gap-3">
+                      <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center text-xs shrink-0">4</span>
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">Dynamic Berth Allocation</h4>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                          Once the final position clears to 0, Nirantar assigns your coach (e.g. Coach B4) and berth numbers (Lower & Middle) automatically.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer with quick simulator actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-purple-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleStepSim}
+                        className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Advance 1 Step
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBulkClearSim(5)}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Fast-Clear (+5)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetSim}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Reset Queue
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowHowWlSimulatesModal(false)}
+                      className="px-4 py-1.5 rounded-xl bg-purple-900 text-white text-xs font-bold cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
 
 
         {/* ──────────────── RIGHT COLUMN: CONTEXTUAL WIDGETS (1 Col) ──────────────── */}
@@ -2088,46 +3206,72 @@ export const JourneyTrackerPage: React.FC = () => {
           {activeTrackerTab !== 'waitlist' && (
             <>
               {/* Nira Track Copilot Card */}
-              <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible animate-in fade-in">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 mb-2">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                  <span>Nira Track Copilot</span>
-                </div>
-
-                {/* Speech Bubble */}
-                <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-2 relative z-20">
-                  <p className="text-xs font-semibold text-purple-950 leading-relaxed">
-                    {phase === 'DESTINATION_ARRIVED' ? (
-                      <>
-                        🎉 You have safely reached your final destination <span className="font-bold text-[#7C3AED]">{toCity}</span> on {currentTargetStation.platform}!
-                      </>
-                    ) : phase === 'HALTED' ? (
-                      <>
-                        Train is halted at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> on {currentTargetStation.platform}. Exit doors opened on right side!
-                      </>
-                    ) : countdownSeconds <= 120 ? (
-                      <>
-                        Arriving at <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> in {formatTimer(countdownSeconds)} mins on {currentTargetStation.platform}!
-                      </>
-                    ) : (
-                      <>
-                        Cruising at <span className="font-bold text-[#7C3AED]">{currentSpeed} km/h</span> towards {currentTargetStation.name} ({delayStatus === 'BEFORE_TIME' ? 'Running 5m early' : delayStatus === 'DELAY_8M' ? '8 min signal delay' : delayStatus === 'DELAY_25M' ? '25m delay' : 'Right on time'}).
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 text-xs font-medium text-slate-700 pt-1">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Direct IRCTC Satellite Stream</span>
+              <ExplainableSection sectionId="nira-copilot">
+                <div className="bg-gradient-to-b from-[#F3EDFD] via-[#EFE7FD] to-[#EBE2FC] rounded-3xl p-4 border border-purple-100/90 shadow-sm relative overflow-visible animate-in fade-in">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                      <span>Nira Track Copilot</span>
+                    </div>
+                    <SectionExplainerButton
+                      sectionId="nira-copilot"
+                      title="Nira Track Copilot"
+                      badge="Live En-Route Guide"
+                      description="Intelligent en-route railway copilot synthesizing real-time locomotive speed, dynamic distance decrements, automated platform track alignment, and smart pre-arrival alarms."
+                      howItWorks={[
+                        "Real-time Telemetry Sync: Speed matches locomotive telemetry with dynamic micro-fluctuations.",
+                        "Dynamic Distance Countdown: Continuously updates distance remaining to the upcoming station in real-time.",
+                        "Platform Alignment: Detects scheduled and live platform allocations from railway station masters.",
+                        "Pre-Arrival Alarm: Sound an automatic 4-tone chime before your boarding or destination station."
+                      ]}
+                      userActions={[
+                        "Set arrival wakeup alarm 15 or 30 minutes before destination",
+                        "Listen to automated station arrival audio announcements in Hindi & English",
+                        "Check platform assignment and right/left exit door orientation"
+                      ]}
+                      actionTip="Set an alarm or play the station arrival chime before your next halt."
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                    <span>Automated Platform Alignment</span>
+
+                  {/* Speech Bubble */}
+                  <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-2 relative z-20">
+                    <p className="text-xs font-semibold text-purple-950 leading-relaxed">
+                      {phase === 'DESTINATION_ARRIVED' ? (
+                        <>
+                          🎉 You have safely reached your final destination <span className="font-bold text-[#7C3AED]">{toCity}</span> on {currentTargetStation.platform}!
+                        </>
+                      ) : phase === 'HALTED' ? (
+                        <>
+                          🛑 <span className="font-bold text-amber-600">Halted at {currentTargetStation.name}</span> on {currentTargetStation.platform}. Passenger doors open on right side. (Scheduled departure in {haltSeconds}s)
+                        </>
+                      ) : phase === 'DEPARTING' ? (
+                        <>
+                          🚀 <span className="font-bold text-indigo-600">Departed {fromStationStop.name}!</span> Accelerating to <span className="font-bold text-[#7C3AED]">{currentSpeed} km/h</span> towards {currentTargetStation.name} ({distanceToNextHaltKm} km remaining to next halt).
+                        </>
+                      ) : phase === 'APPROACHING' || countdownSeconds <= 90 ? (
+                        <>
+                          ⚠️ <span className="font-bold text-amber-600">Decelerating to {currentSpeed} km/h</span> approaching <span className="font-bold text-[#7C3AED]">{currentTargetStation.name}</span> in {formatTimer(countdownSeconds)} mins ({distanceToNextHaltKm} km to halt) on {currentTargetStation.platform}!
+                        </>
+                      ) : (
+                        <>
+                          Cruising at <span className="font-bold text-[#7C3AED]">{currentSpeed} km/h</span> towards {currentTargetStation.name} ({distanceToNextHaltKm} km remaining • {delayStatus === 'BEFORE_TIME' ? 'Running 4m early' : delayStatus === 'DELAY_8M' ? '8 min signal delay' : delayStatus === 'DELAY_25M' ? '25m route delay' : 'Right on time'}).
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs font-medium text-slate-700 pt-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Direct IRCTC Satellite Stream</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      <span>Automated Platform Alignment</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </ExplainableSection>
 
               {/* On-Board Passenger Tools Card */}
               <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-sm space-y-2.5 animate-in fade-in">
@@ -2362,6 +3506,35 @@ export const JourneyTrackerPage: React.FC = () => {
         coach={selectedCoach}
         seatNumber={userSeatObjects[0]?.seatNumber || allocatedSeats[0]?.seatNumber || 1}
       />
+
+      {/* 8. GENOVATE 2.0 COMPETITION & RAZORPAY MODALS */}
+      <RazorpayAssistanceModal
+        isOpen={showRazorpayModal}
+        onClose={() => setShowRazorpayModal(false)}
+        stationCode={liveTelemetry?.currentStationCode || firstStop.code}
+        passengerName={userPassengers[0]?.name || 'Pratay Karali'}
+        onSuccess={(entry) => {
+          addNotification({
+            title: 'Assistance Service Confirmed',
+            body: `Booked ${entry.serviceName} at ${entry.stationCode}. Payment ID: ${entry.paymentId}`,
+            type: 'ticket',
+          });
+        }}
+      />
+
+
+
+      <CompetitionDemoGuideModal
+        isOpen={showDemoGuideModal}
+        onClose={() => setShowDemoGuideModal(false)}
+        onSelectStep={(idx) => {
+          if (idx === 0) setActiveTrackerTab('map');
+        }}
+        onTriggerScenario={handleScenarioTrigger}
+        onOpenRazorpay={() => setShowRazorpayModal(true)}
+        onLocateMe={handleLocateMe}
+      />
     </div>
   );
 };
+

@@ -26,6 +26,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
+import { SectionExplainerButton } from '../components/SectionExplainer';
 
 export const SettingsPage: React.FC = () => {
   const { navigateTo, citizenProfile, setCitizenProfile, theme, setTheme } = useJourney();
@@ -154,9 +155,29 @@ export const SettingsPage: React.FC = () => {
               <SettingsIcon className="w-5 h-5 text-purple-300" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold tracking-wide uppercase backdrop-blur-md">
-                <Sparkles className="w-3 h-3 text-purple-300" />
-                <span>Preferences & Vault</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold tracking-wide uppercase backdrop-blur-md">
+                  <Sparkles className="w-3 h-3 text-purple-300" />
+                  <span>Preferences & Vault</span>
+                </div>
+                <SectionExplainerButton
+                  sectionId="settings-preferences-vault"
+                  title="Settings & Accessibility Vault"
+                  subtitle="Privacy, Theme & Audio Chime Preferences"
+                  badge="Nira AI Guide"
+                  description="Customize your Nirantar experience with high-contrast accessibility themes, multilingual support, and zero-PII credential redaction."
+                  howItWorks={[
+                    'Zero-PII On-Device Redactor: Test credential scrubbers that strip phone numbers, emails, and passwords in real-time.',
+                    'Accessible Themes: Toggle high-contrast modes, custom font scaling, and IRCTC station chimes.',
+                    'Data-Saver Architecture: Reduces radar tile downloads for low-bandwidth 2G/3G regional travel.'
+                  ]}
+                  userActions={[
+                    'Select your active citizen avatar and role badge',
+                    'Test IRCTC station departure chimes and fanfare tones',
+                    'Configure Zero-PII sanitization and auto-save preferences'
+                  ]}
+                  actionTip="Customize your settings and click Save Changes to apply!"
+                />
               </div>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-white mt-0.5">
                 Settings & Preferences

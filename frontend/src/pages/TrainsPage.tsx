@@ -19,6 +19,7 @@ import { useJourney } from '../context/JourneyContext';
 import { TrainDetail } from '../data/mockTrains';
 import { findLocalTrains, LocalTrainRoute } from '../data/localTrainsData';
 import { liveSeatInventory } from '../utils/seatInventory';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 type FilterType = 'recommended' | 'fastest' | 'cheapest' | 'earliest' | 'availability';
 
@@ -174,61 +175,110 @@ export const TrainsPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           2. FILTERS & SORT CONTROLS
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-          {[
-            { id: 'recommended' as FilterType, label: 'Recommended', icon: Sparkles },
-            { id: 'fastest' as FilterType, label: 'Fastest', icon: Clock },
-            { id: 'cheapest' as FilterType, label: 'Cheapest', icon: Tag },
-            { id: 'earliest' as FilterType, label: 'Earliest', icon: Clock },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeFilter === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveFilter(item.id)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-purple-900 text-white shadow-sm'
-                    : 'bg-white hover:bg-purple-50/70 text-slate-700 border border-purple-100 shadow-sm'
-                }`}
-              >
-                <Icon className={`w-3 h-3 ${isActive ? 'text-white' : 'text-purple-600'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      <ExplainableSection sectionId="train-filters">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-white/70 rounded-2xl border border-purple-100/80 shadow-2xs">
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+            {[
+              { id: 'recommended' as FilterType, label: 'Recommended', icon: Sparkles },
+              { id: 'fastest' as FilterType, label: 'Fastest', icon: Clock },
+              { id: 'cheapest' as FilterType, label: 'Cheapest', icon: Tag },
+              { id: 'earliest' as FilterType, label: 'Earliest', icon: Clock },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeFilter === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveFilter(item.id)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-purple-900 text-white shadow-sm'
+                      : 'bg-white hover:bg-purple-50/70 text-slate-700 border border-purple-100 shadow-sm'
+                  }`}
+                >
+                  <Icon className={`w-3 h-3 ${isActive ? 'text-white' : 'text-purple-600'}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Sort Dropdown */}
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-          <span>Sort by</span>
-          <div className="relative">
-            <select
-              value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value as FilterType)}
-              className="appearance-none bg-white border border-purple-100 rounded-full px-3 py-1 pr-6 text-xs font-semibold text-slate-800 shadow-sm focus:outline-none focus:border-purple-600 cursor-pointer"
-            >
-              <option value="recommended">Recommended</option>
-              <option value="fastest">Fastest Duration</option>
-              <option value="cheapest">Lowest Fare</option>
-              <option value="earliest">Earliest Departure</option>
-              <option value="availability">Best Availability</option>
-            </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="flex items-center gap-2">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <span>Sort by</span>
+              <div className="relative">
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value as FilterType)}
+                  className="appearance-none bg-white border border-purple-100 rounded-full px-3 py-1 pr-6 text-xs font-semibold text-slate-800 shadow-sm focus:outline-none focus:border-purple-600 cursor-pointer"
+                >
+                  <option value="recommended">Recommended</option>
+                  <option value="fastest">Fastest Duration</option>
+                  <option value="cheapest">Lowest Fare</option>
+                  <option value="earliest">Earliest Departure</option>
+                  <option value="availability">Best Availability</option>
+                </select>
+                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Section Explainer (ℹ️) Robot Guide */}
+            <SectionExplainerButton
+              sectionId="train-filters"
+              title="Smart Route Filters & Quotas"
+              badge="Ranking Engine"
+              description="Multi-factor ranking engine sorting trains across Indian Railways networks by live on-time performance, dynamic availability, Tatkal clearance probability, and fare economics."
+              howItWorks={[
+                "Recommended: Combines travel duration, historical punctuality score, and seat availability odds.",
+                "Fastest: Evaluates operational average speeds across active signal blocks.",
+                "Cheapest: Dynamically scans flexi-fare vs regular fare tiers to highlight lowest cost per kilometer.",
+                "Availability: Elevates trains with instant confirmed berths or RAC positions with >85% confirmation odds."
+              ]}
+              userActions={[
+                "Click filter pills (Recommended, Fastest, Cheapest, Earliest) to re-order instantly",
+                "Switch quotas between General, Tatkal, Senior Citizen, and Ladies",
+                "Check suburban and local EMU train schedules below for unreserved transit"
+              ]}
+              actionTip="Switch between 'Fastest' and 'Availability' to spot high-probability travel options."
+            />
           </div>
         </div>
-      </div>
+      </ExplainableSection>
 
       {/* ═══════════════════════════════════════════════════════════════════
           3. MAIN TWO-COLUMN LAYOUT
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
         {/* ──────────────── LEFT COLUMN: TRAIN CARDS (2 Cols) ──────────────── */}
-        <div className="lg:col-span-2 space-y-2.5">
+        <ExplainableSection sectionId="train-results" className="lg:col-span-2 space-y-2.5">
+          <div className="flex items-center justify-between px-1 pb-1">
+            <span className="text-xs font-bold text-slate-700">
+              Showing {filteredTrains.length} scheduled trains on route
+            </span>
+            <SectionExplainerButton
+              sectionId="train-results"
+              title="Train Search & Live Seat Inventory"
+              badge="Live Availability"
+              description="Every train card combines live RTIS locomotive telemetry, active seat inventory across all classes (1A, 2A, 3A, SL), and Poisson waitlist confirmation predictor."
+              howItWorks={[
+                "Real-time Speed & Delay: Streamed directly from Indian Railways RTIS satellite feed via RailRadar.",
+                "Live Seat Lock: Real-time inventory clock checks berth availability every 6 seconds.",
+                "Tatkal Countdown: Synchronized countdown to 10:00 AM (AC) and 11:00 AM (Non-AC) booking windows.",
+                "1-Click Booking: Select your preferred class to lock your berth and proceed with Zero-PII autofill."
+              ]}
+              userActions={[
+                "Click any class pill (3A, 2A, SL) to inspect live available seats and price",
+                "Click the heart icon to save the train to your favorites",
+                "Click 'Compare' to inspect side-by-side coach amenities, speeds, and timings",
+                "Click 'Book Ticket' to reserve your berth with guaranteed 10-minute lock"
+              ]}
+              actionTip="Select your preferred class pill and click 'Book Ticket' to reserve."
+            />
+          </div>
+
           {/* ─── Suburban & Local EMU Train Discovery Section ─── */}
           {localTrains && localTrains.length > 0 && (
             <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white rounded-2xl p-4 shadow-md border border-purple-400/40 space-y-3 animate-in fade-in">
@@ -600,6 +650,7 @@ export const TrainsPage: React.FC = () => {
         )}
 
           {/* ──────────────── SAFETY & FAIR BOOKING BANNER ──────────────── */}
+          <ExplainableSection sectionId="safe-booking">
           <div className="bg-gradient-to-r from-purple-50/70 via-white to-purple-50/50 rounded-2xl p-2.5 px-3.5 border border-purple-100 flex items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 shrink-0 flex items-center justify-center">
@@ -627,7 +678,8 @@ export const TrainsPage: React.FC = () => {
               <span>Know more →</span>
             </button>
           </div>
-        </div>
+        </ExplainableSection>
+        </ExplainableSection>
 
         {/* ──────────────── RIGHT COLUMN: NIRA SUGGESTS & COMPARE (1 Col) ──────────────── */}
         <div className="space-y-3">
@@ -651,22 +703,22 @@ export const TrainsPage: React.FC = () => {
             </div>
 
             {/* Speech Bubble */}
-            <div className="bg-white rounded-xl p-2.5 shadow-sm border border-purple-100 mb-2.5 relative z-20">
-              <p className="text-xs font-semibold text-purple-950">
+            <div className="bg-white rounded-xl p-3 shadow-xs border border-purple-100 mb-3 relative z-20">
+              <p className="text-xs font-semibold text-purple-950 leading-relaxed">
                 {filteredTrains.length > 0 ? (
                   <>
-                    <span className="font-bold text-[#7C3AED]">{filteredTrains[0].trainName}</span> is the best option for your route!
+                    "{filteredTrains[0].trainName} (#{filteredTrains[0].trainNumber}) is your fastest choice at {filteredTrains[0].durationHours}, running right on time."
                   </>
                 ) : (
                   <>
-                    Direct trains are unavailable for this route. Consider booking via connecting hubs!
+                    "No direct trains found on this exact pair. Use our interactive connecting route optimizer to book via major junction hubs."
                   </>
                 )}
               </p>
             </div>
 
             {/* Benefit Bullets */}
-            <div className="space-y-1 text-xs font-medium text-slate-700 pt-0.5">
+            <div className="space-y-1.5 text-xs font-medium text-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-3.5 h-3.5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[9px] shrink-0">
                   ✦
@@ -703,67 +755,93 @@ export const TrainsPage: React.FC = () => {
           </div>
 
           {/* 2. COMPARE TRAINS CARD */}
-          <div className="bg-white rounded-2xl p-3.5 border border-purple-100/90 shadow-sm space-y-2.5">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                Compare trains ({compareList.length})
-              </h4>
-              {compareList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setCompareList([])}
-                  className="text-[11px] font-semibold text-purple-700 hover:underline cursor-pointer"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            {/* List of trains to compare */}
-            <div className="space-y-1.5">
-              {compareList.map((t, idx) => (
-                <div
-                  key={t.trainNumber}
-                  className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-purple-50/40 border border-purple-100 text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <Train className={`w-3.5 h-3.5 ${idx === 0 ? 'text-emerald-600' : 'text-blue-600'}`} />
-                    <span className="font-bold text-slate-800 truncate text-[11px]">
-                      {t.trainNumber} • {t.trainName}
-                    </span>
-                  </div>
+          <ExplainableSection sectionId="train-compare">
+            <div className="bg-white rounded-2xl p-3.5 border border-purple-100/90 shadow-sm space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Compare trains ({compareList.length})
+                  </h4>
+                  <SectionExplainerButton
+                    sectionId="train-compare"
+                    title="Side-by-Side Train Comparison"
+                    badge="Matrix Analytics"
+                    description="Compare up to 4 trains side-by-side across departure schedules, duration, halt frequency, fare tiers, and pantry services."
+                    howItWorks={[
+                      "Select up to 4 trains from your route search results.",
+                      "Inspect side-by-side halts, scheduled departure times, and punctuality ratings.",
+                      "Evaluate dynamic class-wise pricing differences and pantry meal availability."
+                    ]}
+                    userActions={[
+                      "Add or remove trains to your comparison list",
+                      "Click 'Compare Now' to launch the full-screen feature comparison matrix"
+                    ]}
+                    onTryAction={() => {
+                      if (compareList.length === 0 && availableTrains.length >= 2) {
+                        setCompareList(availableTrains.slice(0, 2));
+                      }
+                      setShowCompareModal(true);
+                    }}
+                    tryActionLabel="Launch Matrix"
+                  />
+                </div>
+                {compareList.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => removeCompare(t.trainNumber)}
-                    className="w-4 h-4 rounded-full hover:bg-purple-100 text-slate-400 hover:text-purple-700 flex items-center justify-center cursor-pointer"
+                    onClick={() => setCompareList([])}
+                    className="text-[11px] font-semibold text-purple-700 hover:underline cursor-pointer"
                   >
-                    <X className="w-2.5 h-2.5" />
+                    Clear all
                   </button>
-                </div>
-              ))}
+                )}
+              </div>
 
-              {compareList.length === 0 && (
-                <p className="text-xs text-slate-400 font-medium py-1 text-center">
-                  No trains selected for comparison.
-                </p>
-              )}
+              {/* List of trains to compare */}
+              <div className="space-y-1.5">
+                {compareList.map((t, idx) => (
+                  <div
+                    key={t.trainNumber}
+                    className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-purple-50/40 border border-purple-100 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Train className={`w-3.5 h-3.5 ${idx === 0 ? 'text-emerald-600' : 'text-blue-600'}`} />
+                      <span className="font-bold text-slate-800 truncate text-[11px]">
+                        {t.trainNumber} • {t.trainName}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeCompare(t.trainNumber)}
+                      className="w-4 h-4 rounded-full hover:bg-purple-100 text-slate-400 hover:text-purple-700 flex items-center justify-center cursor-pointer"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+
+                {compareList.length === 0 && (
+                  <p className="text-xs text-slate-400 font-medium py-1 text-center">
+                    No trains selected for comparison.
+                  </p>
+                )}
+              </div>
+
+              {/* Compare CTA Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (compareList.length === 0 && availableTrains.length >= 2) {
+                    setCompareList(availableTrains.slice(0, 2));
+                  }
+                  setShowCompareModal(true);
+                }}
+                className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/20 active:scale-95 cursor-pointer"
+              >
+                <Scale className="w-3.5 h-3.5 text-white" />
+                <span>Compare Now ({compareList.length > 0 ? compareList.length : 2})</span>
+              </button>
             </div>
-
-            {/* Compare CTA Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (compareList.length === 0 && availableTrains.length >= 2) {
-                  setCompareList(availableTrains.slice(0, 2));
-                }
-                setShowCompareModal(true);
-              }}
-              className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/20 active:scale-95 cursor-pointer"
-            >
-              <Scale className="w-3.5 h-3.5 text-white" />
-              <span>Compare Now ({compareList.length > 0 ? compareList.length : 2})</span>
-            </button>
-          </div>
+          </ExplainableSection>
         </div>
       </div>
 

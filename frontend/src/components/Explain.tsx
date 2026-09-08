@@ -137,51 +137,51 @@ export const Explain: React.FC<ExplainProps> = ({
               </div>
 
               {/* Progressive Tabs (3 Levels) */}
-              {/* Level Selector Tabs */}
+              {/* Dynamic 3-Tier Guide (Learn -> Understand -> Act) */}
               <div className="grid grid-cols-4 gap-1 mt-3.5 bg-white/10 p-1 rounded-xl text-[10px] sm:text-[11px] font-bold text-center">
                 <button
                   type="button"
                   onClick={() => setActiveLevel(1)}
                   className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 1
-                      ? 'bg-white text-purple-950 shadow-sm font-black'
+                      ? 'bg-amber-400 text-slate-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  1. Meaning
+                  🟡 1. Learn
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLevel(2)}
                   className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 2
-                      ? 'bg-white text-purple-950 shadow-sm font-black'
+                      ? 'bg-blue-400 text-slate-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  2. For You
+                  🔵 2. Understand
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLevel(4)}
                   className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 4
-                      ? 'bg-white text-purple-950 shadow-sm font-black'
+                      ? 'bg-emerald-400 text-slate-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  3. What Next?
+                  🟢 3. Act
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLevel(3)}
                   className={`py-1 px-1 rounded-lg transition-all cursor-pointer truncate ${
                     activeLevel === 3
-                      ? 'bg-white text-purple-950 shadow-sm font-black'
+                      ? 'bg-purple-300 text-purple-950 shadow-sm font-black'
                       : 'text-purple-100 hover:text-white'
                   }`}
                 >
-                  4. Deep Dive
+                  🔬 4. Deep Dive
                 </button>
               </div>
             </div>

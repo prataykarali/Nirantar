@@ -1,14 +1,15 @@
 import React from 'react';
-import { Activity, Cpu, User, Globe, ChevronDown } from 'lucide-react';
+import { Activity, Cpu, User, Globe, ChevronDown, Mic } from 'lucide-react';
 import { useTranslation, LANGUAGES, LanguageCode } from '../locales/i18n';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenNira: () => void;
+  onOpenAskNirantar?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenNira }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenNira, onOpenAskNirantar }) => {
   const { language, setLanguage, t } = useTranslation();
 
   return (

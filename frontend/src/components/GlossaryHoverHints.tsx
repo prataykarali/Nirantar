@@ -23,10 +23,14 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'clerkage', termKey: 'CLERKAGE' },
   { phrase: 'zero pii', termKey: 'ZERO_PII' },
   { phrase: 'zero-pii', termKey: 'ZERO_PII' },
+  { phrase: 'safeassist zero-pii', termKey: 'SAFEASSIST' },
+  { phrase: 'safeassist', termKey: 'SAFEASSIST' },
   { phrase: 'safe autofill', termKey: 'SAFE_AUTOFILL' },
   { phrase: 'fair-access token', termKey: 'FAIR_ACCESS_TOKEN' },
   { phrase: 'fair access token', termKey: 'FAIR_ACCESS_TOKEN' },
   { phrase: 'fair access', termKey: 'FAIR_ACCESS_TOKEN' },
+  { phrase: 'seat lock', termKey: 'SEAT_LOCK' },
+  { phrase: '10-min seat lock', termKey: 'SEAT_LOCK' },
   { phrase: 'live running status', termKey: 'LIVE_STATUS' },
   { phrase: 'running status', termKey: 'LIVE_STATUS' },
   { phrase: 'live status', termKey: 'LIVE_STATUS' },
@@ -35,10 +39,17 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'on-time performance', termKey: 'ON_TIME' },
   { phrase: 'platform alignment', termKey: 'PLATFORM_ALIGNMENT' },
   { phrase: 'coach position', termKey: 'COACH_POSITION' },
+  { phrase: 'rake formation', termKey: 'RAKE_FORMATION' },
   { phrase: 'rake layout', termKey: 'RAKE_LAYOUT' },
   { phrase: 'rake composition', termKey: 'RAKE_LAYOUT' },
+  { phrase: 'coach sequence', termKey: 'RAKE_FORMATION' },
+  { phrase: 'berth radar', termKey: 'BERTH_RADAR' },
+  { phrase: 'scattered berth', termKey: 'SCATTERED_BERTH' },
+  { phrase: 'scattered berths', termKey: 'SCATTERED_BERTH' },
+  { phrase: 'scattered seats', termKey: 'SCATTERED_BERTH' },
   { phrase: 'berth preference', termKey: 'BERTH_PREFERENCE' },
   { phrase: 'berth preferences', termKey: 'BERTH_PREFERENCE' },
+  { phrase: 'lower berth priority', termKey: 'LOWER_BERTH_PRIORITY' },
   { phrase: 'auto upgradation', termKey: 'AUTO_UPGRADATION' },
   { phrase: 'e-ticket', termKey: 'E_TICKET' },
   { phrase: 'e-tickets', termKey: 'E_TICKET' },
@@ -46,22 +57,55 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'e-catering', termKey: 'E_CATERING' },
   { phrase: 'ecatering', termKey: 'E_CATERING' },
   { phrase: 'travel insurance', termKey: 'TRAVEL_INSURANCE' },
+  { phrase: 'safe travel insurance', termKey: 'SAFE_TRAVEL_INSURANCE' },
   { phrase: 'intermediate station', termKey: 'INTERMEDIATE_STATION' },
   { phrase: 'intermediate stations', termKey: 'INTERMEDIATE_STATION' },
   { phrase: 'boarding station', termKey: 'BOARDING_STATION' },
   { phrase: 'chart preparation', termKey: 'CHART_PREPARED' },
   { phrase: 'chart prepared', termKey: 'CHART_PREPARED' },
+  { phrase: 'poisson clearance', termKey: 'POISSON_CLEARANCE' },
+  { phrase: 'poisson probability', termKey: 'POISSON_CLEARANCE' },
   { phrase: 'confirmation probability', termKey: 'CONFIRMATION_PROBABILITY' },
   { phrase: 'confirmation odds', termKey: 'CONFIRMATION_PROBABILITY' },
   { phrase: 'positions cleared', termKey: 'POSITIONS_CLEARED' },
   { phrase: 'general quota', termKey: 'GENERAL_QUOTA' },
   { phrase: 'tatkal quota', termKey: 'TATKAL' },
+  { phrase: 'tatkal window', termKey: 'TATKAL_WINDOW' },
   { phrase: 'premium tatkal', termKey: 'PREMIUM_TATKAL' },
   { phrase: 'ladies quota', termKey: 'LADIES_QUOTA' },
   { phrase: 'senior citizen quota', termKey: 'SENIOR_CITIZEN_QUOTA' },
+  { phrase: 'senior citizen concession', termKey: 'SENIOR_CITIZEN_QUOTA' },
   { phrase: 'senior citizen', termKey: 'SENIOR_CITIZEN_QUOTA' },
   { phrase: 'citizen wallet', termKey: 'CITIZEN_WALLET' },
   { phrase: 'natural language', termKey: 'NATURAL_LANGUAGE' },
+  { phrase: 'speed restriction', termKey: 'SPEED_RESTRICTION' },
+  { phrase: 'speedometer', termKey: 'SPEEDOMETER' },
+  { phrase: 'gps telemetry', termKey: 'GPS_TELEMETRY' },
+  { phrase: 'distance countdown', termKey: 'DISTANCE_COUNTDOWN' },
+  { phrase: 'satellite stream', termKey: 'SATELLITE_STREAM' },
+  { phrase: 'vande bharat express', termKey: 'VANDE_BHARAT' },
+  { phrase: 'vande bharat', termKey: 'VANDE_BHARAT' },
+  { phrase: 'rajdhani express', termKey: 'RAJDHANI' },
+  { phrase: 'rajdhani', termKey: 'RAJDHANI' },
+  { phrase: 'shatabdi express', termKey: 'SHATABDI' },
+  { phrase: 'shatabdi', termKey: 'SHATABDI' },
+  { phrase: 'duronto express', termKey: 'DURONTO' },
+  { phrase: 'duronto', termKey: 'DURONTO' },
+  { phrase: 'direct express', termKey: 'DIRECT_EXPRESS' },
+  { phrase: 'travel class', termKey: 'TRAVEL_CLASS' },
+  { phrase: 'passenger details', termKey: 'PASSENGER_DETAILS' },
+  { phrase: 'fare summary', termKey: 'FARE_SUMMARY' },
+  { phrase: 'convenience fee', termKey: 'CONVENIENCE_FEE' },
+  { phrase: 'concourse', termKey: 'CONCOURSE' },
+  { phrase: 'foot overbridge', termKey: 'FOOT_OVERBRIDGE' },
+  { phrase: 'bio-toilet', termKey: 'BIO_TOILET' },
+  { phrase: 'bio toilet', termKey: 'BIO_TOILET' },
+  { phrase: 'fog pass', termKey: 'FOG_PASS' },
+  { phrase: 'fog-pass', termKey: 'FOG_PASS' },
+  { phrase: 'kavach', termKey: 'KAVACH' },
+  { phrase: 'loco pilot', termKey: 'LOCO_PILOT' },
+  { phrase: 'station master', termKey: 'STATION_MASTER' },
+  { phrase: 'cris database', termKey: 'CRIS' },
   { phrase: 'side lower berth', termKey: 'SL_BERTH' },
   { phrase: 'side lower', termKey: 'SL_BERTH' },
   { phrase: 'side upper berth', termKey: 'SU_BERTH' },
@@ -84,10 +128,17 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'ac chair car', termKey: 'CC' },
   { phrase: 'executive chair car', termKey: 'EC' },
   { phrase: 'second sitting', termKey: '2S' },
-  { phrase: 'safeassist', termKey: 'SAFEASSIST' },
   { phrase: 'nira ai', termKey: 'NIRA_AI' },
   { phrase: 'dynamic pricing', termKey: 'DYNAMIC_PRICING' },
+  { phrase: 'dynamic fare', termKey: 'DYNAMIC_FARE' },
+  { phrase: 'upi pins', termKey: 'UPI' },
+  { phrase: 'upi pin', termKey: 'UPI' },
   // Standalone abbreviations & codes
+  { phrase: 'rtis', termKey: 'RTIS' },
+  { phrase: 'wgs-84', termKey: 'WGS84' },
+  { phrase: 'wgs84', termKey: 'WGS84' },
+  { phrase: 'navic', termKey: 'NAVIC' },
+  { phrase: 'cris', termKey: 'CRIS' },
   { phrase: 'irctc', termKey: 'IRCTC' },
   { phrase: 'upi', termKey: 'UPI' },
   { phrase: 'pnr', termKey: 'PNR' },
@@ -103,6 +154,7 @@ const GLOSSARY_MATCH_ENTRIES: GlossaryMatchEntry[] = [
   { phrase: 'digilocker', termKey: 'DIGILOCKER' },
   { phrase: 'gps', termKey: 'GPS' },
   { phrase: 'pii', termKey: 'PII' },
+  { phrase: 'fob', termKey: 'FOOT_OVERBRIDGE' },
   { phrase: 'berth', termKey: 'BERTH_PREFERENCE' },
   { phrase: 'berths', termKey: 'BERTH_PREFERENCE' },
   { phrase: 'quota', termKey: 'GENERAL_QUOTA' },
@@ -171,7 +223,9 @@ export const GlossaryHoverHints: React.FC = () => {
     const handleClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest?.('[data-jargon-hint]');
       if (!target) return;
-      e.stopPropagation();
+      if (!target.closest('button, a')) {
+        e.stopPropagation();
+      }
       const termKey = target.getAttribute('data-term-key') || target.textContent || '';
       const termData = getRailwayTerm(termKey);
       if (termData) {
@@ -216,7 +270,7 @@ export const GlossaryHoverHints: React.FC = () => {
         !parent ||
         Boolean(
           parent.closest(
-            'script, style, textarea, input, select, option, button, [data-jargon-hint], [data-no-jargon], pre, code'
+            'script, style, textarea, input, select, option, [data-jargon-hint], [data-no-jargon], pre, code'
           )
         )
       );
@@ -268,7 +322,13 @@ export const GlossaryHoverHints: React.FC = () => {
         }
 
         fragment.append(source.slice(lastIndex));
-        textNode.replaceWith(fragment);
+        try {
+          if (textNode.isConnected && textNode.parentNode) {
+            textNode.replaceWith(fragment);
+          }
+        } catch {
+          // Gracefully ignore if DOM was concurrently modified
+        }
       });
     };
 

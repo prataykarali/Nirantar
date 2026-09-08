@@ -22,6 +22,8 @@ import { useJourney } from '../context/JourneyContext';
 import { TicketInvoiceModal, InvoiceData } from '../components/journey/TicketInvoiceModal';
 import { TopUpWalletModal } from '../components/payment/TopUpWalletModal';
 import { SecurityArchitectureModal } from '../components/payment/SecurityArchitectureModal';
+import { razorpayTestService } from '../services/razorpayTestService';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 type StatusFilter = 'ALL' | 'PAID' | 'REFUNDED' | 'PROCESSING';
 
@@ -44,6 +46,16 @@ export const PaymentsPage: React.FC = () => {
   const [showTopUpModal, setShowTopUpModal] = useState<boolean>(false);
   const [showSecurityModal, setShowSecurityModal] = useState<boolean>(false);
 
+  const razorpayLedgerPayments: PaymentItem[] = razorpayTestService.getLedger().map((item) => ({
+    id: item.id,
+    txnId: item.paymentId,
+    service: `Assistance: ${item.serviceName} (${item.stationCode})`,
+    date: new Date(item.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+    amount: item.amountRupees,
+    mode: 'Razorpay Test Sandbox (Verified)',
+    status: 'Paid',
+  }));
+
   const dynamicHistoryPayments: PaymentItem[] = (paymentHistory || []).map((p) => ({
     id: p.id,
     txnId: p.transactionRef || `TXN-${p.id.slice(0, 8).toUpperCase()}`,
@@ -56,7 +68,9 @@ export const PaymentsPage: React.FC = () => {
   }));
 
   const defaultPayments: PaymentItem[] = [
+    ...razorpayLedgerPayments,
     ...dynamicHistoryPayments,
+
     {
       id: 'tx-2',
       txnId: 'TXN-91028491022',
@@ -145,38 +159,60 @@ export const PaymentsPage: React.FC = () => {
         </div>
 
         {/* DIGITAL CITIZEN BANK & VIRTUAL WALLET HERO CARD */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md border border-purple-800">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-purple-800/60 border border-purple-500/40 text-purple-200 flex items-center justify-center font-bold shrink-0 shadow-inner">
-              <Building2 className="w-6 h-6" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">
-                  Digital Citizen Bank Wallet (A/C XX-8492)
-                </span>
-                <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black px-2 py-0.2 rounded-full uppercase">
-                  Active Real Balance
-                </span>
+        <ExplainableSection sectionId="citizen-wallet">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md border border-purple-800">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-800/60 border border-purple-500/40 text-purple-200 flex items-center justify-center font-bold shrink-0 shadow-inner">
+                <Building2 className="w-6 h-6" />
               </div>
-              <div className="text-2xl sm:text-3xl font-mono font-black text-white">
-                ₹{(walletBalance || 10000).toLocaleString('en-IN')}.00
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">
+                    Digital Citizen Bank Wallet (A/C XX-8492)
+                  </span>
+                  <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black px-2 py-0.2 rounded-full uppercase">
+                    Active Real Balance
+                  </span>
+                  <SectionExplainerButton
+                    sectionId="citizen-wallet"
+                    title="Digital Citizen Wallet & Financial Ledger"
+                    badge="Citizen Banking"
+                    expression="idea"
+                    description="Zero-PIN high-velocity railway checkout account coupled with an immutable double-entry refund ledger and Razorpay test sandbox."
+                    howItWorks={[
+                      "Pre-Funded Token: Instant sub-second ticket booking avoiding 3DS gateway timeouts during Tatkal windows.",
+                      "Statutory Auto-Refunds: Train cancellations or waitlist dropouts automatically credit back within 15 seconds.",
+                      "Razorpay Sandbox: Top up funds instantly using test UPI QR or simulated cards.",
+                      "Zero-Secret AI Isolation: AI agents can never view or access banking PINs or payment credentials."
+                    ]}
+                    userActions={[
+                      "Click 'Top-Up / Add Funds' to recharge your citizen wallet balance",
+                      "View detailed transaction timestamps, PNR references, and GST invoices",
+                      "Export complete encrypted financial statement for tax audits"
+                    ]}
+                    onTryAction={() => setShowTopUpModal(true)}
+                    tryActionLabel="Top-Up Wallet"
+                  />
+                </div>
+                <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                  ₹{(walletBalance || 10000).toLocaleString('en-IN')}.00
+                </div>
+                <p className="text-[11px] text-purple-200/80 font-medium">
+                  Instant zero-PIN debit for IRCTC booking & statutory auto-refund credit gateway.
+                </p>
               </div>
-              <p className="text-[11px] text-purple-200/80 font-medium">
-                Instant zero-PIN debit for IRCTC booking & statutory auto-refund credit gateway.
-              </p>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setShowTopUpModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Top-Up / Add Funds</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setShowTopUpModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Top-Up / Add Funds</span>
+            </button>
+          </div>
+        </ExplainableSection>
 
         {/* 4 Stat Pills */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
@@ -209,39 +245,59 @@ export const PaymentsPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           2. TRANSACTIONS LIST & FILTER BAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-[24px] p-4 shadow-sm border border-purple-100 space-y-3.5">
-        {/* Search and Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-50 pb-3">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-purple-50/60 border border-purple-100 text-xs overflow-x-auto no-scrollbar touch-scroll">
-            {(['ALL', 'PAID', 'REFUNDED', 'PROCESSING'] as StatusFilter[]).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setFilter(tab)}
-                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  filter === tab
-                    ? 'bg-white text-purple-950 shadow-xs border border-purple-200'
-                    : 'text-slate-600 hover:text-purple-900'
-                }`}
-              >
-                {tab === 'ALL' ? 'All Transactions' : tab.charAt(0) + tab.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
+      <ExplainableSection sectionId="payment-ledger">
+        <div className="bg-white rounded-[24px] p-4 shadow-sm border border-purple-100 space-y-3.5">
+          {/* Search and Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-50 pb-3">
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-purple-50/60 border border-purple-100 text-xs overflow-x-auto no-scrollbar touch-scroll">
+              {(['ALL', 'PAID', 'REFUNDED', 'PROCESSING'] as StatusFilter[]).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setFilter(tab)}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    filter === tab
+                      ? 'bg-white text-purple-950 shadow-xs border border-purple-200'
+                      : 'text-slate-600 hover:text-purple-900'
+                  }`}
+                >
+                  {tab === 'ALL' ? 'All Transactions' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
 
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-purple-600 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search TXN ID, Train, PNR..."
-              className="pl-8 pr-3 py-1.5 rounded-xl bg-purple-50/50 border border-purple-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600 w-full sm:w-60"
-            />
+            {/* Search Input & Explainer Button */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-purple-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search TXN ID, Train, PNR..."
+                  className="pl-8 pr-3 py-1.5 rounded-xl bg-purple-50/50 border border-purple-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-purple-600 w-full sm:w-60"
+                />
+              </div>
+              <SectionExplainerButton
+                sectionId="payment-ledger"
+                title="Audit-Grade Financial Ledger"
+                badge="Refund Integrity"
+                description="Every transaction, booking debit, and statutory refund is permanently recorded in a tamper-proof double-entry railway ledger with sub-second refund reconciliation."
+                howItWorks={[
+                  "Double-Entry Balancing: Reconciles debit to railway PRS inventory against payment gateway credit in real-time.",
+                  "Auto-Refund Bridge: Cancellations or dropouts trigger automated credits directly to the Citizen Wallet in <15s.",
+                  "GST Tax Invoice: Generates cryptographically verifiable tax invoices with official IRCTC SAC codes."
+                ]}
+                userActions={[
+                  "Search transactions by PNR, Train Number, or Gateway Transaction ID",
+                  "Filter transactions by Paid, Refunded, or Processing statuses",
+                  "Click 'Export Statement' to download complete financial audit report"
+                ]}
+                actionTip="Use the filter tabs or search bar to inspect individual PNR debits and refunds."
+              />
+            </div>
           </div>
-        </div>
 
         {/* Transaction Cards */}
         <div className="space-y-2.5">
@@ -350,6 +406,7 @@ export const PaymentsPage: React.FC = () => {
           )}
         </div>
       </div>
+      </ExplainableSection>
 
       {/* ═══════════════════════════════════════════════════════════════════
           3. DOUBLE-VERIFICATION RECOVERY GUARANTEE BANNER

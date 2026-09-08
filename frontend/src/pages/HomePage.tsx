@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   GitFork,
   FileText,
+  Mic,
 } from 'lucide-react';
 import { useJourney } from '../context/JourneyContext';
 import { POPULAR_STATIONS, Station, searchStations, findStation } from '../data/stationData';
@@ -34,6 +35,9 @@ import TypewriterText from '../components/smoothui/typewriter-text';
 import { parseNiraIntent } from '../services/niraApi';
 import { SafeAssistParser } from '../utils/SafeAssistParser';
 import { JargonHint } from '../components/JargonHint';
+import { AudioAnnouncementButton } from '../components/AudioAnnouncementButton';
+import { AskNirantarModal } from '../components/AskNirantarModal';
+import { SectionExplainerButton, ExplainableSection } from '../components/SectionExplainer';
 
 export const HomePage: React.FC = () => {
   const {
@@ -47,6 +51,7 @@ export const HomePage: React.FC = () => {
 
   const [nlQuery, setNlQuery] = useState('');
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showAskNirantar, setShowAskNirantar] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [guideViewMode, setGuideViewMode] = useState<'flowchart' | 'grid'>('flowchart');
@@ -392,37 +397,63 @@ export const HomePage: React.FC = () => {
             </h1>
 
             {/* SEARCH BAR (Pill shaped with mic on left & arrow on right) */}
-            <div ref={searchContainerRef} className="relative w-full max-w-md">
-              <form onSubmit={handleNLSubmit} className="relative">
-                <div className="flex items-center bg-white rounded-full p-1 sm:p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
-                  {/* Search Icon */}
-                  <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <ExplainableSection sectionId="journey-search">
+              <div ref={searchContainerRef} className="relative w-full max-w-md">
+                <form onSubmit={handleNLSubmit} className="relative">
+                  <div className="flex items-center bg-white rounded-full p-1 sm:p-1.5 shadow-[0_6px_20px_rgba(88,28,135,0.08)] border border-purple-100 hover:border-purple-300 focus-within:border-purple-600 transition-all">
+                    {/* Search Icon */}
+                    <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+
+                    {/* Input Text */}
+                    <input
+                      type="text"
+                      value={nlQuery}
+                      onChange={(e) => {
+                        setNlQuery(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      placeholder="Where are you going? (e.g. Delhi to Mumbai)"
+                      className="flex-1 min-w-0 bg-transparent text-xs sm:text-base font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none px-2 sm:px-3 py-1"
+                    />
+
+                    {/* Section Explainer (ℹ️) Robot Guide */}
+                    <SectionExplainerButton
+                      sectionId="journey-search"
+                      title="Conversational Route & Train Search"
+                      badge="Natural Language Search"
+                      expression="idea"
+                      description="Search Indian Railways train inventory in plain English or Hinglish (e.g. 'Delhi to Mumbai tomorrow evening' or 'Train 12951')."
+                      howItWorks={[
+                        "NVIDIA Intent Engine: Extracts origin station, destination station, date, and passenger count.",
+                        "Safe Assist Parser: Instant client-side fallback if network or token limits occur.",
+                        "Direct PNR & Live Tracker Routing: Detects train numbers (e.g. 12232, 12951) and routes immediately to Live Tracker."
+                      ]}
+                      userActions={[
+                        "Type city names, station codes (NDLS, BCT, HWH), or train numbers",
+                        "Click the microphone to speak your route hands-free",
+                        "Select from popular quick pills below to explore instant search results"
+                      ]}
+                      onTryAction={() => {
+                        setNlQuery('Delhi to Mumbai');
+                        handleNLSubmit();
+                      }}
+                      tryActionLabel="Try 'Delhi to Mumbai'"
+                      className="mr-1"
+                    />
+
+                    {/* Submit Arrow Button */}
+                    <button
+                      type="submit"
+                      className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
+                      title="Search Trains"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
                   </div>
-
-                  {/* Input Text */}
-                  <input
-                    type="text"
-                    value={nlQuery}
-                    onChange={(e) => {
-                      setNlQuery(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    placeholder="Where are you going? (e.g. Delhi to Mumbai)"
-                    className="flex-1 min-w-0 bg-transparent text-xs sm:text-base font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none px-2 sm:px-3 py-1"
-                  />
-
-                  {/* Submit Arrow Button */}
-                  <button
-                    type="submit"
-                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20 active:scale-95 transition-all cursor-pointer"
-                    title="Search Trains"
-                  >
-                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-              </form>
+                </form>
 
               {/* ── VERIFIED STATION & ROUTE AUTOCOMPLETE DROPDOWN ── */}
               {showSuggestions && autocompleteSuggestions.length > 0 && (
@@ -543,6 +574,7 @@ export const HomePage: React.FC = () => {
                 </div>
               )}
             </div>
+            </ExplainableSection>
 
             {/* QUICK PILLS */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
@@ -598,11 +630,35 @@ export const HomePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           2. 4 INTENT-FIRST PILLAR CARDS (What are you trying to do?)
           ═══════════════════════════════════════════════════════════════════ */}
+      <ExplainableSection sectionId="intent-cards">
       <section className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
-            What are you trying to do?
-          </span>
+        <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              What are you trying to do?
+            </span>
+            <SectionExplainerButton
+              sectionId="intent-cards"
+              title="Actionable Journey Intents"
+              subtitle="Direct Navigation to 4 Core Railway Services"
+              badge="Quick Actions"
+              stepNumber="INTENTS"
+              expression="idea"
+              description="One-tap shortcuts routing you directly to train discovery, live satellite tracking, station concourse maps, or transparent wallet refunds."
+              howItWorks={[
+                "Discover Trains: Search all routes with real-time seat availability and confirmation odds.",
+                "Live Track: Enter any train number to follow satellite GPS position and station halts.",
+                "Station Amenities: Explore food courts, waiting halls, and platform layouts.",
+                "Citizen Wallet: Instant 1-second auto-refunds and escrow balance manager."
+              ]}
+              userActions={[
+                "Click 'Find Trains' to browse express services",
+                "Click 'Track Status' to open live train tracker"
+              ]}
+              onTryAction={() => navigateTo('discover')}
+              tryActionLabel="Find Trains"
+            />
+          </div>
           <span className="text-[11px] font-bold text-purple-700">
             Nirantar routes you to the exact service
           </span>
@@ -655,6 +711,7 @@ export const HomePage: React.FC = () => {
           ))}
         </div>
       </section>
+      </ExplainableSection>
 
       {/* The previous three decorative panels are retained below only as a reference
           while this compact, actionable guide takes their place. */}
@@ -939,6 +996,7 @@ export const HomePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           3. VIBRANT COMPREHENSIVE FEATURE GUIDE — 6 CORE SUPERPOWERS & FLOWCHART
           ═══════════════════════════════════════════════════════════════════ */}
+      <ExplainableSection sectionId="feature-guide">
       <section aria-labelledby="feature-guide-title" className="relative overflow-hidden rounded-3xl border-2 border-purple-100/90 bg-gradient-to-b from-white via-purple-50/25 to-white p-5 sm:p-7 shadow-xl shadow-purple-500/5">
         {/* Background Subtle Ambient Glow */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-purple-200/40 blur-3xl" />
@@ -978,6 +1036,31 @@ export const HomePage: React.FC = () => {
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                   6 Journey Stages
                 </span>
+                <SectionExplainerButton
+                  sectionId="feature-guide"
+                  title="Interactive 6-Stage Journey Guide"
+                  badge="End-to-End Workflow"
+                  expression="happy"
+                  description="An interactive visual journey guide demonstrating each step of travelling with Indian Railways, from ticket confirmation to platform deboarding."
+                  howItWorks={[
+                    "Box 1 Concourse: Concourse crowd heatmaps, gate navigation, and ticket validation.",
+                    "Box 2 Station Hub: Waiting halls, amenities, and porter booking via Razorpay.",
+                    "Box 3 Platform: Track alignment, coach position markers, and crowd flow.",
+                    "Box 4 Coach & Berth: Dynamic 2D/3D coach layouts, power sockets, and berth inspection.",
+                    "Box 5 Live Tracker: Continuous GPS telemetry, live speed, and station halt countdowns.",
+                    "Box 6 Deboarding: Station arrival alerts, exit gates, and onward metro connections."
+                  ]}
+                  userActions={[
+                    "Click on any of the 6 boxes in the flowchart to see step guidance and character tips",
+                    "Switch between Flowchart mode and Cards mode",
+                    "Click 'Take Step-by-Step Tour' to launch the automated interactive walkthrough"
+                  ]}
+                  onTryAction={() => {
+                    setTourStep(0);
+                    setShowTourModal(true);
+                  }}
+                  tryActionLabel="Launch 6-Step Tour"
+                />
               </div>
               <h2 id="feature-guide-title" className="mt-1 font-display text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
                 Everything you need for a smoother train journey
@@ -1711,6 +1794,7 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+      </ExplainableSection>
 
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -1846,6 +1930,13 @@ export const HomePage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* 🎙️ FLAGSHIP "ASK NIRANTAR" MULTIMODAL PASSENGER COPILOT */}
+      <AskNirantarModal
+        isOpen={showAskNirantar}
+        onClose={() => setShowAskNirantar(false)}
+        onNavigate={navigateTo}
+      />
     </div>
   );
 };

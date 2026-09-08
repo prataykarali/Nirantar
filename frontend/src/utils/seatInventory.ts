@@ -507,39 +507,131 @@ export interface StationLoadProjection {
   boarding: number;
   alighting: number;
   vacantSeats: number;
+  coachVacantSeats?: number;
 }
 
-/** Deterministic passenger-flow projection for the demo route timeline. */
+/**
+ * Calculates deterministic, perfectly synchronized coach vacancy for any station stop.
+ * - Waitlisted / RAC trains: strictly 0 vacant seats (100% packed).
+ * - Available trains: (initial available - user booked) fluctuating by +-2 to +-4 buffer across stops.
+ */
+export function getStationCoachVacancy(
+  trainNumber: string,
+  classCode: string,
+  stops: StationStop[],
+  stationIndex: number,
+  isWaitlisted = false,
+  classAvailableSeats?: number,
+  userBookedCount = 0
+): number {
+  const isTerminus = stationIndex === stops.length - 1;
+  const isOrigin = stationIndex === 0;
+
+  const coachCapacity =
+    classCode === '1A' ? 24 :
+    classCode === '2A' ? 48 :
+    classCode === '3A' ? 64 :
+    classCode === '3E' || classCode === 'SL' ? 72 :
+    classCode === 'EC' || classCode === 'EA' ? 48 :
+    classCode === 'CC' ? 75 : 108;
+
+  if (isTerminus) {
+    return coachCapacity;
+  }
+
+  if (isWaitlisted) {
+    // Waitlist trains: origin has 0 unbooked, but intermediate halts unlock 3 to 6 deboarded vacancies to claim
+    if (isOrigin) return 0;
+    const seed = Math.abs(hash(`${trainNumber}:${classCode}:wl_vacant:${stops[stationIndex]?.code || stationIndex}`));
+    return Math.min(6, Math.max(2, 2 + (seed % 4)));
+  }
+
+  // Base vacancy from train booking inventory
+  const defaultClassBase = classCode === '1A' ? 3 : classCode === '2A' ? 5 : classCode === '3A' ? 7 : 9;
+  const initialBase = typeof classAvailableSeats === 'number' && classAvailableSeats > 0
+    ? classAvailableSeats
+    : defaultClassBase;
+
+  if (isOrigin) {
+    return Math.max(1, Math.min(coachCapacity, initialBase));
+  }
+
+  // Deterministic fluctuation across intermediate stops (+-2 buffer from intermediate passenger deboard/board)
+  const seed = Math.abs(hash(`${trainNumber}:${classCode}:${stops[stationIndex]?.code || stationIndex}`));
+  const buffer = ((seed % 5) - 2);
+
+  return Math.max(2, Math.min(coachCapacity, initialBase + buffer));
+}
+
+/** Deterministic passenger-flow projection for the demo route timeline, strictly summing all coach vacancies. */
 export function stationLoadProjection(
   trainNumber: string,
   stops: StationStop[],
   index: number,
   capacity = 72,
-  isWaitlisted = false
+  isWaitlisted = false,
+  availableClasses?: Array<{ classCode: string; className?: string; availableSeats?: number; status?: string }>,
+  userBookedSeats: Array<{ seatNumber: number; passengerName?: string; berthType?: string; coachCode?: string }> = [],
+  viewingClassCode = '3A'
 ): StationLoadProjection {
-  const seed = hash(`${trainNumber}:${stops[index]?.code || index}`);
+  const seed = Math.abs(hash(`${trainNumber}:${stops[index]?.code || index}`));
+  const isTerminus = index === stops.length - 1;
+  const isOrigin = index === 0;
 
   if (isWaitlisted) {
-    // Waitlisted trains run virtually packed (100% occupancy) across all legs
-    const alighting = index === 0 ? 0 : index === stops.length - 1 ? capacity : 1 + (seed % 3);
-    const boarding = index === stops.length - 1 ? 0 : alighting;
+    const alighting = isOrigin ? 0 : isTerminus ? 24 : 1 + (seed % 3);
+    const boarding = isTerminus ? 0 : 1 + ((seed >>> 3) % 3);
     return {
       boarding,
       alighting,
       vacantSeats: 0,
+      coachVacantSeats: 0,
     };
   }
 
-  let onboard = Math.round(capacity * 0.74);
-  for (let i = 0; i <= index; i += 1) {
-    const currentSeed = hash(`${trainNumber}:${stops[i]?.code || i}`);
-    const alighting = i === 0 ? 0 : i === stops.length - 1 ? onboard : 2 + (currentSeed % 11);
-    const boarding = i === stops.length - 1 ? 0 : 1 + ((currentSeed >>> 4) % 10);
-    onboard = Math.max(0, Math.min(capacity, onboard - alighting + boarding));
+  // Default core representative classes for this train
+  let classCodes = availableClasses && availableClasses.length > 0
+    ? Array.from(new Set(availableClasses.map((c) => c.classCode)))
+    : [];
+
+  if (classCodes.length === 0) {
+    if (trainNumber.startsWith('2243') || trainNumber.startsWith('2083') || trainNumber.startsWith('222') || trainNumber.startsWith('1200')) {
+      classCodes = ['EC', 'CC'];
+    } else {
+      classCodes = ['1A', '2A', '3A', 'SL'];
+    }
   }
-  const alighting = index === 0 ? 0 : index === stops.length - 1 ? Math.min(capacity, onboard + 2) : 2 + (seed % 11);
-  const boarding = index === stops.length - 1 ? 0 : 1 + ((seed >>> 4) % 10);
-  return { boarding, alighting, vacantSeats: Math.max(0, capacity - onboard) };
+
+  let totalTrainVacant = 0;
+  let viewingCoachVacant = 0;
+
+  classCodes.forEach((cc) => {
+    const classObj = availableClasses?.find((c) => c.classCode === cc);
+    const userPaxInThisClass = userBookedSeats.filter((s) => isCoachMatch(s.coachCode, undefined, cc)).length;
+    const coachVacant = getStationCoachVacancy(
+      trainNumber,
+      cc,
+      stops,
+      index,
+      isWaitlisted,
+      classObj?.availableSeats,
+      userPaxInThisClass
+    );
+    totalTrainVacant += coachVacant;
+    if (cc === viewingClassCode) {
+      viewingCoachVacant = coachVacant;
+    }
+  });
+
+  const alighting = isOrigin ? 0 : isTerminus ? totalTrainVacant : 2 + (seed % 5);
+  const boarding = isTerminus ? 0 : 1 + ((seed >>> 3) % 4);
+
+  return {
+    boarding,
+    alighting,
+    vacantSeats: totalTrainVacant,
+    coachVacantSeats: viewingCoachVacant,
+  };
 }
 
 export interface NoSeatSegment {
@@ -927,7 +1019,7 @@ export interface MidJourneyReallocation {
  */
 export function getRepresentativeCoaches(
   trainNumber: string,
-  availableClasses?: Array<{ classCode: string; className?: string }>
+  availableClasses?: Array<{ classCode: string; className?: string; availableSeats?: number; status?: string }>
 ): RepresentativeCoachInfo[] {
   const classMetadata: Record<string, { repCode: string; name: string; cap: number; available: number; desc: string; color: string }> = {
     '1A': { repCode: 'H1', name: 'AC 1st Class', cap: 24, available: 4, desc: 'Lockable 4-Berth Cabins & 2-Berth Private Coupes with Velvet Bedding', color: '#9333EA' },
@@ -968,13 +1060,18 @@ export function getRepresentativeCoaches(
       desc: 'Standard Indian Railway Coach',
       color: '#7C3AED',
     };
+    const matchingClassObj = availableClasses?.find((c: any) => c.classCode === cc);
+    const resolvedAvailable = typeof matchingClassObj?.availableSeats === 'number'
+      ? matchingClassObj.availableSeats
+      : meta.available;
+
     return {
       classCode: cc,
       className: meta.name,
       representativeCode: meta.repCode,
       label: `${meta.repCode} (${cc})`,
       capacity: meta.cap,
-      seatsAvailable: meta.available,
+      seatsAvailable: resolvedAvailable,
       description: meta.desc,
       accentColor: meta.color,
     };
@@ -1083,13 +1180,7 @@ export function isCoachMatch(
   // 1. Direct coach code exact match (e.g. "S2" === "S2", "B4" === "B4")
   if (vCoach && pCoach === vCoach) return true;
 
-  // 2. If viewing a specific coach code with a number (e.g. "S2", "S3", "B1", "B4")
-  // and passenger is in a different numbered coach (e.g. "S3" vs "S2"), DO NOT MATCH!
-  if (vCoach && /\d/.test(vCoach) && /\d/.test(pCoach)) {
-    return pCoach === vCoach;
-  }
-
-  // 3. Match against classCode (e.g. "SL", "3A", "2A", "1A")
+  // 2. Match against classCode (e.g. "SL", "3A", "2A", "1A") — matches all passenger seats in that class
   if (vClass) {
     if (pCoach === vClass) return true;
     if (vClass === 'SL' && (pCoach.startsWith('S') || pCoach.includes('SL') || pCoach.includes('SLEEPER'))) return true;
@@ -1100,6 +1191,13 @@ export function isCoachMatch(
     if (vClass === 'CC' && (pCoach.startsWith('C') || pCoach.includes('CC') || pCoach.includes('CHAIR'))) return true;
     if (vClass === 'EC' && (pCoach.startsWith('E') || pCoach.includes('EC') || pCoach.includes('EXECUTIVE'))) return true;
     if (vClass === '2S' && (pCoach.startsWith('D') || pCoach.includes('2S') || pCoach.includes('SECOND'))) return true;
+  }
+
+  // 3. Match coach prefix (e.g. B1 and B4 both start with B)
+  if (vCoach && pCoach) {
+    const vPrefix = vCoach.replace(/[0-9]/g, '');
+    const pPrefix = pCoach.replace(/[0-9]/g, '');
+    if (vPrefix && pPrefix && vPrefix === pPrefix) return true;
   }
 
   return false;
@@ -1117,13 +1215,13 @@ export function getCoachSegmentBays(
   viewingCoachCode?: string
 ): CoachBay[] {
   const bays: CoachBay[] = [];
-  const defaultRoute = routeStations.length > 0 ? routeStations : [
-    { code: 'NDLS', name: 'New Delhi', platform: 'Pf 14', distanceKm: 0, scheduledArr: '00:00', scheduledDep: '16:55', haltMins: 0 },
-    { code: 'KOTA', name: 'Kota Junction', platform: 'Pf 1', distanceKm: 465, scheduledArr: '21:30', scheduledDep: '21:40', haltMins: 10 },
-    { code: 'RTM', name: 'Ratlam Junction', platform: 'Pf 4', distanceKm: 731, scheduledArr: '00:45', scheduledDep: '00:50', haltMins: 5 },
-    { code: 'BRC', name: 'Vadodara Junction', platform: 'Pf 2', distanceKm: 992, scheduledArr: '04:10', scheduledDep: '04:18', haltMins: 8 },
-    { code: 'ST', name: 'Surat', platform: 'Pf 1', distanceKm: 1122, scheduledArr: '05:40', scheduledDep: '05:45', haltMins: 5 },
-    { code: 'MMCT', name: 'Mumbai Central', platform: 'Pf 3', distanceKm: 1386, scheduledArr: '08:35', scheduledDep: '08:35', haltMins: 0 },
+  const defaultRoute: StationStop[] = routeStations.length > 0 ? routeStations : [
+    { code: 'NDLS', name: 'New Delhi', platform: 'Pf 14', distanceKm: 0, scheduledArr: '00:00', scheduledDep: '16:55', haltMins: 0, doorSide: 'LEFT SIDE', pillarInfo: 'Pillar 1' },
+    { code: 'KOTA', name: 'Kota Junction', platform: 'Pf 1', distanceKm: 465, scheduledArr: '21:30', scheduledDep: '21:40', haltMins: 10, doorSide: 'RIGHT SIDE', pillarInfo: 'Pillar 4' },
+    { code: 'RTM', name: 'Ratlam Junction', platform: 'Pf 4', distanceKm: 731, scheduledArr: '00:45', scheduledDep: '00:50', haltMins: 5, doorSide: 'LEFT SIDE', pillarInfo: 'Pillar 2' },
+    { code: 'BRC', name: 'Vadodara Junction', platform: 'Pf 2', distanceKm: 992, scheduledArr: '04:10', scheduledDep: '04:18', haltMins: 8, doorSide: 'RIGHT SIDE', pillarInfo: 'Pillar 5' },
+    { code: 'ST', name: 'Surat', platform: 'Pf 1', distanceKm: 1122, scheduledArr: '05:40', scheduledDep: '05:45', haltMins: 5, doorSide: 'LEFT SIDE', pillarInfo: 'Pillar 3' },
+    { code: 'MMCT', name: 'Mumbai Central', platform: 'Pf 3', distanceKm: 1386, scheduledArr: '08:35', scheduledDep: '08:35', haltMins: 0, doorSide: 'LEFT SIDE', pillarInfo: 'Pillar 1' },
   ];
 
   // User seats specifically inside THIS viewed coach
@@ -1139,11 +1237,57 @@ export function getCoachSegmentBays(
 
   const totalStoppages = defaultRoute.length;
 
-  // Determine whether this train suffers from waitlist
   const effectiveIsWaitlisted =
     isWaitlisted !== undefined
       ? isWaitlisted
       : (trainNumber === '12232' || trainNumber === '12863' || trainNumber === '12864' || trainNumber === '12245');
+
+  const coachCapacity =
+    classCode === '1A' ? 24 :
+    classCode === '2A' ? 48 :
+    classCode === '3A' ? 64 :
+    classCode === '3E' || classCode === 'SL' ? 72 :
+    classCode === 'EC' || classCode === 'EA' ? 48 :
+    classCode === 'CC' ? 75 : 108;
+
+  const rawVacantCount = getStationCoachVacancy(
+    trainNumber || '12951',
+    classCode,
+    defaultRoute,
+    currentStationIndex,
+    effectiveIsWaitlisted,
+    undefined,
+    userSeatsInThisCoach.length
+  );
+
+  // Guarantee 3-6 vacant berths across the coach so mid-journey claim is always active
+  const targetVacantCount = Math.max(
+    effectiveIsWaitlisted && currentStationIndex === 0 ? 0 : 4,
+    Math.min(
+      coachCapacity - userSeatsInThisCoach.length - reallocsInThisCoach.length,
+      rawVacantCount || 4
+    )
+  );
+
+  // Determine candidate seats not booked by user
+  const candidateSeatNums: number[] = [];
+  for (let s = 1; s <= coachCapacity; s++) {
+    if (!userSeatNumsInThisCoach.includes(s) && !reallocsInThisCoach.some((r) => r.toSeat === s)) {
+      candidateSeatNums.push(s);
+    }
+  }
+
+  // Sort candidate seats by deterministic pseudo-random hash for this station & train
+  const scoredSeats = candidateSeatNums.map((seatNum) => {
+    const score = Math.abs(hash(`${trainNumber || '12951'}:${classCode}:${seatNum}:${currentStationIndex}`));
+    return { seatNum, score };
+  });
+  scoredSeats.sort((a, b) => a.score - b.score);
+
+  // Exactly targetVacantCount seats are VACANT
+  const vacantSeatSet = new Set<number>(
+    scoredSeats.slice(0, targetVacantCount).map((s) => s.seatNum)
+  );
 
   // Helper to construct a single berth
   const buildBerth = (seatNum: number, typeCode: string, fullType: string, bayIdx: number): SegmentBerth => {
@@ -1174,55 +1318,23 @@ export function getCoachSegmentBays(
     }
 
     const berthSeed = Math.abs(hash(`${trainNumber || '12951'}:${classCode}:${seatNum}:${bayIdx}`));
+    const isVacantAtCurrentStation = vacantSeatSet.has(seatNum);
 
     // Stoppage where this occupied berth deboards
-    let deboardStnIndex: number;
+    let deboardStnIndex = currentStationIndex;
     let boardStnIndex = 0;
-    let isInitiallyVacant = false;
 
-    if (effectiveIsWaitlisted) {
-      // WAITLISTED / LOW-SEAT (<10 seats or WL) TRAIN:
-      // Show lesser vacant seats: 3 to 7 MAX across the coach, generally deboarding towards the last 2 stoppages
-      const hasScatter = isWaitlistSeatScattered(trainNumber || '12951', classCode);
-      if (hasScatter && totalStoppages > 2) {
-        // Deterministically select ~6-9% of berths (3 to 6 seats in a 64-seat coach)
-        const isScatteredBerth = (berthSeed % 100) < 9;
-        if (isScatteredBerth) {
-          // Deboards generally towards the last 2 stoppages (e.g. stop N-2 or N-3)
-          deboardStnIndex = Math.max(1, totalStoppages - 2 - (berthSeed % 2));
-        } else {
-          deboardStnIndex = totalStoppages - 1;
-        }
-      } else {
-        // NO SCATTER: 100% end-to-end packed, zero vacant berths
-        deboardStnIndex = totalStoppages - 1;
-      }
+    if (isVacantAtCurrentStation) {
+      deboardStnIndex = Math.max(0, currentStationIndex);
+      boardStnIndex = 0;
     } else {
-      // AVAILABLE TRAIN (>10 seats available):
-      // Show MORE vacant seats across random stations!
-      // ~22% of berths are unbooked from the origin, plus ~45% of remaining berths deboard at random intermediate stops.
-      isInitiallyVacant = (berthSeed % 100) < 22;
-      const isIntermediateDeboard = (berthSeed % 100) >= 22 && (berthSeed % 100) < 65 && totalStoppages > 2;
-      if (isIntermediateDeboard) {
-        const intermediateOptions = Math.max(1, totalStoppages - 1);
-        deboardStnIndex = 1 + ((berthSeed >> 3) % intermediateOptions);
-        if (deboardStnIndex >= totalStoppages) {
-          deboardStnIndex = totalStoppages - 1;
-        }
-        if (deboardStnIndex > 1 && (berthSeed % 2 === 0)) {
-          boardStnIndex = (berthSeed >> 6) % deboardStnIndex;
-        }
-      } else {
-        deboardStnIndex = totalStoppages - 1;
-      }
+      const stopsRemaining = Math.max(1, totalStoppages - 1 - currentStationIndex);
+      deboardStnIndex = Math.min(totalStoppages - 1, currentStationIndex + 1 + (berthSeed % stopsRemaining));
+      boardStnIndex = Math.max(0, currentStationIndex - (berthSeed % Math.max(1, currentStationIndex + 1)));
     }
 
     const deboardStn = defaultRoute[deboardStnIndex] || defaultRoute[totalStoppages - 1];
     const boardStn = defaultRoute[boardStnIndex] || defaultRoute[0];
-    const stopsFromTerminal = totalStoppages - 1 - deboardStnIndex;
-
-    // If seat was unbooked from origin OR current station has reached or passed deboarding station, seat is VACANT!
-    const isDeboarded = isInitiallyVacant || currentStationIndex >= deboardStnIndex;
 
     // Check if this berth is right beside the user's seat in the bay (in this coach only)
     const isBeside = userSeatNumsInThisCoach.some((uNum) => {
@@ -1230,7 +1342,7 @@ export function getCoachSegmentBays(
       return diff <= 2 && diff > 0;
     });
 
-    if (isDeboarded) {
+    if (isVacantAtCurrentStation) {
       return {
         num: seatNum,
         type: typeCode,
@@ -1241,11 +1353,12 @@ export function getCoachSegmentBays(
           travelFrom: boardStn.name,
           travelTo: deboardStn.name,
           deboardsAtStationIndex: deboardStnIndex,
-          deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stop${stopsFromTerminal === 1 ? '' : 's'} from terminal)`,
+          deboardsAtStationName: `${deboardStn.name} (Deboarded here • Available to Claim)`,
         },
       };
     }
 
+    const stopsUntilDeboard = Math.max(1, deboardStnIndex - currentStationIndex);
     return {
       num: seatNum,
       type: typeCode,
@@ -1256,7 +1369,7 @@ export function getCoachSegmentBays(
         travelFrom: boardStn.name,
         travelTo: deboardStn.name,
         deboardsAtStationIndex: deboardStnIndex,
-        deboardsAtStationName: `${deboardStn.name} (${stopsFromTerminal} stop${stopsFromTerminal === 1 ? '' : 's'} from terminal)`,
+        deboardsAtStationName: `${deboardStn.name} (Deboards in ${stopsUntilDeboard} stop${stopsUntilDeboard === 1 ? '' : 's'})`,
       },
     };
   };

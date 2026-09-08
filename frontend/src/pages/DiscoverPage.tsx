@@ -20,6 +20,7 @@ import { SafeAssistParser, SafeAssistResult } from '../utils/SafeAssistParser';
 import { TouristDestinationsModal } from '../components/journey/TouristDestinationsModal';
 import { DISCOVER_SERVICES } from '../data/discoverServices';
 import { DiscoveryMatch, resolveDiscoveryIntent } from '../utils/discoverIntent';
+import { SectionExplainerButton } from '../components/SectionExplainer';
 
 export const DiscoverPage: React.FC = () => {
   const {
@@ -330,9 +331,29 @@ export const DiscoverPage: React.FC = () => {
               </span>
             </h1>
 
-            <p className="text-[11px] sm:text-sm font-bold text-slate-600 pt-0.5 sm:pt-1">
-              Speak or search routes across 8,000+ Indian Railway stations.
-            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-0.5 sm:pt-1">
+              <p className="text-[11px] sm:text-sm font-bold text-slate-600">
+                Speak or search routes across 8,000+ Indian Railway stations.
+              </p>
+              <SectionExplainerButton
+                sectionId="discover-search"
+                title="Route Discovery & SafeAssist"
+                subtitle="Zero-PII Voice & Route Search"
+                badge="Nira AI Guide"
+                description="Search across 8,000+ railway stations with real-time zone mapping and SafeAssist voice queries processed entirely on your device."
+                howItWorks={[
+                  'Instant Autocomplete: Indexes IRCTC junction codes and city aliases locally.',
+                  'Zero-PII Privacy: Voice queries are transcribed locally without uploading identity data.',
+                  'Smart Multi-Station Resolver: Disambiguates metropolitan multi-station hubs (e.g., Delhi NDLS vs DLI).'
+                ]}
+                userActions={[
+                  'Type city name or station code in "From" and "To" fields',
+                  'Tap the mic icon to dictate your travel query in natural English or Hindi',
+                  'Click Find Trains to generate live routes and seat availability'
+                ]}
+                actionTip="Enter your source and destination stations to begin search!"
+              />
+            </div>
           </div>
 
           {/* Right Side Transparent Girl Avatar Cutout (Ananya Thinking) */}
@@ -692,9 +713,29 @@ export const DiscoverPage: React.FC = () => {
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-1.5">
         <div className="flex items-center justify-between px-1">
-          <h2 className="font-display font-black text-sm sm:text-base text-slate-900 tracking-tight">
-            Popular journeys
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-black text-sm sm:text-base text-slate-900 tracking-tight">
+              Popular journeys
+            </h2>
+            <SectionExplainerButton
+              sectionId="discover-popular-routes"
+              title="Curated Popular Corridors"
+              subtitle="High-Speed & Trunk Routes"
+              badge="Nira AI Guide"
+              description="Direct high-frequency trunk lines curated with real-time seat tracking and historical confirmation odds."
+              howItWorks={[
+                'Trunk Corridors: Connects golden quadrilateral hubs (Delhi, Mumbai, Bengaluru, Kolkata, Chennai).',
+                'Pre-cached Availability: Real-time seat counts and lowest dynamic fare cached for instant booking.',
+                '1-Click Route Selection: Automatically populates origin, destination, and next available dates.'
+              ]}
+              userActions={[
+                'Click any popular card to instantly trigger train search',
+                'View fastest travel times and verified platform connections',
+                'Click View All to browse top regional tourist destinations'
+              ]}
+              actionTip="Click any popular journey card to view today's available trains!"
+            />
+          </div>
           <button
             type="button"
             onClick={() => setShowDestinationsModal(true)}

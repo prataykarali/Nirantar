@@ -1,5 +1,6 @@
 import React from 'react';
 import { Train, Clock, MapPin, CheckCircle2, Ticket } from 'lucide-react';
+import { AudioAnnouncementButton } from './AudioAnnouncementButton';
 
 export interface TrainCardProps {
   trainNo: string;
@@ -65,8 +66,8 @@ export const TrainCard: React.FC<TrainCardProps> = ({
         </div>
       </div>
 
-      {/* FOOTER: FARE & BOOK BUTTON */}
-      <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+      {/* FOOTER: FARE, ANNOUNCEMENT BUTTON & BOOK BUTTON */}
+      <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
         <div>
           <span className="text-[10px] font-mono text-slate-400 uppercase">Total Fare</span>
           <p className="text-base font-extrabold text-emerald-400">
@@ -74,12 +75,23 @@ export const TrainCard: React.FC<TrainCardProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => onBook && onBook(trainNo)}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-500/25 flex items-center gap-1.5 transition-all active:scale-95"
-        >
-          <Ticket className="w-3.5 h-3.5" /> Book Ticket
-        </button>
+        <div className="flex items-center gap-2">
+          <AudioAnnouncementButton
+            trainNumber={trainNo}
+            trainName={trainName}
+            from={source}
+            to={destination}
+            platform="1"
+            compact
+          />
+
+          <button
+            onClick={() => onBook && onBook(trainNo)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-500/25 flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <Ticket className="w-3.5 h-3.5" /> Book Ticket
+          </button>
+        </div>
       </div>
     </div>
   );

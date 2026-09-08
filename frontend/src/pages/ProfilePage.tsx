@@ -28,6 +28,7 @@ import {
 import { useJourney } from '../context/JourneyContext';
 import { JargonHint } from '../components/JargonHint';
 import { TopUpWalletModal } from '../components/payment/TopUpWalletModal';
+import { SectionExplainerButton } from '../components/SectionExplainer';
 
 export interface CitizenAvatar {
   id: string;
@@ -344,6 +345,24 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <SectionExplainerButton
+            sectionId="profile-digilocker-vault"
+            title="Citizen Profile & DigiLocker Vault"
+            subtitle="Local Zero-PII Credential Storage"
+            badge="Nira AI Guide"
+            description="Manage your verified passenger credentials and travel concessions safely encrypted on your device with direct DigiLocker sync."
+            howItWorks={[
+              'Zero-PII Storage: Aadhaar and document hashes remain in encrypted local storage, never shared without consent.',
+              '1-Tap Autofill: Automatically populates passenger lists during Tatkal and general ticket booking.',
+              'Multi-Profile Switching: Support for students, senior citizens, and family master lists.'
+            ]}
+            userActions={[
+              'Update passenger details or add family members',
+              'Verify identity with 1-tap DigiLocker sync',
+              'Top up Citizen Wallet for instant 1-second auto-refunds'
+            ]}
+            actionTip="Update your passenger details to enable instant 1-tap booking autofill!"
+          />
           <button
             type="button"
             onClick={() => {

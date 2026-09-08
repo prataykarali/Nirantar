@@ -1,0 +1,44 @@
+{
+  "publishes": {
+    "bronze-tinsel-n8pb": {
+      "siteUrl": "https://bronze-tinsel-n8pb.here.now/",
+      "versionId": "01M1F4WADFHWV7M3CD2H95VSYP",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "devoted-mustard-gw93": {
+      "siteUrl": "https://devoted-mustard-gw93.here.now/",
+      "versionId": "01M1F06EXEGQ371RT92SRSH5MF",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "queued-huckle-bajt": {
+      "siteUrl": "https://queued-huckle-bajt.here.now/",
+      "versionId": "01M20WJAFJWJKHG674NP9XA4FC",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "crystal-cottage-wd54": {
+      "siteUrl": "https://crystal-cottage-wd54.here.now/",
+      "versionId": "01M20YX8RVVM9WMWG4ZM5D3QVP",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "vivid-chant-z3yb": {
+      "siteUrl": "https://vivid-chant-z3yb.here.now/",
+      "versionId": "01M210Y66F1AN7K7M21123ZG6K",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "pure-yarrow-gmjn": {
+      "siteUrl": "https://pure-yarrow-gmjn.here.now/",
+      "versionId": "01M2133AKBZCYBDNJ5AH0KJEQ0",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "amber-charm-za4d": {
+      "siteUrl": "https://amber-charm-za4d.here.now/",
+      "versionId": "01M2151DC02RR6SJR8SR4BMT31",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    },
+    "ubuntu-cedar-sqkf": {
+      "siteUrl": "https://ubuntu-cedar-sqkf.here.now/",
+      "versionId": "01M215PVA71YD7XP8MTYKD1ASX",
+      "path": "/home/pratay-karali/Desktop/NIRANTAR/frontend/dist"
+    }
+  }
+}
