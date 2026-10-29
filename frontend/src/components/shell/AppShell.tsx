@@ -29,6 +29,7 @@ import { NewUserWelcomeModal } from '../NewUserWelcomeModal';
 import { NotificationToasts } from '../NotificationToasts';
 import { AgenticAuthModal } from '../auth/AgenticAuthModal';
 import { DigitalBankNotificationOverlay } from '../DigitalBankNotificationOverlay';
+import { PortalPulseNotices } from '../PortalPulseNotices';
 
 export const AppShell: React.FC = () => {
   const {
@@ -279,6 +280,7 @@ export const AppShell: React.FC = () => {
 
       <NotificationToasts />
       <DigitalBankNotificationOverlay />
+      <PortalPulseNotices />
     </div>
   );
 };

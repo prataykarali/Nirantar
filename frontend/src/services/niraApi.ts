@@ -4,6 +4,10 @@ import { SafeAssistParser, SafeAssistResult } from '../utils/SafeAssistParser';
 import { deterministicNiraReply } from './niraRules';
 
 const API_BASE = apiBase();
+const portalPulseBase = String((import.meta as any).env?.VITE_PORTALPULSE_API_URL || '').trim().replace(/\/$/, '');
+const FAIR_ACCESS_BASE = portalPulseBase
+  ? `${portalPulseBase.replace(/\/api\/v1$/, '')}/api/v1`
+  : API_BASE;
 
 export interface NiraIntentResponse {
   intent: SafeAssistResult['intent'];
@@ -87,7 +91,7 @@ export async function admitFairAccess(payload: {
   journeyId?: string;
 }): Promise<FairAccessTicket | null> {
   try {
-    const res = await fetch(`${API_BASE}/fair-access/admit`, {
+    const res = await fetch(`${FAIR_ACCESS_BASE}/fair-access/admit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -108,7 +112,7 @@ export async function admitFairAccess(payload: {
 
 export async function getFairAccessStatus(ticketId: string): Promise<FairAccessTicket | null> {
   try {
-    const res = await fetch(`${API_BASE}/fair-access/status/${ticketId}`);
+    const res = await fetch(`${FAIR_ACCESS_BASE}/fair-access/status/${ticketId}`);
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -178,4 +182,3 @@ export async function transcribeAudio(audioBase64: string, language = 'en'): Pro
     return '';
   }
 }
-
